@@ -1,0 +1,145 @@
+site_name: object-store-rs
+repo_name: developmentseed/object-store-rs
+repo_url: https://github.com/developmentseed/object-store-rs
+site_description: A Python interface and pyo3 integration to the Rust object-store crate.
+site_author: Development Seed
+# Note: trailing slash recommended with mike:
+# https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/#publishing-a-new-version
+site_url: https://developmentseed.org/object-store-rs/
+docs_dir: docs
+
+extra:
+  social:
+    - icon: "fontawesome/brands/github"
+      link: "https://github.com/developmentseed"
+    - icon: "fontawesome/brands/twitter"
+      link: "https://twitter.com/developmentseed"
+    - icon: "fontawesome/brands/medium"
+      link: "https://medium.com/devseed"
+  version:
+    provider: mike
+
+nav:
+  - "index.md"
+  - API Reference:
+      - store:
+          - api/store/index.md
+          - api/store/aws.md
+          - api/store/azure.md
+          - api/store/gcs.md
+          - api/store/http.md
+          - api/store/local.md
+          - api/store/memory.md
+          - api/store/config.md
+      - api/copy.md
+      - api/delete.md
+      - api/get.md
+      - api/head.md
+      - api/list.md
+      - api/put.md
+      - api/rename.md
+      - api/sign.md
+
+watch:
+  - object-store-rs/python
+  - docs
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - navigation.indexes
+    - navigation.instant
+    - navigation.tracking
+    - search.suggest
+    - search.share
+
+plugins:
+  - search
+  - social
+  - mike:
+      alias_type: "copy"
+      canonical_version: "latest"
+  - mkdocstrings:
+      enable_inventory: true
+      handlers:
+        python:
+          paths: [object-store-rs/python]
+          options:
+            # We set allow_inspection: false to ensure that all docstrings come
+            # from the pyi files, not the Rust-facing doc comments.
+            allow_inspection: false
+            docstring_section_style: list
+            docstring_style: google
+            line_length: 80
+            separate_signature: true
+            show_root_heading: true
+            show_signature_annotations: true
+            show_source: false
+            show_symbol_type_toc: true
+            signature_crossrefs: true
+            extensions:
+              - griffe_inherited_docstrings
+
+          import:
+            - https://docs.python.org/3/objects.inv
+
+# https://github.com/developmentseed/titiler/blob/50934c929cca2fa8d3c408d239015f8da429c6a8/docs/mkdocs.yml#L115-L140
+markdown_extensions:
+  - admonition
+  - attr_list
+  - codehilite:
+      guess_lang: false
+  - def_list
+  - footnotes
+  - md_in_html
+  - pymdownx.arithmatex
+  - pymdownx.betterem
+  - pymdownx.caret:
+      insert: false
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.escapeall:
+      hardbreak: true
+      nbsp: true
+  - pymdownx.magiclink:
+      hide_protocol: true
+      repo_url_shortener: true
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - toc:
+      permalink: true

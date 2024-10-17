@@ -1,0 +1,66 @@
+name: Publish Python docs
+
+# Only run on new tags starting with `py-v`
+on:
+  push:
+    tags:
+      - "py-v*"
+  workflow_dispatch:
+
+# https://stackoverflow.com/a/77412363
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  build:
+    name: Deploy Python docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # We need to additionally fetch the gh-pages branch for mike deploy
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Set up Python 3.11
+        id: setup-python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install a specific version of uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          version: "0.4.x"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build python packages
+        run: |
+          uv run maturin develop -m object-store-rs/Cargo.toml
+
+      - name: Deploy docs
+        env:
+          GIT_COMMITTER_NAME: CI
+          GIT_COMMITTER_EMAIL: ci-bot@example.com
+        run: |
+          # Get most recent git tag
+          # https://stackoverflow.com/a/7261049
+          # https://stackoverflow.com/a/3867811
+          # We don't use {{github.ref_name}} because if triggered manually, it
+          # will be a branch name instead of a tag version.
+          # Then remove `py-` from the tag
+          VERSION=$(git describe --tags --match="py-*" --abbrev=0 | cut -c 4-)
+
+          # Only push docs if no letters in git tag after the first character
+          # (usually the git tag will have v as the first character)
+          if echo $VERSION | cut -c 1- | grep -q "[A-Za-z]"; then
+            uv run mike deploy $VERSION latest --update-aliases --push
+          fi
