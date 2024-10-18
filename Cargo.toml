@@ -3,14 +3,12 @@ members = ["object-store-rs", "pyo3-object_store"]
 resolver = "2"
 
 [workspace.package]
-# Package version for arro3-*, not for pyo3-arrow
-version = "0.4.2"
-authors = ["Kyle Barron <kylebarron2@gmail.com>"]
+authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
-homepage = "https://kylebarron.dev/arro3"
-repository = "https://github.com/kylebarron/arro3"
+homepage = "https://developmentseed.org/object-store-rs"
+repository = "https://github.com/developmentseed/object-store-rs"
 license = "MIT OR Apache-2.0"
-keywords = ["python", "arrow"]
+keywords = ["python"]
 categories = []
 rust-version = "1.75"
 
