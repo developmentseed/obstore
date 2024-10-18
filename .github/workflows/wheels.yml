@@ -30,8 +30,9 @@ jobs:
             target: x86
           - runner: ubuntu-latest
             target: aarch64
-          - runner: ubuntu-latest
-            target: armv7
+          # Not supported in manylinux 2_28?
+          # - runner: ubuntu-latest
+          #   target: armv7
           - runner: ubuntu-latest
             target: s390x
           - runner: ubuntu-latest
@@ -47,7 +48,7 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter --manifest-path object-store-rs/Cargo.toml
           sccache: "true"
-          manylinux: auto
+          manylinux: manylinux_2_28
           before-script-linux: |
             yum update -y
             yum install openssl openssl-devel perl-IPC-Cmd -y
@@ -82,6 +83,9 @@ jobs:
           args: --release --out dist --find-interpreter --manifest-path object-store-rs/Cargo.toml
           sccache: "true"
           manylinux: musllinux_1_2
+          before-script-linux: |
+            yum update -y
+            yum install openssl openssl-devel perl-IPC-Cmd -y
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
