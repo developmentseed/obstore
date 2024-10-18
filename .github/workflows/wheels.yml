@@ -47,7 +47,8 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter --manifest-path object-store-rs/Cargo.toml
-          sccache: "true"
+          # Fails with "no module named pip"
+          sccache: "false"
           manylinux: manylinux_2_28
           before-script-linux: |
             yum update -y
