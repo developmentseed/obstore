@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use futures::TryStreamExt;
+use futures::stream::BoxStream;
+use futures::{StreamExt, TryStreamExt};
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
+use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
+use tokio::sync::Mutex;
 
 use crate::runtime::get_runtime;
 
@@ -30,9 +33,9 @@ impl IntoPy<PyObject> for PyObjectMeta {
     }
 }
 
-pub(crate) struct PyListResult(ListResult);
+pub(crate) struct PyMaterializedListResult(ListResult);
 
-impl IntoPy<PyObject> for PyListResult {
+impl IntoPy<PyObject> for PyMaterializedListResult {
     fn into_py(self, py: Python<'_>) -> PyObject {
         let mut dict = HashMap::new();
         dict.insert(
@@ -57,21 +60,131 @@ impl IntoPy<PyObject> for PyListResult {
     }
 }
 
+#[pyclass(name = "ListResult")]
+pub(crate) struct PyListResult<'a> {
+    // store: Arc<dyn ObjectStore>,
+    // stream: Option<Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
+    payload: BoxStream<'a, object_store::Result<ObjectMeta>>,
+    min_chunk_size: usize,
+}
+
+impl PyListResult {
+    fn new(
+        // store: Arc<dyn ObjectStore>,
+        // prefix: Option<&Path>,
+        stream: BoxStream<'static, object_store::Result<ObjectMeta>>,
+        min_chunk_size: usize,
+    ) -> Self {
+        // let stream = store.as_ref().list(prefix);
+        Self {
+            payload: stream,
+            min_chunk_size,
+        }
+    }
+}
+
+#[pyclass(name = "ListStream")]
+pub struct PyListStream {
+    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
+    min_chunk_size: usize,
+}
+
+impl PyListStream {
+    fn new(
+        stream: BoxStream<'static, object_store::Result<ObjectMeta>>,
+        min_chunk_size: usize,
+    ) -> Self {
+        Self {
+            stream: Arc::new(Mutex::new(stream)),
+            min_chunk_size,
+        }
+    }
+}
+
+async fn next_stream(
+    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
+    min_chunk_size: usize,
+    sync: bool,
+) -> PyResult<()> {
+    let mut stream = stream.lock().await;
+    let mut metas: Vec<ObjectMeta> = vec![];
+    loop {
+        match stream.next().await {
+            Some(Ok(meta)) => {
+                metas.push(meta);
+                if metas.len() >= min_chunk_size {
+                    todo!()
+                    // return Ok(PyBytesWrapper::new_multiple(buffers));
+                }
+            }
+            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+            None => {
+                if metas.is_empty() {
+                    // Depending on whether the iteration is sync or not, we raise either a
+                    // StopIteration or a StopAsyncIteration
+                    if sync {
+                        return Err(PyStopIteration::new_err("stream exhausted"));
+                    } else {
+                        return Err(PyStopAsyncIteration::new_err("stream exhausted"));
+                    }
+                } else {
+                    todo!()
+                    // return Ok(PyBytesWrapper::new_multiple(buffers));
+                }
+            }
+        };
+    }
+}
+
+#[pymethods]
+impl PyListStream {
+    fn __aiter__(slf: Py<Self>) -> Py<Self> {
+        slf
+    }
+
+    fn __iter__(slf: Py<Self>) -> Py<Self> {
+        slf
+    }
+
+    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+        let stream = self.stream.clone();
+        pyo3_async_runtimes::tokio::future_into_py(
+            py,
+            next_stream(stream, self.min_chunk_size, false),
+        )
+    }
+
+    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<()> {
+        let runtime = get_runtime(py)?;
+        let stream = self.stream.clone();
+        runtime.block_on(next_stream(stream, self.min_chunk_size, true))
+    }
+}
+
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None))]
-pub(crate) fn list(
-    py: Python,
+#[pyo3(signature = (store, prefix = None, *, min_chunk_size = 1000))]
+pub(crate) fn list<'py>(
+    py: Python<'py>,
     store: PyObjectStore,
     prefix: Option<String>,
-) -> PyObjectStoreResult<Vec<PyObjectMeta>> {
-    let runtime = get_runtime(py)?;
-    py.allow_threads(|| {
-        let out = runtime.block_on(list_materialize(
-            store.into_inner(),
-            prefix.map(|s| s.into()).as_ref(),
-        ))?;
-        Ok::<_, PyObjectStoreError>(out)
-    })
+    min_chunk_size: usize,
+) -> PyObjectStoreResult<PyListResult> {
+    // todo!()
+    // // let runtime = get_runtime(py)?;
+    // let store = store.into_inner();
+    let stream = store.as_ref().list(prefix.map(|s| s.into()).as_ref());
+    // todo!()
+    Ok(PyListResult::new(stream, min_chunk_size))
+    // Ok::<_, PyObjectStoreError>(PyListResult::new(store, stream, min_chunk_size))
+    // // py.allow_threads(move || {
+
+    //     // let x = runtime.block_on(fut);
+    //     // let out = runtime.block_on(list_materialize(
+    //     //     store.into_inner(),
+    //     //     prefix.map(|s| s.into()).as_ref(),
+    //     // ))?;
+    //     // Ok::<_, PyObjectStoreError>(out)
+    // })
 }
 
 #[pyfunction]
@@ -101,7 +214,7 @@ pub(crate) fn list_with_delimiter(
     py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
-) -> PyObjectStoreResult<PyListResult> {
+) -> PyObjectStoreResult<PyMaterializedListResult> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
         let out = runtime.block_on(list_with_delimiter_materialize(
@@ -130,7 +243,7 @@ pub(crate) fn list_with_delimiter_async(
 async fn list_with_delimiter_materialize(
     store: Arc<dyn ObjectStore>,
     prefix: Option<&Path>,
-) -> PyObjectStoreResult<PyListResult> {
+) -> PyObjectStoreResult<PyMaterializedListResult> {
     let list_result = store.list_with_delimiter(prefix).await?;
-    Ok(PyListResult(list_result))
+    Ok(PyMaterializedListResult(list_result))
 }
