@@ -98,6 +98,18 @@ class GetResult:
     def meta(self) -> ObjectMeta:
         """The ObjectMeta for this object"""
 
+    def stream(self) -> BytesStream:
+        """Return a chunked stream over the result's bytes."""
+
+class BytesStream:
+    """An async stream of bytes."""
+
+    def __aiter__(self) -> BytesStream:
+        """Return `Self` as an async iterator."""
+
+    async def __anext__(self) -> bytes:
+        """Return the next chunk of bytes in the stream."""
+
 def get(
     store: ObjectStore, location: str, *, options: GetOptions | None = None
 ) -> GetResult:

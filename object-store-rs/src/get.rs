@@ -1,10 +1,16 @@
+use std::sync::Arc;
+
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
+use futures::StreamExt;
 use object_store::{GetOptions, GetResult, ObjectStore};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyStopAsyncIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
+use tokio::sync::Mutex;
 
 use crate::list::PyObjectMeta;
 use crate::runtime::get_runtime;
@@ -79,6 +85,47 @@ impl PyGetResult {
             .as_ref()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyObjectMeta::new(inner.meta.clone()))
+    }
+
+    fn stream(&mut self) -> PyResult<PyBytesStream> {
+        let get_result = self
+            .0
+            .take()
+            .ok_or(PyValueError::new_err("Result has already been disposed."))?;
+        Ok(PyBytesStream::new(get_result.into_stream()))
+    }
+}
+
+#[pyclass(name = "BytesStream")]
+pub struct PyBytesStream {
+    stream: Arc<Mutex<BoxStream<'static, object_store::Result<Bytes>>>>,
+}
+
+impl PyBytesStream {
+    fn new(stream: BoxStream<'static, object_store::Result<Bytes>>) -> Self {
+        Self {
+            stream: Arc::new(Mutex::new(stream)),
+        }
+    }
+}
+
+#[pymethods]
+impl PyBytesStream {
+    fn __aiter__(_self: Py<Self>) -> Py<Self> {
+        _self
+    }
+
+    fn __anext__(&self, py: Python) -> PyResult<Option<PyObject>> {
+        let stream = self.stream.clone();
+        let fut = pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            match stream.lock().await.next().await {
+                Some(Ok(bytes)) => Ok(PyBytesWrapper(bytes)),
+                Some(Err(e)) => Err(PyObjectStoreError::from(e).into()),
+                None => Err(PyStopAsyncIteration::new_err("stream exhausted")),
+            }
+        })?;
+
+        Ok(Some(fut.into()))
     }
 }
 
