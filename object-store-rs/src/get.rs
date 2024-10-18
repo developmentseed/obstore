@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use futures::StreamExt;
 use object_store::{GetOptions, GetResult, ObjectStore};
-use pyo3::exceptions::{PyStopAsyncIteration, PyValueError};
+use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
@@ -14,6 +14,9 @@ use tokio::sync::Mutex;
 
 use crate::list::PyObjectMeta;
 use crate::runtime::get_runtime;
+
+/// 10MB default chunk size
+const DEFAULT_BYTES_CHUNK_SIZE: usize = 10 * 1024 * 1024;
 
 #[derive(FromPyObject)]
 pub(crate) struct PyGetOptions {
@@ -60,7 +63,7 @@ impl PyGetResult {
         let runtime = get_runtime(py)?;
         py.allow_threads(|| {
             let bytes = runtime.block_on(get_result.bytes())?;
-            Ok::<_, PyObjectStoreError>(PyBytesWrapper(bytes))
+            Ok::<_, PyObjectStoreError>(PyBytesWrapper::new(bytes))
         })
     }
 
@@ -74,7 +77,7 @@ impl PyGetResult {
                 .bytes()
                 .await
                 .map_err(PyObjectStoreError::ObjectStoreError)?;
-            Ok(PyBytesWrapper(bytes))
+            Ok(PyBytesWrapper::new(bytes))
         })
     }
 
@@ -87,43 +90,70 @@ impl PyGetResult {
         Ok(PyObjectMeta::new(inner.meta.clone()))
     }
 
-    fn stream(&mut self) -> PyResult<PyBytesStream> {
+    #[pyo3(signature = (min_chunk_size = DEFAULT_BYTES_CHUNK_SIZE))]
+    fn stream(&mut self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
         let get_result = self
             .0
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
-        Ok(PyBytesStream::new(get_result.into_stream()))
+        Ok(PyBytesStream::new(get_result.into_stream(), min_chunk_size))
     }
 
     fn __aiter__(&mut self) -> PyResult<PyBytesStream> {
-        self.stream()
+        self.stream(DEFAULT_BYTES_CHUNK_SIZE)
     }
 
     fn __iter__(&mut self) -> PyResult<PyBytesStream> {
-        self.stream()
+        self.stream(DEFAULT_BYTES_CHUNK_SIZE)
     }
 }
 
 #[pyclass(name = "BytesStream")]
 pub struct PyBytesStream {
     stream: Arc<Mutex<BoxStream<'static, object_store::Result<Bytes>>>>,
+    min_chunk_size: usize,
 }
 
 impl PyBytesStream {
-    fn new(stream: BoxStream<'static, object_store::Result<Bytes>>) -> Self {
+    fn new(stream: BoxStream<'static, object_store::Result<Bytes>>, min_chunk_size: usize) -> Self {
         Self {
             stream: Arc::new(Mutex::new(stream)),
+            min_chunk_size,
         }
     }
 }
 
 async fn next_stream(
     stream: Arc<Mutex<BoxStream<'static, object_store::Result<Bytes>>>>,
+    min_chunk_size: usize,
+    sync: bool,
 ) -> PyResult<PyBytesWrapper> {
-    match stream.lock().await.next().await {
-        Some(Ok(bytes)) => Ok(PyBytesWrapper(bytes)),
-        Some(Err(e)) => Err(PyObjectStoreError::from(e).into()),
-        None => Err(PyStopAsyncIteration::new_err("stream exhausted")),
+    let mut stream = stream.lock().await;
+    let mut buffers: Vec<Bytes> = vec![];
+    loop {
+        match stream.next().await {
+            Some(Ok(bytes)) => {
+                buffers.push(bytes);
+                let total_buffer_len = buffers.iter().fold(0, |acc, buf| acc + buf.len());
+                if total_buffer_len >= min_chunk_size {
+                    return Ok(PyBytesWrapper::new_multiple(buffers));
+                }
+            }
+            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+            None => {
+                if buffers.is_empty() {
+                    // Depending on whether the iteration is sync or not, we raise either a
+                    // StopIteration or a StopAsyncIteration
+                    if sync {
+                        return Err(PyStopIteration::new_err("stream exhausted"));
+                    } else {
+                        return Err(PyStopAsyncIteration::new_err("stream exhausted"));
+                    }
+                } else {
+                    return Ok(PyBytesWrapper::new_multiple(buffers));
+                }
+            }
+        };
     }
 }
 
@@ -139,22 +169,49 @@ impl PyBytesStream {
 
     fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
         let stream = self.stream.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, next_stream(stream))
+        pyo3_async_runtimes::tokio::future_into_py(
+            py,
+            next_stream(stream, self.min_chunk_size, false),
+        )
     }
 
     fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyBytesWrapper> {
         let runtime = get_runtime(py)?;
         let stream = self.stream.clone();
-        runtime.block_on(next_stream(stream))
+        runtime.block_on(next_stream(stream, self.min_chunk_size, true))
     }
 }
 
-pub(crate) struct PyBytesWrapper(bytes::Bytes);
+pub(crate) struct PyBytesWrapper(Vec<Bytes>);
 
-// TODO: return buffer protocol object
+impl PyBytesWrapper {
+    pub fn new(buf: Bytes) -> Self {
+        Self(vec![buf])
+    }
+
+    pub fn new_multiple(buffers: Vec<Bytes>) -> Self {
+        Self(buffers)
+    }
+}
+
+// TODO: return buffer protocol object? This isn't possible on an array of Bytes, so if you want to
+// support the buffer protocol in the future (e.g. for get_range) you may need to have a separate
+// wrapper of Bytes
 impl IntoPy<PyObject> for PyBytesWrapper {
     fn into_py(self, py: Python<'_>) -> PyObject {
-        PyBytes::new_bound(py, &self.0).into_py(py)
+        let total_len = self.0.iter().fold(0, |acc, buf| acc + buf.len());
+        // Copy all internal Bytes objects into a single PyBytes
+        // Since our inner callback is infallible, this will only panic on out of memory
+        PyBytes::new_bound_with(py, total_len, |target| {
+            let mut offset = 0;
+            for buf in self.0.iter() {
+                target[offset..offset + buf.len()].copy_from_slice(buf);
+                offset += buf.len();
+            }
+            Ok(())
+        })
+        .unwrap()
+        .into_py(py)
     }
 }
 
@@ -211,7 +268,7 @@ pub(crate) fn get_range(
     let range = offset..offset + length;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_range(&location.into(), range))?;
-        Ok::<_, PyObjectStoreError>(PyBytesWrapper(out))
+        Ok::<_, PyObjectStoreError>(PyBytesWrapper::new(out))
     })
 }
 
@@ -230,7 +287,7 @@ pub(crate) fn get_range_async(
             .get_range(&location.into(), range)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(PyBytesWrapper(out))
+        Ok(PyBytesWrapper::new(out))
     })
 }
 
@@ -250,7 +307,7 @@ pub(crate) fn get_ranges(
         .collect::<Vec<_>>();
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&location.into(), &ranges))?;
-        Ok::<_, PyObjectStoreError>(out.into_iter().map(PyBytesWrapper).collect())
+        Ok::<_, PyObjectStoreError>(out.into_iter().map(PyBytesWrapper::new).collect())
     })
 }
 
@@ -273,6 +330,6 @@ pub(crate) fn get_ranges_async(
             .get_ranges(&location.into(), &ranges)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(out.into_iter().map(PyBytesWrapper).collect::<Vec<_>>())
+        Ok(out.into_iter().map(PyBytesWrapper::new).collect::<Vec<_>>())
     })
 }

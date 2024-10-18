@@ -92,14 +92,18 @@ class GetResult:
     Using as an async iterator:
     ```py
     resp = await obs.get_async(store, path)
-    async for buf in aiter(resp):
+    # 5MB chunk size in stream
+    stream = resp.stream(min_chunk_size=5 * 1024 * 1024)
+    async for buf in stream:
         print(len(buf))
     ```
 
     Using as a sync iterator:
     ```py
     resp = obs.get(store, path)
-    for buf in iter(resp):
+    # 20MB chunk size in stream
+    stream = resp.stream(min_chunk_size=20 * 1024 * 1024)
+    for buf in stream:
         print(len(buf))
     ```
 
@@ -121,14 +125,29 @@ class GetResult:
     def meta(self) -> ObjectMeta:
         """The ObjectMeta for this object"""
 
-    def stream(self) -> BytesStream:
-        """Return a chunked stream over the result's bytes."""
+    def stream(self, min_chunk_size: int = 10 * 1024 * 1024) -> BytesStream:
+        """Return a chunked stream over the result's bytes.
+
+        Args:
+            min_chunk_size: The minimum size in bytes for each chunk in the returned
+                `BytesStream`. All chunks except for the last chunk will be at least
+                this size. Defaults to 10*1024*1024 (10MB).
+
+        Returns:
+            A chunked stream
+        """
 
     def __aiter__(self) -> BytesStream:
-        """Return a chunked stream over the result's bytes."""
+        """
+        Return a chunked stream over the result's bytes with the default (10MB) chunk
+        size.
+        """
 
     def __iter__(self) -> BytesStream:
-        """Return a chunked stream over the result's bytes."""
+        """
+        Return a chunked stream over the result's bytes with the default (10MB) chunk
+        size.
+        """
 
 class BytesStream:
     """An async stream of bytes."""
