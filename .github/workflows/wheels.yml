@@ -28,8 +28,9 @@ jobs:
             target: x86_64
           - runner: ubuntu-latest
             target: x86
-          - runner: ubuntu-latest
-            target: aarch64
+          # Need to fix ring compilation: https://github.com/briansmith/ring/issues/1414#issuecomment-1055177218
+          # - runner: ubuntu-latest
+          #   target: aarch64
           - runner: ubuntu-latest
             target: armv7
           - runner: ubuntu-latest
@@ -46,8 +47,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --find-interpreter --manifest-path object-store-rs/Cargo.toml
-          # Fails with "no module named pip"
-          sccache: "false"
+          sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
