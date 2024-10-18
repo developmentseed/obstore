@@ -84,8 +84,7 @@ jobs:
           sccache: "true"
           manylinux: musllinux_1_2
           before-script-linux: |
-            yum update -y
-            yum install openssl openssl-devel perl-IPC-Cmd -y
+            apk add --update openssl
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
