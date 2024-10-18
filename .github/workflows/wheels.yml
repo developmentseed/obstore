@@ -7,8 +7,8 @@ name: Build wheels
 
 on:
   push:
-    tags:
-      - "py-v*"
+    # tags:
+    #   - "py-v*"
   workflow_dispatch:
 
 permissions:
