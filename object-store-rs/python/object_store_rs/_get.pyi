@@ -82,7 +82,30 @@ class GetOptions(TypedDict):
     """
 
 class GetResult:
-    """Result for a get request"""
+    """Result for a get request.
+
+    You can materialize the entire buffer by using either `bytes` or `bytes_async`, or
+    you can stream the result using `stream`. `__iter__` and `__aiter__` are implemented
+    as aliases to `stream`, so you can alternatively call `iter()` or `aiter()` on
+    `GetResult` to start an iterator.
+
+    Using as an async iterator:
+    ```py
+    resp = await obs.get_async(store, path)
+    async for buf in aiter(resp):
+        print(len(buf))
+    ```
+
+    Using as a sync iterator:
+    ```py
+    resp = obs.get(store, path)
+    for buf in iter(resp):
+        print(len(buf))
+    ```
+
+    Note that after calling `bytes`, `bytes_async`, or `stream`, you will no longer be
+    able to call other methods on this object, such as the `meta` attribute.
+    """
 
     def bytes(self) -> bytes:
         """
@@ -99,6 +122,12 @@ class GetResult:
         """The ObjectMeta for this object"""
 
     def stream(self) -> BytesStream:
+        """Return a chunked stream over the result's bytes."""
+
+    def __aiter__(self) -> BytesStream:
+        """Return a chunked stream over the result's bytes."""
+
+    def __iter__(self) -> BytesStream:
         """Return a chunked stream over the result's bytes."""
 
 class BytesStream:

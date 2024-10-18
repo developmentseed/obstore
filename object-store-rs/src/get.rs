@@ -94,6 +94,14 @@ impl PyGetResult {
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyBytesStream::new(get_result.into_stream()))
     }
+
+    fn __aiter__(&mut self) -> PyResult<PyBytesStream> {
+        self.stream()
+    }
+
+    fn __iter__(&mut self) -> PyResult<PyBytesStream> {
+        self.stream()
+    }
 }
 
 #[pyclass(name = "BytesStream")]
