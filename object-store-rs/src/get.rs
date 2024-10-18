@@ -109,23 +109,35 @@ impl PyBytesStream {
     }
 }
 
+async fn next_stream(
+    stream: Arc<Mutex<BoxStream<'static, object_store::Result<Bytes>>>>,
+) -> PyResult<PyBytesWrapper> {
+    match stream.lock().await.next().await {
+        Some(Ok(bytes)) => Ok(PyBytesWrapper(bytes)),
+        Some(Err(e)) => Err(PyObjectStoreError::from(e).into()),
+        None => Err(PyStopAsyncIteration::new_err("stream exhausted")),
+    }
+}
+
 #[pymethods]
 impl PyBytesStream {
-    fn __aiter__(_self: Py<Self>) -> Py<Self> {
-        _self
+    fn __aiter__(slf: Py<Self>) -> Py<Self> {
+        slf
     }
 
-    fn __anext__(&self, py: Python) -> PyResult<Option<PyObject>> {
-        let stream = self.stream.clone();
-        let fut = pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            match stream.lock().await.next().await {
-                Some(Ok(bytes)) => Ok(PyBytesWrapper(bytes)),
-                Some(Err(e)) => Err(PyObjectStoreError::from(e).into()),
-                None => Err(PyStopAsyncIteration::new_err("stream exhausted")),
-            }
-        })?;
+    fn __iter__(slf: Py<Self>) -> Py<Self> {
+        slf
+    }
 
-        Ok(Some(fut.into()))
+    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+        let stream = self.stream.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, next_stream(stream))
+    }
+
+    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyBytesWrapper> {
+        let runtime = get_runtime(py)?;
+        let stream = self.stream.clone();
+        runtime.block_on(next_stream(stream))
     }
 }
 

@@ -107,7 +107,13 @@ class BytesStream:
     def __aiter__(self) -> BytesStream:
         """Return `Self` as an async iterator."""
 
+    def __iter__(self) -> BytesStream:
+        """Return `Self` as an async iterator."""
+
     async def __anext__(self) -> bytes:
+        """Return the next chunk of bytes in the stream."""
+
+    def __next__(self) -> bytes:
         """Return the next chunk of bytes in the stream."""
 
 def get(
