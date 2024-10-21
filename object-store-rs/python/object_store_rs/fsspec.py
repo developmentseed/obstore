@@ -16,13 +16,18 @@ directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
+from __future__ import annotations
+
 import asyncio
 from collections import defaultdict
-from typing import Any, Coroutine, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Tuple
+
 import fsspec.asyn
 
 import object_store_rs as obs
-from object_store_rs.store import ObjectStore
+
+if TYPE_CHECKING:
+    from object_store_rs.store import ObjectStore
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
