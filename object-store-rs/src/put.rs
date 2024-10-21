@@ -1,11 +1,11 @@
+use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Cursor, Read};
+use std::io::{BufReader, Cursor, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use object_store::path::Path;
-use object_store::{ObjectStore, WriteMultipart};
-use pyo3::exceptions::PyIOError;
+use object_store::{ObjectStore, PutPayload, PutResult, WriteMultipart};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedBytes;
 use pyo3_file::PyFileLikeObject;
@@ -20,6 +20,21 @@ pub(crate) enum MultipartPutInput {
     File(BufReader<File>),
     FileLike(PyFileLikeObject),
     Buffer(Cursor<PyBackedBytes>),
+}
+
+impl MultipartPutInput {
+    /// Number of bytes in the file-like object
+    fn nbytes(&mut self) -> PyObjectStoreResult<usize> {
+        let origin_pos = self.stream_position()?;
+        let size = self.seek(SeekFrom::End(0))?;
+        self.seek(SeekFrom::Start(origin_pos))?;
+        Ok(size.try_into().unwrap())
+    }
+
+    /// Whether to use multipart uploads.
+    fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
+        Ok(self.nbytes()? > chunk_size)
+    }
 }
 
 impl<'py> FromPyObject<'py> for MultipartPutInput {
@@ -51,46 +66,100 @@ impl Read for MultipartPutInput {
     }
 }
 
-#[pyfunction]
-#[pyo3(signature = (store, location, file, *, chunk_size = 5120, max_concurrency = 12))]
-pub(crate) fn put_file(
-    py: Python,
-    store: PyObjectStore,
-    location: String,
-    file: MultipartPutInput,
-    chunk_size: usize,
-    max_concurrency: usize,
-) -> PyObjectStoreResult<()> {
-    let runtime = get_runtime(py)?;
-    runtime.block_on(put_multipart_inner(
-        store.into_inner(),
-        &location.into(),
-        file,
-        chunk_size,
-        max_concurrency,
-    ))
+impl Seek for MultipartPutInput {
+    fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+        match self {
+            Self::File(f) => f.seek(pos),
+            Self::FileLike(f) => f.seek(pos),
+            Self::Buffer(f) => f.seek(pos),
+        }
+    }
+}
+
+pub(crate) struct PyPutResult(PutResult);
+
+impl IntoPy<PyObject> for PyPutResult {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        let mut dict = HashMap::with_capacity(2);
+        dict.insert("e_tag", self.0.e_tag.into_py(py));
+        dict.insert("version", self.0.version.into_py(py));
+        dict.into_py(py)
+    }
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, location, file, *, chunk_size = 5120, max_concurrency = 12))]
-pub(crate) fn put_file_async(
+#[pyo3(signature = (store, location, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
+pub(crate) fn put(
     py: Python,
     store: PyObjectStore,
     location: String,
-    file: MultipartPutInput,
+    mut file: MultipartPutInput,
+    use_multipart: Option<bool>,
     chunk_size: usize,
     max_concurrency: usize,
-) -> PyResult<Bound<PyAny>> {
-    pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        Ok(put_multipart_inner(
+) -> PyObjectStoreResult<PyPutResult> {
+    let use_multipart = if let Some(use_multipart) = use_multipart {
+        use_multipart
+    } else {
+        file.use_multipart(chunk_size)?
+    };
+    let runtime = get_runtime(py)?;
+    if use_multipart {
+        runtime.block_on(put_multipart_inner(
             store.into_inner(),
             &location.into(),
             file,
             chunk_size,
             max_concurrency,
-        )
-        .await?)
+        ))
+    } else {
+        runtime.block_on(put_inner(store.into_inner(), &location.into(), file))
+    }
+}
+
+#[pyfunction]
+#[pyo3(signature = (store, location, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
+pub(crate) fn put_async(
+    py: Python,
+    store: PyObjectStore,
+    location: String,
+    mut file: MultipartPutInput,
+    use_multipart: Option<bool>,
+    chunk_size: usize,
+    max_concurrency: usize,
+) -> PyResult<Bound<PyAny>> {
+    let use_multipart = if let Some(use_multipart) = use_multipart {
+        use_multipart
+    } else {
+        file.use_multipart(chunk_size)?
+    };
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let result = if use_multipart {
+            put_multipart_inner(
+                store.into_inner(),
+                &location.into(),
+                file,
+                chunk_size,
+                max_concurrency,
+            )
+            .await?
+        } else {
+            put_inner(store.into_inner(), &location.into(), file).await?
+        };
+        Ok(result)
     })
+}
+
+async fn put_inner(
+    store: Arc<dyn ObjectStore>,
+    location: &Path,
+    mut reader: MultipartPutInput,
+) -> PyObjectStoreResult<PyPutResult> {
+    let nbytes = reader.nbytes()?;
+    let mut buffer = Vec::with_capacity(nbytes);
+    reader.read_to_end(&mut buffer)?;
+    let payload = PutPayload::from_bytes(buffer.into());
+    Ok(PyPutResult(store.put(location, payload).await?))
 }
 
 async fn put_multipart_inner<R: Read>(
@@ -99,14 +168,12 @@ async fn put_multipart_inner<R: Read>(
     mut reader: R,
     chunk_size: usize,
     max_concurrency: usize,
-) -> PyObjectStoreResult<()> {
+) -> PyObjectStoreResult<PyPutResult> {
     let upload = store.put_multipart(location).await?;
     let mut write = WriteMultipart::new(upload);
     let mut scratch_buffer = vec![0; chunk_size];
     loop {
-        let read_size = reader
-            .read(&mut scratch_buffer)
-            .map_err(|err| PyIOError::new_err(err.to_string()))?;
+        let read_size = reader.read(&mut scratch_buffer)?;
         if read_size == 0 {
             break;
         } else {
@@ -114,6 +181,5 @@ async fn put_multipart_inner<R: Read>(
             write.write(&scratch_buffer[0..read_size]);
         }
     }
-    write.finish().await?;
-    Ok(())
+    Ok(PyPutResult(write.finish().await?))
 }
