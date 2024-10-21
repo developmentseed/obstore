@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use futures::TryStreamExt;
+use futures::StreamExt;
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
 use pyo3::prelude::*;
@@ -58,31 +58,39 @@ impl IntoPy<PyObject> for PyListResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None))]
+#[pyo3(signature = (store, prefix = None, *, max_items = 2000))]
 pub(crate) fn list(
     py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
+    max_items: Option<usize>,
 ) -> PyObjectStoreResult<Vec<PyObjectMeta>> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
         let out = runtime.block_on(list_materialize(
             store.into_inner(),
             prefix.map(|s| s.into()).as_ref(),
+            max_items,
         ))?;
         Ok::<_, PyObjectStoreError>(out)
     })
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None))]
+#[pyo3(signature = (store, prefix = None, *, max_items = 2000))]
 pub(crate) fn list_async(
     py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
+    max_items: Option<usize>,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let out = list_materialize(store.into_inner(), prefix.map(|s| s.into()).as_ref()).await?;
+        let out = list_materialize(
+            store.into_inner(),
+            prefix.map(|s| s.into()).as_ref(),
+            max_items,
+        )
+        .await?;
         Ok(out)
     })
 }
@@ -90,9 +98,20 @@ pub(crate) fn list_async(
 async fn list_materialize(
     store: Arc<dyn ObjectStore>,
     prefix: Option<&Path>,
+    max_items: Option<usize>,
 ) -> PyObjectStoreResult<Vec<PyObjectMeta>> {
-    let list_result = store.list(prefix).try_collect::<Vec<_>>().await?;
-    Ok(list_result.into_iter().map(PyObjectMeta).collect())
+    let mut stream = store.list(prefix);
+    let mut result = vec![];
+    while let Some(object) = stream.next().await {
+        result.push(PyObjectMeta(object?));
+        if let Some(max_items) = max_items {
+            if result.len() >= max_items {
+                return Ok(result);
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 #[pyfunction]
