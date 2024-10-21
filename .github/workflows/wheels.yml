@@ -154,30 +154,28 @@ jobs:
   #         name: wheels-sdist-object-store-rs
   #         path: dist
 
-  # release:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #   name: Release
-  #   environment:
-  #     name: release
-  #     url: https://pypi.org/p/object-store-rs
-  #   permissions:
-  #     # IMPORTANT: this permission is mandatory for trusted publishing
-  #     id-token: write
-  #   if: startsWith(github.ref, 'refs/tags/')
-  #   needs: [linux, windows, macos]
-  #   steps:
-  #     - uses: actions/download-artifact@v4
-  #       with:
-  #         pattern: wheels-*-object-store-rs
-  #         merge-multiple: true
-  #         path: dist
-  #     - uses: actions/setup-python@v4
-  #       with:
-  #         python-version: 3.8
+  release:
+    runs-on: ubuntu-latest
+    name: Release
+    # environment:
+    #   name: release
+    #   url: https://pypi.org/p/object-store-rs
+    # permissions:
+    #   # IMPORTANT: this permission is mandatory for trusted publishing
+    #   id-token: write
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [linux, musllinux, windows, macos]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*-object-store-rs
+          merge-multiple: true
+          path: dist
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
 
-  #     - uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         user: __token__
-  #         password: ${{ secrets.PYPI_API_TOKEN }}
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
