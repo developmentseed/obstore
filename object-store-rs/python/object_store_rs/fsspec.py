@@ -16,6 +16,9 @@ directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
+import asyncio
+from collections import defaultdict
+from typing import Any, Coroutine, Dict, List, Tuple
 import fsspec.asyn
 
 import object_store_rs as obs
@@ -59,7 +62,40 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
         raise NotImplementedError("todo: handle open-ended ranges")
 
-    # cat_ranges
+    async def _cat_ranges(
+        self,
+        paths: List[str],
+        starts: List[int],
+        ends: List[int],
+        max_gap=None,
+        batch_size=None,
+        on_error="return",
+        **kwargs,
+    ):
+        # TODO: need to go through this again and test it
+        per_file_requests: Dict[str, List[Tuple[int, int, int]]] = defaultdict(list)
+        for idx, (path, start, end) in enumerate(zip(paths, starts, ends)):
+            per_file_requests[path].append((start, end, idx))
+
+        futs: List[Coroutine[Any, Any, List[bytes]]] = []
+        for path, ranges in per_file_requests.items():
+            offsets = [r[0] for r in ranges]
+            lengths = [r[1] - r[0] for r in ranges]
+            fut = obs.get_ranges_async(
+                self.store, path, offsets=offsets, lengths=lengths
+            )
+            futs.append(fut)
+
+        result = await asyncio.gather(*futs)
+
+        output_buffers: List[bytes] = [b""] * len(paths)
+        for per_file_request, buffers in zip(per_file_requests.items(), result):
+            path, ranges = per_file_request
+            for buffer, ranges_ in zip(buffers, ranges):
+                initial_index = ranges_[2]
+                output_buffers[initial_index] = buffer
+
+        return output_buffers
 
     async def _put_file(self, lpath, rpath, **kwargs):
         with open(lpath, "rb") as f:
