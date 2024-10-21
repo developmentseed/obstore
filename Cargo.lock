@@ -637,6 +637,7 @@ dependencies = [
  "chrono",
  "futures",
  "http",
+ "indexmap",
  "object_store",
  "pyo3",
  "pyo3-async-runtimes",

@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Cursor, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{ObjectStore, PutPayload, PutResult, WriteMultipart};
 use pyo3::prelude::*;
@@ -80,7 +80,7 @@ pub(crate) struct PyPutResult(PutResult);
 
 impl IntoPy<PyObject> for PyPutResult {
     fn into_py(self, py: Python<'_>) -> PyObject {
-        let mut dict = HashMap::with_capacity(2);
+        let mut dict = IndexMap::with_capacity(2);
         dict.insert("e_tag", self.0.e_tag.into_py(py));
         dict.insert("version", self.0.version.into_py(py));
         dict.into_py(py)

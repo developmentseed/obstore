@@ -22,6 +22,7 @@ bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 http = { workspace = true }
+indexmap = { workspace = true }
 object_store = { workspace = true }
 pyo3 = { workspace = true, features = ["chrono", "abi3-py39"] }
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
