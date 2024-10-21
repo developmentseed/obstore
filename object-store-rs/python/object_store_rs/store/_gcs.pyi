@@ -67,6 +67,8 @@ class GCSStore:
 
         Args:
             bucket: The GCS bucket to use.
+
+        Keyword Args:
             config: GCS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
@@ -92,6 +94,8 @@ class GCSStore:
 
         Args:
             url: well-known storage URL.
+
+        Keyword Args:
             config: GCS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.

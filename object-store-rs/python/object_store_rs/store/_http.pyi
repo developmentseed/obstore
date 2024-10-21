@@ -18,6 +18,8 @@ class HTTPStore:
 
         Args:
             url: The base URL to use for the store.
+
+        Keyword Args:
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
 

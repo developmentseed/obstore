@@ -161,6 +161,8 @@ class AzureStore:
 
         Args:
             container: _description_
+
+        Keyword Args:
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
@@ -199,6 +201,8 @@ class AzureStore:
 
         Args:
             url: well-known storage URL.
+
+        Keyword Args:
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.

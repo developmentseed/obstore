@@ -54,6 +54,12 @@ def list(
     Note: the order of returned [`ObjectMeta`][object_store_rs.ObjectMeta] is not
     guaranteed
 
+    !!! note
+        In the future, we'd like to have `list` return an async iterable, just like
+        `get`, so that we can stream the result of `list`, but we need [some
+        changes](https://github.com/apache/arrow-rs/issues/6587) in the upstream
+        object-store repo first.
+
     Args:
         store: The ObjectStore instance to use.
         prefix: The prefix within ObjectStore to use for listing. Defaults to None.

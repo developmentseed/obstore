@@ -25,8 +25,8 @@ nav:
       - store:
           - api/store/index.md
           - api/store/aws.md
-          - api/store/azure.md
           - api/store/gcs.md
+          - api/store/azure.md
           - api/store/http.md
           - api/store/local.md
           - api/store/memory.md
