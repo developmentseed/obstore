@@ -88,11 +88,11 @@ impl IntoPy<PyObject> for PyPutResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, location, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
+#[pyo3(signature = (store, path, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
 pub(crate) fn put(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     mut file: MultipartPutInput,
     use_multipart: Option<bool>,
     chunk_size: usize,
@@ -107,22 +107,22 @@ pub(crate) fn put(
     if use_multipart {
         runtime.block_on(put_multipart_inner(
             store.into_inner(),
-            &location.into(),
+            &path.into(),
             file,
             chunk_size,
             max_concurrency,
         ))
     } else {
-        runtime.block_on(put_inner(store.into_inner(), &location.into(), file))
+        runtime.block_on(put_inner(store.into_inner(), &path.into(), file))
     }
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, location, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
+#[pyo3(signature = (store, path, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
 pub(crate) fn put_async(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     mut file: MultipartPutInput,
     use_multipart: Option<bool>,
     chunk_size: usize,
@@ -137,14 +137,14 @@ pub(crate) fn put_async(
         let result = if use_multipart {
             put_multipart_inner(
                 store.into_inner(),
-                &location.into(),
+                &path.into(),
                 file,
                 chunk_size,
                 max_concurrency,
             )
             .await?
         } else {
-            put_inner(store.into_inner(), &location.into(), file).await?
+            put_inner(store.into_inner(), &path.into(), file).await?
         };
         Ok(result)
     })
@@ -152,24 +152,24 @@ pub(crate) fn put_async(
 
 async fn put_inner(
     store: Arc<dyn ObjectStore>,
-    location: &Path,
+    path: &Path,
     mut reader: MultipartPutInput,
 ) -> PyObjectStoreResult<PyPutResult> {
     let nbytes = reader.nbytes()?;
     let mut buffer = Vec::with_capacity(nbytes);
     reader.read_to_end(&mut buffer)?;
     let payload = PutPayload::from_bytes(buffer.into());
-    Ok(PyPutResult(store.put(location, payload).await?))
+    Ok(PyPutResult(store.put(path, payload).await?))
 }
 
 async fn put_multipart_inner<R: Read>(
     store: Arc<dyn ObjectStore>,
-    location: &Path,
+    path: &Path,
     mut reader: R,
     chunk_size: usize,
     max_concurrency: usize,
 ) -> PyObjectStoreResult<PyPutResult> {
-    let upload = store.put_multipart(location).await?;
+    let upload = store.put_multipart(path).await?;
     let mut write = WriteMultipart::new(upload);
     let mut scratch_buffer = vec![0; chunk_size];
     loop {

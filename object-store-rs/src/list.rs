@@ -22,7 +22,9 @@ impl PyObjectMeta {
 impl IntoPy<PyObject> for PyObjectMeta {
     fn into_py(self, py: Python<'_>) -> PyObject {
         let mut dict = IndexMap::with_capacity(5);
-        dict.insert("location", self.0.location.as_ref().into_py(py));
+        // Note, this uses "path" instead of "location" because we standardize the API to accept
+        // the keyword "path" everywhere.
+        dict.insert("path", self.0.location.as_ref().into_py(py));
         dict.insert("last_modified", self.0.last_modified.into_py(py));
         dict.insert("size", self.0.size.into_py(py));
         dict.insert("e_tag", self.0.e_tag.into_py(py));

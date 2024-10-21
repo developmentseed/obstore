@@ -20,7 +20,7 @@ class PutResult(TypedDict):
 
 def put(
     store: ObjectStore,
-    location: str,
+    path: str,
     file: IO[bytes] | Path | bytes,
     *,
     use_multipart: bool | None = None,
@@ -35,7 +35,7 @@ def put(
 
     Args:
         store: The ObjectStore instance to use.
-        location: The path within ObjectStore for where to save the file.
+        path: The path within ObjectStore for where to save the file.
         file: The object to upload. Can either be file-like, a `Path` to a local file,
             or a `bytes` object.
 
@@ -47,7 +47,7 @@ def put(
 
 async def put_async(
     store: ObjectStore,
-    location: str,
+    path: str,
     file: IO[bytes] | Path | bytes,
     *,
     use_multipart: bool | None = None,
