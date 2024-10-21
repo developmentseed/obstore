@@ -52,7 +52,7 @@ import object_store_rs as obs
 
 store = obs.store.MemoryStore()
 
-obs.put_file(store, "file.txt", b"hello world!")
+obs.put(store, "file.txt", b"hello world!")
 response = obs.get(store, "file.txt")
 response.meta
 # {'size': 12,
@@ -77,7 +77,7 @@ import object_store_rs as obs
 
 store = obs.store.MemoryStore()
 
-await obs.put_file_async(store, "file.txt", b"hello world!")
+await obs.put_async(store, "file.txt", b"hello world!")
 response = await obs.get_async(store, "file.txt")
 response.meta
 # {

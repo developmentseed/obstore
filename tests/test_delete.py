@@ -8,9 +8,9 @@ from object_store_rs.store import LocalStore, MemoryStore
 def test_delete_one():
     store = MemoryStore()
 
-    obs.put_file(store, "file1.txt", b"foo")
-    obs.put_file(store, "file2.txt", b"bar")
-    obs.put_file(store, "file3.txt", b"baz")
+    obs.put(store, "file1.txt", b"foo")
+    obs.put(store, "file2.txt", b"bar")
+    obs.put(store, "file3.txt", b"baz")
 
     assert len(obs.list(store)) == 3
     obs.delete(store, "file1.txt")
@@ -22,9 +22,9 @@ def test_delete_one():
 def test_delete_many():
     store = MemoryStore()
 
-    obs.put_file(store, "file1.txt", b"foo")
-    obs.put_file(store, "file2.txt", b"bar")
-    obs.put_file(store, "file3.txt", b"baz")
+    obs.put(store, "file1.txt", b"foo")
+    obs.put(store, "file2.txt", b"bar")
+    obs.put(store, "file3.txt", b"baz")
 
     assert len(obs.list(store)) == 3
     obs.delete(
@@ -39,9 +39,9 @@ def test_delete_one_local_fs():
     with TemporaryDirectory() as tmpdir:
         store = LocalStore(tmpdir)
 
-        obs.put_file(store, "file1.txt", b"foo")
-        obs.put_file(store, "file2.txt", b"bar")
-        obs.put_file(store, "file3.txt", b"baz")
+        obs.put(store, "file1.txt", b"foo")
+        obs.put(store, "file2.txt", b"bar")
+        obs.put(store, "file3.txt", b"baz")
 
         assert len(obs.list(store)) == 3
         obs.delete(store, "file1.txt")
@@ -57,9 +57,9 @@ def test_delete_many_local_fs():
     with TemporaryDirectory() as tmpdir:
         store = LocalStore(tmpdir)
 
-        obs.put_file(store, "file1.txt", b"foo")
-        obs.put_file(store, "file2.txt", b"bar")
-        obs.put_file(store, "file3.txt", b"baz")
+        obs.put(store, "file1.txt", b"foo")
+        obs.put(store, "file2.txt", b"bar")
+        obs.put(store, "file3.txt", b"baz")
 
         assert len(obs.list(store)) == 3
         obs.delete(
