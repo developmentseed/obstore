@@ -10,6 +10,7 @@ dependencies = []
 dev-dependencies = [
     "black>=24.10.0",
     "boto3>=1.35.38",
+    "fsspec>=2024.10.0",
     "griffe-inherited-docstrings>=1.0.1",
     "ipykernel>=6.29.5",
     "maturin>=1.7.4",

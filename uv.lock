@@ -322,6 +322,15 @@ wheels = [
 ]
 
 [[package]]
+name = "fsspec"
+version = "2024.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/52/f16a068ebadae42526484c31f4398e62962504e5724a8ba5dc3409483df2/fsspec-2024.10.0.tar.gz", hash = "sha256:eda2d8a4116d4f2429db8550f2457da57279247dd930bb12f821b58391359493", size = 286853 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c6/b2/454d6e7f0158951d8a78c2e1eb4f69ae81beb8dca5fee9809c6c99e9d0d0/fsspec-2024.10.0-py3-none-any.whl", hash = "sha256:03b9a6785766a4de40368b88906366755e2819e758b83705c88cd7cb5fe81871", size = 179641 },
+]
+
+[[package]]
 name = "ghp-import"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1335,6 +1344,7 @@ source = { virtual = "." }
 dev = [
     { name = "black" },
     { name = "boto3" },
+    { name = "fsspec" },
     { name = "griffe-inherited-docstrings" },
     { name = "ipykernel" },
     { name = "maturin" },
@@ -1354,6 +1364,7 @@ dev = [
 dev = [
     { name = "black", specifier = ">=24.10.0" },
     { name = "boto3", specifier = ">=1.35.38" },
+    { name = "fsspec", specifier = ">=2024.10.0" },
     { name = "griffe-inherited-docstrings", specifier = ">=1.0.1" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "maturin", specifier = ">=1.7.4" },
