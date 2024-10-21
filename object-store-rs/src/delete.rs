@@ -7,15 +7,11 @@ use crate::path::PyPaths;
 use crate::runtime::get_runtime;
 
 #[pyfunction]
-pub(crate) fn delete(
-    py: Python,
-    store: PyObjectStore,
-    locations: PyPaths,
-) -> PyObjectStoreResult<()> {
+pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObjectStoreResult<()> {
     let runtime = get_runtime(py)?;
     let store = store.into_inner();
     py.allow_threads(|| {
-        match locations {
+        match paths {
             PyPaths::One(path) => {
                 runtime.block_on(store.delete(&path))?;
             }
@@ -34,11 +30,11 @@ pub(crate) fn delete(
 pub(crate) fn delete_async(
     py: Python,
     store: PyObjectStore,
-    locations: PyPaths,
+    paths: PyPaths,
 ) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        match locations {
+        match paths {
             PyPaths::One(path) => {
                 store
                     .delete(&path)

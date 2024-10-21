@@ -2,12 +2,12 @@ from typing import Sequence
 
 from .store import ObjectStore
 
-def delete(store: ObjectStore, locations: str | Sequence[str]) -> None:
+def delete(store: ObjectStore, paths: str | Sequence[str]) -> None:
     """Delete the object at the specified location(s).
 
     Args:
         store: The ObjectStore instance to use.
-        locations: The path or paths within the store to delete.
+        paths: The path or paths within the store to delete.
 
             When supported by the underlying store, this method will use bulk operations
             that delete more than one object per a request.
@@ -18,7 +18,7 @@ def delete(store: ObjectStore, locations: str | Sequence[str]) -> None:
             return Ok.
     """
 
-async def delete_async(store: ObjectStore, locations: str | Sequence[str]) -> None:
+async def delete_async(store: ObjectStore, paths: str | Sequence[str]) -> None:
     """Call `delete` asynchronously.
 
     Refer to the documentation for [delete][object_store_rs.delete].
