@@ -24,5 +24,5 @@ from ._rename import rename as rename
 from ._rename import rename_async as rename_async
 from ._sign import HTTP_METHOD as HTTP_METHOD
 from ._sign import SignCapableStore as SignCapableStore
-from ._sign import sign_url as sign_url
-from ._sign import sign_url_async as sign_url_async
+from ._sign import sign as sign
+from ._sign import sign_async as sign_async
