@@ -1,6 +1,6 @@
 [package]
 name = "object-store-rs"
-version = "0.1.0-beta.1"
+version = "0.1.0"
 authors = { workspace = true }
 edition = { workspace = true }
 description = "Core library for representing Arrow data in Python."
