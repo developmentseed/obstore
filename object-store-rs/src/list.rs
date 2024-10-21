@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use futures::stream::BoxStream;
 use futures::StreamExt;
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
@@ -58,49 +59,54 @@ impl IntoPy<PyObject> for PyListResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None, *, max_items = 2000))]
+#[pyo3(signature = (store, prefix = None, *, offset = None, max_items = 2000))]
 pub(crate) fn list(
     py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
+    offset: Option<String>,
     max_items: Option<usize>,
 ) -> PyObjectStoreResult<Vec<PyObjectMeta>> {
+    let store = store.into_inner();
+    let prefix = prefix.map(|s| s.into());
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
-        let out = runtime.block_on(list_materialize(
-            store.into_inner(),
-            prefix.map(|s| s.into()).as_ref(),
-            max_items,
-        ))?;
+        let stream = if let Some(offset) = offset {
+            store.list_with_offset(prefix.as_ref(), &offset.into())
+        } else {
+            store.list(prefix.as_ref())
+        };
+        let out = runtime.block_on(materialize_list_stream(stream, max_items))?;
         Ok::<_, PyObjectStoreError>(out)
     })
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None, *, max_items = 2000))]
+#[pyo3(signature = (store, prefix = None, *, offset = None, max_items = 2000))]
 pub(crate) fn list_async(
     py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
+    offset: Option<String>,
     max_items: Option<usize>,
 ) -> PyResult<Bound<PyAny>> {
+    let store = store.into_inner();
+    let prefix = prefix.map(|s| s.into());
+
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let out = list_materialize(
-            store.into_inner(),
-            prefix.map(|s| s.into()).as_ref(),
-            max_items,
-        )
-        .await?;
-        Ok(out)
+        let stream = if let Some(offset) = offset {
+            store.list_with_offset(prefix.as_ref(), &offset.into())
+        } else {
+            store.list(prefix.as_ref())
+        };
+        Ok(materialize_list_stream(stream, max_items).await?)
     })
 }
 
-async fn list_materialize(
-    store: Arc<dyn ObjectStore>,
-    prefix: Option<&Path>,
+async fn materialize_list_stream(
+    mut stream: BoxStream<'_, object_store::Result<ObjectMeta>>,
     max_items: Option<usize>,
 ) -> PyObjectStoreResult<Vec<PyObjectMeta>> {
-    let mut stream = store.list(prefix);
     let mut result = vec![];
     while let Some(object) = stream.next().await {
         result.push(PyObjectMeta(object?));
