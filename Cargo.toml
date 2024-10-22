@@ -17,8 +17,9 @@ bytes = "1.7.0"
 chrono = "0.4.38"
 futures = "0.3.31"
 http = "1.1"
+indexmap = "2"
 object_store = "0.11"
-pyo3 = { version = "0.22", features = ["macros"] }
+pyo3 = { version = "0.22", features = ["macros", "indexmap"] }
 pyo3-async-runtimes = { git = "https://github.com/PyO3/pyo3-async-runtimes", features = [
     "tokio-runtime",
 ] }

@@ -25,8 +25,8 @@ nav:
       - store:
           - api/store/index.md
           - api/store/aws.md
-          - api/store/azure.md
           - api/store/gcs.md
+          - api/store/azure.md
           - api/store/http.md
           - api/store/local.md
           - api/store/memory.md
@@ -55,7 +55,7 @@ theme:
 
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
-      primary: indigo
+      primary: amber
       accent: indigo
       toggle:
         icon: material/brightness-7
@@ -64,7 +64,7 @@ theme:
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: amber
       accent: indigo
       toggle:
         icon: material/brightness-4

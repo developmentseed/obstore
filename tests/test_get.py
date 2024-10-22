@@ -9,7 +9,7 @@ def test_stream_sync():
     data = b"the quick brown fox jumps over the lazy dog," * 5000
     path = "big-data.txt"
 
-    obs.put_file(store, path, data)
+    obs.put(store, path, data)
     resp = obs.get(store, path)
     stream = resp.stream(min_chunk_size=0)
 
@@ -31,7 +31,7 @@ async def test_stream_async():
     data = b"the quick brown fox jumps over the lazy dog," * 5000
     path = "big-data.txt"
 
-    await obs.put_file_async(store, path, data)
+    await obs.put_async(store, path, data)
     resp = await obs.get_async(store, path)
     stream = resp.stream(min_chunk_size=0)
 

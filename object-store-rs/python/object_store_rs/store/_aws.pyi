@@ -100,6 +100,22 @@ S3ConfigKey = Literal[
     "VIRTUAL_HOSTED_STYLE_REQUEST",
 ]
 """Valid AWS S3 configuration keys.
+
+Either lower case or upper case strings are accepted.
+
+- `aws_access_key_id`, `access_key_id`: AWS Access Key
+- `aws_secret_access_key`, `secret_access_key`: Secret Access Key
+- `aws_region`, `region`: Region
+- `aws_default_region`, `default_region`: Default region
+- `aws_bucket`, `aws_bucket_name`, `bucket`, `bucket_name`: Bucket name
+- `aws_endpoint`, `aws_endpoint_url`, `endpoint`, `endpoint_url`: Sets custom endpoint for communicating with AWS S3.
+- `aws_session_token`, `aws_token`, `session_token`, `token`: Token to use for requests (passed to underlying provider)
+- `aws_imdsv1_fallback`, `imdsv1_fallback`: Fall back to ImdsV1
+- `aws_virtual_hosted_style_request`, `virtual_hosted_style_request`: If virtual hosted style request has to be used
+- `aws_unsigned_payload`, `unsigned_payload`: Avoid computing payload checksum when calculating signature.
+- `aws_metadata_endpoint`, `metadata_endpoint`: Set the instance metadata endpoint
+- `aws_disable_tagging`, `disable_tagging`: Disable tagging objects. This can be desirable if not supported by the backing store.
+- `aws_s3_express`, `s3_express`: Enable Support for S3 Express One Zone
 """
 
 class S3Store:
@@ -131,6 +147,8 @@ class S3Store:
 
         Args:
             bucket: The AWS bucket to use.
+
+        Keyword Args:
             config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
@@ -154,6 +172,8 @@ class S3Store:
         Args:
             session: The boto3.Session or botocore.session.Session to infer credentials from.
             bucket: The AWS bucket to use.
+
+        Keyword Args:
             config: AWS Configuration. Values in this config will override values inferred from the session. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
@@ -183,6 +203,8 @@ class S3Store:
 
         Args:
             url: well-known storage URL.
+
+        Keyword Args:
             config: AWS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.

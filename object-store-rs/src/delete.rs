@@ -1,28 +1,56 @@
+use futures::{StreamExt, TryStreamExt};
 use pyo3::prelude::*;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
 
+use crate::path::PyPaths;
 use crate::runtime::get_runtime;
 
 #[pyfunction]
-pub fn delete(py: Python, store: PyObjectStore, location: String) -> PyObjectStoreResult<()> {
+pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObjectStoreResult<()> {
     let runtime = get_runtime(py)?;
     let store = store.into_inner();
-
     py.allow_threads(|| {
-        runtime.block_on(store.delete(&location.into()))?;
+        match paths {
+            PyPaths::One(path) => {
+                runtime.block_on(store.delete(&path))?;
+            }
+            PyPaths::Many(paths) => {
+                // TODO: add option to allow some errors here?
+                let stream =
+                    store.delete_stream(futures::stream::iter(paths.into_iter().map(Ok)).boxed());
+                runtime.block_on(stream.try_collect::<Vec<_>>())?;
+            }
+        };
         Ok::<_, PyObjectStoreError>(())
     })
 }
 
 #[pyfunction]
-pub fn delete_async(py: Python, store: PyObjectStore, location: String) -> PyResult<Bound<PyAny>> {
-    let store = store.into_inner().clone();
+pub(crate) fn delete_async(
+    py: Python,
+    store: PyObjectStore,
+    paths: PyPaths,
+) -> PyResult<Bound<PyAny>> {
+    let store = store.into_inner();
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        store
-            .delete(&location.into())
-            .await
-            .map_err(PyObjectStoreError::ObjectStoreError)?;
+        match paths {
+            PyPaths::One(path) => {
+                store
+                    .delete(&path)
+                    .await
+                    .map_err(PyObjectStoreError::ObjectStoreError)?;
+            }
+            PyPaths::Many(paths) => {
+                // TODO: add option to allow some errors here?
+                let stream =
+                    store.delete_stream(futures::stream::iter(paths.into_iter().map(Ok)).boxed());
+                stream
+                    .try_collect::<Vec<_>>()
+                    .await
+                    .map_err(PyObjectStoreError::ObjectStoreError)?;
+            }
+        }
         Ok(())
     })
 }

@@ -216,16 +216,16 @@ impl IntoPy<PyObject> for PyBytesWrapper {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, location, *, options = None))]
+#[pyo3(signature = (store, path, *, options = None))]
 pub(crate) fn get(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     options: Option<PyGetOptions>,
 ) -> PyObjectStoreResult<PyGetResult> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
-        let path = &location.into();
+        let path = &path.into();
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {
@@ -237,15 +237,15 @@ pub(crate) fn get(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, location, *, options = None))]
+#[pyo3(signature = (store, path, *, options = None))]
 pub(crate) fn get_async(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     options: Option<PyGetOptions>,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let path = &location.into();
+        let path = &path.into();
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {
@@ -260,14 +260,14 @@ pub(crate) fn get_async(
 pub(crate) fn get_range(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     offset: usize,
     length: usize,
 ) -> PyObjectStoreResult<PyBytesWrapper> {
     let runtime = get_runtime(py)?;
     let range = offset..offset + length;
     py.allow_threads(|| {
-        let out = runtime.block_on(store.as_ref().get_range(&location.into(), range))?;
+        let out = runtime.block_on(store.as_ref().get_range(&path.into(), range))?;
         Ok::<_, PyObjectStoreError>(PyBytesWrapper::new(out))
     })
 }
@@ -276,7 +276,7 @@ pub(crate) fn get_range(
 pub(crate) fn get_range_async(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     offset: usize,
     length: usize,
 ) -> PyResult<Bound<PyAny>> {
@@ -284,7 +284,7 @@ pub(crate) fn get_range_async(
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let out = store
             .as_ref()
-            .get_range(&location.into(), range)
+            .get_range(&path.into(), range)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(PyBytesWrapper::new(out))
@@ -295,7 +295,7 @@ pub(crate) fn get_range_async(
 pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     offsets: Vec<usize>,
     lengths: Vec<usize>,
 ) -> PyObjectStoreResult<Vec<PyBytesWrapper>> {
@@ -306,7 +306,7 @@ pub(crate) fn get_ranges(
         .map(|(offset, length)| offset..offset + length)
         .collect::<Vec<_>>();
     py.allow_threads(|| {
-        let out = runtime.block_on(store.as_ref().get_ranges(&location.into(), &ranges))?;
+        let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;
         Ok::<_, PyObjectStoreError>(out.into_iter().map(PyBytesWrapper::new).collect())
     })
 }
@@ -315,7 +315,7 @@ pub(crate) fn get_ranges(
 pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
-    location: String,
+    path: String,
     offsets: Vec<usize>,
     lengths: Vec<usize>,
 ) -> PyResult<Bound<PyAny>> {
@@ -327,7 +327,7 @@ pub(crate) fn get_ranges_async(
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let out = store
             .as_ref()
-            .get_ranges(&location.into(), &ranges)
+            .get_ranges(&path.into(), &ranges)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(out.into_iter().map(PyBytesWrapper::new).collect::<Vec<_>>())

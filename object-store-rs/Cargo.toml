@@ -1,6 +1,6 @@
 [package]
 name = "object-store-rs"
-version = "0.1.0-beta.1"
+version = "0.1.0"
 authors = { workspace = true }
 edition = { workspace = true }
 description = "Core library for representing Arrow data in Python."
@@ -22,6 +22,7 @@ bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 http = { workspace = true }
+indexmap = { workspace = true }
 object_store = { workspace = true }
 pyo3 = { workspace = true, features = ["chrono", "abi3-py39"] }
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
