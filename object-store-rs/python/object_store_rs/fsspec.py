@@ -53,14 +53,15 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _cp_file(self, path1, path2, **kwargs):
         return await obs.copy_async(self.store, path1, path2)
 
-    # pipe_file
+    async def _pipe_file(self, path, value, **kwargs):
+        return await obs.put_async(self.store, path, value)
 
     async def _cat_file(self, path, start=None, end=None, **kwargs):
         if start is None and end is None:
             resp = await obs.get_async(self.store, path)
             return await resp.bytes_async()
 
-        if start and end:
+        if start is not None and end is not None:
             return await obs.get_range_async(
                 self.store, path, offset=start, length=end - start
             )
