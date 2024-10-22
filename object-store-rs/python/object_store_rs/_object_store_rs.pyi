@@ -1,3 +1,6 @@
+from ._buffered import ReadableFile as ReadableFile
+from ._buffered import open as open
+from ._buffered import open_async as open_async
 from ._copy import copy as copy
 from ._copy import copy_async as copy_async
 from ._delete import delete as delete
