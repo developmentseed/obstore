@@ -5,6 +5,7 @@ use futures::StreamExt;
 use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
+use ouroboros::self_referencing;
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
@@ -62,13 +63,13 @@ impl IntoPy<PyObject> for PyMaterializedListResult {
     }
 }
 
-// #[pyclass(name = "ListResult")]
-// pub(crate) struct PyListResult<'a> {
-//     // store: Arc<dyn ObjectStore>,
-//     // stream: Option<Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
-//     payload: BoxStream<'a, object_store::Result<ObjectMeta>>,
-//     min_chunk_size: usize,
-// }
+#[pyclass(name = "ListResult")]
+#[self_referencing]
+pub(crate) struct PyListResult {
+    store: Arc<dyn ObjectStore>,
+    #[borrows(store)]
+    payload: BoxStream<'this, object_store::Result<ObjectMeta>>,
+}
 
 // impl PyListResult {
 //     fn new(

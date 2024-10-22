@@ -24,6 +24,7 @@ futures = { workspace = true }
 http = { workspace = true }
 indexmap = { workspace = true }
 object_store = { workspace = true }
+ouroboros = "0.18"
 pyo3 = { workspace = true, features = ["chrono", "abi3-py39"] }
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
 pyo3-file = { workspace = true }
