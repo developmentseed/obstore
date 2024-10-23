@@ -1,0 +1,14 @@
+[data-md-color-scheme="devseed"] {
+  --md-primary-fg-color: #d04003;
+  --md-primary-bg-color: #1f292d;
+  --md-primary-fg-color--light: #ecb7b7;
+  --md-primary-fg-color--dark: #90030c;
+}
+
+/* Override just a couple colors from slate */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #d04003;
+  --md-primary-bg-color: #1f292d;
+  --md-primary-fg-color--light: #ecb7b7;
+  --md-primary-fg-color--dark: #90030c;
+}
