@@ -1,5 +1,13 @@
 # object-store-py
 
+[![PyPI][pypi_badge]][pypi_link]
+<!-- [![Conda Version][conda_version_badge]][conda_version] -->
+
+[pypi_badge]: https://badge.fury.io/py/object-store-py.svg
+[pypi_link]: https://pypi.org/project/object-store-py/
+<!-- [conda_version_badge]: https://img.shields.io/conda/vn/conda-forge/object-store-py.svg
+[conda_version]: https://anaconda.org/conda-forge/object-store-py -->
+
 A Python interface and [pyo3](https://github.com/PyO3/pyo3) integration to the Rust [`object_store`](https://docs.rs/object_store) crate, providing a uniform API for interacting with object storage services and local files.
 
 Run the same code in multiple clouds via a simple runtime configuration change.
