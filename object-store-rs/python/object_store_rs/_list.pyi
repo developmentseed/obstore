@@ -105,6 +105,57 @@ def list(
     `foo/bar/x` but not of `foo/bar_baz/x`. List is recursive, i.e. `foo/bar/more/x`
     will be included.
 
+    **Examples**:
+
+    Synchronously iterate through list results:
+
+    ```py
+    import object_store_rs as obs
+    from object_store_rs.store import MemoryStore
+
+    store = MemoryStore()
+    for i in range(100):
+        obs.put(store, f"file{i}.txt", b"foo")
+
+    stream = obs.list(store, chunk_size=10)
+    for list_result in stream:
+        print(list_result[0])
+        # {'path': 'file0.txt', 'last_modified': datetime.datetime(2024, 10, 23, 19, 19, 28, 781723, tzinfo=datetime.timezone.utc), 'size': 3, 'e_tag': '0', 'version': None}
+        break
+    ```
+
+    Asynchronously iterate through list results. Just change `for` to `async for`:
+
+    ```py
+    stream = obs.list(store, chunk_size=10)
+    async for list_result in stream:
+        print(list_result[2])
+        # {'path': 'file10.txt', 'last_modified': datetime.datetime(2024, 10, 23, 19, 21, 46, 224725, tzinfo=datetime.timezone.utc), 'size': 3, 'e_tag': '10', 'version': None}
+        break
+    ```
+
+    Return large list results as [Arrow](https://arrow.apache.org/). This is most useful
+    with large list operations. In this case you may want to increase the `chunk_size`
+    parameter.
+
+    ```py
+    stream = obs.list(store, chunk_size=1000, return_arrow=True)
+    # Stream is now an iterable/async iterable of `RecordBatch`es
+    for batch in stream:
+        print(batch.num_rows) # 100
+
+        # If desired, convert to a pyarrow RecordBatch (zero-copy) with
+        # `pyarrow.record_batch(batch)`
+        break
+    ```
+
+    Collect all list results into a single Arrow `RecordBatch`.
+
+    ```py
+    stream = obs.list(store, return_arrow=True)
+    batch = stream.collect()
+    ```
+
     !!! note
         The order of returned [`ObjectMeta`][object_store_rs.ObjectMeta] is not
         guaranteed
@@ -121,7 +172,11 @@ def list(
     Keyword Args:
         offset: If provided, list all the objects with the given prefix and a location greater than `offset`. Defaults to `None`.
         chunk_size: The number of items to collect per chunk in the returned
-            (async) iterator. All chunks except for the last one will have this many items.
+            (async) iterator. All chunks except for the last one will have this many
+            items. This is ignored in the
+            [`collect`][object_store_rs.ListStream.collect] and
+            [`collect_async`][object_store_rs.ListStream.collect_async] methods of
+            `ListStream`.
         return_arrow: If `True`, return each batch of list items as an Arrow
             `RecordBatch`, not as a list of Python `dict`s. Arrow removes serialization
             overhead between Rust and Python and so this can be significantly faster for
