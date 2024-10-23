@@ -3,7 +3,7 @@ name = "object-store-rs"
 version = "0.1.0"
 authors = { workspace = true }
 edition = { workspace = true }
-description = "Core library for representing Arrow data in Python."
+description = "A Python interface to the Rust object_store crate, providing a uniform API for interacting with object storage services and local files."
 readme = "README.md"
 repository = { workspace = true }
 homepage = { workspace = true }
