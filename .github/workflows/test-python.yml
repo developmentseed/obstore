@@ -47,22 +47,19 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Set up Python
-        id: setup-python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install a specific version of uv
+      - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
           version: "0.4.x"
 
+      - name: Set up Python
+        run: uv python install ${{ matrix.python-version }}
+
       - name: Build rust submodules
         run: |
-          uv run --python-preference system maturin develop -m object-store-rs/Cargo.toml
+          uv run maturin develop -m object-store-rs/Cargo.toml
 
       - name: Run python tests
         run: |
-          uv run --python-preference system pytest tests
+          uv run pytest tests
