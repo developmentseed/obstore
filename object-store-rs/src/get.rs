@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use futures::stream::BoxStream;
+use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use object_store::{GetOptions, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
@@ -108,23 +108,25 @@ impl PyGetResult {
     }
 }
 
+// Note: we fuse the underlying stream so that we can get `None` multiple times.
+// See the note on PyListStream for more background.
 #[pyclass(name = "BytesStream")]
 pub struct PyBytesStream {
-    stream: Arc<Mutex<BoxStream<'static, object_store::Result<Bytes>>>>,
+    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<Bytes>>>>>,
     min_chunk_size: usize,
 }
 
 impl PyBytesStream {
     fn new(stream: BoxStream<'static, object_store::Result<Bytes>>, min_chunk_size: usize) -> Self {
         Self {
-            stream: Arc::new(Mutex::new(stream)),
+            stream: Arc::new(Mutex::new(stream.fuse())),
             min_chunk_size,
         }
     }
 }
 
 async fn next_stream(
-    stream: Arc<Mutex<BoxStream<'static, object_store::Result<Bytes>>>>,
+    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<Bytes>>>>>,
     min_chunk_size: usize,
     sync: bool,
 ) -> PyResult<PyBytesWrapper> {
