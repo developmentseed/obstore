@@ -25,8 +25,9 @@ futures = { workspace = true }
 http = { workspace = true }
 indexmap = { workspace = true }
 object_store = { workspace = true }
-pyo3 = { workspace = true, features = ["chrono", "abi3-py39"] }
-pyo3-arrow = { version = "0.5.1", default-features = false }
+pyo3 = { workspace = true, features = ["chrono"] }
+# Latest git to get PyArrowBuffer constructor
+pyo3-arrow = { git = "https://github.com/kylebarron/arro3", rev = "d771e39c2748313a86bfcdfa36ec68cc24d9804b" }
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
 pyo3-file = { workspace = true }
 pyo3-object_store = { path = "../pyo3-object_store" }

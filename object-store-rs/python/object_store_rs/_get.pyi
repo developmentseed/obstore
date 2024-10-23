@@ -1,8 +1,14 @@
+import sys
 from datetime import datetime
 from typing import List, Sequence, TypedDict
 
 from ._list import ObjectMeta
 from .store import ObjectStore
+
+if sys.version_info >= (3, 12):
+    from collections.abc import Buffer as _Buffer
+else:
+    from typing_extensions import Buffer as _Buffer
 
 class GetOptions(TypedDict):
     """Options for a get request, such as range"""
@@ -160,6 +166,10 @@ class BytesStream:
     def __next__(self) -> bytes:
         """Return the next chunk of bytes in the stream."""
 
+class Buffer(_Buffer):
+    def as_bytes(self) -> bytes:
+        """Copy this buffer into a Python `bytes` object."""
+
 def get(
     store: ObjectStore, path: str, *, options: GetOptions | None = None
 ) -> GetResult:
@@ -182,7 +192,7 @@ async def get_async(
     Refer to the documentation for [get][object_store_rs.get].
     """
 
-def get_range(store: ObjectStore, path: str, offset: int, length: int) -> bytes:
+def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer:
     """
     Return the bytes that are stored at the specified location in the given byte range.
 
@@ -198,12 +208,13 @@ def get_range(store: ObjectStore, path: str, offset: int, length: int) -> bytes:
         length: The number of bytes.
 
     Returns:
-        bytes
+        A `Buffer`. This `Buffer` object implements the Python buffer protocol, allowing
+        zero-copy access to the underlying memory provided by Rust.
     """
 
 async def get_range_async(
     store: ObjectStore, path: str, offset: int, length: int
-) -> bytes:
+) -> Buffer:
     """Call `get_range` asynchronously.
 
     Refer to the documentation for [get_range][object_store_rs.get_range].
@@ -211,9 +222,9 @@ async def get_range_async(
 
 def get_ranges(
     store: ObjectStore, path: str, offsets: Sequence[int], lengths: Sequence[int]
-) -> List[bytes]:
+) -> List[Buffer]:
     """
-    Return the bytes that are stored at the specified locationin the given byte ranges
+    Return the bytes that are stored at the specified location in the given byte ranges
 
     To improve performance this will:
 
@@ -227,12 +238,14 @@ def get_ranges(
         lengths: A sequence of `int` representing the number of bytes within each range.
 
     Returns:
-        A sequence of `bytes`, one for each range.
+        A sequence of `Buffer`, one for each range. This `Buffer` object implements the
+        Python buffer protocol, allowing zero-copy access to the underlying memory
+        provided by Rust.
     """
 
 async def get_ranges_async(
     store: ObjectStore, path: str, offsets: Sequence[int], lengths: Sequence[int]
-) -> List[bytes]:
+) -> List[Buffer]:
     """Call `get_ranges` asynchronously.
 
     Refer to the documentation for [get_ranges][object_store_rs.get_ranges].

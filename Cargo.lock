@@ -1369,8 +1369,7 @@ dependencies = [
 [[package]]
 name = "pyo3-arrow"
 version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a641506190769c9cb5e3e187b64514afaf318e904accf0137a6ed5ca436d27d5"
+source = "git+https://github.com/kylebarron/arro3?rev=d771e39c2748313a86bfcdfa36ec68cc24d9804b#d771e39c2748313a86bfcdfa36ec68cc24d9804b"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -1922,9 +1921,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.82"
+version = "2.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83540f837a8afc019423a8edb95b52a8effe46957ee402287f4292fae35be021"
+checksum = "01680f5d178a369f817f43f3d399650272873a8e7588a7872f7e90edc71d60a3"
 dependencies = [
  "proc-macro2",
  "quote",
