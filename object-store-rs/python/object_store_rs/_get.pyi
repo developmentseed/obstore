@@ -167,6 +167,13 @@ class BytesStream:
         """Return the next chunk of bytes in the stream."""
 
 class Buffer(_Buffer):
+    """
+    A buffer implementing the Python buffer protocol, allowing zero-copy access to the
+    underlying memory provided by Rust.
+
+    You can pass this to [`memoryview`][] for a zero-copy view into the underlying data.
+    """
+
     def as_bytes(self) -> bytes:
         """Copy this buffer into a Python `bytes` object."""
 
@@ -208,8 +215,8 @@ def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer
         length: The number of bytes.
 
     Returns:
-        A `Buffer`. This `Buffer` object implements the Python buffer protocol, allowing
-        zero-copy access to the underlying memory provided by Rust.
+        A `Buffer` object implementing the Python buffer protocol, allowing
+            zero-copy access to the underlying memory provided by Rust.
     """
 
 async def get_range_async(
@@ -239,8 +246,8 @@ def get_ranges(
 
     Returns:
         A sequence of `Buffer`, one for each range. This `Buffer` object implements the
-        Python buffer protocol, allowing zero-copy access to the underlying memory
-        provided by Rust.
+            Python buffer protocol, allowing zero-copy access to the underlying memory
+            provided by Rust.
     """
 
 async def get_ranges_async(

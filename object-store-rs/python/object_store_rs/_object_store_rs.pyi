@@ -2,6 +2,7 @@ from ._copy import copy as copy
 from ._copy import copy_async as copy_async
 from ._delete import delete as delete
 from ._delete import delete_async as delete_async
+from ._get import Buffer as Buffer
 from ._get import GetOptions as GetOptions
 from ._get import GetResult as GetResult
 from ._get import get as get

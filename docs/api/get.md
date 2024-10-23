@@ -8,3 +8,4 @@
 ::: object_store_rs.get_ranges_async
 ::: object_store_rs.GetOptions
 ::: object_store_rs.GetResult
+::: object_store_rs.Buffer
