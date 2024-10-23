@@ -68,5 +68,5 @@ async def sign_async(
 ) -> str | List[str]:
     """Call `sign` asynchronously.
 
-    Refer to the documentation for [sign][object_store_rs.sign].
+    Refer to the documentation for [sign][object_store_py.sign].
     """

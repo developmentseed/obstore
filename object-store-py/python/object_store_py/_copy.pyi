@@ -22,5 +22,5 @@ async def copy_async(
 ) -> None:
     """Call `copy` asynchronously.
 
-    Refer to the documentation for [copy][object_store_rs.copy].
+    Refer to the documentation for [copy][object_store_py.copy].
     """

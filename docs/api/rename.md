@@ -1,4 +1,4 @@
 # Rename
 
-::: object_store_rs.rename
-::: object_store_rs.rename_async
+::: object_store_py.rename
+::: object_store_py.rename_async

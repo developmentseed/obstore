@@ -1,6 +1,6 @@
 # Sign
 
-::: object_store_rs.sign
-::: object_store_rs.sign_async
-::: object_store_rs.SignCapableStore
-::: object_store_rs.HTTP_METHOD
+::: object_store_py.sign
+::: object_store_py.sign_async
+::: object_store_py.SignCapableStore
+::: object_store_py.HTTP_METHOD

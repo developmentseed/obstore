@@ -1,8 +1,8 @@
 from tempfile import TemporaryDirectory
 
-import object_store_rs as obs
+import object_store_py as obs
 import pytest
-from object_store_rs.store import LocalStore, MemoryStore
+from object_store_py.store import LocalStore, MemoryStore
 
 
 def test_delete_one():

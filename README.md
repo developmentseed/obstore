@@ -36,7 +36,7 @@ pip install object-store-py
 
 ### Constructing a store
 
-Classes to construct a store are exported from the `object_store_rs.store` submodule:
+Classes to construct a store are exported from the `object_store_py.store` submodule:
 
 - [`S3Store`](https://developmentseed.org/object-store-py/latest/api/store/aws/): Configure a connection to Amazon S3.
 - [`GCSStore`](https://developmentseed.org/object-store-py/latest/api/store/gcs/): Configure a connection to Google Cloud Storage.
@@ -49,7 +49,7 @@ Classes to construct a store are exported from the `object_store_rs.store` submo
 
 ```py
 import boto3
-from object_store_rs.store import S3Store
+from object_store_py.store import S3Store
 
 session = boto3.Session()
 store = S3Store.from_session(session, "bucket-name", config={"AWS_REGION": "us-east-1"})
@@ -75,9 +75,9 @@ All methods for interacting with a store are exported as **top-level functions**
 
 There are a few additional APIs useful for specific use cases:
 
-- [`get_range`](https://developmentseed.org/object-store-py/latest/api/get/#object_store_rs.get_range): Get a specific byte range from a file.
-- [`get_ranges`](https://developmentseed.org/object-store-py/latest/api/get/#object_store_rs.get_ranges): Get multiple byte ranges from a single file.
-- [`list_with_delimiter`](https://developmentseed.org/object-store-py/latest/api/list/#object_store_rs.list_with_delimiter): List objects within a specific directory.
+- [`get_range`](https://developmentseed.org/object-store-py/latest/api/get/#object_store_py.get_range): Get a specific byte range from a file.
+- [`get_ranges`](https://developmentseed.org/object-store-py/latest/api/get/#object_store_py.get_ranges): Get multiple byte ranges from a single file.
+- [`list_with_delimiter`](https://developmentseed.org/object-store-py/latest/api/list/#object_store_py.list_with_delimiter): List objects within a specific directory.
 - [`sign`](https://developmentseed.org/object-store-py/latest/api/sign/): Create a signed URL.
 
 All methods have a comparable async method with the same name plus an `_async` suffix.
@@ -85,7 +85,7 @@ All methods have a comparable async method with the same name plus an `_async` s
 #### Example
 
 ```py
-import object_store_rs as obs
+import object_store_py as obs
 
 store = obs.store.MemoryStore()
 
@@ -109,7 +109,7 @@ assert obs.get(store, "other.txt").bytes() == b"hello world!"
 All of these methods also have `async` counterparts, suffixed with `_async`.
 
 ```py
-import object_store_rs as obs
+import object_store_py as obs
 
 store = obs.store.MemoryStore()
 

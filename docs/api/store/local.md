@@ -1,3 +1,3 @@
 # Local
 
-::: object_store_rs.store.LocalStore
+::: object_store_py.store.LocalStore

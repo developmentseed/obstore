@@ -1,4 +1,4 @@
 # Copy
 
-::: object_store_rs.copy
-::: object_store_rs.copy_async
+::: object_store_py.copy
+::: object_store_py.copy_async

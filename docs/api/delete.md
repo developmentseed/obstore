@@ -1,2 +1,2 @@
-::: object_store_rs.delete
-::: object_store_rs.delete_async
+::: object_store_py.delete
+::: object_store_py.delete_async

@@ -15,5 +15,5 @@ def head(store: ObjectStore, path: str) -> ObjectMeta:
 async def head_async(store: ObjectStore, path: str) -> ObjectMeta:
     """Call `head` asynchronously.
 
-    Refer to the documentation for [head][object_store_rs.head].
+    Refer to the documentation for [head][object_store_py.head].
     """

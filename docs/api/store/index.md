@@ -1,3 +1,3 @@
 # ObjectStore
 
-::: object_store_rs.store.ObjectStore
+::: object_store_py.store.ObjectStore

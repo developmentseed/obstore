@@ -1,3 +1,3 @@
 # HTTP
 
-::: object_store_rs.store.HTTPStore
+::: object_store_py.store.HTTPStore

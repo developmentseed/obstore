@@ -1,3 +1,3 @@
 # Memory
 
-::: object_store_rs.store.MemoryStore
+::: object_store_py.store.MemoryStore

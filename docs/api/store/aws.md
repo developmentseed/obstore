@@ -1,4 +1,4 @@
 # AWS S3
 
-::: object_store_rs.store.S3Store
-::: object_store_rs.store.S3ConfigKey
+::: object_store_py.store.S3Store
+::: object_store_py.store.S3ConfigKey

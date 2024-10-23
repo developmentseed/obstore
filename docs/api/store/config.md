@@ -1,5 +1,5 @@
 # Configuration
 
-::: object_store_rs.store.ClientConfigKey
-::: object_store_rs.store.BackoffConfig
-::: object_store_rs.store.RetryConfig
+::: object_store_py.store.ClientConfigKey
+::: object_store_py.store.BackoffConfig
+::: object_store_py.store.RetryConfig

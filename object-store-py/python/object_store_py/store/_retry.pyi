@@ -31,7 +31,7 @@ class RetryConfig(TypedDict):
     * Timeouts for [safe] / read-only requests
 
     Requests will be retried up to some limit, using exponential
-    backoff with jitter. See [`BackoffConfig`][object_store_rs.store.BackoffConfig] for
+    backoff with jitter. See [`BackoffConfig`][object_store_py.store.BackoffConfig] for
     more information
 
     [safe]: https://datatracker.ietf.org/doc/html/rfc7231#section-4.2.1

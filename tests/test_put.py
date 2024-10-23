@@ -1,5 +1,5 @@
-import object_store_rs as obs
-from object_store_rs.store import MemoryStore
+import object_store_py as obs
+from object_store_py.store import MemoryStore
 
 
 def test_put_non_multipart():

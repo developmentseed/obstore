@@ -1,7 +1,7 @@
-import object_store_rs as obs
+import object_store_py as obs
 import pytest
 from arro3.core import RecordBatch
-from object_store_rs.store import MemoryStore
+from object_store_py.store import MemoryStore
 
 
 def test_list():
