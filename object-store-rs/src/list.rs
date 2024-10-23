@@ -297,7 +297,7 @@ fn object_meta_to_arrow(metas: &[PyObjectMeta]) -> PyRecordBatchWrapper {
 
     let columns: Vec<ArrayRef> = vec![
         Arc::new(location.finish()),
-        Arc::new(last_modified.finish()),
+        Arc::new(last_modified.finish().with_timezone("UTC")),
         Arc::new(size.finish()),
         Arc::new(e_tag.finish()),
         Arc::new(version.finish()),

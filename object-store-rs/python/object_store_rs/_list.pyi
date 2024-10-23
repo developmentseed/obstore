@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Generic, List, Literal, TypedDict, TypeVar, overload
+from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
 
 from arro3.core import RecordBatch
 
@@ -39,29 +39,37 @@ class ListResult(TypedDict):
     objects: List[ObjectMeta]
     """Object metadata for the listing"""
 
-ListType = TypeVar("ListType")
+ChunkType = TypeVar("ChunkType", List[ObjectMeta], RecordBatch)
 
-class ListStream(Generic[ListType]):
+class ListStream(Generic[ChunkType]):
     """
     A stream of [ObjectMeta][object_store_rs.ObjectMeta] that can be polled in a sync or
     async fashion.
     """
-    def __aiter__(self) -> ListStream[ListType]:
+    def __aiter__(self) -> Self:
         """Return `Self` as an async iterator."""
 
-    def __iter__(self) -> ListStream[ListType]:
+    def __iter__(self) -> Self:
         """Return `Self` as an async iterator."""
 
-    async def collect_async(self) -> ListType:
-        """Collect all remaining ObjectMeta objects in the stream."""
+    async def collect_async(self) -> ChunkType:
+        """Collect all remaining ObjectMeta objects in the stream.
 
-    def collect(self) -> ListType:
-        """Collect all remaining ObjectMeta objects in the stream."""
+        This ignores the `chunk_size` parameter from the `list` call and collects all
+        remaining data into a single chunk.
+        """
 
-    async def __anext__(self) -> ListType:
+    def collect(self) -> ChunkType:
+        """Collect all remaining ObjectMeta objects in the stream.
+
+        This ignores the `chunk_size` parameter from the `list` call and collects all
+        remaining data into a single chunk.
+        """
+
+    async def __anext__(self) -> ChunkType:
         """Return the next chunk of ObjectMeta in the stream."""
 
-    def __next__(self) -> ListType:
+    def __next__(self) -> ChunkType:
         """Return the next chunk of ObjectMeta in the stream."""
 
 @overload
