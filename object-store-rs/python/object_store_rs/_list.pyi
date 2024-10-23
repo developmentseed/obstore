@@ -38,7 +38,10 @@ class ListResult(TypedDict):
     """Object metadata for the listing"""
 
 class ListStream:
-    """An async stream of ObjectMeta."""
+    """
+    A stream of [ObjectMeta][object_store_rs.ObjectMeta] that can be polled in a sync or
+    async fashion.
+    """
     def __aiter__(self) -> ListStream:
         """Return `Self` as an async iterator."""
 
@@ -71,8 +74,14 @@ def list(
     `foo/bar/x` but not of `foo/bar_baz/x`. List is recursive, i.e. `foo/bar/more/x`
     will be included.
 
-    Note: the order of returned [`ObjectMeta`][object_store_rs.ObjectMeta] is not
-    guaranteed
+    !!! note
+        The order of returned [`ObjectMeta`][object_store_rs.ObjectMeta] is not
+        guaranteed
+
+    !!! note
+        There is no async version of this method, because `list` is not async under the
+        hood, rather it only instantiates a stream, which can be polled in synchronous
+        or asynchronous fashion. See [`ListStream`][object_store_rs.ListStream].
 
     Args:
         store: The ObjectStore instance to use.
