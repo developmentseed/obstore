@@ -1,5 +1,7 @@
 from datetime import datetime
-from typing import List, TypedDict
+from typing import Generic, List, Literal, TypedDict, TypeVar, overload
+
+from arro3.core import RecordBatch
 
 from .store import ObjectStore
 
@@ -37,36 +39,57 @@ class ListResult(TypedDict):
     objects: List[ObjectMeta]
     """Object metadata for the listing"""
 
-class ListStream:
+ListType = TypeVar("ListType")
+
+class ListStream(Generic[ListType]):
     """
     A stream of [ObjectMeta][object_store_rs.ObjectMeta] that can be polled in a sync or
     async fashion.
     """
-    def __aiter__(self) -> ListStream:
+    def __aiter__(self) -> ListStream[ListType]:
         """Return `Self` as an async iterator."""
 
-    def __iter__(self) -> ListStream:
+    def __iter__(self) -> ListStream[ListType]:
         """Return `Self` as an async iterator."""
 
-    async def collect_async(self) -> List[ObjectMeta]:
+    async def collect_async(self) -> ListType:
         """Collect all remaining ObjectMeta objects in the stream."""
 
-    def collect(self) -> List[ObjectMeta]:
+    def collect(self) -> ListType:
         """Collect all remaining ObjectMeta objects in the stream."""
 
-    async def __anext__(self) -> List[ObjectMeta]:
+    async def __anext__(self) -> ListType:
         """Return the next chunk of ObjectMeta in the stream."""
 
-    def __next__(self) -> List[ObjectMeta]:
+    def __next__(self) -> ListType:
         """Return the next chunk of ObjectMeta in the stream."""
 
+@overload
 def list(
     store: ObjectStore,
     prefix: str | None = None,
     *,
     offset: str | None = None,
     chunk_size: int = 50,
-) -> ListStream:
+    return_arrow: Literal[True],
+) -> ListStream[RecordBatch]: ...
+@overload
+def list(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    offset: str | None = None,
+    chunk_size: int = 50,
+    return_arrow: Literal[False] = False,
+) -> ListStream[List[ObjectMeta]]: ...
+def list(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    offset: str | None = None,
+    chunk_size: int = 50,
+    return_arrow: bool = False,
+) -> ListStream[RecordBatch] | ListStream[List[ObjectMeta]]:
     """
     List all the objects with the given prefix.
 
@@ -90,7 +113,11 @@ def list(
     Keyword Args:
         offset: If provided, list all the objects with the given prefix and a location greater than `offset`. Defaults to `None`.
         chunk_size: The number of items to collect per chunk in the returned
-            (async) iterator.
+            (async) iterator. All chunks except for the last one will have this many items.
+        return_arrow: If `True`, return each batch of list items as an Arrow
+            `RecordBatch`, not as a list of Python `dict`s. Arrow removes serialization
+            overhead between Rust and Python and so this can be significantly faster for
+            large list operations. Defaults to `False`.
 
     Returns:
         A ListStream, which you can iterate through to access list results.

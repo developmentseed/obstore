@@ -1,5 +1,10 @@
+use std::ops::AddAssign;
 use std::sync::Arc;
 
+use arrow::array::{
+    ArrayRef, RecordBatch, StringBuilder, TimestampMicrosecondBuilder, UInt64Builder,
+};
+use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
@@ -7,6 +12,7 @@ use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
+use pyo3_arrow::PyRecordBatch;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
 use tokio::sync::Mutex;
@@ -18,6 +24,12 @@ pub(crate) struct PyObjectMeta(ObjectMeta);
 impl PyObjectMeta {
     pub(crate) fn new(meta: ObjectMeta) -> Self {
         Self(meta)
+    }
+}
+
+impl AsRef<ObjectMeta> for PyObjectMeta {
+    fn as_ref(&self) -> &ObjectMeta {
+        &self.0
     }
 }
 
@@ -55,16 +67,19 @@ impl IntoPy<PyObject> for PyObjectMeta {
 pub(crate) struct PyListStream {
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
     chunk_size: usize,
+    return_arrow: bool,
 }
 
 impl PyListStream {
     fn new(
         stream: BoxStream<'static, object_store::Result<ObjectMeta>>,
         chunk_size: usize,
+        return_arrow: bool,
     ) -> Self {
         Self {
             stream: Arc::new(Mutex::new(stream.fuse())),
             chunk_size,
+            return_arrow,
         }
     }
 }
@@ -79,26 +94,48 @@ impl PyListStream {
         slf
     }
 
-    fn collect(&self, py: Python) -> PyResult<Vec<PyObjectMeta>> {
+    fn collect(&self, py: Python) -> PyResult<PyListIterResult> {
         let runtime = get_runtime(py)?;
         let stream = self.stream.clone();
-        runtime.block_on(collect_stream(stream))
+        runtime.block_on(collect_stream(stream, self.return_arrow))
     }
 
     fn collect_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
         let stream = self.stream.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, collect_stream(stream))
+        pyo3_async_runtimes::tokio::future_into_py(py, collect_stream(stream, self.return_arrow))
     }
 
     fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
         let stream = self.stream.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, next_stream(stream, self.chunk_size, false))
+        pyo3_async_runtimes::tokio::future_into_py(
+            py,
+            next_stream(stream, self.chunk_size, false, self.return_arrow),
+        )
     }
 
-    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<Vec<PyObjectMeta>> {
+    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyListIterResult> {
         let runtime = get_runtime(py)?;
         let stream = self.stream.clone();
-        runtime.block_on(next_stream(stream, self.chunk_size, true))
+        runtime.block_on(next_stream(
+            stream,
+            self.chunk_size,
+            true,
+            self.return_arrow,
+        ))
+    }
+}
+
+enum PyListIterResult {
+    Arrow(PyRecordBatchWrapper),
+    Native(Vec<PyObjectMeta>),
+}
+
+impl IntoPy<PyObject> for PyListIterResult {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        match self {
+            Self::Arrow(x) => x.into_py(py),
+            Self::Native(x) => x.into_py(py),
+        }
     }
 }
 
@@ -106,7 +143,8 @@ async fn next_stream(
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
     chunk_size: usize,
     sync: bool,
-) -> PyResult<Vec<PyObjectMeta>> {
+    return_arrow: bool,
+) -> PyResult<PyListIterResult> {
     let mut stream = stream.lock().await;
     let mut metas: Vec<PyObjectMeta> = vec![];
     loop {
@@ -114,7 +152,14 @@ async fn next_stream(
             Some(Ok(meta)) => {
                 metas.push(PyObjectMeta(meta));
                 if metas.len() >= chunk_size {
-                    return Ok(metas);
+                    match return_arrow {
+                        true => {
+                            return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+                        }
+                        false => {
+                            return Ok(PyListIterResult::Native(metas));
+                        }
+                    }
                 }
             }
             Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
@@ -128,7 +173,14 @@ async fn next_stream(
                         return Err(PyStopAsyncIteration::new_err("stream exhausted"));
                     }
                 } else {
-                    return Ok(metas);
+                    match return_arrow {
+                        true => {
+                            return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+                        }
+                        false => {
+                            return Ok(PyListIterResult::Native(metas));
+                        }
+                    }
                 }
             }
         };
@@ -137,7 +189,8 @@ async fn next_stream(
 
 async fn collect_stream(
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
-) -> PyResult<Vec<PyObjectMeta>> {
+    return_arrow: bool,
+) -> PyResult<PyListIterResult> {
     let mut stream = stream.lock().await;
     let mut metas: Vec<PyObjectMeta> = vec![];
     loop {
@@ -146,11 +199,111 @@ async fn collect_stream(
                 metas.push(PyObjectMeta(meta));
             }
             Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
-            None => {
-                return Ok(metas);
-            }
+            None => match return_arrow {
+                true => {
+                    return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+                }
+                false => {
+                    return Ok(PyListIterResult::Native(metas));
+                }
+            },
         };
     }
+}
+
+struct PyRecordBatchWrapper(PyRecordBatch);
+
+impl PyRecordBatchWrapper {
+    fn new(batch: RecordBatch) -> Self {
+        Self(PyRecordBatch::new(batch))
+    }
+}
+
+impl IntoPy<PyObject> for PyRecordBatchWrapper {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        self.0.to_arro3(py).unwrap()
+    }
+}
+
+/// Array capacities for each string array
+struct ObjectMetaCapacity {
+    location: usize,
+    e_tag: usize,
+    version: usize,
+}
+
+impl ObjectMetaCapacity {
+    fn new() -> Self {
+        Self {
+            location: 0,
+            e_tag: 0,
+            version: 0,
+        }
+    }
+}
+
+impl AddAssign<&ObjectMeta> for ObjectMetaCapacity {
+    fn add_assign(&mut self, rhs: &ObjectMeta) {
+        self.location += rhs.location.as_ref().len();
+        if let Some(e_tag) = rhs.e_tag.as_ref() {
+            self.e_tag += e_tag.len();
+        }
+        if let Some(version) = rhs.version.as_ref() {
+            self.version += version.len();
+        }
+    }
+}
+
+fn object_meta_capacities(metas: &[PyObjectMeta]) -> ObjectMetaCapacity {
+    let mut capacity = ObjectMetaCapacity::new();
+    for meta in metas {
+        capacity += &meta.0;
+    }
+    capacity
+}
+
+fn object_meta_to_arrow(metas: &[PyObjectMeta]) -> PyRecordBatchWrapper {
+    let capacity = object_meta_capacities(metas);
+
+    let mut location = StringBuilder::with_capacity(metas.len(), capacity.location);
+    let mut last_modified = TimestampMicrosecondBuilder::with_capacity(metas.len());
+    let mut size = UInt64Builder::with_capacity(metas.len());
+    let mut e_tag = StringBuilder::with_capacity(metas.len(), capacity.e_tag);
+    let mut version = StringBuilder::with_capacity(metas.len(), capacity.version);
+
+    for meta in metas {
+        location.append_value(meta.as_ref().location.as_ref());
+        last_modified.append_value(meta.as_ref().last_modified.timestamp_micros());
+        size.append_value(meta.as_ref().size as _);
+        e_tag.append_option(meta.as_ref().e_tag.as_ref());
+        version.append_option(meta.as_ref().version.as_ref());
+    }
+
+    let fields = vec![
+        // Note, this uses "path" instead of "location" because we standardize the API to accept
+        // the keyword "path" everywhere.
+        Field::new("path", DataType::Utf8, false),
+        Field::new(
+            "last_modified",
+            DataType::Timestamp(TimeUnit::Microsecond, Some("UTC".into())),
+            false,
+        ),
+        Field::new("size", DataType::UInt64, false),
+        Field::new("e_tag", DataType::Utf8, true),
+        Field::new("version", DataType::Utf8, true),
+    ];
+    let schema = Schema::new(fields);
+
+    let columns: Vec<ArrayRef> = vec![
+        Arc::new(location.finish()),
+        Arc::new(last_modified.finish()),
+        Arc::new(size.finish()),
+        Arc::new(e_tag.finish()),
+        Arc::new(version.finish()),
+    ];
+    // This unwrap is ok because we know the RecordBatch is valid.
+    let batch = RecordBatch::try_new(schema.into(), columns).unwrap();
+    PyRecordBatchWrapper::new(batch)
 }
 
 pub(crate) struct PyListResult(ListResult);
@@ -181,12 +334,13 @@ impl IntoPy<PyObject> for PyListResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None, *, offset = None, chunk_size = 50))]
+#[pyo3(signature = (store, prefix = None, *, offset = None, chunk_size = 50, return_arrow = false))]
 pub(crate) fn list(
     store: PyObjectStore,
     prefix: Option<String>,
     offset: Option<String>,
     chunk_size: usize,
+    return_arrow: bool,
 ) -> PyObjectStoreResult<PyListStream> {
     let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
@@ -195,7 +349,7 @@ pub(crate) fn list(
     } else {
         store.list(prefix.as_ref())
     };
-    Ok(PyListStream::new(stream, chunk_size))
+    Ok(PyListStream::new(stream, chunk_size, return_arrow))
 }
 
 #[pyfunction]
