@@ -1,6 +1,6 @@
 import sys
 from datetime import datetime
-from typing import List, Sequence, TypedDict
+from typing import List, Sequence, Tuple, TypedDict
 
 from ._list import ObjectMeta
 from .store import ObjectStore
@@ -10,8 +10,11 @@ if sys.version_info >= (3, 12):
 else:
     from typing_extensions import Buffer as _Buffer
 
-class GetOptions(TypedDict):
-    """Options for a get request, such as range"""
+class GetOptions(TypedDict, total=False):
+    """Options for a get request, such as range.
+
+    All options are optional.
+    """
 
     if_match: str | None
     """
@@ -63,10 +66,31 @@ class GetOptions(TypedDict):
     <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.4>
     """
 
-    # range:
+    range: Tuple[int | None, int | None]
     """
     Request transfer of only the specified range of bytes
     otherwise returning [`Error::NotModified`]
+
+    The semantics of this tuple are:
+
+    - `(int, int)`: Request a specific range of bytes `(start, end)`.
+
+        If the given range is zero-length or starts after the end of the object, an
+        error will be returned. Additionally, if the range ends after the end of the
+        object, the entire remainder of the object will be returned. Otherwise, the
+        exact requested range will be returned.
+
+        The `end` offset is _exclusive_.
+
+    - `(int, None)`: Request all bytes starting from a given byte offset.
+
+        This is equivalent to `bytes={int}-` as an HTTP header.
+
+    - `(None, int)`: Request the last `int` bytes. Note that here, `int` is _this size
+        of the request_, not the byte offset. This is equivalent to `bytes=-{int}` as an
+        HTTP header.
+
+
 
     <https://datatracker.ietf.org/doc/html/rfc9110#name-range>
     """
@@ -125,7 +149,17 @@ class GetResult:
 
     @property
     def meta(self) -> ObjectMeta:
-        """The ObjectMeta for this object"""
+        """The ObjectMeta for this object.
+
+        This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
+        """
+
+    @property
+    def range(self) -> ObjectMeta:
+        """The range of bytes returned by this request.
+
+        This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
+        """
 
     def stream(self, min_chunk_size: int = 10 * 1024 * 1024) -> BytesStream:
         """Return a chunked stream over the result's bytes.

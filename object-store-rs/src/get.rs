@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use arrow::buffer::Buffer;
@@ -5,7 +6,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
-use object_store::{GetOptions, GetResult, ObjectStore};
+use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -20,16 +21,39 @@ use crate::runtime::get_runtime;
 /// 10MB default chunk size
 const DEFAULT_BYTES_CHUNK_SIZE: usize = 10 * 1024 * 1024;
 
-#[derive(FromPyObject)]
 pub(crate) struct PyGetOptions {
     if_match: Option<String>,
     if_none_match: Option<String>,
     if_modified_since: Option<DateTime<Utc>>,
     if_unmodified_since: Option<DateTime<Utc>>,
-    // TODO:
-    // range: Option<Range<usize>>,
+    range: Option<PyGetRange>,
     version: Option<String>,
     head: bool,
+}
+
+impl<'py> FromPyObject<'py> for PyGetOptions {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let dict = ob.extract::<HashMap<String, Bound<PyAny>>>()?;
+        Ok(Self {
+            if_match: dict.get("if_match").map(|x| x.extract()).transpose()?,
+            if_none_match: dict.get("if_none_match").map(|x| x.extract()).transpose()?,
+            if_modified_since: dict
+                .get("if_modified_since")
+                .map(|x| x.extract())
+                .transpose()?,
+            if_unmodified_since: dict
+                .get("if_unmodified_since")
+                .map(|x| x.extract())
+                .transpose()?,
+            range: dict.get("range").map(|x| x.extract()).transpose()?,
+            version: dict.get("version").map(|x| x.extract()).transpose()?,
+            head: dict
+                .get("head")
+                .map(|x| x.extract())
+                .transpose()?
+                .unwrap_or(false),
+        })
+    }
 }
 
 impl From<PyGetOptions> for GetOptions {
@@ -39,9 +63,34 @@ impl From<PyGetOptions> for GetOptions {
             if_none_match: value.if_none_match,
             if_modified_since: value.if_modified_since,
             if_unmodified_since: value.if_unmodified_since,
-            range: None,
+            range: value.range.map(|x| x.0),
             version: value.version,
             head: value.head,
+        }
+    }
+}
+
+pub(crate) struct PyGetRange(GetRange);
+
+impl<'py> FromPyObject<'py> for PyGetRange {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let range = ob.extract::<[Option<usize>; 2]>()?;
+        match (range[0], range[1]) {
+            (Some(start), Some(end)) => {
+                if start >= end {
+                    return Err(PyValueError::new_err(
+                        format!("End range must be strictly greater than start range. Got start: {}, end: {}", start, end ),
+                    ));
+                }
+
+                Ok(Self(GetRange::Bounded(start..end)))
+            }
+            (Some(start), None) => Ok(Self(GetRange::Offset(start))),
+            // Note: in this case `end` means `suffix bytes`
+            (None, Some(end)) => Ok(Self(GetRange::Suffix(end))),
+            (None, None) => Err(PyValueError::new_err(
+                "Cannot provide (None, None) for range.",
+            )),
         }
     }
 }
@@ -90,6 +139,14 @@ impl PyGetResult {
             .as_ref()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyObjectMeta::new(inner.meta.clone()))
+    }
+
+    fn range(&self) -> PyResult<(usize, usize)> {
+        let inner = self
+            .0
+            .as_ref()
+            .ok_or(PyValueError::new_err("Result has already been disposed."))?;
+        Ok((inner.range.start, inner.range.end))
     }
 
     #[pyo3(signature = (min_chunk_size = DEFAULT_BYTES_CHUNK_SIZE))]
