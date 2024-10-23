@@ -37,7 +37,6 @@ fn _object_store_rs(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(get::get))?;
     m.add_wrapped(wrap_pyfunction!(head::head_async))?;
     m.add_wrapped(wrap_pyfunction!(head::head))?;
-    m.add_wrapped(wrap_pyfunction!(list::list_async))?;
     m.add_wrapped(wrap_pyfunction!(list::list_with_delimiter_async))?;
     m.add_wrapped(wrap_pyfunction!(list::list_with_delimiter))?;
     m.add_wrapped(wrap_pyfunction!(list::list))?;

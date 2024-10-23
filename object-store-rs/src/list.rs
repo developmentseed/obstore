@@ -5,9 +5,11 @@ use futures::StreamExt;
 use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
+use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
+use tokio::sync::Mutex;
 
 use crate::runtime::get_runtime;
 
@@ -30,6 +32,82 @@ impl IntoPy<PyObject> for PyObjectMeta {
         dict.insert("e_tag", self.0.e_tag.into_py(py));
         dict.insert("version", self.0.version.into_py(py));
         dict.into_py(py)
+    }
+}
+
+#[pyclass(name = "ListStream")]
+pub(crate) struct PyListStream {
+    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
+    min_chunk_size: usize,
+}
+
+impl PyListStream {
+    fn new(
+        stream: BoxStream<'static, object_store::Result<ObjectMeta>>,
+        min_chunk_size: usize,
+    ) -> Self {
+        Self {
+            stream: Arc::new(Mutex::new(stream)),
+            min_chunk_size,
+        }
+    }
+}
+
+#[pymethods]
+impl PyListStream {
+    fn __aiter__(slf: Py<Self>) -> Py<Self> {
+        slf
+    }
+
+    fn __iter__(slf: Py<Self>) -> Py<Self> {
+        slf
+    }
+
+    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+        let stream = self.stream.clone();
+        pyo3_async_runtimes::tokio::future_into_py(
+            py,
+            next_stream(stream, self.min_chunk_size, false),
+        )
+    }
+
+    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<Vec<PyObjectMeta>> {
+        let runtime = get_runtime(py)?;
+        let stream = self.stream.clone();
+        runtime.block_on(next_stream(stream, self.min_chunk_size, true))
+    }
+}
+
+async fn next_stream(
+    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
+    min_chunk_size: usize,
+    sync: bool,
+) -> PyResult<Vec<PyObjectMeta>> {
+    let mut stream = stream.lock().await;
+    let mut metas: Vec<PyObjectMeta> = vec![];
+    loop {
+        match stream.next().await {
+            Some(Ok(meta)) => {
+                metas.push(PyObjectMeta(meta));
+                if metas.len() >= min_chunk_size {
+                    return Ok(metas);
+                }
+            }
+            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+            None => {
+                if metas.is_empty() {
+                    // Depending on whether the iteration is sync or not, we raise either a
+                    // StopIteration or a StopAsyncIteration
+                    if sync {
+                        return Err(PyStopIteration::new_err("stream exhausted"));
+                    } else {
+                        return Err(PyStopAsyncIteration::new_err("stream exhausted"));
+                    }
+                } else {
+                    return Ok(metas);
+                }
+            }
+        };
     }
 }
 
@@ -61,65 +139,21 @@ impl IntoPy<PyObject> for PyListResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None, *, offset = None, max_items = 2000))]
+#[pyo3(signature = (store, prefix = None, *, offset = None, min_chunk_size = 50))]
 pub(crate) fn list(
-    py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
     offset: Option<String>,
-    max_items: Option<usize>,
-) -> PyObjectStoreResult<Vec<PyObjectMeta>> {
-    let store = store.into_inner();
+    min_chunk_size: usize,
+) -> PyObjectStoreResult<PyListStream> {
+    let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
-    let runtime = get_runtime(py)?;
-    py.allow_threads(|| {
-        let stream = if let Some(offset) = offset {
-            store.list_with_offset(prefix.as_ref(), &offset.into())
-        } else {
-            store.list(prefix.as_ref())
-        };
-        let out = runtime.block_on(materialize_list_stream(stream, max_items))?;
-        Ok::<_, PyObjectStoreError>(out)
-    })
-}
-
-#[pyfunction]
-#[pyo3(signature = (store, prefix = None, *, offset = None, max_items = 2000))]
-pub(crate) fn list_async(
-    py: Python,
-    store: PyObjectStore,
-    prefix: Option<String>,
-    offset: Option<String>,
-    max_items: Option<usize>,
-) -> PyResult<Bound<PyAny>> {
-    let store = store.into_inner();
-    let prefix = prefix.map(|s| s.into());
-
-    pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let stream = if let Some(offset) = offset {
-            store.list_with_offset(prefix.as_ref(), &offset.into())
-        } else {
-            store.list(prefix.as_ref())
-        };
-        Ok(materialize_list_stream(stream, max_items).await?)
-    })
-}
-
-async fn materialize_list_stream(
-    mut stream: BoxStream<'_, object_store::Result<ObjectMeta>>,
-    max_items: Option<usize>,
-) -> PyObjectStoreResult<Vec<PyObjectMeta>> {
-    let mut result = vec![];
-    while let Some(object) = stream.next().await {
-        result.push(PyObjectMeta(object?));
-        if let Some(max_items) = max_items {
-            if result.len() >= max_items {
-                return Ok(result);
-            }
-        }
-    }
-
-    Ok(result)
+    let stream = if let Some(offset) = offset {
+        store.list_with_offset(prefix.as_ref(), &offset.into())
+    } else {
+        store.list(prefix.as_ref())
+    };
+    Ok(PyListStream::new(stream, min_chunk_size))
 }
 
 #[pyfunction]

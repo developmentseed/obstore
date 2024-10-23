@@ -37,13 +37,27 @@ class ListResult(TypedDict):
     objects: List[ObjectMeta]
     """Object metadata for the listing"""
 
+class ListStream:
+    """An async stream of ObjectMeta."""
+    def __aiter__(self) -> ListStream:
+        """Return `Self` as an async iterator."""
+
+    def __iter__(self) -> ListStream:
+        """Return `Self` as an async iterator."""
+
+    async def __anext__(self) -> List[ObjectMeta]:
+        """Return the next chunk of ObjectMeta in the stream."""
+
+    def __next__(self) -> List[ObjectMeta]:
+        """Return the next chunk of ObjectMeta in the stream."""
+
 def list(
     store: ObjectStore,
     prefix: str | None = None,
     *,
     offset: str | None = None,
-    max_items: int | None = 2000,
-) -> List[ObjectMeta]:
+    min_chunk_size: int = 50,
+) -> ListStream:
     """
     List all the objects with the given prefix.
 
@@ -54,34 +68,17 @@ def list(
     Note: the order of returned [`ObjectMeta`][object_store_rs.ObjectMeta] is not
     guaranteed
 
-    !!! note
-        In the future, we'd like to have `list` return an async iterable, just like
-        `get`, so that we can stream the result of `list`, but we need [some
-        changes](https://github.com/apache/arrow-rs/issues/6587) in the upstream
-        object-store repo first.
-
     Args:
         store: The ObjectStore instance to use.
         prefix: The prefix within ObjectStore to use for listing. Defaults to None.
 
     Keyword Args:
         offset: If provided, list all the objects with the given prefix and a location greater than `offset`. Defaults to `None`.
-        max_items: The maximum number of items to return. Defaults to 2000.
+        min_chunk_size: The minimum number of items to collect per chunk in the returned
+            (async) iterator.
 
     Returns:
-        A list of `ObjectMeta`.
-    """
-
-async def list_async(
-    store: ObjectStore,
-    prefix: str | None = None,
-    *,
-    offset: str | None = None,
-    max_items: int | None = 2000,
-) -> List[ObjectMeta]:
-    """Call `list` asynchronously.
-
-    Refer to the documentation for [list][object_store_rs.list].
+        A ListStream, which you can iterate through to access list results.
     """
 
 def list_with_delimiter(store: ObjectStore, prefix: str | None = None) -> ListResult:
