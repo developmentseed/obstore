@@ -1,6 +1,6 @@
 [package]
 name = "object-store-py"
-version = "0.1.0"
+version = "0.2.0"
 authors = { workspace = true }
 edition = { workspace = true }
 description = "A Python interface to the Rust object_store crate, providing a uniform API for interacting with object storage services and local files."
