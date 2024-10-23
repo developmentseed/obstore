@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use futures::stream::BoxStream;
+use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
 use object_store::path::Path;
@@ -35,20 +35,36 @@ impl IntoPy<PyObject> for PyObjectMeta {
     }
 }
 
+// Note: we fuse the underlying stream so that we can get `None` multiple times.
+//
+// In general, you can't poll an iterator after it's already emitted None. But the issue here is
+// that we need _two_ states for the Python async iterator. It needs to first get all returned
+// results, and then it needs its **own** PyStopAsyncIteration/PyStopIteration. But these are _two_
+// results to be returned from the Rust call, and we can't return them both at the same time. The
+// easiest way to fix this is to safely return `None` from the stream multiple times. The first
+// time we see `None` we return any batched results, the second time we see `None`, there are no
+// batched results and we return PyStopAsyncIteration/PyStopIteration.
+//
+// Note: another way we could solve this is by removing any batching from the stream, but batching
+// should improve the performance of the Rust/Python bridge.
+//
+// Ref:
+// - https://stackoverflow.com/a/66964599
+// - https://docs.rs/futures/latest/futures/prelude/stream/trait.StreamExt.html#method.fuse
 #[pyclass(name = "ListStream")]
 pub(crate) struct PyListStream {
-    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
-    min_chunk_size: usize,
+    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
+    chunk_size: usize,
 }
 
 impl PyListStream {
     fn new(
         stream: BoxStream<'static, object_store::Result<ObjectMeta>>,
-        min_chunk_size: usize,
+        chunk_size: usize,
     ) -> Self {
         Self {
-            stream: Arc::new(Mutex::new(stream)),
-            min_chunk_size,
+            stream: Arc::new(Mutex::new(stream.fuse())),
+            chunk_size,
         }
     }
 }
@@ -76,22 +92,19 @@ impl PyListStream {
 
     fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
         let stream = self.stream.clone();
-        pyo3_async_runtimes::tokio::future_into_py(
-            py,
-            next_stream(stream, self.min_chunk_size, false),
-        )
+        pyo3_async_runtimes::tokio::future_into_py(py, next_stream(stream, self.chunk_size, false))
     }
 
     fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<Vec<PyObjectMeta>> {
         let runtime = get_runtime(py)?;
         let stream = self.stream.clone();
-        runtime.block_on(next_stream(stream, self.min_chunk_size, true))
+        runtime.block_on(next_stream(stream, self.chunk_size, true))
     }
 }
 
 async fn next_stream(
-    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
-    min_chunk_size: usize,
+    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
+    chunk_size: usize,
     sync: bool,
 ) -> PyResult<Vec<PyObjectMeta>> {
     let mut stream = stream.lock().await;
@@ -100,7 +113,7 @@ async fn next_stream(
         match stream.next().await {
             Some(Ok(meta)) => {
                 metas.push(PyObjectMeta(meta));
-                if metas.len() >= min_chunk_size {
+                if metas.len() >= chunk_size {
                     return Ok(metas);
                 }
             }
@@ -123,7 +136,7 @@ async fn next_stream(
 }
 
 async fn collect_stream(
-    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
+    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
 ) -> PyResult<Vec<PyObjectMeta>> {
     let mut stream = stream.lock().await;
     let mut metas: Vec<PyObjectMeta> = vec![];
@@ -168,12 +181,12 @@ impl IntoPy<PyObject> for PyListResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None, *, offset = None, min_chunk_size = 50))]
+#[pyo3(signature = (store, prefix = None, *, offset = None, chunk_size = 50))]
 pub(crate) fn list(
     store: PyObjectStore,
     prefix: Option<String>,
     offset: Option<String>,
-    min_chunk_size: usize,
+    chunk_size: usize,
 ) -> PyObjectStoreResult<PyListStream> {
     let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
@@ -182,7 +195,7 @@ pub(crate) fn list(
     } else {
         store.list(prefix.as_ref())
     };
-    Ok(PyListStream::new(stream, min_chunk_size))
+    Ok(PyListStream::new(stream, chunk_size))
 }
 
 #[pyfunction]

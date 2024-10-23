@@ -62,7 +62,7 @@ def list(
     prefix: str | None = None,
     *,
     offset: str | None = None,
-    min_chunk_size: int = 50,
+    chunk_size: int = 50,
 ) -> ListStream:
     """
     List all the objects with the given prefix.
@@ -80,7 +80,7 @@ def list(
 
     Keyword Args:
         offset: If provided, list all the objects with the given prefix and a location greater than `offset`. Defaults to `None`.
-        min_chunk_size: The minimum number of items to collect per chunk in the returned
+        chunk_size: The number of items to collect per chunk in the returned
             (async) iterator.
 
     Returns:
