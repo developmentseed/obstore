@@ -1163,7 +1163,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "object-store-rs"
+name = "object-store-py"
 version = "0.1.0"
 dependencies = [
  "arrow",

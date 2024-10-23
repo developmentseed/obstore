@@ -90,8 +90,6 @@ class GetOptions(TypedDict, total=False):
         of the request_, not the byte offset. This is equivalent to `bytes=-{int}` as an
         HTTP header.
 
-
-
     <https://datatracker.ietf.org/doc/html/rfc9110#name-range>
     """
 

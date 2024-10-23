@@ -1,11 +1,11 @@
-site_name: object-store-rs
-repo_name: developmentseed/object-store-rs
-repo_url: https://github.com/developmentseed/object-store-rs
+site_name: object-store-py
+repo_name: developmentseed/object-store-py
+repo_url: https://github.com/developmentseed/object-store-py
 site_description: A Python interface and pyo3 integration to the Rust object-store crate.
 site_author: Development Seed
 # Note: trailing slash recommended with mike:
 # https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/#publishing-a-new-version
-site_url: https://developmentseed.org/object-store-rs/
+site_url: https://developmentseed.org/object-store-py/
 docs_dir: docs
 
 extra:
@@ -41,7 +41,7 @@ nav:
       - api/sign.md
 
 watch:
-  - object-store-rs/python
+  - object-store-py/python
   - docs
 
 theme:

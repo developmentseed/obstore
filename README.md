@@ -1,4 +1,4 @@
-# object-store-rs
+# object-store-py
 
 A Python interface and [pyo3](https://github.com/PyO3/pyo3) integration to the Rust [`object_store`](https://docs.rs/object_store) crate, providing a uniform API for interacting with object storage services and local files.
 
@@ -25,12 +25,12 @@ Supported object storage providers include:
 ## Installation
 
 ```sh
-pip install object-store-rs
+pip install object-store-py
 ```
 
 ## Documentation
 
-[Full documentation is available on the website](https://developmentseed.org/object-store-rs).
+[Full documentation is available on the website](https://developmentseed.org/object-store-py).
 
 ## Usage
 
@@ -38,12 +38,12 @@ pip install object-store-rs
 
 Classes to construct a store are exported from the `object_store_rs.store` submodule:
 
-- [`S3Store`](https://developmentseed.org/object-store-rs/latest/api/store/aws/): Configure a connection to Amazon S3.
-- [`GCSStore`](https://developmentseed.org/object-store-rs/latest/api/store/gcs/): Configure a connection to Google Cloud Storage.
-- [`AzureStore`](https://developmentseed.org/object-store-rs/latest/api/store/azure/): Configure a connection to Microsoft Azure Blob Storage.
-- [`HTTPStore`](https://developmentseed.org/object-store-rs/latest/api/store/http/): Configure a connection to a generic HTTP server
-- [`LocalStore`](https://developmentseed.org/object-store-rs/latest/api/store/local/): Local filesystem storage providing the same object store interface.
-- [`MemoryStore`](https://developmentseed.org/object-store-rs/latest/api/store/memory/): A fully in-memory implementation of ObjectStore.
+- [`S3Store`](https://developmentseed.org/object-store-py/latest/api/store/aws/): Configure a connection to Amazon S3.
+- [`GCSStore`](https://developmentseed.org/object-store-py/latest/api/store/gcs/): Configure a connection to Google Cloud Storage.
+- [`AzureStore`](https://developmentseed.org/object-store-py/latest/api/store/azure/): Configure a connection to Microsoft Azure Blob Storage.
+- [`HTTPStore`](https://developmentseed.org/object-store-py/latest/api/store/http/): Configure a connection to a generic HTTP server
+- [`LocalStore`](https://developmentseed.org/object-store-py/latest/api/store/local/): Local filesystem storage providing the same object store interface.
+- [`MemoryStore`](https://developmentseed.org/object-store-py/latest/api/store/memory/): A fully in-memory implementation of ObjectStore.
 
 #### Example
 
@@ -59,26 +59,26 @@ store = S3Store.from_session(session, "bucket-name", config={"AWS_REGION": "us-e
 
 Each store class above has its own configuration, accessible through the `config` named parameter. This is covered in the docs, and string literals are in the type hints.
 
-Additional [HTTP client configuration](https://developmentseed.org/object-store-rs/latest/api/store/config/) is available via the `client_options` named parameter.
+Additional [HTTP client configuration](https://developmentseed.org/object-store-py/latest/api/store/config/) is available via the `client_options` named parameter.
 
 ### Interacting with a store
 
 All methods for interacting with a store are exported as **top-level functions** (not methods on the `store` object):
 
-- [`copy`](https://developmentseed.org/object-store-rs/latest/api/copy/): Copy an object from one path to another in the same object store.
-- [`delete`](https://developmentseed.org/object-store-rs/latest/api/delete/): Delete the object at the specified location.
-- [`get`](https://developmentseed.org/object-store-rs/latest/api/get/): Return the bytes that are stored at the specified location.
-- [`head`](https://developmentseed.org/object-store-rs/latest/api/head/): Return the metadata for the specified location
-- [`list`](https://developmentseed.org/object-store-rs/latest/api/list/): List all the objects with the given prefix.
-- [`put`](https://developmentseed.org/object-store-rs/latest/api/put/): Save the provided bytes to the specified location
-- [`rename`](https://developmentseed.org/object-store-rs/latest/api/rename/): Move an object from one path to another in the same object store.
+- [`copy`](https://developmentseed.org/object-store-py/latest/api/copy/): Copy an object from one path to another in the same object store.
+- [`delete`](https://developmentseed.org/object-store-py/latest/api/delete/): Delete the object at the specified location.
+- [`get`](https://developmentseed.org/object-store-py/latest/api/get/): Return the bytes that are stored at the specified location.
+- [`head`](https://developmentseed.org/object-store-py/latest/api/head/): Return the metadata for the specified location
+- [`list`](https://developmentseed.org/object-store-py/latest/api/list/): List all the objects with the given prefix.
+- [`put`](https://developmentseed.org/object-store-py/latest/api/put/): Save the provided bytes to the specified location
+- [`rename`](https://developmentseed.org/object-store-py/latest/api/rename/): Move an object from one path to another in the same object store.
 
 There are a few additional APIs useful for specific use cases:
 
-- [`get_range`](https://developmentseed.org/object-store-rs/latest/api/get/#object_store_rs.get_range): Get a specific byte range from a file.
-- [`get_ranges`](https://developmentseed.org/object-store-rs/latest/api/get/#object_store_rs.get_ranges): Get multiple byte ranges from a single file.
-- [`list_with_delimiter`](https://developmentseed.org/object-store-rs/latest/api/list/#object_store_rs.list_with_delimiter): List objects within a specific directory.
-- [`sign`](https://developmentseed.org/object-store-rs/latest/api/sign/): Create a signed URL.
+- [`get_range`](https://developmentseed.org/object-store-py/latest/api/get/#object_store_rs.get_range): Get a specific byte range from a file.
+- [`get_ranges`](https://developmentseed.org/object-store-py/latest/api/get/#object_store_rs.get_ranges): Get multiple byte ranges from a single file.
+- [`list_with_delimiter`](https://developmentseed.org/object-store-py/latest/api/list/#object_store_rs.list_with_delimiter): List objects within a specific directory.
+- [`sign`](https://developmentseed.org/object-store-py/latest/api/sign/): Create a signed URL.
 
 All methods have a comparable async method with the same name plus an `_async` suffix.
 

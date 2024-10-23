@@ -1,12 +1,12 @@
 [workspace]
-members = ["object-store-rs", "pyo3-object_store"]
+members = ["object-store-py", "pyo3-object_store"]
 resolver = "2"
 
 [workspace.package]
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
-homepage = "https://developmentseed.org/object-store-rs"
-repository = "https://github.com/developmentseed/object-store-rs"
+homepage = "https://developmentseed.org/object-store-py"
+repository = "https://github.com/developmentseed/object-store-py"
 license = "MIT OR Apache-2.0"
 keywords = ["python"]
 categories = []
