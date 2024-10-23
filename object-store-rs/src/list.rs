@@ -10,7 +10,8 @@ use futures::StreamExt;
 use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
-use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration};
+use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3_arrow::PyRecordBatch;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
@@ -336,12 +337,25 @@ impl IntoPy<PyObject> for PyListResult {
 #[pyfunction]
 #[pyo3(signature = (store, prefix = None, *, offset = None, chunk_size = 50, return_arrow = false))]
 pub(crate) fn list(
+    py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
     offset: Option<String>,
     chunk_size: usize,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListStream> {
+    if return_arrow {
+        // Ensure that arro3.core is installed if returning as arrow.
+        // The IntoPy impl is infallible, but `PyRecordBatch::to_arro3` can fail if arro3 is not
+        // installed.
+        let msg = concat!(
+            "arro3.core is a required dependency for returning results as arrow.\n",
+            "\nInstall with `pip install arro3-core`."
+        );
+        py.import_bound(intern!(py, "arro3.core"))
+            .map_err(|err| PyImportError::new_err(format!("{}\n\n{}", msg, err)))?;
+    }
+
     let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
     let stream = if let Some(offset) = offset {
