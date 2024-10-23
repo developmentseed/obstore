@@ -46,6 +46,20 @@ async def test_stream_async():
     assert pos == len(data)
 
 
+def test_get_with_options():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    obs.put(store, path, data)
+
+    result = obs.get(store, path, options={"range": (5, 10)})
+    assert result.range == (5, 10)
+    buf = result.bytes()
+    assert buf == data[5:10]
+
+
 def test_get_range():
     store = MemoryStore()
 

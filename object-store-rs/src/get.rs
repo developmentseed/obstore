@@ -141,6 +141,7 @@ impl PyGetResult {
         Ok(PyObjectMeta::new(inner.meta.clone()))
     }
 
+    #[getter]
     fn range(&self) -> PyResult<(usize, usize)> {
         let inner = self
             .0
