@@ -45,6 +45,12 @@ class ListStream:
     def __iter__(self) -> ListStream:
         """Return `Self` as an async iterator."""
 
+    async def collect_async(self) -> List[ObjectMeta]:
+        """Collect all remaining ObjectMeta objects in the stream."""
+
+    def collect(self) -> List[ObjectMeta]:
+        """Collect all remaining ObjectMeta objects in the stream."""
+
     async def __anext__(self) -> List[ObjectMeta]:
         """Return the next chunk of ObjectMeta in the stream."""
 

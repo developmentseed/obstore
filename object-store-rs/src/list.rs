@@ -63,6 +63,17 @@ impl PyListStream {
         slf
     }
 
+    fn collect(&self, py: Python) -> PyResult<Vec<PyObjectMeta>> {
+        let runtime = get_runtime(py)?;
+        let stream = self.stream.clone();
+        runtime.block_on(collect_stream(stream))
+    }
+
+    fn collect_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+        let stream = self.stream.clone();
+        pyo3_async_runtimes::tokio::future_into_py(py, collect_stream(stream))
+    }
+
     fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
         let stream = self.stream.clone();
         pyo3_async_runtimes::tokio::future_into_py(
@@ -106,6 +117,24 @@ async fn next_stream(
                 } else {
                     return Ok(metas);
                 }
+            }
+        };
+    }
+}
+
+async fn collect_stream(
+    stream: Arc<Mutex<BoxStream<'static, object_store::Result<ObjectMeta>>>>,
+) -> PyResult<Vec<PyObjectMeta>> {
+    let mut stream = stream.lock().await;
+    let mut metas: Vec<PyObjectMeta> = vec![];
+    loop {
+        match stream.next().await {
+            Some(Ok(meta)) => {
+                metas.push(PyObjectMeta(meta));
+            }
+            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+            None => {
+                return Ok(metas);
             }
         };
     }
