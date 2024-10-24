@@ -28,3 +28,5 @@ from ._sign import HTTP_METHOD as HTTP_METHOD
 from ._sign import SignCapableStore as SignCapableStore
 from ._sign import sign as sign
 from ._sign import sign_async as sign_async
+
+def ___version() -> str: ...

@@ -24,6 +24,7 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(___version))?;
 
     pyo3_object_store::register_store_module(py, m, "obstore")?;
+    pyo3_object_store::register_exceptions_module(py, m, "obstore")?;
 
     m.add_wrapped(wrap_pyfunction!(copy::copy_async))?;
     m.add_wrapped(wrap_pyfunction!(copy::copy))?;

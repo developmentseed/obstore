@@ -50,7 +50,7 @@ def test_delete_one_local_fs():
         obs.delete(store, "file3.txt")
         assert len(obs.list(store).collect()) == 0
 
-        with pytest.raises(Exception, match="No such file"):
+        with pytest.raises(FileNotFoundError):
             obs.delete(store, "file1.txt")
 
 
@@ -68,7 +68,7 @@ def test_delete_many_local_fs():
             ["file1.txt", "file2.txt", "file3.txt"],
         )
 
-        with pytest.raises(Exception, match="No such file"):
+        with pytest.raises(FileNotFoundError):
             obs.delete(
                 store,
                 ["file1.txt", "file2.txt", "file3.txt"],
