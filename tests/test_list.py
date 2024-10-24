@@ -1,6 +1,7 @@
-import obstore as obs
 import pytest
 from arro3.core import RecordBatch
+
+import obstore as obs
 from obstore.store import MemoryStore
 
 

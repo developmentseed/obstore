@@ -1,5 +1,6 @@
-import obstore as obs
 import pytest
+
+import obstore as obs
 from obstore.store import MemoryStore
 
 

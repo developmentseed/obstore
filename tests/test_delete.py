@@ -1,7 +1,8 @@
 from tempfile import TemporaryDirectory
 
-import obstore as obs
 import pytest
+
+import obstore as obs
 from obstore.store import LocalStore, MemoryStore
 
 
