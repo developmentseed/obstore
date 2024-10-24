@@ -46,6 +46,7 @@ watch:
 
 theme:
   name: material
+  logo: assets/logo_no_text.png
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -55,8 +56,8 @@ theme:
 
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
-      primary: indigo
-      accent: indigo
+      primary: default
+      accent: deep orange
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
@@ -64,8 +65,8 @@ theme:
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: default
+      accent: deep orange
       toggle:
         icon: material/brightness-4
         name: Switch to system preference
@@ -82,6 +83,9 @@ theme:
     - navigation.tracking
     - search.suggest
     - search.share
+
+extra_css:
+  - overrides/stylesheets/extra.css
 
 plugins:
   - search
