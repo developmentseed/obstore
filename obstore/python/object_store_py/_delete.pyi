@@ -21,5 +21,5 @@ def delete(store: ObjectStore, paths: str | Sequence[str]) -> None:
 async def delete_async(store: ObjectStore, paths: str | Sequence[str]) -> None:
     """Call `delete` asynchronously.
 
-    Refer to the documentation for [delete][object_store_py.delete].
+    Refer to the documentation for [delete][obstore.delete].
     """

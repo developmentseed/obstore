@@ -1,12 +1,12 @@
 [workspace]
-members = ["object-store-py", "pyo3-object_store"]
+members = ["obstore", "pyo3-object_store"]
 resolver = "2"
 
 [workspace.package]
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
-homepage = "https://developmentseed.org/object-store-py"
-repository = "https://github.com/developmentseed/object-store-py"
+homepage = "https://developmentseed.org/obstore"
+repository = "https://github.com/developmentseed/obstore"
 license = "MIT OR Apache-2.0"
 keywords = ["python"]
 categories = []

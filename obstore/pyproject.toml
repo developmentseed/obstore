@@ -15,6 +15,6 @@ dynamic = ["version"]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-module-name = "object_store_py._object_store_py"
+module-name = "obstore._obstore"
 python-source = "python"
 strip = true

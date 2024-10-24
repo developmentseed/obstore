@@ -56,5 +56,5 @@ async def put_async(
 ) -> PutResult:
     """Call `put` asynchronously.
 
-    Refer to the documentation for [put][object_store_py.put].
+    Refer to the documentation for [put][obstore.put].
     """

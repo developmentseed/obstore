@@ -1,4 +1,4 @@
 # Rename
 
-::: object_store_py.rename
-::: object_store_py.rename_async
+::: obstore.rename
+::: obstore.rename_async

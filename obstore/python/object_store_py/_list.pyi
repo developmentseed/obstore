@@ -43,7 +43,7 @@ ChunkType = TypeVar("ChunkType", List[ObjectMeta], RecordBatch)
 
 class ListStream(Generic[ChunkType]):
     """
-    A stream of [ObjectMeta][object_store_py.ObjectMeta] that can be polled in a sync or
+    A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
     async fashion.
     """
     def __aiter__(self) -> Self:
@@ -110,8 +110,8 @@ def list(
     Synchronously iterate through list results:
 
     ```py
-    import object_store_py as obs
-    from object_store_py.store import MemoryStore
+    import obstore as obs
+    from obstore.store import MemoryStore
 
     store = MemoryStore()
     for i in range(100):
@@ -157,13 +157,13 @@ def list(
     ```
 
     !!! note
-        The order of returned [`ObjectMeta`][object_store_py.ObjectMeta] is not
+        The order of returned [`ObjectMeta`][obstore.ObjectMeta] is not
         guaranteed
 
     !!! note
         There is no async version of this method, because `list` is not async under the
         hood, rather it only instantiates a stream, which can be polled in synchronous
-        or asynchronous fashion. See [`ListStream`][object_store_py.ListStream].
+        or asynchronous fashion. See [`ListStream`][obstore.ListStream].
 
     Args:
         store: The ObjectStore instance to use.
@@ -174,8 +174,8 @@ def list(
         chunk_size: The number of items to collect per chunk in the returned
             (async) iterator. All chunks except for the last one will have this many
             items. This is ignored in the
-            [`collect`][object_store_py.ListStream.collect] and
-            [`collect_async`][object_store_py.ListStream.collect_async] methods of
+            [`collect`][obstore.ListStream.collect] and
+            [`collect_async`][obstore.ListStream.collect_async] methods of
             `ListStream`.
         return_arrow: If `True`, return each batch of list items as an Arrow
             `RecordBatch`, not as a list of Python `dict`s. Arrow removes serialization
@@ -210,5 +210,5 @@ async def list_with_delimiter_async(
     """Call `list_with_delimiter` asynchronously.
 
     Refer to the documentation for
-    [list_with_delimiter][object_store_py.list_with_delimiter].
+    [list_with_delimiter][obstore.list_with_delimiter].
     """

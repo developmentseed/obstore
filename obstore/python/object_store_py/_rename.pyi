@@ -23,5 +23,5 @@ async def rename_async(
 ) -> None:
     """Call `rename` asynchronously.
 
-    Refer to the documentation for [rename][object_store_py.rename].
+    Refer to the documentation for [rename][obstore.rename].
     """

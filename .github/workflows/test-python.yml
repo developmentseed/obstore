@@ -58,7 +58,7 @@ jobs:
 
       - name: Build rust submodules
         run: |
-          uv run maturin develop -m object-store-py/Cargo.toml
+          uv run maturin develop -m obstore/Cargo.toml
 
       - name: Run python tests
         run: |

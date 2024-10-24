@@ -20,10 +20,10 @@ fn ___version() -> &'static str {
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn _object_store_py(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(___version))?;
 
-    pyo3_object_store::register_store_module(py, m, "object_store_py")?;
+    pyo3_object_store::register_store_module(py, m, "obstore")?;
 
     m.add_wrapped(wrap_pyfunction!(copy::copy_async))?;
     m.add_wrapped(wrap_pyfunction!(copy::copy))?;
