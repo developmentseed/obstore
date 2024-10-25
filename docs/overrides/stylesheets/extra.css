@@ -24,9 +24,8 @@ h6 {
 .md-typeset h2,
 .md-typeset h3,
 .md-typeset h4 {
-  font-weight: bold;
+  font-weight: normal;
   color: var(--md-default-fg-color);
-  margin: 0;
 }
 .md-button,
 .md-typeset .md-button {
