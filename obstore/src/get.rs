@@ -27,7 +27,8 @@ pub(crate) struct PyGetOptions {
     if_none_match: Option<String>,
     if_modified_since: Option<DateTime<Utc>>,
     if_unmodified_since: Option<DateTime<Utc>>,
-    range: Option<PyGetRange>,
+    // Taking out of public API until we can decide the right way to expose this
+    // range: Option<PyGetRange>,
     version: Option<String>,
     head: bool,
 }
@@ -48,7 +49,7 @@ impl<'py> FromPyObject<'py> for PyGetOptions {
                 .get("if_unmodified_since")
                 .map(|x| x.extract())
                 .transpose()?,
-            range: dict.get("range").map(|x| x.extract()).transpose()?,
+            // range: dict.get("range").map(|x| x.extract()).transpose()?,
             version: dict.get("version").map(|x| x.extract()).transpose()?,
             head: dict
                 .get("head")
@@ -66,15 +67,18 @@ impl From<PyGetOptions> for GetOptions {
             if_none_match: value.if_none_match,
             if_modified_since: value.if_modified_since,
             if_unmodified_since: value.if_unmodified_since,
-            range: value.range.map(|x| x.0),
+            range: Default::default(),
             version: value.version,
             head: value.head,
         }
     }
 }
 
+#[allow(dead_code)]
 pub(crate) struct PyGetRange(GetRange);
 
+// TODO: think of a better API here so that the distinction between each of these is easy to
+// understand.
 impl<'py> FromPyObject<'py> for PyGetRange {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let range = ob.extract::<[Option<usize>; 2]>()?;

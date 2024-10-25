@@ -12,7 +12,7 @@ else:
     from typing_extensions import Buffer as _Buffer
 
 class GetOptions(TypedDict, total=False):
-    """Options for a get request, such as range.
+    """Options for a get request.
 
     All options are optional.
     """
@@ -67,7 +67,7 @@ class GetOptions(TypedDict, total=False):
     <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.4>
     """
 
-    range: Tuple[int | None, int | None]
+    # range: Tuple[int | None, int | None]
     """
     Request transfer of only the specified range of bytes
     otherwise returning [`Error::NotModified`]
@@ -161,7 +161,7 @@ class GetResult:
         """
 
     @property
-    def range(self) -> ObjectMeta:
+    def range(self) -> Tuple[int, int]:
         """The range of bytes returned by this request.
 
         This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
