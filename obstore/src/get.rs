@@ -15,6 +15,7 @@ use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
 use tokio::sync::Mutex;
 
+use crate::attributes::PyAttributes;
 use crate::list::PyObjectMeta;
 use crate::runtime::get_runtime;
 
@@ -33,6 +34,8 @@ pub(crate) struct PyGetOptions {
 
 impl<'py> FromPyObject<'py> for PyGetOptions {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        // Update to use derive(FromPyObject) when default is implemented:
+        // https://github.com/PyO3/pyo3/issues/4643
         let dict = ob.extract::<HashMap<String, Bound<PyAny>>>()?;
         Ok(Self {
             if_match: dict.get("if_match").map(|x| x.extract()).transpose()?,
@@ -130,6 +133,15 @@ impl PyGetResult {
                 .map_err(PyObjectStoreError::ObjectStoreError)?;
             Ok(PyBytesWrapper::new(bytes))
         })
+    }
+
+    #[getter]
+    fn attributes(&self) -> PyResult<PyAttributes> {
+        let inner = self
+            .0
+            .as_ref()
+            .ok_or(PyValueError::new_err("Result has already been disposed."))?;
+        Ok(PyAttributes::new(inner.attributes.clone()))
     }
 
     #[getter]

@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 
+mod attributes;
 mod copy;
 mod delete;
 mod get;
@@ -10,6 +11,7 @@ mod put;
 mod rename;
 mod runtime;
 mod signer;
+mod tags;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 

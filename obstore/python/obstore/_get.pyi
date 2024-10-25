@@ -2,6 +2,7 @@ import sys
 from datetime import datetime
 from typing import List, Sequence, Tuple, TypedDict
 
+from ._attributes import Attributes
 from ._list import ObjectMeta
 from .store import ObjectStore
 
@@ -134,6 +135,13 @@ class GetResult:
     Note that after calling `bytes`, `bytes_async`, or `stream`, you will no longer be
     able to call other methods on this object, such as the `meta` attribute.
     """
+
+    @property
+    def attributes(self) -> Attributes:
+        """Additional object attributes.
+
+        This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
+        """
 
     def bytes(self) -> bytes:
         """

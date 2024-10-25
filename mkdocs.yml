@@ -39,6 +39,7 @@ nav:
       - api/put.md
       - api/rename.md
       - api/sign.md
+      - api/attributes.md
       - api/exceptions.md
 
 watch:

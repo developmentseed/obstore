@@ -1,3 +1,5 @@
+from ._attributes import Attribute as Attribute
+from ._attributes import Attributes as Attributes
 from ._copy import copy as copy
 from ._copy import copy_async as copy_async
 from ._delete import delete as delete
@@ -19,7 +21,9 @@ from ._list import ObjectMeta as ObjectMeta
 from ._list import list as list
 from ._list import list_with_delimiter as list_with_delimiter
 from ._list import list_with_delimiter_async as list_with_delimiter_async
+from ._put import PutMode as PutMode
 from ._put import PutResult as PutResult
+from ._put import UpdateVersion as UpdateVersion
 from ._put import put as put
 from ._put import put_async as put_async
 from ._rename import rename as rename
