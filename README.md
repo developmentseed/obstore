@@ -1,34 +1,30 @@
 # obstore
 
 [![PyPI][pypi_badge]][pypi_link]
+
 <!-- [![Conda Version][conda_version_badge]][conda_version] -->
 
 [pypi_badge]: https://badge.fury.io/py/obstore.svg
 [pypi_link]: https://pypi.org/project/obstore/
+
 <!-- [conda_version_badge]: https://img.shields.io/conda/vn/conda-forge/obstore.svg
 [conda_version]: https://anaconda.org/conda-forge/obstore -->
 
-A Python interface and [pyo3](https://github.com/PyO3/pyo3) integration to the Rust [`object_store`](https://docs.rs/object_store) crate, providing a uniform API for interacting with object storage services and local files.
+Simple, fast integration with object storage services like Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
 
-Run the same code in multiple clouds via a simple runtime configuration change.
-
-<!-- For Rust developers looking to add object_store support to their Python packages, refer to pyo3-object_store. -->
-
-- Easy to install with no Python dependencies.
 - Sync and async API.
 - Streaming downloads with configurable chunking.
+- Streaming `list`, with no need to paginate.
+- Support for conditional put ("put if not exists"), as well as custom tags and attributes.
 - Automatically supports [multipart uploads](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) under the hood for large file objects.
+- Optionally return list results as [Arrow](https://arrow.apache.org/), which is faster than materializing Python `dict`/`list` objects.
+- Easy to install with no required Python dependencies.
 - The [underlying Rust library](https://docs.rs/object_store) is production quality and used in large scale production systems, such as the Rust package registry [crates.io](https://crates.io/).
+- Support for zero-copy data exchange from Rust into Python in `get_range` and `get_ranges`.
 - Simple API with static type checking.
 - Helpers for constructing from environment variables and `boto3.Session` objects
 
-Supported object storage providers include:
-
-- Amazon S3 and S3-compliant APIs like Cloudflare R2
-- Google Cloud Storage
-- Azure Blob Gen1 and Gen2 accounts (including ADLS Gen2)
-- Local filesystem
-- In-memory storage
+<!-- For Rust developers looking to add object_store support to their Python packages, refer to pyo3-object_store. -->
 
 ## Installation
 

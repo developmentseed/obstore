@@ -182,6 +182,8 @@ def list(
             overhead between Rust and Python and so this can be significantly faster for
             large list operations. Defaults to `False`.
 
+            If this is `True`, the `arro3-core` Python package must be installed.
+
     Returns:
         A ListStream, which you can iterate through to access list results.
     """
