@@ -11,11 +11,13 @@ use object_store::{
     WriteMultipart,
 };
 use pyo3::exceptions::PyValueError;
+use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::error::PyObjectStoreResult;
 use pyo3_object_store::PyObjectStore;
+use tokio::io::AsyncRead;
 
 use crate::attributes::PyAttributes;
 use crate::runtime::get_runtime;
@@ -56,15 +58,15 @@ impl<'py> FromPyObject<'py> for PyUpdateVersion {
     }
 }
 
-/// Input types supported by multipart upload
-#[derive(Debug)]
-pub(crate) enum MultipartPutInput {
+// #[derive(Debug)]
+pub(crate) enum PutInput {
+    AsyncIterator(Py<PyAny>),
     File(BufReader<File>),
     FileLike(PyFileLikeObject),
     Buffer(Cursor<PyBackedBytes>),
 }
 
-impl MultipartPutInput {
+impl PutInput {
     /// Number of bytes in the file-like object
     fn nbytes(&mut self) -> PyObjectStoreResult<usize> {
         let origin_pos = self.stream_position()?;
@@ -77,16 +79,44 @@ impl MultipartPutInput {
     fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
         Ok(self.nbytes()? > chunk_size)
     }
+
+    async fn read_chunk(&mut self, buf: &mut [u8]) -> PyObjectStoreResult<usize> {
+        match self {
+            Self::AsyncIterator(f) => {
+                // Note: we have to acquire the GIL once to create the future and a separate time
+                // to extract the result of the future.
+                let future = Python::with_gil(|py| {
+                    let py_aiter = f.bind(py);
+                    let coroutine = py_aiter.call_method0(intern!(py, "__anext__"))?;
+                    pyo3_async_runtimes::tokio::into_future(coroutine)
+                })?;
+
+                let future_result = future.await?;
+                let buf = Python::with_gil(|py| future_result.extract::<PyBackedBytes>(py))?;
+                Ok(buf.as_ref().to_vec())
+                // todo!()
+            }
+            Self::File(f) => Ok(f.read(buf)?),
+            Self::FileLike(f) => Ok(f.read(buf)?),
+            Self::Buffer(f) => Ok(f.read(buf)?),
+        }
+    }
 }
 
-impl<'py> FromPyObject<'py> for MultipartPutInput {
+impl<'py> FromPyObject<'py> for PutInput {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
+        let raw_io_base = py
+            .import_bound(intern!("io"))?
+            .getattr(intern!(py, "RawIOBase"))?;
+
         if let Ok(path) = ob.extract::<PathBuf>() {
             Ok(Self::File(BufReader::new(File::open(path)?)))
         } else if let Ok(buffer) = ob.extract::<PyBackedBytes>() {
             Ok(Self::Buffer(Cursor::new(buffer)))
-        } else {
+        }
+        // Check for file-like object
+        else if ob.hasattr(intern!(py, "read"))? && ob.hasattr(intern!(py, "seek"))? {
             Ok(Self::FileLike(PyFileLikeObject::with_requirements(
                 ob.into_py(py),
                 true,
@@ -94,11 +124,15 @@ impl<'py> FromPyObject<'py> for MultipartPutInput {
                 true,
                 false,
             )?))
+        } else if ob.hasattr(intern!(py, "__anext__"))? {
+            Ok(Self::AsyncIterator(ob.unbind()))
+        } else {
+            Err(PyValueError::new_err("Unexpected input for PutInput"))
         }
     }
 }
 
-impl Read for MultipartPutInput {
+impl Read for PutInput {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         match self {
             Self::File(f) => f.read(buf),
@@ -108,7 +142,7 @@ impl Read for MultipartPutInput {
     }
 }
 
-impl Seek for MultipartPutInput {
+impl Seek for PutInput {
     fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         match self {
             Self::File(f) => f.seek(pos),
@@ -136,7 +170,7 @@ pub(crate) fn put(
     py: Python,
     store: PyObjectStore,
     path: String,
-    mut file: MultipartPutInput,
+    mut file: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
@@ -187,7 +221,7 @@ pub(crate) fn put_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    mut file: MultipartPutInput,
+    mut file: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
@@ -238,7 +272,7 @@ pub(crate) fn put_async(
 async fn put_inner(
     store: Arc<dyn ObjectStore>,
     path: &Path,
-    mut reader: MultipartPutInput,
+    mut reader: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
@@ -262,10 +296,10 @@ async fn put_inner(
     Ok(PyPutResult(store.put_opts(path, payload, opts).await?))
 }
 
-async fn put_multipart_inner<R: Read>(
+async fn put_multipart_inner(
     store: Arc<dyn ObjectStore>,
     path: &Path,
-    mut reader: R,
+    mut reader: PutInput,
     chunk_size: usize,
     max_concurrency: usize,
     attributes: Option<PyAttributes>,
