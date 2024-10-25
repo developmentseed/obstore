@@ -3,7 +3,7 @@ requires = ["maturin>=1.4.0,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "object-store-py"
+name = "obstore"
 requires-python = ">=3.9"
 dependencies = []
 classifiers = [

@@ -1163,27 +1163,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "object-store-py"
-version = "0.2.0-beta.1"
-dependencies = [
- "arrow",
- "bytes",
- "chrono",
- "futures",
- "http",
- "indexmap",
- "object_store",
- "pyo3",
- "pyo3-arrow",
- "pyo3-async-runtimes",
- "pyo3-file",
- "pyo3-object_store",
- "reqwest",
- "tokio",
- "url",
-]
-
-[[package]]
 name = "object_store"
 version = "0.11.1"
 source = "git+https://github.com/kylebarron/arrow-rs?branch=kyle/list-returns-static-stream#33062b14efc66ff35353bf785cbd444056b09b66"
@@ -1211,6 +1190,27 @@ dependencies = [
  "tracing",
  "url",
  "walkdir",
+]
+
+[[package]]
+name = "obstore"
+version = "0.2.0-beta.2"
+dependencies = [
+ "arrow",
+ "bytes",
+ "chrono",
+ "futures",
+ "http",
+ "indexmap",
+ "object_store",
+ "pyo3",
+ "pyo3-arrow",
+ "pyo3-async-runtimes",
+ "pyo3-file",
+ "pyo3-object_store",
+ "reqwest",
+ "tokio",
+ "url",
 ]
 
 [[package]]
