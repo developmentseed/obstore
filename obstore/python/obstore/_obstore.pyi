@@ -22,6 +22,8 @@ from ._list import list_with_delimiter_async as list_with_delimiter_async
 from ._put import PutResult as PutResult
 from ._put import put as put
 from ._put import put_async as put_async
+from ._put import put_multipart as put_multipart
+from ._put import put_multipart_async as put_multipart_async
 from ._rename import rename as rename
 from ._rename import rename_async as rename_async
 from ._sign import HTTP_METHOD as HTTP_METHOD

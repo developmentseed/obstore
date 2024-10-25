@@ -30,11 +30,6 @@ impl MultipartPutInput {
         self.seek(SeekFrom::Start(origin_pos))?;
         Ok(size.try_into().unwrap())
     }
-
-    /// Whether to use multipart uploads.
-    fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
-        Ok(self.nbytes()? > chunk_size)
-    }
 }
 
 impl<'py> FromPyObject<'py> for MultipartPutInput {
@@ -88,65 +83,25 @@ impl IntoPy<PyObject> for PyPutResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
 pub(crate) fn put(
     py: Python,
     store: PyObjectStore,
     path: String,
-    mut file: MultipartPutInput,
-    use_multipart: Option<bool>,
-    chunk_size: usize,
-    max_concurrency: usize,
+    file: MultipartPutInput,
 ) -> PyObjectStoreResult<PyPutResult> {
-    let use_multipart = if let Some(use_multipart) = use_multipart {
-        use_multipart
-    } else {
-        file.use_multipart(chunk_size)?
-    };
     let runtime = get_runtime(py)?;
-    if use_multipart {
-        runtime.block_on(put_multipart_inner(
-            store.into_inner(),
-            &path.into(),
-            file,
-            chunk_size,
-            max_concurrency,
-        ))
-    } else {
-        runtime.block_on(put_inner(store.into_inner(), &path.into(), file))
-    }
+    runtime.block_on(put_inner(store.into_inner(), &path.into(), file))
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
 pub(crate) fn put_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    mut file: MultipartPutInput,
-    use_multipart: Option<bool>,
-    chunk_size: usize,
-    max_concurrency: usize,
+    file: MultipartPutInput,
 ) -> PyResult<Bound<PyAny>> {
-    let use_multipart = if let Some(use_multipart) = use_multipart {
-        use_multipart
-    } else {
-        file.use_multipart(chunk_size)?
-    };
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let result = if use_multipart {
-            put_multipart_inner(
-                store.into_inner(),
-                &path.into(),
-                file,
-                chunk_size,
-                max_concurrency,
-            )
-            .await?
-        } else {
-            put_inner(store.into_inner(), &path.into(), file).await?
-        };
-        Ok(result)
+        Ok(put_inner(store.into_inner(), &path.into(), file).await?)
     })
 }
 
@@ -160,6 +115,49 @@ async fn put_inner(
     reader.read_to_end(&mut buffer)?;
     let payload = PutPayload::from_bytes(buffer.into());
     Ok(PyPutResult(store.put(path, payload).await?))
+}
+
+#[pyfunction]
+#[pyo3(signature = (store, path, file, *, chunk_size = 5242880, max_concurrency = 12))]
+pub(crate) fn put_multipart(
+    py: Python,
+    store: PyObjectStore,
+    path: String,
+    file: MultipartPutInput,
+    chunk_size: usize,
+    max_concurrency: usize,
+) -> PyObjectStoreResult<PyPutResult> {
+    let runtime = get_runtime(py)?;
+    runtime.block_on(put_multipart_inner(
+        store.into_inner(),
+        &path.into(),
+        file,
+        chunk_size,
+        max_concurrency,
+    ))
+}
+
+#[pyfunction]
+#[pyo3(signature = (store, path, file, *, chunk_size = 5242880, max_concurrency = 12))]
+pub(crate) fn put_multipart_async(
+    py: Python,
+    store: PyObjectStore,
+    path: String,
+    file: MultipartPutInput,
+    chunk_size: usize,
+    max_concurrency: usize,
+) -> PyResult<Bound<PyAny>> {
+    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let result = put_multipart_inner(
+            store.into_inner(),
+            &path.into(),
+            file,
+            chunk_size,
+            max_concurrency,
+        )
+        .await?;
+        Ok(result)
+    })
 }
 
 async fn put_multipart_inner<R: Read>(
