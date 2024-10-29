@@ -71,7 +71,7 @@ impl PyS3Store {
     ) -> PyObjectStoreResult<Self> {
         // boto3.Session has a region_name attribute, but botocore.session.Session does not.
         let region = if let Ok(region) = session.getattr(intern!(py, "region_name")) {
-            Some(region.extract::<String>()?)
+            region.extract::<Option<String>>()?
         } else {
             None
         };
