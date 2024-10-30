@@ -20,6 +20,7 @@ dev-dependencies = [
     "mkdocstrings[python]>=0.26.1",
     "pandas>=2.2.3",
     "pip>=24.2",
+    "pyarrow>=17.0.0",
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
 ]

@@ -27,7 +27,6 @@ import fsspec.asyn
 import object_store_rs as obs
 
 
-
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
     def __init__(
