@@ -103,3 +103,5 @@ class GCSStore:
         Returns:
             GCSStore
         """
+
+    def __repr__(self) -> str: ...

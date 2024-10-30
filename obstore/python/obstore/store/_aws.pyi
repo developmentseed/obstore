@@ -213,3 +213,5 @@ class S3Store:
         Returns:
             S3Store
         """
+
+    def __repr__(self) -> str: ...

@@ -26,6 +26,7 @@ class LocalStore:
     ```
     """
     def __init__(self, prefix: str | Path | None = None) -> None: ...
+    def __repr__(self) -> str: ...
 
 class MemoryStore:
     """A fully in-memory implementation of ObjectStore.
@@ -36,6 +37,7 @@ class MemoryStore:
     ```
     """
     def __init__(self) -> None: ...
+    def __repr__(self) -> str: ...
 
 ObjectStore = AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
 """All supported ObjectStore implementations."""

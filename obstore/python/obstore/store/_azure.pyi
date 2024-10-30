@@ -210,3 +210,5 @@ class AzureStore:
         Returns:
             AzureStore
         """
+
+    def __repr__(self) -> str: ...

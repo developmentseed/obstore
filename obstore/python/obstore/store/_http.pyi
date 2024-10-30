@@ -26,3 +26,5 @@ class HTTPStore:
         Returns:
             HTTPStore
         """
+
+    def __repr__(self) -> str: ...
