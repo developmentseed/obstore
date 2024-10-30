@@ -1,6 +1,8 @@
 import boto3
 import pytest
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
+from botocore.client import Config
+from botocore import UNSIGNED
 
 import obstore as obs
 from obstore.store import S3Store
@@ -8,6 +10,7 @@ from obstore.store import S3Store
 TEST_BUCKET_NAME = "test"
 
 
+# See docs here: https://docs.getmoto.org/en/latest/docs/server_mode.html
 @pytest.fixture(scope="module")
 def moto_server_uri():
     """Fixture to run a mocked AWS server for testing."""
@@ -22,8 +25,12 @@ def moto_server_uri():
 
 @pytest.fixture()
 def s3(moto_server_uri: str):
-    session = boto3.Session(region_name="us-east-1")
-    client = session.client("s3", endpoint_url=moto_server_uri)
+    client = boto3.client(
+        "s3",
+        config=Config(signature_version=UNSIGNED),
+        region_name="us-east-1",
+        endpoint_url=moto_server_uri,
+    )
     client.create_bucket(Bucket=TEST_BUCKET_NAME, ACL="public-read")
     client.put_object(Bucket=TEST_BUCKET_NAME, Key="afile", Body=b"hello world")
     return moto_server_uri
