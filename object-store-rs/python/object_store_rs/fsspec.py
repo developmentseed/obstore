@@ -16,21 +16,23 @@ directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
+from __future__ import annotations
+
 import asyncio
 from collections import defaultdict
-from typing import Any, Coroutine, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Tuple
+
 import fsspec.asyn
 
 import object_store_rs as obs
-from object_store_rs.store import ObjectStore
+
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
-    store: ObjectStore
 
     def __init__(
         self,
-        store: ObjectStore,
+        store,
         *args,
         asynchronous=False,
         loop=None,
@@ -48,14 +50,15 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _cp_file(self, path1, path2, **kwargs):
         return await obs.copy_async(self.store, path1, path2)
 
-    # pipe_file
+    async def _pipe_file(self, path, value, **kwargs):
+        return await obs.put_async(self.store, path, value)
 
     async def _cat_file(self, path, start=None, end=None, **kwargs):
         if start is None and end is None:
             resp = await obs.get_async(self.store, path)
             return await resp.bytes_async()
 
-        if start and end:
+        if start is not None and end is not None:
             return await obs.get_range_async(
                 self.store, path, offset=start, length=end - start
             )
