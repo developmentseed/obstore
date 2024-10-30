@@ -16,7 +16,6 @@ def moto_server_uri():
     server.start()
     host, port = server.get_host_and_port()
     uri = f"http://{host}:{port}"
-    print(uri)
     yield uri
     server.stop()
 
