@@ -1,4 +1,6 @@
 # TODO: move to reusable types package
+from pathlib import Path
+
 from ._aws import S3ConfigKey as S3ConfigKey
 from ._aws import S3Store as S3Store
 from ._azure import AzureConfigKey as AzureConfigKey
@@ -16,11 +18,14 @@ class LocalStore:
     Can optionally be created with a directory prefix.
 
     ```py
+    from pathlib import Path
+
     store = LocalStore()
     store = LocalStore(prefix="/path/to/directory")
+    store = LocalStore(prefix=Path("."))
     ```
     """
-    def __init__(self, prefix: str | None = None) -> None: ...
+    def __init__(self, prefix: str | Path | None = None) -> None: ...
 
 class MemoryStore:
     """A fully in-memory implementation of ObjectStore.
