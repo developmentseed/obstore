@@ -17,7 +17,7 @@ test_bucket_name = "test"
 def moto_server_uri():
     """Fixture to run a mocked AWS server for testing."""
     # Note: pass `port=0` to get a random free port.
-    server = ThreadedMotoServer(port=0)
+    server = ThreadedMotoServer(ip_address="localhost", port=0)
     server.start()
     host, port = server.get_host_and_port()
     uri = f"http://{host}:{port}"
@@ -52,12 +52,12 @@ def store(s3):
     return S3Store.from_url(
         f"s3://{test_bucket_name}/",
         config={
-            "AWS_SECRET_ACCESS_KEY": "foo",
-            "AWS_ACCESS_KEY_ID": "foo",
+            # "AWS_SECRET_ACCESS_KEY": "foo",
+            # "AWS_ACCESS_KEY_ID": "foo",
             "AWS_ENDPOINT_URL": s3,
             "AWS_REGION": "us-east-1",
         },
-        client_options={"allow_http": "True"},
+        # client_options={"allow_http": "True"},
     )
 
 
