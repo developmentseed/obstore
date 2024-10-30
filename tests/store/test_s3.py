@@ -1,8 +1,8 @@
 import boto3
 import pytest
-from moto.moto_server.threaded_moto_server import ThreadedMotoServer
-from botocore.client import Config
 from botocore import UNSIGNED
+from botocore.client import Config
+from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
 import obstore as obs
 from obstore.store import S3Store
