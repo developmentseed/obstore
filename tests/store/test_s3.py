@@ -1,5 +1,3 @@
-import os
-
 import boto3
 import pytest
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
@@ -7,10 +5,7 @@ from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 import obstore as obs
 from obstore.store import S3Store
 
-ip = "localhost"
-port = 5555
-endpoint_uri = f"http://{ip}:{port}"
-test_bucket_name = "test"
+TEST_BUCKET_NAME = "test"
 
 
 @pytest.fixture(scope="module")
@@ -30,8 +25,8 @@ def moto_server_uri():
 def s3(moto_server_uri: str):
     session = boto3.Session(region_name="us-east-1")
     client = session.client("s3", endpoint_url=moto_server_uri)
-    client.create_bucket(Bucket=test_bucket_name, ACL="public-read")
-    client.put_object(Bucket=test_bucket_name, Key="afile", Body=b"hello world")
+    client.create_bucket(Bucket=TEST_BUCKET_NAME, ACL="public-read")
+    client.put_object(Bucket=TEST_BUCKET_NAME, Key="afile", Body=b"hello world")
     return moto_server_uri
 
 
@@ -50,17 +45,24 @@ def s3(moto_server_uri: str):
 @pytest.fixture()
 def store(s3):
     return S3Store.from_url(
-        f"s3://{test_bucket_name}/",
+        f"s3://{TEST_BUCKET_NAME}/",
         config={
-            # "AWS_SECRET_ACCESS_KEY": "foo",
-            # "AWS_ACCESS_KEY_ID": "foo",
             "AWS_ENDPOINT_URL": s3,
             "AWS_REGION": "us-east-1",
+            "AWS_SKIP_SIGNATURE": "True",
+            "AWS_ALLOW_HTTP": "true",
         },
-        # client_options={"allow_http": "True"},
     )
 
 
-def test_list(store: S3Store):
-    list_result = obs.list(store).collect()
+@pytest.mark.asyncio
+async def test_list_async(store: S3Store):
+    list_result = await obs.list(store).collect_async()
     assert any("afile" in x["path"] for x in list_result)
+
+
+@pytest.mark.asyncio
+async def test_get_async(store: S3Store):
+    resp = await obs.get_async(store, "afile")
+    buf = await resp.bytes_async()
+    assert buf == b"hello world"
