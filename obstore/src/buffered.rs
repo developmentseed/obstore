@@ -1,15 +1,17 @@
 use std::io::SeekFrom;
 use std::sync::Arc;
 
+use arrow::buffer::Buffer;
 use object_store::buffered::BufReader;
-use pyo3::exceptions::PyStopAsyncIteration;
+use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
+use pyo3_arrow::buffer::PyArrowBuffer;
+use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, Lines};
 use tokio::sync::Mutex;
 
-use crate::get::PyBytesWrapper;
 use crate::runtime::get_runtime;
 
 #[pyfunction]
@@ -21,27 +23,34 @@ pub(crate) fn open(
     let store = store.into_inner();
     let runtime = get_runtime(py)?;
     let meta = py.allow_threads(|| runtime.block_on(store.head(&path.into())))?;
-    Ok(PyReadableFile(Arc::new(Mutex::new(BufReader::new(
-        store, &meta,
-    )))))
+    let reader = Arc::new(Mutex::new(BufReader::new(store, &meta)));
+    Ok(PyReadableFile::new(reader, false))
 }
 
 #[pyfunction]
 pub(crate) fn open_async(py: Python, store: PyObjectStore, path: String) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
-    pyo3_async_runtimes::tokio::future_into_py(py, async move {
+    future_into_py(py, async move {
         let meta = store
             .head(&path.into())
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(PyReadableFile(Arc::new(Mutex::new(BufReader::new(
-            store, &meta,
-        )))))
+        let reader = Arc::new(Mutex::new(BufReader::new(store, &meta)));
+        Ok(PyReadableFile::new(reader, true))
     })
 }
 
 #[pyclass(name = "ReadableFile")]
-pub(crate) struct PyReadableFile(Arc<Mutex<BufReader>>);
+pub(crate) struct PyReadableFile {
+    reader: Arc<Mutex<BufReader>>,
+    r#async: bool,
+}
+
+impl PyReadableFile {
+    fn new(reader: Arc<Mutex<BufReader>>, r#async: bool) -> Self {
+        Self { reader, r#async }
+    }
+}
 
 #[pymethods]
 impl PyReadableFile {
@@ -51,95 +60,75 @@ impl PyReadableFile {
     // }
 
     // Maybe this should dispose of the internal reader? In that case we want to store an
-    // `Arc<Mutex<BufReader>>`.
+    // `Option<Arc<Mutex<BufReader>>>`.
     fn close(&self) {}
 
-    fn read<'py>(&'py mut self, py: Python<'py>, size: i64) -> PyResult<Bound<PyAny>> {
-        let reader = self.0.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let mut reader = reader.lock().await;
-            if size <= 0 {
-                let mut buf = Vec::new();
-                reader.read_to_end(&mut buf).await?;
-                Ok(PyBytesWrapper::new(buf.into()))
-            } else {
-                let mut buf = vec![0; size as _];
-                reader.read_exact(&mut buf).await?;
-                Ok(PyBytesWrapper::new(buf.into()))
-            }
-        })
+    #[pyo3(signature = (size = None, /))]
+    fn read<'py>(&'py mut self, py: Python<'py>, size: Option<usize>) -> PyResult<PyObject> {
+        let reader = self.reader.clone();
+        if self.r#async {
+            let out = future_into_py(py, read(reader, size))?;
+            Ok(out.to_object(py))
+        } else {
+            let runtime = get_runtime(py)?;
+            let out = py.allow_threads(|| runtime.block_on(read(reader, size)))?;
+            Ok(out.into_py(py))
+        }
     }
 
-    fn readall<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
-        self.read(py, -1)
+    fn readall<'py>(&'py mut self, py: Python<'py>) -> PyResult<PyObject> {
+        self.read(py, None)
     }
 
-    fn readline<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
-        let reader = self.0.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let mut reader = reader.lock().await;
-            let mut buf = String::new();
-            reader.read_line(&mut buf).await?;
-            Ok(buf)
-        })
+    fn readline<'py>(&'py mut self, py: Python<'py>) -> PyResult<PyObject> {
+        let reader = self.reader.clone();
+        if self.r#async {
+            let out = future_into_py(py, readline(reader))?;
+            Ok(out.to_object(py))
+        } else {
+            let runtime = get_runtime(py)?;
+            let out = py.allow_threads(|| runtime.block_on(readline(reader)))?;
+            Ok(out.into_py(py))
+        }
         // TODO: should raise at EOF when read_line returns 0?
     }
 
-    fn readlines<'py>(&'py mut self, py: Python<'py>, hint: i64) -> PyResult<Bound<PyAny>> {
-        let reader = self.0.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let mut reader = reader.lock().await;
-            if hint <= 0 {
-                let mut lines = Vec::new();
-                loop {
-                    let mut buf = String::new();
-                    let n = reader.read_line(&mut buf).await?;
-                    lines.push(buf);
-                    // Ok(0) signifies EOF
-                    if n == 0 {
-                        return Ok(lines);
-                    }
-                }
-            } else {
-                let mut lines = Vec::new();
-                let mut byte_count = 0;
-                loop {
-                    if byte_count >= hint as usize {
-                        return Ok(lines);
-                    }
-
-                    let mut buf = String::new();
-                    let n = reader.read_line(&mut buf).await?;
-                    byte_count += n;
-                    lines.push(buf);
-                    // Ok(0) signifies EOF
-                    if n == 0 {
-                        return Ok(lines);
-                    }
-                }
-            }
-        })
+    #[pyo3(signature = (hint = -1))]
+    fn readlines<'py>(&'py mut self, py: Python<'py>, hint: i64) -> PyResult<PyObject> {
+        let reader = self.reader.clone();
+        if self.r#async {
+            let out = future_into_py(py, readlines(reader, hint))?;
+            Ok(out.to_object(py))
+        } else {
+            let runtime = get_runtime(py)?;
+            let out = py.allow_threads(|| runtime.block_on(readlines(reader, hint)))?;
+            Ok(out.into_py(py))
+        }
     }
 
-    fn seek<'py>(
-        &'py mut self,
-        py: Python<'py>,
-        offset: i64,
-        whence: usize,
-    ) -> PyResult<Bound<PyAny>> {
-        let reader = self.0.clone();
+    #[pyo3(signature = (offset, whence, /))]
+    fn seek<'py>(&'py mut self, py: Python<'py>, offset: i64, whence: usize) -> PyResult<PyObject> {
+        let reader = self.reader.clone();
         let pos = match whence {
             0 => SeekFrom::Start(offset as _),
             1 => SeekFrom::Current(offset as _),
             2 => SeekFrom::End(offset as _),
-            _ => unreachable!(),
+            other => {
+                return Err(PyIOError::new_err(format!(
+                    "Invalid value for whence in seek: {}",
+                    other
+                )))
+            }
         };
 
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let mut reader = reader.lock().await;
-            reader.seek(pos).await.unwrap();
-            Ok(())
-        })
+        if self.r#async {
+            let out = future_into_py(py, seek(reader, pos))?;
+            Ok(out.to_object(py))
+        } else {
+            let runtime = get_runtime(py)?;
+            let out = py.allow_threads(|| runtime.block_on(seek(reader, pos)))?;
+            Ok(out.into_py(py))
+        }
     }
 
     #[staticmethod]
@@ -147,14 +136,82 @@ impl PyReadableFile {
         true
     }
 
-    fn tell<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
-        let reader = self.0.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let mut reader = reader.lock().await;
-            let pos = reader.stream_position().await?;
-            Ok(pos)
-        })
+    fn tell<'py>(&'py mut self, py: Python<'py>) -> PyResult<PyObject> {
+        let reader = self.reader.clone();
+        if self.r#async {
+            let out = future_into_py(py, tell(reader))?;
+            Ok(out.to_object(py))
+        } else {
+            let runtime = get_runtime(py)?;
+            let out = py.allow_threads(|| runtime.block_on(tell(reader)))?;
+            Ok(out.into_py(py))
+        }
     }
+}
+
+async fn read(reader: Arc<Mutex<BufReader>>, size: Option<usize>) -> PyResult<PyArrowBuffer> {
+    let mut reader = reader.lock().await;
+    if let Some(size) = size {
+        let mut buf = vec![0; size as _];
+        reader.read_exact(&mut buf).await?;
+        Ok(PyArrowBuffer::new(Buffer::from_vec(buf)))
+    } else {
+        let mut buf = Vec::new();
+        reader.read_to_end(&mut buf).await?;
+        Ok(PyArrowBuffer::new(Buffer::from_vec(buf)))
+    }
+}
+
+async fn readline(reader: Arc<Mutex<BufReader>>) -> PyResult<PyArrowBuffer> {
+    let mut reader = reader.lock().await;
+    let mut buf = String::new();
+    reader.read_line(&mut buf).await?;
+    Ok(PyArrowBuffer::new(Buffer::from_vec(buf.into_bytes())))
+}
+
+async fn readlines(reader: Arc<Mutex<BufReader>>, hint: i64) -> PyResult<Vec<PyArrowBuffer>> {
+    let mut reader = reader.lock().await;
+    if hint <= 0 {
+        let mut lines = Vec::new();
+        loop {
+            let mut buf = String::new();
+            let n = reader.read_line(&mut buf).await?;
+            lines.push(PyArrowBuffer::new(Buffer::from_vec(buf.into_bytes())));
+            // Ok(0) signifies EOF
+            if n == 0 {
+                return Ok(lines);
+            }
+        }
+    } else {
+        let mut lines = Vec::new();
+        let mut byte_count = 0;
+        loop {
+            if byte_count >= hint as usize {
+                return Ok(lines);
+            }
+
+            let mut buf = String::new();
+            let n = reader.read_line(&mut buf).await?;
+            byte_count += n;
+            lines.push(PyArrowBuffer::new(Buffer::from_vec(buf.into_bytes())));
+            // Ok(0) signifies EOF
+            if n == 0 {
+                return Ok(lines);
+            }
+        }
+    }
+}
+
+async fn seek(reader: Arc<Mutex<BufReader>>, pos: SeekFrom) -> PyResult<u64> {
+    let mut reader = reader.lock().await;
+    let pos = reader.seek(pos).await?;
+    Ok(pos)
+}
+
+async fn tell(reader: Arc<Mutex<BufReader>>) -> PyResult<u64> {
+    let mut reader = reader.lock().await;
+    let pos = reader.stream_position().await?;
+    Ok(pos)
 }
 
 #[pyclass]
@@ -164,14 +221,24 @@ pub(crate) struct PyLinesReader(Arc<Mutex<Lines<BufReader>>>);
 impl PyLinesReader {
     fn __anext__<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
         let lines = self.0.clone();
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let mut lines = lines.lock().await;
-            if let Some(line) = lines.next_line().await.unwrap() {
-                Ok(line)
-            } else {
-                Err(PyStopAsyncIteration::new_err("stream exhausted"))
-            }
-        })
+        future_into_py(py, next_line(lines, true))
+    }
+
+    fn __next__<'py>(&'py mut self, py: Python<'py>) -> PyResult<String> {
+        let runtime = get_runtime(py)?;
+        let lines = self.0.clone();
+        py.allow_threads(|| runtime.block_on(next_line(lines, false)))
+    }
+}
+
+async fn next_line(reader: Arc<Mutex<Lines<BufReader>>>, r#async: bool) -> PyResult<String> {
+    let mut reader = reader.lock().await;
+    if let Some(line) = reader.next_line().await.unwrap() {
+        Ok(line)
+    } else if r#async {
+        Err(PyStopAsyncIteration::new_err("stream exhausted"))
+    } else {
+        Err(PyStopIteration::new_err("stream exhausted"))
     }
 }
 

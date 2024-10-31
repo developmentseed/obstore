@@ -1,15 +1,10 @@
-import sys
 from datetime import datetime
 from typing import List, Sequence, Tuple, TypedDict
 
 from ._attributes import Attributes
+from ._buffer import Buffer
 from ._list import ObjectMeta
 from .store import ObjectStore
-
-if sys.version_info >= (3, 12):
-    from collections.abc import Buffer as _Buffer
-else:
-    from typing_extensions import Buffer as _Buffer
 
 class GetOptions(TypedDict, total=False):
     """Options for a get request.
@@ -205,17 +200,6 @@ class BytesStream:
 
     def __next__(self) -> bytes:
         """Return the next chunk of bytes in the stream."""
-
-class Buffer(_Buffer):
-    """
-    A buffer implementing the Python buffer protocol, allowing zero-copy access to the
-    underlying memory provided by Rust.
-
-    You can pass this to [`memoryview`][] for a zero-copy view into the underlying data.
-    """
-
-    def as_bytes(self) -> bytes:
-        """Copy this buffer into a Python `bytes` object."""
 
 def get(
     store: ObjectStore, path: str, *, options: GetOptions | None = None
