@@ -11,7 +11,7 @@ The underlying `object_store` Rust crate cautions against relying too strongly o
 > - Abstracts away filesystem and operating system specific quirks, ensuring portability
 > - Allows for functionality not native to filesystems, such as operation preconditions and atomic multipart uploads
 
-Where possible, implementations should use the underlying `object-store-rs` APIs
+Where possible, implementations should use the underlying `obstore` APIs
 directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
