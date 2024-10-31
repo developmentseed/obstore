@@ -1,7 +1,7 @@
 use object_store::ObjectStore;
 use pyo3::prelude::*;
-use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
 use pyo3_object_store::PyObjectStore;
+use pyo3_object_store::{PyObjectStoreError, PyObjectStoreResult};
 
 use crate::runtime::get_runtime;
 

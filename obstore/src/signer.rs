@@ -13,8 +13,9 @@ use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
-use pyo3_object_store::{PyAzureStore, PyGCSStore, PyS3Store};
+use pyo3_object_store::{
+    PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult, PyS3Store,
+};
 use url::Url;
 
 use crate::path::PyPaths;
