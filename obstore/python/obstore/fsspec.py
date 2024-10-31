@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Coroutine, Dict, List, Tuple
+from typing import Any, Coroutine, Dict, List, Tuple
 
 import fsspec.asyn
 import fsspec.spec
@@ -29,7 +29,6 @@ import obstore as obs
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
-
     def __init__(
         self,
         store,
@@ -128,19 +127,32 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         objects = result["objects"]
         if detail:
             return [
-                {"path": object["path"], "size": object["size"], "type": "file",
-                 "ETag": object["e_tag"]}
+                {
+                    "path": object["path"],
+                    "size": object["size"],
+                    "type": "file",
+                    "ETag": object["e_tag"],
+                }
                 for object in objects
             ]
         else:
             return [object["path"] for object in objects]
 
-    def _open(self, *args, cache_type=None, **kwargs):
-            """Return raw bytes-mode file-like from the file-system"""
-            out = fsspec.spec.AbstractBufferedFile(
-                self,
-                *args,
-                cache_type="none",
-                **kwargs,
-            )
-            return out
+    def _open(self, path, mode="rb", **kwargs):
+        """Return raw bytes-mode file-like from the file-system"""
+        out = BufferedFileSimple(self, path, mode)
+        return out
+
+
+class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
+    def __init__(self, fs, path, mode="rb", cache_type="none", **kwargs):
+        super().__init__(fs, path, mode, mode, cache_type=cache_type, **kwargs)
+
+    def read(self, length=-1):
+        if length < 0:
+            data = self.fs.cat_file(self.path, self.loc, self.size)
+            self.loc = self.size
+        else:
+            data = self.fs.cat_file(self.path, self.loc, self.loc + length)
+            self.loc += length
+        return data
