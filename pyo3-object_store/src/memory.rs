@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use object_store::memory::InMemory;
+use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::PyString;
 
 /// A Python-facing wrapper around an [`InMemory`].
 #[pyclass(name = "MemoryStore")]
@@ -13,10 +15,14 @@ impl AsRef<Arc<InMemory>> for PyMemoryStore {
     }
 }
 
-impl PyMemoryStore {
+impl<'py> PyMemoryStore {
     /// Consume self and return the underlying [`InMemory`].
     pub fn into_inner(self) -> Arc<InMemory> {
         self.0
+    }
+
+    fn __repr__(&'py self, py: Python<'py>) -> &Bound<'py, PyString> {
+        intern!(py, "MemoryStore")
     }
 }
 

@@ -1,12 +1,36 @@
 //! Contains the [`PyObjectStoreError`], the Error returned by most fallible functions in this
 //! crate.
 
-use pyo3::exceptions::{
-    PyException, PyFileNotFoundError, PyIOError, PyNotImplementedError, PyValueError,
-};
+#![allow(missing_docs)]
+
+use pyo3::exceptions::{PyFileNotFoundError, PyIOError, PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::DowncastError;
+use pyo3::{create_exception, DowncastError};
 use thiserror::Error;
+
+// Base exception
+create_exception!(
+    pyo3_object_store,
+    ObstoreError,
+    pyo3::exceptions::PyException
+);
+
+// Subclasses from base exception
+create_exception!(pyo3_object_store, GenericError, ObstoreError);
+create_exception!(pyo3_object_store, NotFoundError, ObstoreError);
+create_exception!(pyo3_object_store, InvalidPathError, ObstoreError);
+create_exception!(pyo3_object_store, JoinError, ObstoreError);
+create_exception!(pyo3_object_store, NotSupportedError, ObstoreError);
+create_exception!(pyo3_object_store, AlreadyExistsError, ObstoreError);
+create_exception!(pyo3_object_store, PreconditionError, ObstoreError);
+create_exception!(pyo3_object_store, NotModifiedError, ObstoreError);
+create_exception!(pyo3_object_store, PermissionDeniedError, ObstoreError);
+create_exception!(pyo3_object_store, UnauthenticatedError, ObstoreError);
+create_exception!(
+    pyo3_object_store,
+    UnknownConfigurationKeyError,
+    ObstoreError
+);
 
 /// The Error variants returned by this crate.
 #[derive(Error, Debug)]
@@ -30,13 +54,42 @@ impl From<PyObjectStoreError> for PyErr {
         match error {
             PyObjectStoreError::PyErr(err) => err,
             PyObjectStoreError::ObjectStoreError(ref err) => match err {
+                object_store::Error::Generic {
+                    store: _,
+                    source: _,
+                } => GenericError::new_err(err.to_string()),
                 object_store::Error::NotFound { path: _, source: _ } => {
                     PyFileNotFoundError::new_err(err.to_string())
+                }
+                object_store::Error::InvalidPath { source: _ } => {
+                    InvalidPathError::new_err(err.to_string())
+                }
+                object_store::Error::JoinError { source: _ } => JoinError::new_err(err.to_string()),
+                object_store::Error::NotSupported { source: _ } => {
+                    NotSupportedError::new_err(err.to_string())
+                }
+                object_store::Error::AlreadyExists { path: _, source: _ } => {
+                    AlreadyExistsError::new_err(err.to_string())
+                }
+                object_store::Error::Precondition { path: _, source: _ } => {
+                    PreconditionError::new_err(err.to_string())
+                }
+                object_store::Error::NotModified { path: _, source: _ } => {
+                    NotModifiedError::new_err(err.to_string())
                 }
                 object_store::Error::NotImplemented => {
                     PyNotImplementedError::new_err(err.to_string())
                 }
-                _ => PyException::new_err(err.to_string()),
+                object_store::Error::PermissionDenied { path: _, source: _ } => {
+                    PermissionDeniedError::new_err(err.to_string())
+                }
+                object_store::Error::Unauthenticated { path: _, source: _ } => {
+                    UnauthenticatedError::new_err(err.to_string())
+                }
+                object_store::Error::UnknownConfigurationKey { store: _, key: _ } => {
+                    UnknownConfigurationKeyError::new_err(err.to_string())
+                }
+                _ => GenericError::new_err(err.to_string()),
             },
             PyObjectStoreError::IOError(err) => PyIOError::new_err(err.to_string()),
         }

@@ -1,12 +1,12 @@
 [workspace]
-members = ["object-store-rs", "pyo3-object_store"]
+members = ["obstore", "pyo3-object_store"]
 resolver = "2"
 
 [workspace.package]
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
-homepage = "https://developmentseed.org/object-store-rs"
-repository = "https://github.com/developmentseed/object-store-rs"
+homepage = "https://developmentseed.org/obstore"
+repository = "https://github.com/developmentseed/obstore"
 license = "MIT OR Apache-2.0"
 keywords = ["python"]
 categories = []
@@ -27,6 +27,9 @@ pyo3-file = "0.9"
 thiserror = "1"
 tokio = "1.40"
 url = "2"
+
+[patch.crates-io]
+object_store = { git = "https://github.com/kylebarron/arrow-rs", branch = "kyle/list-returns-static-stream" }
 
 [profile.release]
 lto = true

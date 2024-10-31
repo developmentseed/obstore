@@ -1,4 +1,4 @@
 # Microsoft Azure
 
-::: object_store_rs.store.AzureStore
-::: object_store_rs.store.AzureConfigKey
+::: obstore.store.AzureStore
+::: obstore.store.AzureConfigKey

@@ -1,5 +1,7 @@
 # Put
 
-::: object_store_rs.put
-::: object_store_rs.put_async
-::: object_store_rs.PutResult
+::: obstore.put
+::: obstore.put_async
+::: obstore.PutResult
+::: obstore.UpdateVersion
+::: obstore.PutMode
