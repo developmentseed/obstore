@@ -43,3 +43,7 @@ select = [
     "F401", # Allow unused imports in __init__.py files
     "F403", # unable to detect undefined names
 ]
+
+[tool.pytest.ini_options]
+addopts = "-v"
+testpaths = ["tests"]

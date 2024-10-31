@@ -1,7 +1,7 @@
 import pytest
 
-from obstore.store import S3Store
 import obstore as obs
+from obstore.store import S3Store
 
 
 @pytest.mark.asyncio
