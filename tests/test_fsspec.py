@@ -1,9 +1,9 @@
-import os
-
 import pytest
+
 pytest.importorskip("moto")
-import obstore as obs
 import pyarrow.parquet as pq
+
+import obstore as obs
 from obstore.fsspec import AsyncFsspecStore
 
 
@@ -15,6 +15,12 @@ def fs(s3_store):
 def test_list(fs):
     out = fs.ls("", detail=False)
     assert out == ["afile"]
+    fs.pipe_file("dir/bfile", b"data")
+    out = fs.ls("", detail=False)
+    assert out == ["afile", "dir"]
+    out = fs.ls("", detail=True)
+    assert out[0]["type"] == "file"
+    assert out[1]["type"] == "directory"
 
 
 def test_remote_parquet():

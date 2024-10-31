@@ -125,18 +125,19 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _ls(self, path, detail=True, **kwargs):
         result = await obs.list_with_delimiter_async(self.store, path)
         objects = result["objects"]
+        prefs = result["common_prefixes"]
         if detail:
             return [
                 {
-                    "path": object["path"],
+                    "name": object["path"],
                     "size": object["size"],
                     "type": "file",
                     "ETag": object["e_tag"],
                 }
                 for object in objects
-            ]
+            ] + [{"name": object, "size": 0, "type": "directory"} for object in prefs]
         else:
-            return [object["path"] for object in objects]
+            return sorted([object["path"] for object in objects] + prefs)
 
     def _open(self, path, mode="rb", **kwargs):
         """Return raw bytes-mode file-like from the file-system"""
