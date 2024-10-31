@@ -135,8 +135,7 @@ impl PyReadableFile {
         }
     }
 
-    #[staticmethod]
-    fn seekable() -> bool {
+    fn seekable(&self) -> bool {
         true
     }
 
