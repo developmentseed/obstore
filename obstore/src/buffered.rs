@@ -54,9 +54,13 @@ impl PyReadableFile {
 
 #[pymethods]
 impl PyReadableFile {
-    // fn __aiter__(&mut self) -> PyObjectStoreResult<PyLinesReader> {
-    //     let reader = self.0.take().unwrap();
-    //     Ok(PyLinesReader(Arc::new(Mutex::new(reader.lines()))))
+    // Note: to enable this, we'd have to make the PyReadableFile contain an `Option<>` that here
+    // we could move out.
+    // async fn __aiter__(&mut self) -> PyObjectStoreResult<PyLinesReader> {
+    //     let reader = self.reader.clone();
+    //     let reader = reader.lock().await;
+    //     let lines = reader.lines();
+    //     Ok(PyLinesReader(Arc::new(Mutex::new(lines))))
     // }
 
     // Maybe this should dispose of the internal reader? In that case we want to store an
