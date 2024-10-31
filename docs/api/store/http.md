@@ -1,3 +1,3 @@
 # HTTP
 
-::: object_store_rs.store.HTTPStore
+::: obstore.store.HTTPStore

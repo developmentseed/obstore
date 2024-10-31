@@ -1,4 +1,4 @@
 # Rename
 
-::: object_store_rs.rename
-::: object_store_rs.rename_async
+::: obstore.rename
+::: obstore.rename_async

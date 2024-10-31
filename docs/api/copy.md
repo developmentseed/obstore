@@ -1,4 +1,4 @@
 # Copy
 
-::: object_store_rs.copy
-::: object_store_rs.copy_async
+::: obstore.copy
+::: obstore.copy_async

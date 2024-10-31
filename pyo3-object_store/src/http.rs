@@ -23,6 +23,10 @@ impl PyHttpStore {
     pub fn into_inner(self) -> Arc<HttpStore> {
         self.0
     }
+
+    fn __repr__(&self) -> String {
+        self.0.to_string()
+    }
 }
 
 #[pymethods]

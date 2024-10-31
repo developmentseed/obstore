@@ -13,7 +13,7 @@ mod memory;
 mod retry;
 mod store;
 
-pub use api::register_store_module;
+pub use api::{register_exceptions_module, register_store_module};
 pub use aws::PyS3Store;
 pub use azure::PyAzureStore;
 pub use client::{PyClientConfigKey, PyClientOptions};

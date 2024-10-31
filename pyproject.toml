@@ -8,6 +8,7 @@ dependencies = []
 
 [tool.uv]
 dev-dependencies = [
+    "arro3-core>=0.4.2",
     "black>=24.10.0",
     "boto3>=1.35.38",
     "griffe-inherited-docstrings>=1.0.1",
@@ -17,6 +18,7 @@ dev-dependencies = [
     "mkdocs-material[imaging]>=9.5.40",
     "mkdocs>=1.6.1",
     "mkdocstrings[python]>=0.26.1",
+    "moto[s3,server]>=5.0.18",
     "pandas>=2.2.3",
     "pip>=24.2",
     "pytest-asyncio>=0.24.0",

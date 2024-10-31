@@ -1,10 +1,11 @@
 # Get
 
-::: object_store_rs.get
-::: object_store_rs.get_async
-::: object_store_rs.get_range
-::: object_store_rs.get_range_async
-::: object_store_rs.get_ranges
-::: object_store_rs.get_ranges_async
-::: object_store_rs.GetOptions
-::: object_store_rs.GetResult
+::: obstore.get
+::: obstore.get_async
+::: obstore.get_range
+::: obstore.get_range_async
+::: obstore.get_ranges
+::: obstore.get_ranges_async
+::: obstore.GetOptions
+::: obstore.GetResult
+::: obstore.Buffer

@@ -1,6 +1,7 @@
-import object_store_rs as obs
 import pytest
-from object_store_rs.store import MemoryStore
+
+import obstore as obs
+from obstore.store import MemoryStore
 
 
 def test_stream_sync():
@@ -44,3 +45,45 @@ async def test_stream_async():
         pos += size
 
     assert pos == len(data)
+
+
+@pytest.mark.skip("Skip until we restore range in get_options")
+def test_get_with_options():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    obs.put(store, path, data)
+
+    result = obs.get(store, path, options={"range": (5, 10)})
+    assert result.range == (5, 10)
+    buf = result.bytes()
+    assert buf == data[5:10]
+
+
+def test_get_range():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    obs.put(store, path, data)
+    buffer = obs.get_range(store, path, 5, 10)
+    view = memoryview(buffer)
+    assert view == data[5:15]
+
+
+def test_get_ranges():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    obs.put(store, path, data)
+    offsets = [5, 10, 15, 20]
+    lengths = [10, 10, 10, 10]
+    buffers = obs.get_ranges(store, path, offsets, lengths)
+
+    for offset, length, buffer in zip(offsets, lengths, buffers):
+        assert memoryview(buffer) == data[offset : offset + length]

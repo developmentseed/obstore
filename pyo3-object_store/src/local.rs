@@ -34,4 +34,9 @@ impl PyLocalStore {
         };
         Ok(Self(Arc::new(fs)))
     }
+
+    fn __repr__(&self) -> String {
+        let repr = self.0.to_string();
+        repr.replacen("LocalFileSystem", "LocalStore", 1)
+    }
 }
