@@ -1,7 +1,5 @@
-import pytest
-
-pytest.importorskip("moto")
 import pyarrow.parquet as pq
+import pytest
 
 import obstore as obs
 from obstore.fsspec import AsyncFsspecStore
