@@ -31,6 +31,8 @@ import obstore as obs
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     """An fsspec implementation based on a obstore Store"""
 
+    cachable = False
+
     def __init__(
         self,
         store: obs.store.ObjectStore,
