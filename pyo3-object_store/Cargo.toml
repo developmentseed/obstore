@@ -10,6 +10,8 @@ license = "MIT OR Apache-2.0"
 keywords = []
 categories = []
 rust-version = "1.75"
+# Include the Python type hints as part of the cargo distribution
+include = ["src", "type-hints", "README.md", "LICENSE"]
 
 [dependencies]
 futures = "0.3"
