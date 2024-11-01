@@ -36,4 +36,3 @@ The `obstore` Python library gives a full real-world example of using `pyo3-obje
 Note about not being able to use these across Python packages. It has to be used with the exported classes from your own library.
 
 ## Type hints
-
