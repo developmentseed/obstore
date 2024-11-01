@@ -359,13 +359,12 @@ pub(crate) fn get_range(
     py: Python,
     store: PyObjectStore,
     path: String,
-    offset: usize,
-    length: usize,
+    start: usize,
+    end: usize,
 ) -> PyObjectStoreResult<PyArrowBuffer> {
     let runtime = get_runtime(py)?;
-    let range = offset..offset + length;
     py.allow_threads(|| {
-        let out = runtime.block_on(store.as_ref().get_range(&path.into(), range))?;
+        let out = runtime.block_on(store.as_ref().get_range(&path.into(), start..end))?;
         Ok::<_, PyObjectStoreError>(PyArrowBuffer::new(Buffer::from_bytes(out.into())))
     })
 }
@@ -375,14 +374,13 @@ pub(crate) fn get_range_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    offset: usize,
-    length: usize,
+    start: usize,
+    end: usize,
 ) -> PyResult<Bound<PyAny>> {
-    let range = offset..offset + length;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let out = store
             .as_ref()
-            .get_range(&path.into(), range)
+            .get_range(&path.into(), start..end)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(PyArrowBuffer::new(Buffer::from_bytes(out.into())))
@@ -394,14 +392,14 @@ pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
     path: String,
-    offsets: Vec<usize>,
-    lengths: Vec<usize>,
+    starts: Vec<usize>,
+    ends: Vec<usize>,
 ) -> PyObjectStoreResult<Vec<PyArrowBuffer>> {
     let runtime = get_runtime(py)?;
-    let ranges = offsets
+    let ranges = starts
         .into_iter()
-        .zip(lengths)
-        .map(|(offset, length)| offset..offset + length)
+        .zip(ends)
+        .map(|(start, end)| start..end)
         .collect::<Vec<_>>();
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;
@@ -418,13 +416,13 @@ pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    offsets: Vec<usize>,
-    lengths: Vec<usize>,
+    starts: Vec<usize>,
+    ends: Vec<usize>,
 ) -> PyResult<Bound<PyAny>> {
-    let ranges = offsets
+    let ranges = starts
         .into_iter()
-        .zip(lengths)
-        .map(|(offset, length)| offset..offset + length)
+        .zip(ends)
+        .map(|(start, end)| start..end)
         .collect::<Vec<_>>();
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let out = store

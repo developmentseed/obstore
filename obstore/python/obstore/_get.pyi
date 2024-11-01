@@ -235,7 +235,7 @@ async def get_async(
     Refer to the documentation for [get][obstore.get].
     """
 
-def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer:
+def get_range(store: ObjectStore, path: str, start: int, end: int) -> Buffer:
     """
     Return the bytes that are stored at the specified location in the given byte range.
 
@@ -247,8 +247,8 @@ def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
-        offset: The start of the byte range.
-        length: The number of bytes.
+        start: The start of the byte range.
+        end: The end of the byte range (exclusive).
 
     Returns:
         A `Buffer` object implementing the Python buffer protocol, allowing
@@ -256,7 +256,7 @@ def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer
     """
 
 async def get_range_async(
-    store: ObjectStore, path: str, offset: int, length: int
+    store: ObjectStore, path: str, start: int, end: int
 ) -> Buffer:
     """Call `get_range` asynchronously.
 
@@ -264,7 +264,7 @@ async def get_range_async(
     """
 
 def get_ranges(
-    store: ObjectStore, path: str, offsets: Sequence[int], lengths: Sequence[int]
+    store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
 ) -> List[Buffer]:
     """
     Return the bytes that are stored at the specified location in the given byte ranges
@@ -277,8 +277,8 @@ def get_ranges(
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
-        offsets: A sequence of `int` where each offset starts.
-        lengths: A sequence of `int` representing the number of bytes within each range.
+        starts: A sequence of `int` where each offset starts.
+        ends: A sequence of `int` where each offset ends (exclusive).
 
     Returns:
         A sequence of `Buffer`, one for each range. This `Buffer` object implements the
@@ -287,7 +287,7 @@ def get_ranges(
     """
 
 async def get_ranges_async(
-    store: ObjectStore, path: str, offsets: Sequence[int], lengths: Sequence[int]
+    store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
 ) -> List[Buffer]:
     """Call `get_ranges` asynchronously.
 
