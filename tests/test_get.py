@@ -104,7 +104,7 @@ def test_get_range():
     path = "big-data.txt"
 
     obs.put(store, path, data)
-    buffer = obs.get_range(store, path, 5, 10)
+    buffer = obs.get_range(store, path, 5, 15)
     view = memoryview(buffer)
     assert view == data[5:15]
 
@@ -116,9 +116,9 @@ def test_get_ranges():
     path = "big-data.txt"
 
     obs.put(store, path, data)
-    offsets = [5, 10, 15, 20]
-    lengths = [10, 10, 10, 10]
-    buffers = obs.get_ranges(store, path, offsets, lengths)
+    starts = [5, 10, 15, 20]
+    ends = [15, 20, 25, 30]
+    buffers = obs.get_ranges(store, path, starts, ends)
 
-    for offset, length, buffer in zip(offsets, lengths, buffers):
-        assert memoryview(buffer) == data[offset : offset + length]
+    for start, end, buffer in zip(starts, ends, buffers):
+        assert memoryview(buffer) == data[start:end]
