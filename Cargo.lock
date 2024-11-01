@@ -1457,6 +1457,7 @@ dependencies = [
  "pyo3",
  "pyo3-async-runtimes",
  "thiserror",
+ "url",
 ]
 
 [[package]]
