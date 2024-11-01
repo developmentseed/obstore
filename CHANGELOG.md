@@ -1,8 +1,14 @@
 # Changelog
 
+## [0.3.0] -
+
+### Breaking changes
+
+- `get_range`, `get_range_async`, `get_ranges`, and `get_ranges_async` now use **start/end** instead of **offset/length**. This is for consistency with the `range` option of `obstore.get`.
+
 ## [0.2.0] - 2024-10-25
 
-## What's Changed
+### What's Changed
 
 - Streaming list results. `list` now returns an async or sync generator. by @kylebarron in https://github.com/developmentseed/obstore/pull/35
 - Optionally return list result as arrow. The `return_arrow` keyword argument returns chunks from `list` as Arrow RecordBatches, which is faster than materializing Python dicts/lists. by @kylebarron in https://github.com/developmentseed/obstore/pull/38

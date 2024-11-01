@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use object_store::local::LocalFileSystem;
+use object_store::ObjectStoreScheme;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::types::PyType;
+use url::Url;
 
 use crate::error::PyObjectStoreResult;
 
@@ -32,6 +36,24 @@ impl PyLocalStore {
         } else {
             LocalFileSystem::new()
         };
+        Ok(Self(Arc::new(fs)))
+    }
+
+    #[classmethod]
+    fn from_url(_cls: &Bound<PyType>, url: &str) -> PyObjectStoreResult<Self> {
+        let url = Url::parse(url).map_err(|err| PyValueError::new_err(err.to_string()))?;
+        let (scheme, path) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
+
+        if !matches!(scheme, ObjectStoreScheme::Local) {
+            return Err(PyValueError::new_err("Not a `file://` URL").into());
+        }
+
+        // The path returned by `ObjectStoreScheme::parse` strips the initial `/`, so we join it
+        // onto a root
+        // Hopefully this also works on Windows.
+        let root = std::path::Path::new("/");
+        let full_path = root.join(path.as_ref());
+        let fs = LocalFileSystem::new_with_prefix(full_path)?;
         Ok(Self(Arc::new(fs)))
     }
 

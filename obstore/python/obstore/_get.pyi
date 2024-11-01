@@ -1,15 +1,22 @@
-import sys
 from datetime import datetime
 from typing import List, Sequence, Tuple, TypedDict
 
 from ._attributes import Attributes
+from ._buffer import Buffer
 from ._list import ObjectMeta
 from .store import ObjectStore
 
-if sys.version_info >= (3, 12):
-    from collections.abc import Buffer as _Buffer
-else:
-    from typing_extensions import Buffer as _Buffer
+class OffsetRange(TypedDict):
+    """Request all bytes starting from a given byte offset"""
+
+    offset: int
+    """The byte offset for the offset range request."""
+
+class SuffixRange(TypedDict):
+    """Request up to the last `n` bytes"""
+
+    suffix: int
+    """The number of bytes from the suffix to request."""
 
 class GetOptions(TypedDict, total=False):
     """Options for a get request.
@@ -20,7 +27,7 @@ class GetOptions(TypedDict, total=False):
     if_match: str | None
     """
     Request will succeed if the `ObjectMeta::e_tag` matches
-    otherwise returning [`Error::Precondition`]
+    otherwise returning [`PreconditionError`][obstore.exceptions.PreconditionError].
 
     See <https://datatracker.ietf.org/doc/html/rfc9110#name-if-match>
 
@@ -36,7 +43,7 @@ class GetOptions(TypedDict, total=False):
     if_none_match: str | None
     """
     Request will succeed if the `ObjectMeta::e_tag` does not match
-    otherwise returning [`Error::NotModified`]
+    otherwise returning [`NotModifiedError`][obstore.exceptions.NotModifiedError].
 
     See <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.2>
 
@@ -59,7 +66,7 @@ class GetOptions(TypedDict, total=False):
     if_modified_since: datetime | None
     """
     Request will succeed if the object has not been modified since
-    otherwise returning [`Error::Precondition`]
+    otherwise returning [`PreconditionError`][obstore.exceptions.PreconditionError].
 
     Some stores, such as S3, will only return `NotModified` for exact
     timestamp matches, instead of for any timestamp greater than or equal.
@@ -67,10 +74,10 @@ class GetOptions(TypedDict, total=False):
     <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.4>
     """
 
-    # range: Tuple[int | None, int | None]
+    range: Tuple[int, int] | List[int] | OffsetRange | SuffixRange
     """
     Request transfer of only the specified range of bytes
-    otherwise returning [`Error::NotModified`]
+    otherwise returning [`NotModifiedError`][obstore.exceptions.NotModifiedError].
 
     The semantics of this tuple are:
 
@@ -83,13 +90,13 @@ class GetOptions(TypedDict, total=False):
 
         The `end` offset is _exclusive_.
 
-    - `(int, None)`: Request all bytes starting from a given byte offset.
+    - `{"offset": int}`: Request all bytes starting from a given byte offset.
 
         This is equivalent to `bytes={int}-` as an HTTP header.
 
-    - `(None, int)`: Request the last `int` bytes. Note that here, `int` is _this size
-        of the request_, not the byte offset. This is equivalent to `bytes=-{int}` as an
-        HTTP header.
+    - `{"suffix": int}`: Request the last `int` bytes. Note that here, `int` is _the
+        size of the request_, not the byte offset. This is equivalent to `bytes=-{int}`
+        as an HTTP header.
 
     <https://datatracker.ietf.org/doc/html/rfc9110#name-range>
     """
@@ -206,17 +213,6 @@ class BytesStream:
     def __next__(self) -> bytes:
         """Return the next chunk of bytes in the stream."""
 
-class Buffer(_Buffer):
-    """
-    A buffer implementing the Python buffer protocol, allowing zero-copy access to the
-    underlying memory provided by Rust.
-
-    You can pass this to [`memoryview`][] for a zero-copy view into the underlying data.
-    """
-
-    def as_bytes(self) -> bytes:
-        """Copy this buffer into a Python `bytes` object."""
-
 def get(
     store: ObjectStore, path: str, *, options: GetOptions | None = None
 ) -> GetResult:
@@ -239,7 +235,7 @@ async def get_async(
     Refer to the documentation for [get][obstore.get].
     """
 
-def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer:
+def get_range(store: ObjectStore, path: str, start: int, end: int) -> Buffer:
     """
     Return the bytes that are stored at the specified location in the given byte range.
 
@@ -251,8 +247,8 @@ def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
-        offset: The start of the byte range.
-        length: The number of bytes.
+        start: The start of the byte range.
+        end: The end of the byte range (exclusive).
 
     Returns:
         A `Buffer` object implementing the Python buffer protocol, allowing
@@ -260,7 +256,7 @@ def get_range(store: ObjectStore, path: str, offset: int, length: int) -> Buffer
     """
 
 async def get_range_async(
-    store: ObjectStore, path: str, offset: int, length: int
+    store: ObjectStore, path: str, start: int, end: int
 ) -> Buffer:
     """Call `get_range` asynchronously.
 
@@ -268,7 +264,7 @@ async def get_range_async(
     """
 
 def get_ranges(
-    store: ObjectStore, path: str, offsets: Sequence[int], lengths: Sequence[int]
+    store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
 ) -> List[Buffer]:
     """
     Return the bytes that are stored at the specified location in the given byte ranges
@@ -281,8 +277,8 @@ def get_ranges(
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
-        offsets: A sequence of `int` where each offset starts.
-        lengths: A sequence of `int` representing the number of bytes within each range.
+        starts: A sequence of `int` where each offset starts.
+        ends: A sequence of `int` where each offset ends (exclusive).
 
     Returns:
         A sequence of `Buffer`, one for each range. This `Buffer` object implements the
@@ -291,7 +287,7 @@ def get_ranges(
     """
 
 async def get_ranges_async(
-    store: ObjectStore, path: str, offsets: Sequence[int], lengths: Sequence[int]
+    store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
 ) -> List[Buffer]:
     """Call `get_ranges` asynchronously.
 
