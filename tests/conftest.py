@@ -1,5 +1,6 @@
 import boto3
 import pytest
+import urllib3
 from botocore import UNSIGNED
 from botocore.client import Config
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
@@ -35,7 +36,8 @@ def s3(moto_server_uri: str):
     )
     client.create_bucket(Bucket=TEST_BUCKET_NAME, ACL="public-read")
     client.put_object(Bucket=TEST_BUCKET_NAME, Key="afile", Body=b"hello world")
-    return moto_server_uri
+    yield moto_server_uri
+    urllib3.request(method="post", url=f"{moto_server_uri}/moto-api/reset")
 
 
 @pytest.fixture()

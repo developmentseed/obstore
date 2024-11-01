@@ -29,15 +29,30 @@ import obstore as obs
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
+    """An fsspec implementation based on a obstore Store"""
+
     def __init__(
         self,
-        store,
+        store: obs.store.ObjectStore,
         *args,
-        asynchronous=False,
+        asynchronous: bool = False,
         loop=None,
-        batch_size=None,
+        batch_size: int | None = None,
         **kwargs,
     ):
+        """
+        store: a configured instance of one of the store classes in objstore.store
+        asynchronous: id this instance meant to be be called using the async API? This
+            should only be set to true when running within a coroutine
+        loop: since both fsspec/python and tokio/rust may be using loops, this should
+            be kept None for now
+        batch_size: some operations on many files will batch their requests; if you
+            are seeing timeouts, you may want to set this number smaller than the defaults,
+            which are determined in fsspec.asyn._get_batch_size
+        kwargs: not currently supported; extra configuration for the backend should be
+            done to the Store passed in the first argument.
+        """
+
         self.store = store
         super().__init__(
             *args, asynchronous=asynchronous, loop=loop, batch_size=batch_size, **kwargs
@@ -74,7 +89,9 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         on_error="return",
         **kwargs,
     ):
-        # TODO: need to go through this again and test it
+        if not len(paths) == len(starts) == len(ends):
+            raise ValueError
+
         per_file_requests: Dict[str, List[Tuple[int, int, int]]] = defaultdict(list)
         for idx, (path, start, end) in enumerate(zip(paths, starts, ends)):
             per_file_requests[path].append((start, end, idx))
@@ -95,7 +112,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             path, ranges = per_file_request
             for buffer, ranges_ in zip(buffers, ranges):
                 initial_index = ranges_[2]
-                output_buffers[initial_index] = buffer
+                output_buffers[initial_index] = buffer.as_bytes()
 
         return output_buffers
 
@@ -147,9 +164,16 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
 class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
     def __init__(self, fs, path, mode="rb", cache_type="none", **kwargs):
+        if mode != "rb":
+            raise ValueError("Only 'rb' mode is currently supported")
         super().__init__(fs, path, mode, mode, cache_type=cache_type, **kwargs)
 
-    def read(self, length=-1):
+    def read(self, length: int = -1):
+        """Return bytes from the remote file
+
+        length: if positive, returns up to this many bytes; if negative, return all
+            remaining byets.
+        """
         if length < 0:
             data = self.fs.cat_file(self.path, self.loc, self.size)
             self.loc = self.size
