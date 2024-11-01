@@ -10,6 +10,8 @@ from ._delete import delete_async as delete_async
 from ._get import Buffer as Buffer
 from ._get import GetOptions as GetOptions
 from ._get import GetResult as GetResult
+from ._get import OffsetRange as OffsetRange
+from ._get import SuffixRange as SuffixRange
 from ._get import get as get
 from ._get import get_async as get_async
 from ._get import get_range as get_range

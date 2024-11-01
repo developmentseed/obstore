@@ -9,3 +9,5 @@
 ::: obstore.GetOptions
 ::: obstore.GetResult
 ::: obstore.Buffer
+::: obstore.OffsetRange
+::: obstore.SuffixRange

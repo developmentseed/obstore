@@ -27,8 +27,7 @@ pub(crate) struct PyGetOptions {
     if_none_match: Option<String>,
     if_modified_since: Option<DateTime<Utc>>,
     if_unmodified_since: Option<DateTime<Utc>>,
-    // Taking out of public API until we can decide the right way to expose this
-    // range: Option<PyGetRange>,
+    range: Option<PyGetRange>,
     version: Option<String>,
     head: bool,
 }
@@ -49,7 +48,7 @@ impl<'py> FromPyObject<'py> for PyGetOptions {
                 .get("if_unmodified_since")
                 .map(|x| x.extract())
                 .transpose()?,
-            // range: dict.get("range").map(|x| x.extract()).transpose()?,
+            range: dict.get("range").map(|x| x.extract()).transpose()?,
             version: dict.get("version").map(|x| x.extract()).transpose()?,
             head: dict
                 .get("head")
@@ -67,37 +66,58 @@ impl From<PyGetOptions> for GetOptions {
             if_none_match: value.if_none_match,
             if_modified_since: value.if_modified_since,
             if_unmodified_since: value.if_unmodified_since,
-            range: Default::default(),
+            range: value.range.map(|inner| inner.0),
             version: value.version,
             head: value.head,
         }
     }
 }
 
-#[allow(dead_code)]
+#[derive(FromPyObject)]
+pub(crate) struct PyOffsetRange {
+    #[pyo3(item)]
+    offset: usize,
+}
+
+impl From<PyOffsetRange> for GetRange {
+    fn from(value: PyOffsetRange) -> Self {
+        GetRange::Offset(value.offset)
+    }
+}
+
+#[derive(FromPyObject)]
+pub(crate) struct PySuffixRange {
+    #[pyo3(item)]
+    suffix: usize,
+}
+
+impl From<PySuffixRange> for GetRange {
+    fn from(value: PySuffixRange) -> Self {
+        GetRange::Suffix(value.suffix)
+    }
+}
+
 pub(crate) struct PyGetRange(GetRange);
 
 // TODO: think of a better API here so that the distinction between each of these is easy to
 // understand.
+// Allowed input:
+// - [usize, usize] to refer to a bounded range from start to end (exclusive)
+// - {"offset": usize} to request all bytes starting from a given byte offset
+// - {"suffix": usize} to request the last `n` bytes
 impl<'py> FromPyObject<'py> for PyGetRange {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let range = ob.extract::<[Option<usize>; 2]>()?;
-        match (range[0], range[1]) {
-            (Some(start), Some(end)) => {
-                if start >= end {
-                    return Err(PyValueError::new_err(
-                        format!("End range must be strictly greater than start range. Got start: {}, end: {}", start, end ),
-                    ));
-                }
-
-                Ok(Self(GetRange::Bounded(start..end)))
-            }
-            (Some(start), None) => Ok(Self(GetRange::Offset(start))),
-            // Note: in this case `end` means `suffix bytes`
-            (None, Some(end)) => Ok(Self(GetRange::Suffix(end))),
-            (None, None) => Err(PyValueError::new_err(
-                "Cannot provide (None, None) for range.",
-            )),
+        if let Ok(bounded) = ob.extract::<[usize; 2]>() {
+            Ok(Self(GetRange::Bounded(bounded[0]..bounded[1])))
+        } else if let Ok(offset_range) = ob.extract::<PyOffsetRange>() {
+            Ok(Self(offset_range.into()))
+        } else if let Ok(suffix_range) = ob.extract::<PySuffixRange>() {
+            Ok(Self(suffix_range.into()))
+        } else {
+            // dbg!(ob);
+            // let x = ob.extract::<PyOffsetRange>()?;
+            // dbg!(x.offset);
+            Err(PyValueError::new_err("Unexpected input for byte range.\nExpected two-integer tuple or list, or dict with 'offset' or 'suffix' key." ))
         }
     }
 }
