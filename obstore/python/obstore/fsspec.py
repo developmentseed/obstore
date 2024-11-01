@@ -101,10 +101,8 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         futs: List[Coroutine[Any, Any, List[bytes]]] = []
         for path, ranges in per_file_requests.items():
             offsets = [r[0] for r in ranges]
-            lengths = [r[1] - r[0] for r in ranges]
-            fut = obs.get_ranges_async(
-                self.store, path, offsets=offsets, lengths=lengths
-            )
+            ends = [r[1] for r in ranges]
+            fut = obs.get_ranges_async(self.store, path, starts=offsets, ends=ends)
             futs.append(fut)
 
         result = await asyncio.gather(*futs)
