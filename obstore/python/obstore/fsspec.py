@@ -75,9 +75,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             return await resp.bytes_async()
 
         if start is not None and end is not None:
-            return await obs.get_range_async(
-                self.store, path, offset=start, length=end - start
-            )
+            return await obs.get_range_async(self.store, path, start=start, end=end)
 
         raise NotImplementedError("todo: handle open-ended ranges")
 
