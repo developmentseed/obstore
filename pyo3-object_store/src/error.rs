@@ -1,7 +1,5 @@
 //! Contains the [`PyObjectStoreError`], the error enum returned by all fallible functions in this
 //! crate.
-//!
-//! Also contains exceptions
 
 use pyo3::exceptions::{PyFileNotFoundError, PyIOError, PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
