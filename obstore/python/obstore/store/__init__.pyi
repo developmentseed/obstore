@@ -27,6 +27,24 @@ class LocalStore:
     """
     def __init__(self, prefix: str | Path | None = None) -> None: ...
     def __repr__(self) -> str: ...
+    @classmethod
+    def from_url(cls, url: str) -> LocalStore:
+        """Construct a new LocalStore from a `file://` URL.
+
+        **Examples:**
+
+        Construct a new store pointing to the root of your filesystem:
+        ```py
+        url = "file:///"
+        store = LocalStore.from_url(url)
+        ```
+
+        Construct a new store with a directory prefix:
+        ```py
+        url = "file:///Users/kyle/"
+        store = LocalStore.from_url(url)
+        ```
+        """
 
 class MemoryStore:
     """A fully in-memory implementation of ObjectStore.

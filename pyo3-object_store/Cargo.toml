@@ -17,6 +17,7 @@ object_store = { workspace = true, features = ["aws", "azure", "gcp", "http"] }
 pyo3 = { workspace = true, features = ["chrono", "indexmap"] }
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
 thiserror = { workspace = true }
+url = { workspace = true }
 
 [lib]
 crate-type = ["rlib"]

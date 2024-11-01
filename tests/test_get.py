@@ -47,7 +47,6 @@ async def test_stream_async():
     assert pos == len(data)
 
 
-@pytest.mark.skip("Skip until we restore range in get_options")
 def test_get_with_options():
     store = MemoryStore()
 
@@ -60,6 +59,42 @@ def test_get_with_options():
     assert result.range == (5, 10)
     buf = result.bytes()
     assert buf == data[5:10]
+
+    # Test list input
+    result = obs.get(store, path, options={"range": [5, 10]})
+    assert result.range == (5, 10)
+    buf = result.bytes()
+    assert buf == data[5:10]
+
+
+def test_get_with_options_offset():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    obs.put(store, path, data)
+
+    result = obs.get(store, path, options={"range": {"offset": 100}})
+    result_range = result.range
+    assert result_range == (100, 4400)
+    buf = result.bytes()
+    assert buf == data[result_range[0] : result_range[1]]
+
+
+def test_get_with_options_suffix():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    obs.put(store, path, data)
+
+    result = obs.get(store, path, options={"range": {"suffix": 100}})
+    result_range = result.range
+    assert result_range == (4300, 4400)
+    buf = result.bytes()
+    assert buf == data[result_range[0] : result_range[1]]
 
 
 def test_get_range():

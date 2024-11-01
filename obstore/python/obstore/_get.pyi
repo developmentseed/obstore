@@ -1,15 +1,22 @@
-import sys
 from datetime import datetime
 from typing import List, Sequence, Tuple, TypedDict
 
 from ._attributes import Attributes
+from ._buffer import Buffer
 from ._list import ObjectMeta
 from .store import ObjectStore
 
-if sys.version_info >= (3, 12):
-    from collections.abc import Buffer as _Buffer
-else:
-    from typing_extensions import Buffer as _Buffer
+class OffsetRange(TypedDict):
+    """Request all bytes starting from a given byte offset"""
+
+    offset: int
+    """The byte offset for the offset range request."""
+
+class SuffixRange(TypedDict):
+    """Request up to the last `n` bytes"""
+
+    suffix: int
+    """The number of bytes from the suffix to request."""
 
 class GetOptions(TypedDict, total=False):
     """Options for a get request.
@@ -20,7 +27,7 @@ class GetOptions(TypedDict, total=False):
     if_match: str | None
     """
     Request will succeed if the `ObjectMeta::e_tag` matches
-    otherwise returning [`Error::Precondition`]
+    otherwise returning [`PreconditionError`][obstore.exceptions.PreconditionError].
 
     See <https://datatracker.ietf.org/doc/html/rfc9110#name-if-match>
 
@@ -36,7 +43,7 @@ class GetOptions(TypedDict, total=False):
     if_none_match: str | None
     """
     Request will succeed if the `ObjectMeta::e_tag` does not match
-    otherwise returning [`Error::NotModified`]
+    otherwise returning [`NotModifiedError`][obstore.exceptions.NotModifiedError].
 
     See <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.2>
 
@@ -59,7 +66,7 @@ class GetOptions(TypedDict, total=False):
     if_modified_since: datetime | None
     """
     Request will succeed if the object has not been modified since
-    otherwise returning [`Error::Precondition`]
+    otherwise returning [`PreconditionError`][obstore.exceptions.PreconditionError].
 
     Some stores, such as S3, will only return `NotModified` for exact
     timestamp matches, instead of for any timestamp greater than or equal.
@@ -67,10 +74,10 @@ class GetOptions(TypedDict, total=False):
     <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.4>
     """
 
-    # range: Tuple[int | None, int | None]
+    range: Tuple[int, int] | List[int] | OffsetRange | SuffixRange
     """
     Request transfer of only the specified range of bytes
-    otherwise returning [`Error::NotModified`]
+    otherwise returning [`NotModifiedError`][obstore.exceptions.NotModifiedError].
 
     The semantics of this tuple are:
 
@@ -83,13 +90,13 @@ class GetOptions(TypedDict, total=False):
 
         The `end` offset is _exclusive_.
 
-    - `(int, None)`: Request all bytes starting from a given byte offset.
+    - `{"offset": int}`: Request all bytes starting from a given byte offset.
 
         This is equivalent to `bytes={int}-` as an HTTP header.
 
-    - `(None, int)`: Request the last `int` bytes. Note that here, `int` is _this size
-        of the request_, not the byte offset. This is equivalent to `bytes=-{int}` as an
-        HTTP header.
+    - `{"suffix": int}`: Request the last `int` bytes. Note that here, `int` is _the
+        size of the request_, not the byte offset. This is equivalent to `bytes=-{int}`
+        as an HTTP header.
 
     <https://datatracker.ietf.org/doc/html/rfc9110#name-range>
     """
@@ -205,17 +212,6 @@ class BytesStream:
 
     def __next__(self) -> bytes:
         """Return the next chunk of bytes in the stream."""
-
-class Buffer(_Buffer):
-    """
-    A buffer implementing the Python buffer protocol, allowing zero-copy access to the
-    underlying memory provided by Rust.
-
-    You can pass this to [`memoryview`][] for a zero-copy view into the underlying data.
-    """
-
-    def as_bytes(self) -> bytes:
-        """Copy this buffer into a Python `bytes` object."""
 
 def get(
     store: ObjectStore, path: str, *, options: GetOptions | None = None
