@@ -34,8 +34,8 @@ thiserror = "1"
 tokio = "1.40"
 url = "2"
 
-[patch.crates-io]
-object_store = { git = "https://github.com/kylebarron/arrow-rs", branch = "kyle/list-returns-static-stream" }
+# [patch.crates-io]
+# object_store = { git = "https://github.com/kylebarron/arrow-rs", branch = "kyle/list-returns-static-stream" }
 
 [profile.release]
 lto = true

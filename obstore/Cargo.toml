@@ -38,6 +38,7 @@ tokio = { workspace = true, features = [
     "sync",
 ] }
 url = { workspace = true }
+yoke = { version = "0.7.4", features = ["derive"] }
 
 # We opt-in to using rustls as the TLS provider for reqwest, which is the HTTP
 # library used by object_store.
