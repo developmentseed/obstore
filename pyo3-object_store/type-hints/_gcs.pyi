@@ -51,7 +51,7 @@ class GCSStore:
         bucket: str,
         *,
         config: Dict[GCSConfigKey, str] | None = None,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> GCSStore:
         """Construct a new GCSStore with values pre-populated from environment variables.
@@ -83,7 +83,7 @@ class GCSStore:
         url: str,
         *,
         config: Dict[GCSConfigKey, str] | None = None,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> GCSStore:
         """Construct a new GCSStore with values populated from a well-known storage URL.
