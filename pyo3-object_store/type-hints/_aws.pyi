@@ -130,7 +130,7 @@ class S3Store:
         bucket: str,
         *,
         config: Dict[S3ConfigKey | str, str] | None = None,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> S3Store:
         """Construct a new S3Store with regular AWS environment variables
@@ -164,7 +164,7 @@ class S3Store:
         bucket: str,
         *,
         config: Dict[S3ConfigKey | str, str] | None = None,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> S3Store:
         """Construct a new S3Store with credentials inferred from a boto3 Session
@@ -187,7 +187,7 @@ class S3Store:
         url: str,
         *,
         config: Dict[S3ConfigKey | str, str] | None = None,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> S3Store:
         """

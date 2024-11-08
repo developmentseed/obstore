@@ -11,8 +11,7 @@ use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
 use pyo3_arrow::buffer::PyArrowBuffer;
-use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
-use pyo3_object_store::PyObjectStore;
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;

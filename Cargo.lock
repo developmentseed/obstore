@@ -1384,8 +1384,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-async-runtimes"
-version = "0.21.0"
-source = "git+https://github.com/PyO3/pyo3-async-runtimes#284bd36d0426a988026f878cae22abdb179795e6"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2529f0be73ffd2be0cc43c013a640796558aa12d7ca0aab5cc14f375b4733031"
 dependencies = [
  "futures",
  "once_cell",
@@ -1450,7 +1451,7 @@ dependencies = [
 
 [[package]]
 name = "pyo3-object_store"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "futures",
  "object_store",

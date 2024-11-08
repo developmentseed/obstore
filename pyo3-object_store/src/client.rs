@@ -19,6 +19,22 @@ impl<'py> FromPyObject<'py> for PyClientConfigKey {
     }
 }
 
+/// A wrapper around `String` used to store values for the ClientConfig. This allows Python `True`
+/// and `False` as well as `str`. A Python `True` becomes `"true"` and a Python `False` becomes
+/// `"false"`.
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub struct PyClientConfigValue(String);
+
+impl<'py> FromPyObject<'py> for PyClientConfigValue {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(val) = ob.extract::<bool>() {
+            Ok(Self(val.to_string()))
+        } else {
+            Ok(Self(ob.extract()?))
+        }
+    }
+}
+
 /// A wrapper around `ClientOptions` that implements [`FromPyObject`].
 #[derive(Debug)]
 pub struct PyClientOptions(ClientOptions);

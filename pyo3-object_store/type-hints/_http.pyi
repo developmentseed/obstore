@@ -11,7 +11,7 @@ class HTTPStore:
         cls,
         url: str,
         *,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> HTTPStore:
         """Construct a new HTTPStore from a URL

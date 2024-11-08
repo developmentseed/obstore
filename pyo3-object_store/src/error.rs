@@ -1,7 +1,5 @@
-//! Contains the [`PyObjectStoreError`], the Error returned by most fallible functions in this
+//! Contains the [`PyObjectStoreError`], the error enum returned by all fallible functions in this
 //! crate.
-
-#![allow(missing_docs)]
 
 use pyo3::exceptions::{PyFileNotFoundError, PyIOError, PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
@@ -12,24 +10,76 @@ use thiserror::Error;
 create_exception!(
     pyo3_object_store,
     ObstoreError,
-    pyo3::exceptions::PyException
+    pyo3::exceptions::PyException,
+    "The base Python-facing exception from which all other errors subclass."
 );
 
 // Subclasses from base exception
-create_exception!(pyo3_object_store, GenericError, ObstoreError);
-create_exception!(pyo3_object_store, NotFoundError, ObstoreError);
-create_exception!(pyo3_object_store, InvalidPathError, ObstoreError);
-create_exception!(pyo3_object_store, JoinError, ObstoreError);
-create_exception!(pyo3_object_store, NotSupportedError, ObstoreError);
-create_exception!(pyo3_object_store, AlreadyExistsError, ObstoreError);
-create_exception!(pyo3_object_store, PreconditionError, ObstoreError);
-create_exception!(pyo3_object_store, NotModifiedError, ObstoreError);
-create_exception!(pyo3_object_store, PermissionDeniedError, ObstoreError);
-create_exception!(pyo3_object_store, UnauthenticatedError, ObstoreError);
+create_exception!(
+    pyo3_object_store,
+    GenericError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::Generic]."
+);
+create_exception!(
+    pyo3_object_store,
+    NotFoundError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::NotFound]."
+);
+create_exception!(
+    pyo3_object_store,
+    InvalidPathError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::InvalidPath]."
+);
+create_exception!(
+    pyo3_object_store,
+    JoinError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::JoinError]."
+);
+create_exception!(
+    pyo3_object_store,
+    NotSupportedError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::NotSupported]."
+);
+create_exception!(
+    pyo3_object_store,
+    AlreadyExistsError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::AlreadyExists]."
+);
+create_exception!(
+    pyo3_object_store,
+    PreconditionError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::Precondition]."
+);
+create_exception!(
+    pyo3_object_store,
+    NotModifiedError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::NotModified]."
+);
+create_exception!(
+    pyo3_object_store,
+    PermissionDeniedError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::PermissionDenied]."
+);
+create_exception!(
+    pyo3_object_store,
+    UnauthenticatedError,
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::Unauthenticated]."
+);
 create_exception!(
     pyo3_object_store,
     UnknownConfigurationKeyError,
-    ObstoreError
+    ObstoreError,
+    "A Python-facing exception wrapping [object_store::Error::UnknownConfigurationKey]."
 );
 
 /// The Error variants returned by this crate.

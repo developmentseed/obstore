@@ -7,8 +7,7 @@ use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3_arrow::buffer::PyArrowBuffer;
 use pyo3_async_runtimes::tokio::future_into_py;
-use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
-use pyo3_object_store::PyObjectStore;
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, Lines};
 use tokio::sync::Mutex;
 

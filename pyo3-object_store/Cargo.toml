@@ -1,23 +1,25 @@
 [package]
 name = "pyo3-object_store"
-version = "0.1.0"
-authors = { workspace = true }
-edition = { workspace = true }
+version = "0.1.0-beta.1"
+authors = ["Kyle Barron <kyle@developmentseed.org>"]
+edition = "2021"
 description = "object_store integration for pyo3."
 readme = "README.md"
-repository = { workspace = true }
-license = { workspace = true }
-keywords = { workspace = true }
-categories = { workspace = true }
-rust-version = { workspace = true }
+repository = "https://github.com/developmentseed/obstore"
+license = "MIT OR Apache-2.0"
+keywords = []
+categories = []
+rust-version = "1.75"
+# Include the Python type hints as part of the cargo distribution
+include = ["src", "type-hints", "README.md", "LICENSE"]
 
 [dependencies]
-futures = { workspace = true }
-object_store = { workspace = true, features = ["aws", "azure", "gcp", "http"] }
-pyo3 = { workspace = true, features = ["chrono", "indexmap"] }
-pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
-thiserror = { workspace = true }
-url = { workspace = true }
+futures = "0.3"
+object_store = { version = "0.11", features = ["aws", "azure", "gcp", "http"] }
+pyo3 = { version = "0.22", features = ["chrono", "indexmap"] }
+pyo3-async-runtimes = { version = "0.22", features = ["tokio-runtime"] }
+thiserror = "1"
+url = "2"
 
 [lib]
 crate-type = ["rlib"]

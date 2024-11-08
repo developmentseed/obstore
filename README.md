@@ -1,14 +1,12 @@
 # obstore
 
 [![PyPI][pypi_badge]][pypi_link]
-
-<!-- [![Conda Version][conda_version_badge]][conda_version] -->
+[![Conda Version][conda_version_badge]][conda_version]
 
 [pypi_badge]: https://badge.fury.io/py/obstore.svg
 [pypi_link]: https://pypi.org/project/obstore/
-
-<!-- [conda_version_badge]: https://img.shields.io/conda/vn/conda-forge/obstore.svg
-[conda_version]: https://anaconda.org/conda-forge/obstore -->
+[conda_version_badge]: https://img.shields.io/conda/vn/conda-forge/obstore.svg
+[conda_version]: https://prefix.dev/channels/conda-forge/packages/obstore
 
 Simple, fast integration with object storage services like Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
 
@@ -28,8 +26,16 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 
 ## Installation
 
+To install obstore using pip:
+
 ```sh
 pip install obstore
+```
+
+Obstore is on [conda-forge](https://prefix.dev/channels/conda-forge/packages/obstore) and can be installed using [conda](https://docs.conda.io), [mamba](https://mamba.readthedocs.io/), or [pixi](https://pixi.sh/). To install obstore using conda:
+
+```
+conda install -c conda-forge obstore
 ```
 
 ## Documentation

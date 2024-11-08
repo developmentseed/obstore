@@ -1,5 +1,13 @@
 [workspace]
-members = ["obstore", "pyo3-object_store"]
+members = ["obstore"]
+# Note: pyo3-object_store is _not_ a member of this workspace because we need to
+# patch the object_store version for Python to export a list stream. This list
+# stream is implemented in https://github.com/apache/arrow-rs/pull/6619 and will
+# be included in object_store's next major release.
+#
+# But pyo3-object_store gets published to crates.io, which can't have git
+# dependencies.
+exclude = ["pyo3-object_store"]
 resolver = "2"
 
 [workspace.package]
@@ -20,9 +28,7 @@ http = "1.1"
 indexmap = "2"
 object_store = "0.11"
 pyo3 = { version = "0.22", features = ["macros", "indexmap"] }
-pyo3-async-runtimes = { git = "https://github.com/PyO3/pyo3-async-runtimes", features = [
-    "tokio-runtime",
-] }
+pyo3-async-runtimes = { version = "0.22", features = ["tokio-runtime"] }
 pyo3-file = "0.9"
 thiserror = "1"
 tokio = "1.40"

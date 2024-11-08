@@ -145,7 +145,7 @@ class AzureStore:
         container: str,
         *,
         config: Dict[AzureConfigKey, str] | None = None,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> AzureStore:
         """Construct a new AzureStore with values pre-populated from environment variables.
@@ -177,7 +177,7 @@ class AzureStore:
         url: str,
         *,
         config: Dict[AzureConfigKey, str] | None = None,
-        client_options: Dict[ClientConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> AzureStore:
         """Construct a new AzureStore with values populated from a well-known storage URL.

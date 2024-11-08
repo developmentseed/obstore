@@ -14,8 +14,7 @@ use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3_arrow::PyRecordBatch;
-use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
-use pyo3_object_store::PyObjectStore;
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
 use crate::runtime::get_runtime;
