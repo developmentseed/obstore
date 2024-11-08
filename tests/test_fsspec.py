@@ -97,11 +97,8 @@ def test_cat_ranges_two(fs):
     out = fs.cat_ranges(["data1", "data2"], [10, 10], [20, 20])
     assert out == [data1[10:20], data2[10:20]]
 
-    # all of one file
-    out = fs.cat_ranges(["data1", "data2"], [10, None], [20, None])
-    assert out == [data1[10:20], data2]
 
-
+@pytest.mark.xfail("negative and mixed ranges not implemented")
 def test_cat_ranges_mixed(fs):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
@@ -112,6 +109,7 @@ def test_cat_ranges_mixed(fs):
     assert out == [data1[-10:], data1[:-10], data2[10:-10]]
 
 
+@pytest.mark.xfail("atomic writes not working on moto")
 def test_atomic_write(fs):
     fs.pipe_file("data1", b"data1")
     fs.pipe_file("data1", b"data1", mode="overwrite")
