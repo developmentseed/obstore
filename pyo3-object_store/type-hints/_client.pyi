@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Dict, Literal
 
 ClientConfigKey = Literal[
     "allow_http",
@@ -61,3 +61,6 @@ Either lower case or upper case strings are accepted.
     response body has finished.
 - `"user_agent"`: User-Agent header to be used by this client.
 """
+
+class ClientOptions:
+    def __init__(self, *, default_headers: Dict[str, str], **kwargs) -> None: ...
