@@ -108,8 +108,8 @@ def test_cat_ranges_mixed(fs):
     fs.pipe({"data1": data1, "data2": data2})
 
     # single range in each file
-    out = fs.cat_ranges(["data1"], [-10, None, 10], [None, -10, -10])
-    assert out == [data1[-10:], data1[:-10], data1[10:-10]]
+    out = fs.cat_ranges(["data1", "data1", "data2"], [-10, None, 10], [None, -10, -10])
+    assert out == [data1[-10:], data1[:-10], data2[10:-10]]
 
 
 def test_atomic_write(fs):
