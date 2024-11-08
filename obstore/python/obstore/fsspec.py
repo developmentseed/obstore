@@ -153,4 +153,25 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
     def _open(self, path, mode="rb", **kwargs):
         """Return raw bytes-mode file-like from the file-system"""
-        return fsspec.spec.AbstractBufferedFile(self, path, mode, **kwargs)
+        return BufferedFileSimple(self, path, mode, **kwargs)
+
+
+class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
+    def __init__(self, fs, path, mode="rb", cache_type="none", **kwargs):
+        if mode != "rb":
+            raise ValueError("Only 'rb' mode is currently supported")
+        super().__init__(fs, path, mode, mode, cache_type=cache_type, **kwargs)
+
+    def read(self, length: int = -1):
+        """Return bytes from the remote file
+
+        length: if positive, returns up to this many bytes; if negative, return all
+            remaining byets.
+        """
+        if length < 0:
+            data = self.fs.cat_file(self.path, self.loc, self.size)
+            self.loc = self.size
+        else:
+            data = self.fs.cat_file(self.path, self.loc, self.loc + length)
+            self.loc += length
+        return data
