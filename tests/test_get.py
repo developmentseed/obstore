@@ -1,7 +1,24 @@
 import pytest
 
 import obstore as obs
-from obstore.store import MemoryStore
+import obstore
+
+dir(obstore)
+import obstore.store
+
+dir(obstore.store)
+
+from obstore.store import MemoryStore, ClientOptions, S3Store
+
+import boto3
+
+session = boto3.Session()
+
+options = ClientOptions(default_headers={b"x-amz-request-payer": "requester"})
+store = S3Store.from_session(session, "naip-visualization", client_options=options)
+result = obs.list(store, "ny/2022/60cm/rgb/40073/")
+out = result.collect()
+len(out)
 
 
 def test_stream_sync():
