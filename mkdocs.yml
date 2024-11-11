@@ -99,7 +99,7 @@ plugins:
       enable_inventory: true
       handlers:
         python:
-          paths: [object-store-rs/python]
+          paths: [obstore/python]
           options:
             # We set allow_inspection: false to ensure that all docstrings come
             # from the pyi files, not the Rust-facing doc comments.
