@@ -42,7 +42,8 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         batch_size: int | None = None,
         **kwargs,
     ):
-        """
+        """Construct a new AsyncFsspecStore
+
         store: a configured instance of one of the store classes in objstore.store
         asynchronous: id this instance meant to be be called using the async API? This
             should only be set to true when running within a coroutine
