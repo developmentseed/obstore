@@ -111,7 +111,7 @@ impl PyReadableFile {
 
     #[pyo3(
         signature = (offset, whence=0, /),
-        text_signature = "(offset, whence=os.SEEK_SET)")
+        text_signature = "(offset, whence=os.SEEK_SET, /)")
     ]
     fn seek<'py>(&'py mut self, py: Python<'py>, offset: i64, whence: usize) -> PyResult<PyObject> {
         let reader = self.reader.clone();
