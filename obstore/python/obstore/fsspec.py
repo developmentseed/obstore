@@ -1,6 +1,6 @@
 """Fsspec integration.
 
-The underlying `object_store` Rust crate cautions against relying too strongly on stateful filesystem representations of object stores:
+The underlying `object_store` Rust crate [cautions](https://docs.rs/object_store/latest/object_store/#why-not-a-filesystem-interface) against relying too strongly on stateful filesystem representations of object stores:
 
 > The ObjectStore interface is designed to mirror the APIs of object stores and not filesystems, and thus has stateless APIs instead of cursor based interfaces such as Read or Seek available in filesystems.
 >
