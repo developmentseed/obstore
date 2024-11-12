@@ -61,6 +61,7 @@ jobs:
 
           # Only push docs if no letters in git tag after the first character
           # (usually the git tag will have v as the first character)
-          if echo $VERSION | cut -c 1- | grep -q "[A-Za-z]"; then
+          # Note the `cut` index is 1-ordered
+          if echo $VERSION | cut -c 2- | grep -q "[A-Za-z]"; then
             uv run mike deploy $VERSION latest --update-aliases --push
           fi
