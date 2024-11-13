@@ -47,7 +47,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         asynchronous: id this instance meant to be be called using the async API? This
             should only be set to true when running within a coroutine
         loop: since both fsspec/python and tokio/rust may be using loops, this should
-            be kept None for now
+            be kept `None` for now, and will not be used.
         batch_size: some operations on many files will batch their requests; if you
             are seeing timeouts, you may want to set this number smaller than the defaults,
             which are determined in fsspec.asyn._get_batch_size
