@@ -40,7 +40,6 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         asynchronous: bool = False,
         loop=None,
         batch_size: int | None = None,
-        **kwargs,
     ):
         """
         store: a configured instance of one of the store classes in objstore.store
@@ -51,13 +50,11 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         batch_size: some operations on many files will batch their requests; if you
             are seeing timeouts, you may want to set this number smaller than the defaults,
             which are determined in fsspec.asyn._get_batch_size
-        kwargs: not currently supported; extra configuration for the backend should be
-            done to the Store passed in the first argument.
         """
 
         self.store = store
         super().__init__(
-            *args, asynchronous=asynchronous, loop=loop, batch_size=batch_size, **kwargs
+            *args, asynchronous=asynchronous, loop=loop, batch_size=batch_size
         )
 
     async def _rm_file(self, path, **kwargs):
@@ -79,13 +76,17 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _cat_ranges(
         self,
         paths: List[str],
-        starts: List[int],
-        ends: List[int],
+        starts: List[int] | int,
+        ends: List[int] | int,
         max_gap=None,
         batch_size=None,
         on_error="return",
         **kwargs,
     ):
+        if isinstance(starts, int):
+            starts = [starts] * len(paths)
+        if isinstance(ends, int):
+            ends = [ends] * len(paths)
         if not len(paths) == len(starts) == len(ends):
             raise ValueError
 
