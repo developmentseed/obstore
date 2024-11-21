@@ -123,7 +123,9 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          # Note: we exclude 3.13 from Windows, because it failed with a link error
+          # https://github.com/kylebarron/arro3/pull/263
+          args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i pypy3.10 --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
