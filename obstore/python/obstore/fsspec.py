@@ -1,4 +1,6 @@
-"""Fsspec integration.
+"""[fsspec] integration.
+
+[fsspec]: https://github.com/fsspec/filesystem_spec
 
 The underlying `object_store` Rust crate [cautions](https://docs.rs/object_store/latest/object_store/#why-not-a-filesystem-interface) against relying too strongly on stateful filesystem representations of object stores:
 
@@ -29,7 +31,11 @@ import obstore as obs
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
-    """An fsspec implementation based on a obstore Store"""
+    """An fsspec implementation based on a obstore Store.
+
+    You should be able to pass an instance of this class into any API that expects an
+    fsspec-style object.
+    """
 
     cachable = False
 
@@ -43,14 +49,28 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     ):
         """Construct a new AsyncFsspecStore
 
-        store: a configured instance of one of the store classes in objstore.store
-        asynchronous: id this instance meant to be be called using the async API? This
-            should only be set to true when running within a coroutine
-        loop: since both fsspec/python and tokio/rust may be using loops, this should
-            be kept `None` for now, and will not be used.
-        batch_size: some operations on many files will batch their requests; if you
-            are seeing timeouts, you may want to set this number smaller than the defaults,
-            which are determined in fsspec.asyn._get_batch_size
+        Args:
+            store: a configured instance of one of the store classes in `obstore.store`.
+            asynchronous: Set to `True` if this instance is meant to be be called using
+                the fsspec async API. This should only be set to true when running
+                within a coroutine.
+            loop: since both fsspec/python and tokio/rust may be using loops, this should
+                be kept `None` for now, and will not be used.
+            batch_size: some operations on many files will batch their requests; if you
+                are seeing timeouts, you may want to set this number smaller than the
+                defaults, which are determined in `fsspec.asyn._get_batch_size`.
+
+        Example:
+
+        ```py
+        from obstore.fsspec import AsyncFsspecStore
+        from obstore.store import HTTPStore
+
+        store = HTTPStore.from_url("https://example.com")
+        fsspec_store = AsyncFsspecStore(store)
+        resp = fsspec_store.cat("/")
+        assert resp.startswith(b"<!doctype html>")
+        ```
         """
 
         self.store = store

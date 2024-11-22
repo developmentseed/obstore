@@ -1,5 +1,6 @@
 from ._attributes import Attribute as Attribute
 from ._attributes import Attributes as Attributes
+from ._buffered import AsyncReadableFile as AsyncReadableFile
 from ._buffered import ReadableFile as ReadableFile
 from ._buffered import open as open
 from ._buffered import open_async as open_async

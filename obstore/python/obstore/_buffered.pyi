@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 from ._buffer import Buffer
@@ -47,15 +48,15 @@ class ReadableFile:
     def readlines(self, hint: int = -1, /) -> List[Buffer]:
         """Read all remaining lines into a list of buffers"""
 
-    def seek(self, offset: int, whence: int, /) -> int:
+    def seek(self, offset: int, whence: int = os.SEEK_SET, /) -> int:
         """
         Change the stream position to the given byte _offset_, interpreted relative to
         the position indicated by _whence_, and return the new absolute position. Values
         for _whence_ are:
 
-        - [`os.SEEK_SET`] or 0: start of the stream (the default); `offset` should be zero or positive
-        - [`os.SEEK_CUR`] or 1: current stream position; `offset` may be negative
-        - [`os.SEEK_END`] or 2: end of the stream; `offset` is usually negative
+        - [`os.SEEK_SET`][] or 0: start of the stream (the default); `offset` should be zero or positive
+        - [`os.SEEK_CUR`][] or 1: current stream position; `offset` may be negative
+        - [`os.SEEK_END`][] or 2: end of the stream; `offset` is usually negative
         """
 
     def seekable(self) -> bool:
@@ -91,15 +92,15 @@ class AsyncReadableFile:
     async def readlines(self, hint: int = -1, /) -> List[Buffer]:
         """Read all remaining lines into a list of buffers"""
 
-    async def seek(self, offset: int, whence: int, /) -> int:
+    async def seek(self, offset: int, whence: int = os.SEEK_SET, /) -> int:
         """
         Change the stream position to the given byte _offset_, interpreted relative to
         the position indicated by _whence_, and return the new absolute position. Values
         for _whence_ are:
 
-        - [`os.SEEK_SET`] or 0: start of the stream (the default); `offset` should be zero or positive
-        - [`os.SEEK_CUR`] or 1: current stream position; `offset` may be negative
-        - [`os.SEEK_END`] or 2: end of the stream; `offset` is usually negative
+        - [`os.SEEK_SET`][] or 0: start of the stream (the default); `offset` should be zero or positive
+        - [`os.SEEK_CUR`][] or 1: current stream position; `offset` may be negative
+        - [`os.SEEK_END`][] or 2: end of the stream; `offset` is usually negative
         """
 
     def seekable(self) -> bool:

@@ -22,7 +22,7 @@ extra:
 nav:
   - "index.md"
   - API Reference:
-      - store:
+      - obstore.store:
           - api/store/index.md
           - api/store/aws.md
           - api/store/gcs.md
@@ -41,6 +41,8 @@ nav:
       - api/sign.md
       - api/attributes.md
       - api/exceptions.md
+      - api/file.md
+      - obstore.fsspec: api/fsspec.md
 
 watch:
   - obstore/python
@@ -118,6 +120,7 @@ plugins:
 
           import:
             - https://docs.python.org/3/objects.inv
+            - https://filesystem-spec.readthedocs.io/en/latest/objects.inv
             - https://kylebarron.dev/arro3/latest/objects.inv
 
 # https://github.com/developmentseed/titiler/blob/50934c929cca2fa8d3c408d239015f8da429c6a8/docs/mkdocs.yml#L115-L140

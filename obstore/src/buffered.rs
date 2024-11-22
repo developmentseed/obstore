@@ -246,39 +246,3 @@ async fn next_line(reader: Arc<Mutex<Lines<BufReader>>>, r#async: bool) -> PyRes
         Err(PyStopIteration::new_err("stream exhausted"))
     }
 }
-
-// #[cfg(test)]
-// mod test {
-
-//     use tokio::fs::File;
-//     use tokio::io::AsyncReadExt;
-
-//     #[tokio::test]
-//     async fn tmp() {
-//         let path = "/Users/kyle/github/developmentseed/object-store-rs/foo.txt";
-//         let mut f = File::open(path).await.unwrap();
-//         // let mut buffer = BytesMut::with_capacity(10);
-//         let mut buffer = vec![0; 10];
-
-//         dbg!(buffer.is_empty());
-//         dbg!(buffer.capacity());
-//         dbg!(buffer.len());
-
-//         // note that the return value is not needed to access the data
-//         // that was read as `buffer`'s internal cursor is updated.
-//         //
-//         // this might read more than 10 bytes if the capacity of `buffer`
-//         // is larger than 10.
-//         let amt = f.read(&mut buffer).await.unwrap();
-//         dbg!(buffer.len());
-//         dbg!(amt);
-//         // buffer.res
-
-//         println!("The bytes: {:?}", &buffer[..].to_ascii_lowercase());
-
-//         let amt = f.read(&mut buffer).await.unwrap();
-//         dbg!(buffer.len());
-//         dbg!(amt);
-//         println!("The bytes: {:?}", &buffer[..].to_ascii_lowercase());
-//     }
-// }
