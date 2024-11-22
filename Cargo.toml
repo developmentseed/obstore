@@ -27,8 +27,11 @@ futures = "0.3.31"
 http = "1.1"
 indexmap = "2"
 object_store = "0.11"
-pyo3 = { version = "0.22", features = ["macros", "indexmap"] }
-pyo3-async-runtimes = { version = "0.22", features = ["tokio-runtime"] }
+pyo3 = { version = "0.23", features = ["macros", "indexmap"] }
+pyo3-async-runtimes = { git = "https://github.com/PyO3/pyo3-async-runtimes", branch = "release-0.23", version = "0.23", features = [
+    "tokio-runtime",
+] }
+# pyo3-async-runtimes = { version = "0.22", features = ["tokio-runtime"] }
 pyo3-file = "0.9"
 thiserror = "1"
 tokio = "1.40"
