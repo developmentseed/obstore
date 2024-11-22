@@ -1194,7 +1194,7 @@ dependencies = [
 
 [[package]]
 name = "obstore"
-version = "0.2.0-beta.2"
+version = "0.3.0-beta.8"
 dependencies = [
  "arrow",
  "bytes",
@@ -1369,7 +1369,7 @@ dependencies = [
 [[package]]
 name = "pyo3-arrow"
 version = "0.5.1"
-source = "git+https://github.com/kylebarron/arro3?rev=d771e39c2748313a86bfcdfa36ec68cc24d9804b#d771e39c2748313a86bfcdfa36ec68cc24d9804b"
+source = "git+https://github.com/kylebarron/arro3?rev=2c73b7695f66b14d4787db34ccb9b4922bb7f9c6#2c73b7695f66b14d4787db34ccb9b4922bb7f9c6"
 dependencies = [
  "arrow",
  "arrow-array",
@@ -1384,8 +1384,9 @@ dependencies = [
 
 [[package]]
 name = "pyo3-async-runtimes"
-version = "0.21.0"
-source = "git+https://github.com/PyO3/pyo3-async-runtimes#284bd36d0426a988026f878cae22abdb179795e6"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2529f0be73ffd2be0cc43c013a640796558aa12d7ca0aab5cc14f375b4733031"
 dependencies = [
  "futures",
  "once_cell",
@@ -1450,13 +1451,14 @@ dependencies = [
 
 [[package]]
 name = "pyo3-object_store"
-version = "0.1.0"
+version = "0.1.0-beta.1"
 dependencies = [
  "futures",
  "object_store",
  "pyo3",
  "pyo3-async-runtimes",
  "thiserror",
+ "url",
 ]
 
 [[package]]

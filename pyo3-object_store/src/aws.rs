@@ -71,7 +71,7 @@ impl PyS3Store {
     ) -> PyObjectStoreResult<Self> {
         // boto3.Session has a region_name attribute, but botocore.session.Session does not.
         let region = if let Ok(region) = session.getattr(intern!(py, "region_name")) {
-            Some(region.extract::<String>()?)
+            region.extract::<Option<String>>()?
         } else {
             None
         };
@@ -139,6 +139,11 @@ impl PyS3Store {
             builder = builder.with_retry(retry_config.into())
         }
         Ok(Self(Arc::new(builder.build()?)))
+    }
+
+    fn __repr__(&self) -> String {
+        let repr = self.0.to_string();
+        repr.replacen("AmazonS3", "S3Store", 1)
     }
 }
 

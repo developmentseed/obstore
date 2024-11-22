@@ -59,8 +59,13 @@ jobs:
           # Then remove `py-` from the tag
           VERSION=$(git describe --tags --match="py-*" --abbrev=0 | cut -c 4-)
 
-          # Only push docs if no letters in git tag after the first character
+          # Only push publish docs as latest version if no letters in git tag
+          # after the first character
           # (usually the git tag will have v as the first character)
-          if echo $VERSION | cut -c 1- | grep -q "[A-Za-z]"; then
+          # Note the `cut` index is 1-ordered
+          if echo $VERSION | cut -c 2- | grep -q "[A-Za-z]"; then
             uv run mike deploy $VERSION latest --update-aliases --push
+          else
+            # For beta versions publish but don't set as latest
+            uv run mike deploy $VERSION --update-aliases --push
           fi

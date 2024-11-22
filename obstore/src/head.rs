@@ -1,6 +1,5 @@
 use pyo3::prelude::*;
-use pyo3_object_store::error::{PyObjectStoreError, PyObjectStoreResult};
-use pyo3_object_store::PyObjectStore;
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
 use crate::list::PyObjectMeta;
 use crate::runtime::get_runtime;

@@ -78,6 +78,11 @@ impl PyGCSStore {
         }
         Ok(Self(Arc::new(builder.build()?)))
     }
+
+    fn __repr__(&self) -> String {
+        let repr = self.0.to_string();
+        repr.replacen("GoogleCloudStorage", "GCSStore", 1)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]

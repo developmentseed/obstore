@@ -15,8 +15,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
 use pyo3_file::PyFileLikeObject;
-use pyo3_object_store::error::PyObjectStoreResult;
-use pyo3_object_store::PyObjectStore;
+use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
 use tokio::io::AsyncRead;
 
 use crate::attributes::PyAttributes;

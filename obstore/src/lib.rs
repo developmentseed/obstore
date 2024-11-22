@@ -1,6 +1,10 @@
+use pyo3::exceptions::PyRuntimeWarning;
+use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 mod attributes;
+mod buffered;
 mod copy;
 mod delete;
 mod get;
@@ -20,14 +24,34 @@ fn ___version() -> &'static str {
     VERSION
 }
 
+/// Raise RuntimeWarning for debug builds
+#[pyfunction]
+fn check_debug_build(py: Python) -> PyResult<()> {
+    #[cfg(debug_assertions)]
+    {
+        let warnings_mod = py.import_bound(intern!(py, "warnings"))?;
+        let warning = PyRuntimeWarning::new_err(
+            "obstore has not been compiled in release mode. Performance will be degraded.",
+        );
+        let args = PyTuple::new_bound(py, vec![warning.into_py(py)]);
+        warnings_mod.call_method1(intern!(py, "warn"), args)?;
+    }
+
+    Ok(())
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+    check_debug_build(py)?;
+
     m.add_wrapped(wrap_pyfunction!(___version))?;
 
     pyo3_object_store::register_store_module(py, m, "obstore")?;
     pyo3_object_store::register_exceptions_module(py, m, "obstore")?;
 
+    m.add_wrapped(wrap_pyfunction!(buffered::open))?;
+    m.add_wrapped(wrap_pyfunction!(buffered::open_async))?;
     m.add_wrapped(wrap_pyfunction!(copy::copy_async))?;
     m.add_wrapped(wrap_pyfunction!(copy::copy))?;
     m.add_wrapped(wrap_pyfunction!(delete::delete_async))?;

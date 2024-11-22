@@ -1,5 +1,9 @@
 from ._attributes import Attribute as Attribute
 from ._attributes import Attributes as Attributes
+from ._buffered import AsyncReadableFile as AsyncReadableFile
+from ._buffered import ReadableFile as ReadableFile
+from ._buffered import open as open
+from ._buffered import open_async as open_async
 from ._copy import copy as copy
 from ._copy import copy_async as copy_async
 from ._delete import delete as delete
@@ -7,6 +11,8 @@ from ._delete import delete_async as delete_async
 from ._get import Buffer as Buffer
 from ._get import GetOptions as GetOptions
 from ._get import GetResult as GetResult
+from ._get import OffsetRange as OffsetRange
+from ._get import SuffixRange as SuffixRange
 from ._get import get as get
 from ._get import get_async as get_async
 from ._get import get_range as get_range
