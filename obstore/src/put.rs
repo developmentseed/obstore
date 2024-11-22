@@ -4,19 +4,19 @@ use std::io::{BufReader, Cursor, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use bytes::{Bytes, BytesMut};
 use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{
     ObjectStore, PutMode, PutMultipartOpts, PutOptions, PutPayload, PutResult, UpdateVersion,
     WriteMultipart,
 };
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
-use tokio::io::AsyncRead;
 
 use crate::attributes::PyAttributes;
 use crate::runtime::get_runtime;
@@ -57,15 +57,14 @@ impl<'py> FromPyObject<'py> for PyUpdateVersion {
     }
 }
 
-// #[derive(Debug)]
-pub(crate) enum PutInput {
-    AsyncIterator(Py<PyAny>),
+/// Sources to `put` that are pull-based. I.e. we can pull a specific number of bytes from them.
+pub(crate) enum PullSource {
     File(BufReader<File>),
     FileLike(PyFileLikeObject),
     Buffer(Cursor<PyBackedBytes>),
 }
 
-impl PutInput {
+impl PullSource {
     /// Number of bytes in the file-like object
     fn nbytes(&mut self) -> PyObjectStoreResult<usize> {
         let origin_pos = self.stream_position()?;
@@ -78,60 +77,9 @@ impl PutInput {
     fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
         Ok(self.nbytes()? > chunk_size)
     }
-
-    async fn read_chunk(&mut self, buf: &mut [u8]) -> PyObjectStoreResult<usize> {
-        match self {
-            Self::AsyncIterator(f) => {
-                // Note: we have to acquire the GIL once to create the future and a separate time
-                // to extract the result of the future.
-                let future = Python::with_gil(|py| {
-                    let py_aiter = f.bind(py);
-                    let coroutine = py_aiter.call_method0(intern!(py, "__anext__"))?;
-                    pyo3_async_runtimes::tokio::into_future(coroutine)
-                })?;
-
-                let future_result = future.await?;
-                let buf = Python::with_gil(|py| future_result.extract::<PyBackedBytes>(py))?;
-                Ok(buf.as_ref().to_vec())
-                // todo!()
-            }
-            Self::File(f) => Ok(f.read(buf)?),
-            Self::FileLike(f) => Ok(f.read(buf)?),
-            Self::Buffer(f) => Ok(f.read(buf)?),
-        }
-    }
 }
 
-impl<'py> FromPyObject<'py> for PutInput {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let py = ob.py();
-        let raw_io_base = py
-            .import_bound(intern!("io"))?
-            .getattr(intern!(py, "RawIOBase"))?;
-
-        if let Ok(path) = ob.extract::<PathBuf>() {
-            Ok(Self::File(BufReader::new(File::open(path)?)))
-        } else if let Ok(buffer) = ob.extract::<PyBackedBytes>() {
-            Ok(Self::Buffer(Cursor::new(buffer)))
-        }
-        // Check for file-like object
-        else if ob.hasattr(intern!(py, "read"))? && ob.hasattr(intern!(py, "seek"))? {
-            Ok(Self::FileLike(PyFileLikeObject::with_requirements(
-                ob.into_py(py),
-                true,
-                false,
-                true,
-                false,
-            )?))
-        } else if ob.hasattr(intern!(py, "__anext__"))? {
-            Ok(Self::AsyncIterator(ob.unbind()))
-        } else {
-            Err(PyValueError::new_err("Unexpected input for PutInput"))
-        }
-    }
-}
-
-impl Read for PutInput {
+impl Read for PullSource {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         match self {
             Self::File(f) => f.read(buf),
@@ -141,12 +89,164 @@ impl Read for PutInput {
     }
 }
 
-impl Seek for PutInput {
+impl Seek for PullSource {
     fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         match self {
             Self::File(f) => f.seek(pos),
             Self::FileLike(f) => f.seek(pos),
             Self::Buffer(f) => f.seek(pos),
+        }
+    }
+}
+
+/// Sources to `put` that are push-based. I.e. we don't know how large each chunk will be before we
+/// receive it.
+pub(crate) enum SyncPushSource {
+    Iterator(PyObject),
+}
+
+impl SyncPushSource {
+    fn next_chunk(&mut self) -> PyObjectStoreResult<Option<Bytes>> {
+        match self {
+            Self::Iterator(iter) => {
+                Python::with_gil(|py| match iter.call_method0(py, intern!(py, "__next__")) {
+                    Ok(item) => {
+                        let buf = item.extract::<PyBackedBytes>(py)?;
+                        Ok(Some(Bytes::from(buf.as_ref().to_vec())))
+                    }
+                    Err(err) => {
+                        if err.is_instance_of::<PyStopIteration>(py) {
+                            Ok(None)
+                        } else {
+                            Err(err.into())
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    fn read_all(&mut self) -> PyObjectStoreResult<Bytes> {
+        let buffers = self.into_iter().collect::<PyObjectStoreResult<Vec<_>>>()?;
+        let capacity = buffers.iter().fold(0, |acc, buf| acc + buf.len());
+        let mut single_buf = BytesMut::with_capacity(capacity);
+        for buf in buffers {
+            single_buf.extend_from_slice(&buf);
+        }
+        Ok(single_buf.into())
+    }
+}
+
+impl Iterator for SyncPushSource {
+    type Item = PyObjectStoreResult<Bytes>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_chunk().transpose()
+    }
+}
+
+pub(crate) enum AsyncPushSource {
+    AsyncIterator(Py<PyAny>),
+}
+
+impl AsyncPushSource {
+    async fn read_all(&mut self) -> PyObjectStoreResult<Bytes> {
+        todo!()
+    }
+
+    async fn next_chunk(&mut self) -> PyObjectStoreResult<Option<Bytes>> {
+        match self {
+            Self::AsyncIterator(iter) => {
+                // Note: we have to acquire the GIL once to create the future and a separate time
+                // to extract the result of the future.
+                let future = Python::with_gil(|py| {
+                    let coroutine = iter.bind(py).call_method0(intern!(py, "__anext__"))?;
+                    pyo3_async_runtimes::tokio::into_future(coroutine)
+                })?;
+
+                // This await needs to happen outside of Python::with_gil because you can't use
+                // await in a sync closure
+                let future_result = future.await;
+
+                Python::with_gil(|py| match future_result {
+                    Ok(result) => {
+                        let buf = result.extract::<PyBackedBytes>(py)?;
+                        Ok(Some(buf.as_ref().to_vec().into()))
+                    }
+                    Err(err) => {
+                        if err.is_instance_of::<PyStopAsyncIteration>(py) {
+                            Ok(None)
+                        } else {
+                            Err(err.into())
+                        }
+                    }
+                })
+            }
+        }
+    }
+}
+
+// #[derive(Debug)]
+pub(crate) enum PutInput {
+    /// Input that we can pull from
+    Pull(PullSource),
+
+    /// Input that gives us chunks of unknown size, synchronously
+    SyncPush(SyncPushSource),
+
+    /// Input that gives us chunks of unknown size, asynchronously
+    AsyncPush(AsyncPushSource),
+}
+
+impl PutInput {
+    /// Whether to use multipart uploads.
+    fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
+        match self {
+            Self::Pull(pull_source) => pull_source.use_multipart(chunk_size),
+            // We always use multipart uploads for push-based sources because we have no way of
+            // knowing how large they'll be and we don't want to buffer them into memory.
+            _ => Ok(true),
+        }
+    }
+
+    async fn read_all(&mut self) -> PyObjectStoreResult<Bytes> {
+        match self {
+            Self::Pull(pull_source) => {
+                let mut buf = Vec::new();
+                pull_source.read_to_end(&mut buf)?;
+                Ok(Bytes::from(buf))
+            }
+            Self::SyncPush(push_source) => push_source.read_all(),
+            Self::AsyncPush(push_source) => push_source.read_all().await,
+        }
+    }
+}
+
+impl<'py> FromPyObject<'py> for PutInput {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let py = ob.py();
+        if let Ok(path) = ob.extract::<PathBuf>() {
+            Ok(Self::Pull(PullSource::File(BufReader::new(File::open(
+                path,
+            )?))))
+        } else if let Ok(buffer) = ob.extract::<PyBackedBytes>() {
+            Ok(Self::Pull(PullSource::Buffer(Cursor::new(buffer))))
+        }
+        // Check for file-like object
+        else if ob.hasattr(intern!(py, "read"))? && ob.hasattr(intern!(py, "seek"))? {
+            Ok(Self::Pull(PullSource::FileLike(
+                PyFileLikeObject::with_requirements(ob.into_py(py), true, false, true, false)?,
+            )))
+        } else if ob.hasattr(intern!(py, "__anext__"))? {
+            Ok(Self::AsyncPush(AsyncPushSource::AsyncIterator(
+                ob.clone().unbind(),
+            )))
+        } else if ob.hasattr(intern!(py, "__next__"))? {
+            Ok(Self::SyncPush(SyncPushSource::Iterator(
+                ob.clone().unbind(),
+            )))
+        } else {
+            Err(PyValueError::new_err("Unexpected input for PutInput"))
         }
     }
 }
@@ -288,17 +388,15 @@ async fn put_inner(
         opts.mode = mode.0;
     }
 
-    let nbytes = reader.nbytes()?;
-    let mut buffer = Vec::with_capacity(nbytes);
-    reader.read_to_end(&mut buffer)?;
-    let payload = PutPayload::from_bytes(buffer.into());
+    let buffer = reader.read_all().await?;
+    let payload = PutPayload::from_bytes(buffer);
     Ok(PyPutResult(store.put_opts(path, payload, opts).await?))
 }
 
 async fn put_multipart_inner(
     store: Arc<dyn ObjectStore>,
     path: &Path,
-    mut reader: PutInput,
+    reader: PutInput,
     chunk_size: usize,
     max_concurrency: usize,
     attributes: Option<PyAttributes>,
@@ -315,15 +413,33 @@ async fn put_multipart_inner(
 
     let upload = store.put_multipart_opts(path, opts).await?;
     let mut write = WriteMultipart::new(upload);
-    let mut scratch_buffer = vec![0; chunk_size];
-    loop {
-        let read_size = reader.read(&mut scratch_buffer)?;
-        if read_size == 0 {
-            break;
-        } else {
-            write.wait_for_capacity(max_concurrency).await?;
-            write.write(&scratch_buffer[0..read_size]);
+
+    // Match across pull, push, async push
+    match reader {
+        PutInput::Pull(mut pull_reader) => loop {
+            let mut scratch_buffer = vec![0; chunk_size];
+            let read_size = pull_reader.read(&mut scratch_buffer)?;
+            if read_size == 0 {
+                break;
+            } else {
+                write.wait_for_capacity(max_concurrency).await?;
+                write.write(&scratch_buffer[0..read_size]);
+            }
+        },
+        PutInput::SyncPush(push_reader) => {
+            for buf in push_reader {
+                write.wait_for_capacity(max_concurrency).await?;
+                write.write(&buf?);
+            }
+        }
+        PutInput::AsyncPush(mut push_reader) => {
+            // Note: I believe that only one __anext__ call can happen at a time
+            while let Some(buf) = push_reader.next_chunk().await? {
+                write.wait_for_capacity(max_concurrency).await?;
+                write.write(&buf);
+            }
         }
     }
+
     Ok(PyPutResult(write.finish().await?))
 }
