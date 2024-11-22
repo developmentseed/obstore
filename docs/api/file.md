@@ -1,4 +1,4 @@
-# File Object
+# File-like Object
 
 Native support for reading from object stores as a file-like object.
 

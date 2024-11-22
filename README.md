@@ -13,8 +13,9 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 - Sync and async API.
 - Streaming downloads with configurable chunking.
 - Streaming `list`, with no need to paginate.
+- File-like object API and [fsspec](https://github.com/fsspec/filesystem_spec) integration.
 - Support for conditional put ("put if not exists"), as well as custom tags and attributes.
-- Automatically supports [multipart uploads](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) under the hood for large file objects.
+- Automatically uses [multipart uploads](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) under the hood for large file objects.
 - Optionally return list results as [Arrow](https://arrow.apache.org/), which is faster than materializing Python `dict`/`list` objects.
 - Easy to install with no required Python dependencies.
 - The [underlying Rust library](https://docs.rs/object_store) is production quality and used in large scale production systems, such as the Rust package registry [crates.io](https://crates.io/).
@@ -89,6 +90,11 @@ There are a few additional APIs useful for specific use cases:
 - [`get_ranges`](https://developmentseed.org/obstore/latest/api/get/#obstore.get_ranges): Get multiple byte ranges from a single file.
 - [`list_with_delimiter`](https://developmentseed.org/obstore/latest/api/list/#obstore.list_with_delimiter): List objects within a specific directory.
 - [`sign`](https://developmentseed.org/obstore/latest/api/sign/): Create a signed URL.
+
+File-like object support is also provided:
+
+- [`open`](https://developmentseed.org/obstore/latest/api/file/#obstore.open): Open a remote object as a Python file-like object.
+- [`AsyncFsspecStore`](https://developmentseed.org/obstore/latest/api/fsspec/#obstore.fsspec.AsyncFsspecStore) adapter for use with [`fsspec`](https://github.com/fsspec/filesystem_spec).
 
 All methods have a comparable async method with the same name plus an `_async` suffix.
 
