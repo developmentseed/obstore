@@ -237,7 +237,9 @@ impl<'py> FromPyObject<'py> for PutInput {
             Ok(Self::Pull(PullSource::FileLike(
                 PyFileLikeObject::with_requirements(ob.into_py(py), true, false, true, false)?,
             )))
-        } else if ob.hasattr(intern!(py, "__anext__"))? {
+        }
+        // Ensure we check _first_ for an async generator before a sync one
+        else if ob.hasattr(intern!(py, "__anext__"))? {
             Ok(Self::AsyncPush(AsyncPushSource::AsyncIterator(
                 ob.clone().unbind(),
             )))
@@ -277,6 +279,8 @@ pub(crate) fn put(
     chunk_size: usize,
     max_concurrency: usize,
 ) -> PyObjectStoreResult<PyPutResult> {
+    // if matches!(file, )
+
     let mut use_multipart = if let Some(use_multipart) = use_multipart {
         use_multipart
     } else {
