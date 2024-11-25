@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import IO, Dict, Literal, TypedDict
+from typing import IO, AsyncIterator, Dict, Iterator, Literal, TypedDict
 
 from ._attributes import Attributes
 from .store import ObjectStore
@@ -53,7 +53,7 @@ class PutResult(TypedDict):
 def put(
     store: ObjectStore,
     path: str,
-    file: IO[bytes] | Path | bytes,
+    file: IO[bytes] | Path | bytes | Iterator[bytes],
     *,
     attributes: Attributes | None = None,
     tags: Dict[str, str] | None = None,
@@ -86,7 +86,7 @@ def put(
 async def put_async(
     store: ObjectStore,
     path: str,
-    file: IO[bytes] | Path | bytes,
+    file: IO[bytes] | Path | bytes | AsyncIterator[bytes] | Iterator[bytes],
     *,
     attributes: Attributes | None = None,
     tags: Dict[str, str] | None = None,
