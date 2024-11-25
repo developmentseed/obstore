@@ -151,6 +151,8 @@ pub(crate) enum AsyncPushSource {
 
 impl AsyncPushSource {
     async fn read_all(&mut self) -> PyObjectStoreResult<Bytes> {
+        // Note: this code path is never hit because async generator input always uses multipart
+        // uploads. But we should still implement this to flesh out support.
         todo!()
     }
 
