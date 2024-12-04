@@ -7,7 +7,7 @@ members = ["obstore"]
 #
 # But pyo3-object_store gets published to crates.io, which can't have git
 # dependencies.
-exclude = ["pyo3-object_store"]
+exclude = ["pyo3-object_store", "pyo3-bytes"]
 resolver = "2"
 
 [workspace.package]
