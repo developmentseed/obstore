@@ -71,11 +71,11 @@ impl PyReadableFile {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, read(reader, size))?;
-            Ok(out.to_object(py))
+            Ok(out.unbind())
         } else {
             let runtime = get_runtime(py)?;
             let out = py.allow_threads(|| runtime.block_on(read(reader, size)))?;
-            Ok(out.into_py(py))
+            Ok(out.into_pyobject(py)?.into_any().unbind())
         }
     }
 
@@ -87,11 +87,11 @@ impl PyReadableFile {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, readline(reader))?;
-            Ok(out.to_object(py))
+            Ok(out.unbind())
         } else {
             let runtime = get_runtime(py)?;
             let out = py.allow_threads(|| runtime.block_on(readline(reader)))?;
-            Ok(out.into_py(py))
+            Ok(out.into_pyobject(py)?.into_any().unbind())
         }
         // TODO: should raise at EOF when read_line returns 0?
     }
@@ -101,11 +101,11 @@ impl PyReadableFile {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, readlines(reader, hint))?;
-            Ok(out.to_object(py))
+            Ok(out.unbind())
         } else {
             let runtime = get_runtime(py)?;
             let out = py.allow_threads(|| runtime.block_on(readlines(reader, hint)))?;
-            Ok(out.into_py(py))
+            Ok(out.into_pyobject(py)?.into_any().unbind())
         }
     }
 
@@ -129,11 +129,11 @@ impl PyReadableFile {
 
         if self.r#async {
             let out = future_into_py(py, seek(reader, pos))?;
-            Ok(out.to_object(py))
+            Ok(out.unbind())
         } else {
             let runtime = get_runtime(py)?;
             let out = py.allow_threads(|| runtime.block_on(seek(reader, pos)))?;
-            Ok(out.into_py(py))
+            Ok(out.into_pyobject(py)?.into_any().unbind())
         }
     }
 
@@ -145,11 +145,11 @@ impl PyReadableFile {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, tell(reader))?;
-            Ok(out.to_object(py))
+            Ok(out.unbind())
         } else {
             let runtime = get_runtime(py)?;
             let out = py.allow_threads(|| runtime.block_on(tell(reader)))?;
-            Ok(out.into_py(py))
+            Ok(out.into_pyobject(py)?.into_any().unbind())
         }
     }
 }
@@ -224,7 +224,7 @@ pub(crate) struct PyLinesReader(Arc<Mutex<Lines<BufReader>>>);
 
 #[pymethods]
 impl PyLinesReader {
-    fn __anext__<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+    fn __anext__<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let lines = self.0.clone();
         future_into_py(py, next_line(lines, true))
     }

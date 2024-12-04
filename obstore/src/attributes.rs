@@ -5,6 +5,7 @@ use indexmap::IndexMap;
 use object_store::{Attribute, AttributeValue, Attributes};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
+use pyo3::types::PyDict;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct PyAttribute(Attribute);
@@ -68,12 +69,16 @@ impl<'py> FromPyObject<'py> for PyAttributes {
     }
 }
 
-impl IntoPy<PyObject> for PyAttributes {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyAttributes {
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let mut d = IndexMap::with_capacity(self.0.len());
         for (k, v) in self.0.into_iter() {
             d.insert(attribute_to_string(k), v.as_ref());
         }
-        d.into_py(py)
+        d.into_pyobject(py)
     }
 }

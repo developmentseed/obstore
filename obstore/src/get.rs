@@ -122,11 +122,11 @@ impl<'py> FromPyObject<'py> for PyGetRange {
 }
 
 #[pyclass(name = "GetResult")]
-pub(crate) struct PyGetResult(Option<GetResult>);
+pub(crate) struct PyGetResult(std::sync::Mutex<Option<GetResult>>);
 
 impl PyGetResult {
     fn new(result: GetResult) -> Self {
-        Self(Some(result))
+        Self(std::sync::Mutex::new(Some(result)))
     }
 }
 
@@ -135,6 +135,8 @@ impl PyGetResult {
     fn bytes(&mut self, py: Python) -> PyObjectStoreResult<PyBytesWrapper> {
         let get_result = self
             .0
+            .lock()
+            .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         let runtime = get_runtime(py)?;
@@ -144,9 +146,11 @@ impl PyGetResult {
         })
     }
 
-    fn bytes_async<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+    fn bytes_async<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let get_result = self
             .0
+            .lock()
+            .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -160,8 +164,8 @@ impl PyGetResult {
 
     #[getter]
     fn attributes(&self) -> PyResult<PyAttributes> {
-        let inner = self
-            .0
+        let inner = self.0.lock().unwrap();
+        let inner = inner
             .as_ref()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyAttributes::new(inner.attributes.clone()))
@@ -169,8 +173,8 @@ impl PyGetResult {
 
     #[getter]
     fn meta(&self) -> PyResult<PyObjectMeta> {
-        let inner = self
-            .0
+        let inner = self.0.lock().unwrap();
+        let inner = inner
             .as_ref()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyObjectMeta::new(inner.meta.clone()))
@@ -178,17 +182,20 @@ impl PyGetResult {
 
     #[getter]
     fn range(&self) -> PyResult<(usize, usize)> {
-        let inner = self
-            .0
+        let inner = self.0.lock().unwrap();
+        let range = &inner
             .as_ref()
-            .ok_or(PyValueError::new_err("Result has already been disposed."))?;
-        Ok((inner.range.start, inner.range.end))
+            .ok_or(PyValueError::new_err("Result has already been disposed."))?
+            .range;
+        Ok((range.start, range.end))
     }
 
     #[pyo3(signature = (min_chunk_size = DEFAULT_BYTES_CHUNK_SIZE))]
     fn stream(&mut self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
         let get_result = self
             .0
+            .lock()
+            .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyBytesStream::new(get_result.into_stream(), min_chunk_size))
@@ -264,7 +271,7 @@ impl PyBytesStream {
         slf
     }
 
-    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let stream = self.stream.clone();
         pyo3_async_runtimes::tokio::future_into_py(
             py,
@@ -294,12 +301,17 @@ impl PyBytesWrapper {
 // TODO: return buffer protocol object? This isn't possible on an array of Bytes, so if you want to
 // support the buffer protocol in the future (e.g. for get_range) you may need to have a separate
 // wrapper of Bytes
-impl IntoPy<PyObject> for PyBytesWrapper {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyBytesWrapper {
+    type Target = PyBytes;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let total_len = self.0.iter().fold(0, |acc, buf| acc + buf.len());
+
         // Copy all internal Bytes objects into a single PyBytes
         // Since our inner callback is infallible, this will only panic on out of memory
-        PyBytes::new_bound_with(py, total_len, |target| {
+        PyBytes::new_with(py, total_len, |target| {
             let mut offset = 0;
             for buf in self.0.iter() {
                 target[offset..offset + buf.len()].copy_from_slice(buf);
@@ -307,8 +319,6 @@ impl IntoPy<PyObject> for PyBytesWrapper {
             }
             Ok(())
         })
-        .unwrap()
-        .into_py(py)
     }
 }
 
