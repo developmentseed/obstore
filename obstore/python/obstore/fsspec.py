@@ -129,7 +129,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             path, ranges = per_file_request
             for buffer, ranges_ in zip(buffers, ranges):
                 initial_index = ranges_[2]
-                output_buffers[initial_index] = buffer.as_bytes()
+                output_buffers[initial_index] = buffer.to_bytes()
 
         return output_buffers
 
