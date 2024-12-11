@@ -92,7 +92,8 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             resp = await obs.get_async(self.store, path)
             return await resp.bytes_async()
 
-        return await obs.get_range_async(self.store, path, start=start, end=end)
+        range_bytes = await obs.get_range_async(self.store, path, start=start, end=end)
+        return range_bytes.to_bytes()
 
     async def _cat_ranges(
         self,
