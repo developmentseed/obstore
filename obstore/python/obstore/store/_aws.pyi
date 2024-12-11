@@ -1,6 +1,7 @@
 from typing import Dict, Literal
 
 import boto3
+import boto3.session
 import botocore
 import botocore.session
 
@@ -160,7 +161,7 @@ class S3Store:
     @classmethod
     def from_session(
         cls,
-        session: boto3.Session | botocore.session.Session,
+        session: boto3.session.Session | botocore.session.Session,
         bucket: str,
         *,
         config: Dict[S3ConfigKey | str, str] | None = None,
@@ -168,6 +169,24 @@ class S3Store:
         retry_config: RetryConfig | None = None,
     ) -> S3Store:
         """Construct a new S3Store with credentials inferred from a boto3 Session
+
+        !!! note
+            This is a convenience function for users who are already using `boto3` or
+            `botocore`. If you're not already using `boto3` or `botocore`, use other
+            classmethods, which do not need `boto3` or `botocore` to be installed.
+
+        Examples:
+
+        ```py
+        import boto3
+
+        session = boto3.Session()
+        store = S3Store.from_session(
+            session,
+            "bucket-name",
+            config={"AWS_REGION": "us-east-1"},
+        )
+        ```
 
         Args:
             session: The boto3.Session or botocore.session.Session to infer credentials from.
