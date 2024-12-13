@@ -54,6 +54,8 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          # This starting failing suddenly with
+          # sccache: error: Timed out waiting for server startup. Maybe the remote service is unreachable?
           # sccache: "true"
           manylinux: auto
       - name: Upload wheels
