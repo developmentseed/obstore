@@ -54,7 +54,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
-          sccache: "true"
+          # sccache: "true"
           manylinux: auto
       - name: Upload wheels
         uses: actions/upload-artifact@v4
