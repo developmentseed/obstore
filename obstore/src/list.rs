@@ -17,6 +17,7 @@ use pyo3::types::PyDict;
 use pyo3_arrow::PyRecordBatch;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
+use yoke::Yoke;
 
 use crate::runtime::get_runtime;
 
@@ -58,6 +59,15 @@ impl<'py> IntoPyObject<'py> for PyObjectMeta {
     }
 }
 
+#[derive(yoke::Yokeable)]
+struct ListStreamWrapper<'a>(Fuse<BoxStream<'a, Result<ObjectMeta, object_store::Error>>>);
+
+impl<'a> ListStreamWrapper<'a> {
+    fn new(stream: BoxStream<'a, Result<ObjectMeta, object_store::Error>>) -> Self {
+        Self(stream.fuse())
+    }
+}
+
 // Note: we fuse the underlying stream so that we can get `None` multiple times.
 //
 // In general, you can't poll an iterator after it's already emitted None. But the issue here is
@@ -76,19 +86,19 @@ impl<'py> IntoPyObject<'py> for PyObjectMeta {
 // - https://docs.rs/futures/latest/futures/prelude/stream/trait.StreamExt.html#method.fuse
 #[pyclass(name = "ListStream")]
 pub(crate) struct PyListStream {
-    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
+    stream: Arc<Mutex<Yoke<ListStreamWrapper<'static>, Arc<dyn ObjectStore>>>>,
     chunk_size: usize,
     return_arrow: bool,
 }
 
 impl PyListStream {
     fn new(
-        stream: BoxStream<'static, object_store::Result<ObjectMeta>>,
+        stream: Yoke<ListStreamWrapper<'static>, Arc<dyn ObjectStore>>,
         chunk_size: usize,
         return_arrow: bool,
     ) -> Self {
         Self {
-            stream: Arc::new(Mutex::new(stream.fuse())),
+            stream: Arc::new(Mutex::new(stream)),
             chunk_size,
             return_arrow,
         }
@@ -143,7 +153,7 @@ enum PyListIterResult {
 }
 
 async fn next_stream(
-    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
+    stream: Arc<Mutex<ListStreamWrapper<'static>>>,
     chunk_size: usize,
     sync: bool,
     return_arrow: bool,
@@ -151,7 +161,7 @@ async fn next_stream(
     let mut stream = stream.lock().await;
     let mut metas: Vec<PyObjectMeta> = vec![];
     loop {
-        match stream.next().await {
+        match stream.0.next().await {
             Some(Ok(meta)) => {
                 metas.push(PyObjectMeta(meta));
                 if metas.len() >= chunk_size {
@@ -191,26 +201,44 @@ async fn next_stream(
 }
 
 async fn collect_stream(
-    stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
+    // stream: Arc<Mutex<ListStreamWrapper<'static>>>,
+    stream: Arc<Mutex<Yoke<ListStreamWrapper<'static>, Arc<dyn ObjectStore>>>>,
     return_arrow: bool,
 ) -> PyResult<PyListIterResult> {
     let mut stream = stream.lock().await;
     let mut metas: Vec<PyObjectMeta> = vec![];
     loop {
-        match stream.next().await {
-            Some(Ok(meta)) => {
-                metas.push(PyObjectMeta(meta));
-            }
-            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
-            None => match return_arrow {
-                true => {
-                    return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+        stream.with_mut(|stream_inner| {
+            match stream_inner.0.next().await {
+                Some(Ok(meta)) => {
+                    metas.push(PyObjectMeta(meta));
                 }
-                false => {
-                    return Ok(PyListIterResult::Native(metas));
-                }
-            },
-        };
+                Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+                None => match return_arrow {
+                    true => {
+                        return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+                    }
+                    false => {
+                        return Ok(PyListIterResult::Native(metas));
+                    }
+                },
+            };
+        });
+
+        // match stream.next().await {
+        //     Some(Ok(meta)) => {
+        //         metas.push(PyObjectMeta(meta));
+        //     }
+        //     Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+        //     None => match return_arrow {
+        //         true => {
+        //             return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+        //         }
+        //         false => {
+        //             return Ok(PyListIterResult::Native(metas));
+        //         }
+        //     },
+        // };
     }
 }
 
@@ -370,11 +398,17 @@ pub(crate) fn list(
 
     let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
-    let stream = if let Some(offset) = offset {
-        store.list_with_offset(prefix.as_ref(), &offset.into())
-    } else {
-        store.list(prefix.as_ref())
-    };
+
+    let stream: Yoke<ListStreamWrapper<'static>, Arc<dyn ObjectStore>> =
+        if let Some(offset) = offset {
+            Yoke::attach_to_cart(store.clone(), |cart| {
+                ListStreamWrapper::new(cart.list_with_offset(prefix.as_ref(), &offset.into()))
+            })
+        } else {
+            Yoke::attach_to_cart(store.clone(), |cart| {
+                ListStreamWrapper::new(cart.list(prefix.as_ref()))
+            })
+        };
     Ok(PyListStream::new(stream, chunk_size, return_arrow))
 }
 
