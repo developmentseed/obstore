@@ -26,17 +26,22 @@ jobs:
         platform:
           - runner: ubuntu-latest
             target: x86_64
+            manylinux: auto
           - runner: ubuntu-latest
             target: x86
-          # Need to fix ring compilation: https://github.com/briansmith/ring/issues/1414#issuecomment-1055177218
-          # - runner: ubuntu-latest
-          #   target: aarch64
+            manylinux: auto
+          - runner: ubuntu-latest
+            target: aarch64
+            manylinux: "2_28"
           - runner: ubuntu-latest
             target: armv7
+            manylinux: auto
           - runner: ubuntu-latest
             target: s390x
+            manylinux: auto
           - runner: ubuntu-latest
             target: ppc64le
+            manylinux: auto
     steps:
       - uses: actions/checkout@v4
 
@@ -54,10 +59,8 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
-          # This starting failing suddenly with
-          # sccache: error: Timed out waiting for server startup. Maybe the remote service is unreachable?
-          # sccache: "true"
-          manylinux: auto
+          sccache: "true"
+          manylinux: ${{ matrix.platform.manylinux }}
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
