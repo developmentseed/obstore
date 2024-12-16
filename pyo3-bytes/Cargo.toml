@@ -1,0 +1,19 @@
+[package]
+name = "pyo3-bytes"
+version = "0.1.0-beta.1"
+authors = ["Kyle Barron <kyle@developmentseed.org>"]
+edition = "2021"
+description = "bytes integration for pyo3."
+readme = "README.md"
+repository = "https://github.com/developmentseed/obstore"
+license = "MIT OR Apache-2.0"
+keywords = []
+categories = []
+rust-version = "1.75"
+
+[dependencies]
+bytes = { git = "https://github.com/tokio-rs/bytes", rev = "54f1c26f694bb24220a846958d6e414e9298cda9" }
+pyo3 = { version = "0.22", features = ["chrono", "indexmap"] }
+
+[lib]
+crate-type = ["rlib"]
