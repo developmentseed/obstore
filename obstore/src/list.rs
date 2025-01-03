@@ -13,6 +13,7 @@ use object_store::{ListResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use pyo3_arrow::PyRecordBatch;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
@@ -33,17 +34,27 @@ impl AsRef<ObjectMeta> for PyObjectMeta {
     }
 }
 
-impl IntoPy<PyObject> for PyObjectMeta {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyObjectMeta {
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let mut dict = IndexMap::with_capacity(5);
         // Note, this uses "path" instead of "location" because we standardize the API to accept
         // the keyword "path" everywhere.
-        dict.insert("path", self.0.location.as_ref().into_py(py));
-        dict.insert("last_modified", self.0.last_modified.into_py(py));
-        dict.insert("size", self.0.size.into_py(py));
-        dict.insert("e_tag", self.0.e_tag.into_py(py));
-        dict.insert("version", self.0.version.into_py(py));
-        dict.into_py(py)
+        dict.insert(
+            "path",
+            self.0.location.as_ref().into_pyobject(py)?.into_any(),
+        );
+        dict.insert(
+            "last_modified",
+            self.0.last_modified.into_pyobject(py)?.into_any(),
+        );
+        dict.insert("size", self.0.size.into_pyobject(py)?.into_any());
+        dict.insert("e_tag", self.0.e_tag.into_pyobject(py)?.into_any());
+        dict.insert("version", self.0.version.into_pyobject(py)?);
+        dict.into_pyobject(py)
     }
 }
 
@@ -100,12 +111,12 @@ impl PyListStream {
         runtime.block_on(collect_stream(stream, self.return_arrow))
     }
 
-    fn collect_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+    fn collect_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let stream = self.stream.clone();
         pyo3_async_runtimes::tokio::future_into_py(py, collect_stream(stream, self.return_arrow))
     }
 
-    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let stream = self.stream.clone();
         pyo3_async_runtimes::tokio::future_into_py(
             py,
@@ -125,18 +136,10 @@ impl PyListStream {
     }
 }
 
+#[derive(IntoPyObject)]
 enum PyListIterResult {
     Arrow(PyRecordBatchWrapper),
     Native(Vec<PyObjectMeta>),
-}
-
-impl IntoPy<PyObject> for PyListIterResult {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        match self {
-            Self::Arrow(x) => x.into_py(py),
-            Self::Native(x) => x.into_py(py),
-        }
-    }
 }
 
 async fn next_stream(
@@ -219,9 +222,13 @@ impl PyRecordBatchWrapper {
     }
 }
 
-impl IntoPy<PyObject> for PyRecordBatchWrapper {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        self.0.to_arro3(py).unwrap()
+impl<'py> IntoPyObject<'py> for PyRecordBatchWrapper {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.0.to_arro3(py)?.bind(py).clone())
     }
 }
 
@@ -308,8 +315,12 @@ fn object_meta_to_arrow(metas: &[PyObjectMeta]) -> PyRecordBatchWrapper {
 
 pub(crate) struct PyListResult(ListResult);
 
-impl IntoPy<PyObject> for PyListResult {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyListResult {
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let mut dict = IndexMap::with_capacity(2);
         dict.insert(
             "common_prefixes",
@@ -318,7 +329,8 @@ impl IntoPy<PyObject> for PyListResult {
                 .into_iter()
                 .map(String::from)
                 .collect::<Vec<_>>()
-                .into_py(py),
+                .into_pyobject(py)?
+                .into_any(),
         );
         dict.insert(
             "objects",
@@ -327,9 +339,10 @@ impl IntoPy<PyObject> for PyListResult {
                 .into_iter()
                 .map(PyObjectMeta)
                 .collect::<Vec<_>>()
-                .into_py(py),
+                .into_pyobject(py)?
+                .into_any(),
         );
-        dict.into_py(py)
+        dict.into_pyobject(py)
     }
 }
 
@@ -351,7 +364,7 @@ pub(crate) fn list(
             "arro3.core is a required dependency for returning results as arrow.\n",
             "\nInstall with `pip install arro3-core`."
         );
-        py.import_bound(intern!(py, "arro3.core"))
+        py.import(intern!(py, "arro3.core"))
             .map_err(|err| PyImportError::new_err(format!("{}\n\n{}", msg, err)))?;
     }
 

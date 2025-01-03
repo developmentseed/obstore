@@ -13,6 +13,6 @@ class Buffer(_Buffer):
     You can pass this to [`memoryview`][] for a zero-copy view into the underlying data.
     """
 
-    def as_bytes(self) -> bytes:
+    def to_bytes(self) -> bytes:
         """Copy this buffer into a Python `bytes` object."""
     def __len__(self) -> int: ...

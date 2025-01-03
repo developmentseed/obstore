@@ -42,7 +42,7 @@ pub fn register_store_module(
 ) -> PyResult<()> {
     let full_module_string = format!("{}.store", parent_module_str);
 
-    let child_module = PyModule::new_bound(parent_module.py(), "store")?;
+    let child_module = PyModule::new(parent_module.py(), "store")?;
 
     child_module.add_class::<PyAzureStore>()?;
     child_module.add_class::<PyGCSStore>()?;
@@ -53,9 +53,9 @@ pub fn register_store_module(
 
     parent_module.add_submodule(&child_module)?;
 
-    py.import_bound(intern!(py, "sys"))?
+    py.import(intern!(py, "sys"))?
         .getattr(intern!(py, "modules"))?
-        .set_item(full_module_string.as_str(), child_module.to_object(py))?;
+        .set_item(full_module_string.as_str(), &child_module)?;
 
     // needs to be set *after* `add_submodule()`
     child_module.setattr("__name__", full_module_string)?;
@@ -73,44 +73,35 @@ pub fn register_exceptions_module(
 ) -> PyResult<()> {
     let full_module_string = format!("{}.exceptions", parent_module_str);
 
-    let child_module = PyModule::new_bound(parent_module.py(), "exceptions")?;
+    let child_module = PyModule::new(parent_module.py(), "exceptions")?;
 
-    child_module.add("ObstoreError", py.get_type_bound::<ObstoreError>())?;
-    child_module.add("GenericError", py.get_type_bound::<GenericError>())?;
-    child_module.add("NotFoundError", py.get_type_bound::<NotFoundError>())?;
-    child_module.add("InvalidPathError", py.get_type_bound::<InvalidPathError>())?;
-    child_module.add("JoinError", py.get_type_bound::<JoinError>())?;
-    child_module.add(
-        "NotSupportedError",
-        py.get_type_bound::<NotSupportedError>(),
-    )?;
-    child_module.add(
-        "AlreadyExistsError",
-        py.get_type_bound::<AlreadyExistsError>(),
-    )?;
-    child_module.add(
-        "PreconditionError",
-        py.get_type_bound::<PreconditionError>(),
-    )?;
-    child_module.add("NotModifiedError", py.get_type_bound::<NotModifiedError>())?;
+    child_module.add("ObstoreError", py.get_type::<ObstoreError>())?;
+    child_module.add("GenericError", py.get_type::<GenericError>())?;
+    child_module.add("NotFoundError", py.get_type::<NotFoundError>())?;
+    child_module.add("InvalidPathError", py.get_type::<InvalidPathError>())?;
+    child_module.add("JoinError", py.get_type::<JoinError>())?;
+    child_module.add("NotSupportedError", py.get_type::<NotSupportedError>())?;
+    child_module.add("AlreadyExistsError", py.get_type::<AlreadyExistsError>())?;
+    child_module.add("PreconditionError", py.get_type::<PreconditionError>())?;
+    child_module.add("NotModifiedError", py.get_type::<NotModifiedError>())?;
     child_module.add(
         "PermissionDeniedError",
-        py.get_type_bound::<PermissionDeniedError>(),
+        py.get_type::<PermissionDeniedError>(),
     )?;
     child_module.add(
         "UnauthenticatedError",
-        py.get_type_bound::<UnauthenticatedError>(),
+        py.get_type::<UnauthenticatedError>(),
     )?;
     child_module.add(
         "UnknownConfigurationKeyError",
-        py.get_type_bound::<UnknownConfigurationKeyError>(),
+        py.get_type::<UnknownConfigurationKeyError>(),
     )?;
 
     parent_module.add_submodule(&child_module)?;
 
-    py.import_bound(intern!(py, "sys"))?
+    py.import(intern!(py, "sys"))?
         .getattr(intern!(py, "modules"))?
-        .set_item(full_module_string.as_str(), child_module.to_object(py))?;
+        .set_item(full_module_string.as_str(), &child_module)?;
 
     // needs to be set *after* `add_submodule()`
     child_module.setattr("__name__", full_module_string)?;

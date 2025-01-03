@@ -13,6 +13,7 @@ use object_store::{
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
+use pyo3::types::PyDict;
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
 
@@ -80,14 +81,13 @@ impl MultipartPutInput {
 
 impl<'py> FromPyObject<'py> for MultipartPutInput {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let py = ob.py();
         if let Ok(path) = ob.extract::<PathBuf>() {
             Ok(Self::File(BufReader::new(File::open(path)?)))
         } else if let Ok(buffer) = ob.extract::<PyBackedBytes>() {
             Ok(Self::Buffer(Cursor::new(buffer)))
         } else {
             Ok(Self::FileLike(PyFileLikeObject::with_requirements(
-                ob.into_py(py),
+                ob.clone().unbind(),
                 true,
                 false,
                 true,
@@ -119,12 +119,16 @@ impl Seek for MultipartPutInput {
 
 pub(crate) struct PyPutResult(PutResult);
 
-impl IntoPy<PyObject> for PyPutResult {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyPutResult {
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let mut dict = IndexMap::with_capacity(2);
-        dict.insert("e_tag", self.0.e_tag.into_py(py));
-        dict.insert("version", self.0.version.into_py(py));
-        dict.into_py(py)
+        dict.insert("e_tag", self.0.e_tag.into_pyobject(py)?.into_any());
+        dict.insert("version", self.0.version.into_pyobject(py)?.into_any());
+        dict.into_pyobject(py)
     }
 }
 

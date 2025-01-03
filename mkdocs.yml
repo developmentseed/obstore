@@ -119,6 +119,8 @@ plugins:
               - griffe_inherited_docstrings
 
           import:
+            - https://boto3.amazonaws.com/v1/documentation/api/latest/objects.inv
+            - https://botocore.amazonaws.com/v1/documentation/api/latest/objects.inv
             - https://docs.python.org/3/objects.inv
             - https://filesystem-spec.readthedocs.io/en/latest/objects.inv
             - https://kylebarron.dev/arro3/latest/objects.inv

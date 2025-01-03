@@ -27,17 +27,14 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Set up Python 3.11
-        id: setup-python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-
       - name: Install a specific version of uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.4.x"
+          version: "0.5.x"
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
 
       - name: Install dependencies
         run: uv sync

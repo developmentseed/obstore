@@ -21,7 +21,7 @@ impl<'py> PyMemoryStore {
         self.0
     }
 
-    fn __repr__(&'py self, py: Python<'py>) -> &Bound<'py, PyString> {
+    fn __repr__(&'py self, py: Python<'py>) -> &'py Bound<'py, PyString> {
         intern!(py, "MemoryStore")
     }
 }
