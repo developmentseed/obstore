@@ -12,8 +12,8 @@ categories = []
 rust-version = "1.75"
 
 [dependencies]
-bytes = { git = "https://github.com/tokio-rs/bytes", rev = "54f1c26f694bb24220a846958d6e414e9298cda9" }
-pyo3 = { version = "0.22", features = ["chrono", "indexmap"] }
+bytes = "1.9"
+pyo3 = "0.23"
 
 [lib]
 crate-type = ["rlib"]

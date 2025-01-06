@@ -10,7 +10,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::ffi;
 use pyo3::prelude::*;
 
-/// A wrapper around an Arrow [Buffer].
+/// A wrapper around a [`bytes::Bytes`][].
 ///
 /// This implements both import and export via the Python buffer protocol.
 ///
@@ -58,22 +58,25 @@ impl PyBytes {
 
 #[pymethods]
 impl PyBytes {
-    /// new
-    /// By setting the argument to PyBytes, this means that any buffer-protocol object is supported
-    /// here
+    // By setting the argument to PyBytes, this means that any buffer-protocol object is supported
+    // here, since it will use the FromPyObject impl.
     #[new]
     fn py_new(buf: PyBytes) -> Self {
         buf
     }
 
-    /// Copy this buffer's object to a Python `bytes` object
+    /// Copy this buffer's contents to a Python `bytes` object
     fn to_bytes<'py>(&'py self, py: Python<'py>) -> Bound<'py, pyo3::types::PyBytes> {
-        pyo3::types::PyBytes::new_bound(py, &self.0)
+        pyo3::types::PyBytes::new(py, &self.0)
     }
 
     /// The number of bytes in this Bytes
     fn __len__(&self) -> usize {
         self.0.len()
+    }
+
+    fn __repr__(&self) -> String {
+        format!("Bytes(len={})", self.0.len())
     }
 
     /// This is taken from opendal:
@@ -114,7 +117,7 @@ impl<'py> FromPyObject<'py> for PyBytes {
 ///
 /// This also implements AsRef<[u8]> because that is required for Bytes::from_owner
 #[derive(Debug)]
-pub struct PyBytesWrapper(Option<PyBuffer<u8>>);
+struct PyBytesWrapper(Option<PyBuffer<u8>>);
 
 impl PyBytesWrapper {
     fn inner(&self) -> PyResult<&PyBuffer<u8>> {
@@ -142,7 +145,6 @@ impl Drop for PyBytesWrapper {
 }
 
 impl AsRef<[u8]> for PyBytesWrapper {
-    /// TODO: finish writing safety comment
     fn as_ref(&self) -> &[u8] {
         let buffer = self.inner().unwrap();
         let len = buffer.item_count();
@@ -151,11 +153,12 @@ impl AsRef<[u8]> for PyBytesWrapper {
             .ok_or(PyValueError::new_err("Expected buffer ptr to be non null"))
             .unwrap();
 
-        /// Safety:
-        /// - This requires.
-        // note: assumes data will not be mutated from Python.
-        let slice = unsafe { std::slice::from_raw_parts(ptr.as_ptr() as *const u8, len) };
-        slice
+        // Safety:
+        //
+        // This requires that the data will not be mutated from Python. Sadly, the buffer protocol
+        // does not uphold this invariant always for us, and the Python user must take care not to
+        // mutate the provided buffer.
+        unsafe { std::slice::from_raw_parts(ptr.as_ptr() as *const u8, len) }
     }
 }
 
