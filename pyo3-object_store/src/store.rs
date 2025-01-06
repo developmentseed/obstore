@@ -6,8 +6,9 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 
-use crate::http::PyHttpStore;
-use crate::{PyAzureStore, PyGCSStore, PyLocalStore, PyMemoryStore, PyS3Store};
+use crate::{
+    PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyPrefixStore, PyS3Store,
+};
 
 /// A wrapper around a Rust ObjectStore instance that allows any rust-native implementation of
 /// ObjectStore.
@@ -29,6 +30,8 @@ impl<'py> FromPyObject<'py> for PyObjectStore {
             Ok(Self(store.borrow().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyMemoryStore>() {
             Ok(Self(store.borrow().as_ref().clone()))
+        } else if let Ok(store) = ob.downcast::<PyPrefixStore>() {
+            Ok(Self(store.borrow().as_ref().clone()))
         } else {
             let py = ob.py();
             // Check for object-store instance from other library
@@ -43,6 +46,7 @@ impl<'py> FromPyObject<'py> for PyObjectStore {
                 "LocalStore",
                 "MemoryStore",
                 "S3Store",
+                "PrefixStore",
             ]
             .contains(&cls_name.as_ref())
             {
