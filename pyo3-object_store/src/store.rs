@@ -18,17 +18,17 @@ pub struct PyObjectStore(Arc<dyn ObjectStore>);
 impl<'py> FromPyObject<'py> for PyObjectStore {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(store) = ob.downcast::<PyS3Store>() {
-            Ok(Self(store.borrow().as_ref().clone()))
+            Ok(Self(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyAzureStore>() {
-            Ok(Self(store.borrow().as_ref().clone()))
+            Ok(Self(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyGCSStore>() {
-            Ok(Self(store.borrow().as_ref().clone()))
+            Ok(Self(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyHttpStore>() {
-            Ok(Self(store.borrow().as_ref().clone()))
+            Ok(Self(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyLocalStore>() {
-            Ok(Self(store.borrow().as_ref().clone()))
+            Ok(Self(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyMemoryStore>() {
-            Ok(Self(store.borrow().as_ref().clone()))
+            Ok(Self(store.get().as_ref().clone()))
         } else {
             let py = ob.py();
             // Check for object-store instance from other library
