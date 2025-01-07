@@ -13,22 +13,22 @@ use crate::{PyAzureStore, PyGCSStore, PyLocalStore, PyMemoryStore, PyS3Store};
 /// ObjectStore.
 // (In the future we'll have a separate AnyObjectStore that allows either an fsspec-based
 // implementation or a rust-based implementation.)
-pub struct PyObjectStore(Arc<dyn ObjectStore>);
+pub struct PyObjectStore<'py>(&'py Arc<dyn ObjectStore>);
 
-impl<'py> FromPyObject<'py> for PyObjectStore {
+impl<'py> FromPyObject<'py> for PyObjectStore<'py> {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(store) = ob.downcast::<PyS3Store>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self(store.get().as_ref()))
         } else if let Ok(store) = ob.downcast::<PyAzureStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self(store.get().as_ref()))
         } else if let Ok(store) = ob.downcast::<PyGCSStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self(store.get().as_ref()))
         } else if let Ok(store) = ob.downcast::<PyHttpStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self(store.get().as_ref()))
         } else if let Ok(store) = ob.downcast::<PyLocalStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self(store.get().as_ref()))
         } else if let Ok(store) = ob.downcast::<PyMemoryStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self(store.get().as_ref()))
         } else {
             let py = ob.py();
             // Check for object-store instance from other library
@@ -58,15 +58,15 @@ impl<'py> FromPyObject<'py> for PyObjectStore {
     }
 }
 
-impl AsRef<Arc<dyn ObjectStore>> for PyObjectStore {
+impl<'py> AsRef<Arc<dyn ObjectStore>> for PyObjectStore<'py> {
     fn as_ref(&self) -> &Arc<dyn ObjectStore> {
         &self.0
     }
 }
 
-impl PyObjectStore {
+impl<'py> PyObjectStore<'py> {
     /// Consume self and return the underlying [`ObjectStore`].
-    pub fn into_inner(self) -> Arc<dyn ObjectStore> {
+    pub fn into_inner(self) -> &'py Arc<dyn ObjectStore> {
         self.0
     }
 }

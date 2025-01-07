@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use object_store::local::LocalFileSystem;
-use object_store::ObjectStoreScheme;
+use object_store::{ObjectStore, ObjectStoreScheme};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
@@ -11,17 +11,17 @@ use crate::error::PyObjectStoreResult;
 
 /// A Python-facing wrapper around a [`LocalFileSystem`].
 #[pyclass(name = "LocalStore", frozen)]
-pub struct PyLocalStore(Arc<LocalFileSystem>);
+pub struct PyLocalStore(Arc<dyn ObjectStore>);
 
-impl AsRef<Arc<LocalFileSystem>> for PyLocalStore {
-    fn as_ref(&self) -> &Arc<LocalFileSystem> {
+impl AsRef<Arc<dyn ObjectStore>> for PyLocalStore {
+    fn as_ref(&self) -> &Arc<dyn ObjectStore> {
         &self.0
     }
 }
 
 impl PyLocalStore {
     /// Consume self and return the underlying [`LocalFileSystem`].
-    pub fn into_inner(self) -> Arc<LocalFileSystem> {
+    pub fn into_inner(self) -> Arc<dyn ObjectStore> {
         self.0
     }
 }

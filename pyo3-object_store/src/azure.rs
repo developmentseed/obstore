@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use object_store::azure::{AzureConfigKey, MicrosoftAzure, MicrosoftAzureBuilder};
+use object_store::azure::{AzureConfigKey, MicrosoftAzureBuilder};
+use object_store::ObjectStore;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyType;
@@ -13,17 +14,17 @@ use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
 #[pyclass(name = "AzureStore", frozen)]
-pub struct PyAzureStore(Arc<MicrosoftAzure>);
+pub struct PyAzureStore(Arc<dyn ObjectStore>);
 
-impl AsRef<Arc<MicrosoftAzure>> for PyAzureStore {
-    fn as_ref(&self) -> &Arc<MicrosoftAzure> {
+impl AsRef<Arc<dyn ObjectStore>> for PyAzureStore {
+    fn as_ref(&self) -> &Arc<dyn ObjectStore> {
         &self.0
     }
 }
 
 impl PyAzureStore {
     /// Consume self and return the underlying [`MicrosoftAzure`].
-    pub fn into_inner(self) -> Arc<MicrosoftAzure> {
+    pub fn into_inner(self) -> Arc<dyn ObjectStore> {
         self.0
     }
 }

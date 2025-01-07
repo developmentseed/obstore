@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use object_store::gcp::{GoogleCloudStorage, GoogleCloudStorageBuilder, GoogleConfigKey};
+use object_store::gcp::{GoogleCloudStorageBuilder, GoogleConfigKey};
+use object_store::ObjectStore;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyType;
@@ -13,17 +14,17 @@ use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around a [`GoogleCloudStorage`].
 #[pyclass(name = "GCSStore", frozen)]
-pub struct PyGCSStore(Arc<GoogleCloudStorage>);
+pub struct PyGCSStore(Arc<dyn ObjectStore>);
 
-impl AsRef<Arc<GoogleCloudStorage>> for PyGCSStore {
-    fn as_ref(&self) -> &Arc<GoogleCloudStorage> {
+impl AsRef<Arc<dyn ObjectStore>> for PyGCSStore {
+    fn as_ref(&self) -> &Arc<dyn ObjectStore> {
         &self.0
     }
 }
 
 impl PyGCSStore {
     /// Consume self and return the underlying [`GoogleCloudStorage`].
-    pub fn into_inner(self) -> Arc<GoogleCloudStorage> {
+    pub fn into_inner(self) -> Arc<dyn ObjectStore> {
         self.0
     }
 }

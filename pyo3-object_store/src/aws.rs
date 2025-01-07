@@ -2,7 +2,8 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
+use object_store::aws::{AmazonS3Builder, AmazonS3ConfigKey};
+use object_store::ObjectStore;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -14,17 +15,17 @@ use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around an [`AmazonS3`].
 #[pyclass(name = "S3Store", frozen)]
-pub struct PyS3Store(Arc<AmazonS3>);
+pub struct PyS3Store(Arc<dyn ObjectStore>);
 
-impl AsRef<Arc<AmazonS3>> for PyS3Store {
-    fn as_ref(&self) -> &Arc<AmazonS3> {
+impl AsRef<Arc<dyn ObjectStore>> for PyS3Store {
+    fn as_ref(&self) -> &Arc<dyn ObjectStore> {
         &self.0
     }
 }
 
 impl PyS3Store {
     /// Consume self and return the underlying [`AmazonS3`].
-    pub fn into_inner(self) -> Arc<AmazonS3> {
+    pub fn into_inner(self) -> Arc<dyn ObjectStore> {
         self.0
     }
 }

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use object_store::http::{HttpBuilder, HttpStore};
+use object_store::http::HttpBuilder;
+use object_store::ObjectStore;
 use pyo3::prelude::*;
 use pyo3::types::PyType;
 
@@ -10,17 +11,17 @@ use crate::PyClientOptions;
 
 /// A Python-facing wrapper around a [`HttpStore`].
 #[pyclass(name = "HTTPStore", frozen)]
-pub struct PyHttpStore(Arc<HttpStore>);
+pub struct PyHttpStore(Arc<dyn ObjectStore>);
 
-impl AsRef<Arc<HttpStore>> for PyHttpStore {
-    fn as_ref(&self) -> &Arc<HttpStore> {
+impl AsRef<Arc<dyn ObjectStore>> for PyHttpStore {
+    fn as_ref(&self) -> &Arc<dyn ObjectStore> {
         &self.0
     }
 }
 
 impl PyHttpStore {
     /// Consume self and return the underlying [`HttpStore`].
-    pub fn into_inner(self) -> Arc<HttpStore> {
+    pub fn into_inner(self) -> Arc<dyn ObjectStore> {
         self.0
     }
 
