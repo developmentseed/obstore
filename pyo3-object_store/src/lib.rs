@@ -10,6 +10,7 @@ mod gcp;
 mod http;
 mod local;
 mod memory;
+mod middleware;
 mod retry;
 mod store;
 
