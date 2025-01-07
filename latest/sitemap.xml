@@ -2,86 +2,78 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://developmentseed.org/obstore/latest/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/attributes/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/copy/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/delete/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/exceptions/</loc>
-         <lastmod>2024-12-13</lastmod>
-    </url>
-    <url>
-         <loc>https://developmentseed.org/obstore/latest/api/file/</loc>
-         <lastmod>2024-12-13</lastmod>
-    </url>
-    <url>
-         <loc>https://developmentseed.org/obstore/latest/api/fsspec/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/get/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/head/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/list/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/put/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/rename/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/sign/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/aws/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/azure/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/config/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/gcs/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/http/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/local/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
     <url>
          <loc>https://developmentseed.org/obstore/latest/api/store/memory/</loc>
-         <lastmod>2024-12-13</lastmod>
+         <lastmod>2024-10-25</lastmod>
     </url>
 </urlset>
