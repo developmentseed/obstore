@@ -23,4 +23,8 @@ impl PyPrefixStore {
     fn new(store: PyObjectStore, prefix: String) -> Self {
         Self(Arc::new(PrefixStore::new(store.into_inner(), prefix)))
     }
+
+    fn __repr__(&self) -> String {
+        self.0.to_string()
+    }
 }
