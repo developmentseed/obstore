@@ -12,7 +12,7 @@ use crate::error::{PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
-#[pyclass(name = "AzureStore")]
+#[pyclass(name = "AzureStore", frozen)]
 pub struct PyAzureStore(Arc<MicrosoftAzure>);
 
 impl AsRef<Arc<MicrosoftAzure>> for PyAzureStore {

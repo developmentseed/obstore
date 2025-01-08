@@ -121,7 +121,7 @@ impl<'py> FromPyObject<'py> for PyGetRange {
     }
 }
 
-#[pyclass(name = "GetResult")]
+#[pyclass(name = "GetResult", frozen)]
 pub(crate) struct PyGetResult(std::sync::Mutex<Option<GetResult>>);
 
 impl PyGetResult {
@@ -132,7 +132,7 @@ impl PyGetResult {
 
 #[pymethods]
 impl PyGetResult {
-    fn bytes(&mut self, py: Python) -> PyObjectStoreResult<PyBytesWrapper> {
+    fn bytes(&self, py: Python) -> PyObjectStoreResult<PyBytesWrapper> {
         let get_result = self
             .0
             .lock()
@@ -146,7 +146,7 @@ impl PyGetResult {
         })
     }
 
-    fn bytes_async<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    fn bytes_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let get_result = self
             .0
             .lock()
@@ -191,7 +191,7 @@ impl PyGetResult {
     }
 
     #[pyo3(signature = (min_chunk_size = DEFAULT_BYTES_CHUNK_SIZE))]
-    fn stream(&mut self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
+    fn stream(&self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
         let get_result = self
             .0
             .lock()
@@ -201,18 +201,18 @@ impl PyGetResult {
         Ok(PyBytesStream::new(get_result.into_stream(), min_chunk_size))
     }
 
-    fn __aiter__(&mut self) -> PyResult<PyBytesStream> {
+    fn __aiter__(&self) -> PyResult<PyBytesStream> {
         self.stream(DEFAULT_BYTES_CHUNK_SIZE)
     }
 
-    fn __iter__(&mut self) -> PyResult<PyBytesStream> {
+    fn __iter__(&self) -> PyResult<PyBytesStream> {
         self.stream(DEFAULT_BYTES_CHUNK_SIZE)
     }
 }
 
 // Note: we fuse the underlying stream so that we can get `None` multiple times.
 // See the note on PyListStream for more background.
-#[pyclass(name = "BytesStream")]
+#[pyclass(name = "BytesStream", frozen)]
 pub struct PyBytesStream {
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<Bytes>>>>>,
     min_chunk_size: usize,

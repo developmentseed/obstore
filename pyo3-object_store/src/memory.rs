@@ -6,7 +6,7 @@ use pyo3::prelude::*;
 use pyo3::types::PyString;
 
 /// A Python-facing wrapper around an [`InMemory`].
-#[pyclass(name = "MemoryStore")]
+#[pyclass(name = "MemoryStore", frozen)]
 pub struct PyMemoryStore(Arc<InMemory>);
 
 impl AsRef<Arc<InMemory>> for PyMemoryStore {

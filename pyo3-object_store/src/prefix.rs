@@ -8,7 +8,7 @@ use object_store::ObjectStore;
 use crate::PyObjectStore;
 
 /// A Python-facing wrapper around a [`PrefixStore`].
-#[pyclass(name = "PrefixStore")]
+#[pyclass(name = "PrefixStore", frozen)]
 pub struct PyPrefixStore(Arc<PrefixStore<Arc<dyn ObjectStore>>>);
 
 impl AsRef<Arc<PrefixStore<Arc<dyn ObjectStore>>>> for PyPrefixStore {

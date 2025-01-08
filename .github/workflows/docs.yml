@@ -61,8 +61,10 @@ jobs:
           # (usually the git tag will have v as the first character)
           # Note the `cut` index is 1-ordered
           if echo $VERSION | cut -c 2- | grep -q "[A-Za-z]"; then
-            uv run mike deploy $VERSION latest --update-aliases --push
-          else
+            echo "Is beta version"
             # For beta versions publish but don't set as latest
             uv run mike deploy $VERSION --update-aliases --push
+          else
+            echo "Is NOT beta version"
+            uv run mike deploy $VERSION latest --update-aliases --push
           fi
