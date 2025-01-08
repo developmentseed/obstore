@@ -1,7 +1,5 @@
 # obstore
 
-hi
-
 [![PyPI][pypi_badge]][pypi_link]
 [![Conda Version][conda_version_badge]][conda_version]
 
