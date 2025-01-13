@@ -1,13 +1,13 @@
 [package]
 name = "pyo3-bytes"
-version = "0.1.0-beta.1"
+version = "0.1.0"
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
 description = "bytes integration for pyo3."
 readme = "README.md"
 repository = "https://github.com/developmentseed/obstore"
 license = "MIT OR Apache-2.0"
-keywords = []
+keywords = ["python", "pyo3", "buffers", "zero-copy"]
 categories = []
 rust-version = "1.75"
 

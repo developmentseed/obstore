@@ -14,22 +14,24 @@ use pyo3::prelude::*;
 ///
 /// This implements both import and export via the Python buffer protocol.
 ///
-/// ### Buffer import
+/// ### Buffer protocol import
 ///
 /// This can be very useful as a general way to support ingest of a Python buffer protocol object.
-/// The underlying Arrow [Buffer] manages the external memory, automatically calling the Python
-/// buffer's release callback when the Arrow [Buffer] reference count reaches 0.
 ///
-/// This does not need to be used with Arrow at all! This can be used with any API where you want
-/// to handle both Python-provided and Rust-provided buffers. [`PyArrowBuffer`] implements
-/// `AsRef<[u8]>`.
+/// The underlying [Bytes] manages the external memory, automatically calling the Python
+/// buffer's release callback when the internal reference count reaches 0.
 ///
-/// ### Buffer export
+/// Note that converting this [`Bytes`] into a [BytesMut][::bytes::BytesMut] will always create a
+/// deep copy of the buffer into newly allocated memory, since this `Bytes` is constructed from an
+/// owner.
 ///
-/// The Python buffer protocol is implemented on this buffer to enable zero-copy data transfer of
-/// the core buffer into Python. This allows for zero-copy data sharing with numpy via
-/// `numpy.frombuffer`.
-#[pyclass(name = "Bytes", subclass)]
+/// ### Buffer protocol export
+///
+/// PyBytes implements the Python buffer protocol to enable Python to access the underlying `Bytes`
+/// data view without copies. In Python, this `PyBytes` object can be passed to Python `bytes` or
+/// `memoryview` constructors, `numpy.frombuffer`, or any other function that supports buffer
+/// protocol input.
+#[pyclass(name = "Bytes", subclass, frozen)]
 pub struct PyBytes(Bytes);
 
 impl AsRef<Bytes> for PyBytes {
@@ -82,7 +84,7 @@ impl PyBytes {
     /// This is taken from opendal:
     /// https://github.com/apache/opendal/blob/d001321b0f9834bc1e2e7d463bcfdc3683e968c9/bindings/python/src/utils.rs#L51-L72
     unsafe fn __getbuffer__(
-        slf: PyRefMut<Self>,
+        slf: PyRef<Self>,
         view: *mut ffi::Py_buffer,
         flags: c_int,
     ) -> PyResult<()> {
@@ -119,14 +121,6 @@ impl<'py> FromPyObject<'py> for PyBytes {
 #[derive(Debug)]
 struct PyBytesWrapper(Option<PyBuffer<u8>>);
 
-impl PyBytesWrapper {
-    fn inner(&self) -> PyResult<&PyBuffer<u8>> {
-        self.0
-            .as_ref()
-            .ok_or(PyValueError::new_err("Buffer already disposed"))
-    }
-}
-
 impl Drop for PyBytesWrapper {
     fn drop(&mut self) {
         // Only call the underlying Drop of PyBuffer if the Python interpreter is still
@@ -146,12 +140,10 @@ impl Drop for PyBytesWrapper {
 
 impl AsRef<[u8]> for PyBytesWrapper {
     fn as_ref(&self) -> &[u8] {
-        let buffer = self.inner().unwrap();
+        let buffer = self.0.as_ref().expect("Buffer already disposed");
         let len = buffer.item_count();
 
-        let ptr = NonNull::new(buffer.buf_ptr() as _)
-            .ok_or(PyValueError::new_err("Expected buffer ptr to be non null"))
-            .unwrap();
+        let ptr = NonNull::new(buffer.buf_ptr() as _).expect("Expected buffer ptr to be non null");
 
         // Safety:
         //
@@ -168,15 +160,11 @@ fn validate_buffer(buf: &PyBuffer<u8>) -> PyResult<()> {
     }
 
     if buf.shape().iter().any(|s| *s == 0) {
-        return Err(PyValueError::new_err(
-            "0-length dimension not currently supported.",
-        ));
+        return Err(PyValueError::new_err("0-length dimension not supported."));
     }
 
     if buf.strides().iter().any(|s| *s == 0) {
-        return Err(PyValueError::new_err(
-            "Non-zero strides not currently supported.",
-        ));
+        return Err(PyValueError::new_err("Non-zero strides not supported."));
     }
 
     Ok(())
