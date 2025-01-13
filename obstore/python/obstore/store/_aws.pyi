@@ -128,6 +128,13 @@ class S3Store:
     """
     Configure a connection to Amazon S3 using the specified credentials in the specified
     Amazon region and bucket.
+
+    **Examples**:
+
+    **Using requester-pays buckets**:
+
+    Include `'AWS_REQUESTER_PAYS': True` as an element in the `config`. Or, if you're
+    using `S3Store.from_env`, have `AWS_REQUESTER_PAYS=True` set in the environment.
     """
 
     @classmethod
@@ -141,7 +148,11 @@ class S3Store:
     ) -> S3Store:
         """Construct a new S3Store with regular AWS environment variables
 
-        Variables extracted from environment:
+        All environment variables starting with `AWS_` will be evaluated. Names must
+        match items from `S3ConfigKey`. Only upper-case environment variables are
+        accepted.
+
+        Some examples of variables extracted from environment:
 
         - `AWS_ACCESS_KEY_ID` -> access_key_id
         - `AWS_SECRET_ACCESS_KEY` -> secret_access_key
@@ -150,6 +161,7 @@ class S3Store:
         - `AWS_SESSION_TOKEN` -> token
         - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
         - `AWS_ALLOW_HTTP` -> set to "true" to permit HTTP connections without TLS
+        - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
 
         Args:
             bucket: The AWS bucket to use.
