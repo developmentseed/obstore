@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use arrow::buffer::Buffer;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
@@ -9,8 +8,6 @@ use futures::StreamExt;
 use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
-use pyo3_arrow::buffer::PyArrowBuffer;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
@@ -302,7 +299,7 @@ impl PyBytesWrapper {
 // support the buffer protocol in the future (e.g. for get_range) you may need to have a separate
 // wrapper of Bytes
 impl<'py> IntoPyObject<'py> for PyBytesWrapper {
-    type Target = PyBytes;
+    type Target = pyo3::types::PyBytes;
     type Output = Bound<'py, Self::Target>;
     type Error = PyErr;
 
@@ -311,7 +308,7 @@ impl<'py> IntoPyObject<'py> for PyBytesWrapper {
 
         // Copy all internal Bytes objects into a single PyBytes
         // Since our inner callback is infallible, this will only panic on out of memory
-        PyBytes::new_with(py, total_len, |target| {
+        pyo3::types::PyBytes::new_with(py, total_len, |target| {
             let mut offset = 0;
             for buf in self.0.iter() {
                 target[offset..offset + buf.len()].copy_from_slice(buf);
@@ -370,11 +367,11 @@ pub(crate) fn get_range(
     path: String,
     start: usize,
     end: usize,
-) -> PyObjectStoreResult<PyArrowBuffer> {
+) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_range(&path.into(), start..end))?;
-        Ok::<_, PyObjectStoreError>(PyArrowBuffer::new(Buffer::from_bytes(out.into())))
+        Ok::<_, PyObjectStoreError>(pyo3_bytes::PyBytes::new(out))
     })
 }
 
@@ -392,7 +389,7 @@ pub(crate) fn get_range_async(
             .get_range(&path.into(), start..end)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(PyArrowBuffer::new(Buffer::from_bytes(out.into())))
+        Ok(pyo3_bytes::PyBytes::new(out))
     })
 }
 
@@ -403,7 +400,7 @@ pub(crate) fn get_ranges(
     path: String,
     starts: Vec<usize>,
     ends: Vec<usize>,
-) -> PyObjectStoreResult<Vec<PyArrowBuffer>> {
+) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
     let runtime = get_runtime(py)?;
     let ranges = starts
         .into_iter()
@@ -412,11 +409,7 @@ pub(crate) fn get_ranges(
         .collect::<Vec<_>>();
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;
-        Ok::<_, PyObjectStoreError>(
-            out.into_iter()
-                .map(|buf| PyArrowBuffer::new(Buffer::from_bytes(buf.into())))
-                .collect(),
-        )
+        Ok::<_, PyObjectStoreError>(out.into_iter().map(|buf| buf.into()).collect())
     })
 }
 
@@ -441,7 +434,7 @@ pub(crate) fn get_ranges_async(
             .map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(out
             .into_iter()
-            .map(|buf| PyArrowBuffer::new(Buffer::from_bytes(buf.into())))
+            .map(pyo3_bytes::PyBytes::new)
             .collect::<Vec<_>>())
     })
 }

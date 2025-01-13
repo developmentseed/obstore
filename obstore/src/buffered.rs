@@ -1,12 +1,12 @@
 use std::io::SeekFrom;
 use std::sync::Arc;
 
-use arrow::buffer::Buffer;
+use bytes::Bytes;
 use object_store::buffered::BufReader;
 use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
-use pyo3_arrow::buffer::PyArrowBuffer;
 use pyo3_async_runtimes::tokio::future_into_py;
+use pyo3_bytes::PyBytes;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, Lines};
 use tokio::sync::Mutex;
@@ -154,34 +154,34 @@ impl PyReadableFile {
     }
 }
 
-async fn read(reader: Arc<Mutex<BufReader>>, size: Option<usize>) -> PyResult<PyArrowBuffer> {
+async fn read(reader: Arc<Mutex<BufReader>>, size: Option<usize>) -> PyResult<PyBytes> {
     let mut reader = reader.lock().await;
     if let Some(size) = size {
         let mut buf = vec![0; size as _];
         reader.read_exact(&mut buf).await?;
-        Ok(PyArrowBuffer::new(Buffer::from_vec(buf)))
+        Ok(Bytes::from(buf).into())
     } else {
         let mut buf = Vec::new();
         reader.read_to_end(&mut buf).await?;
-        Ok(PyArrowBuffer::new(Buffer::from_vec(buf)))
+        Ok(Bytes::from(buf).into())
     }
 }
 
-async fn readline(reader: Arc<Mutex<BufReader>>) -> PyResult<PyArrowBuffer> {
+async fn readline(reader: Arc<Mutex<BufReader>>) -> PyResult<PyBytes> {
     let mut reader = reader.lock().await;
     let mut buf = String::new();
     reader.read_line(&mut buf).await?;
-    Ok(PyArrowBuffer::new(Buffer::from_vec(buf.into_bytes())))
+    Ok(Bytes::from(buf.into_bytes()).into())
 }
 
-async fn readlines(reader: Arc<Mutex<BufReader>>, hint: i64) -> PyResult<Vec<PyArrowBuffer>> {
+async fn readlines(reader: Arc<Mutex<BufReader>>, hint: i64) -> PyResult<Vec<PyBytes>> {
     let mut reader = reader.lock().await;
     if hint <= 0 {
         let mut lines = Vec::new();
         loop {
             let mut buf = String::new();
             let n = reader.read_line(&mut buf).await?;
-            lines.push(PyArrowBuffer::new(Buffer::from_vec(buf.into_bytes())));
+            lines.push(Bytes::from(buf.into_bytes()).into());
             // Ok(0) signifies EOF
             if n == 0 {
                 return Ok(lines);
@@ -198,7 +198,7 @@ async fn readlines(reader: Arc<Mutex<BufReader>>, hint: i64) -> PyResult<Vec<PyA
             let mut buf = String::new();
             let n = reader.read_line(&mut buf).await?;
             byte_count += n;
-            lines.push(PyArrowBuffer::new(Buffer::from_vec(buf.into_bytes())));
+            lines.push(Bytes::from(buf.into_bytes()).into());
             // Ok(0) signifies EOF
             if n == 0 {
                 return Ok(lines);
