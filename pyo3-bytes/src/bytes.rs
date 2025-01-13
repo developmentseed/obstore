@@ -103,6 +103,11 @@ impl PyBytes {
         Ok(())
     }
 
+    // Comment from david hewitt on discord:
+    // > I think normally `__getbuffer__` takes a pointer to the owning Python object, so you
+    // > don't need to treat the allocation as owned separately. It should be good enough to keep
+    // > the allocation owned by the object.
+    // https://discord.com/channels/1209263839632424990/1324816949464666194/1328299411427557397
     unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {}
 }
 
