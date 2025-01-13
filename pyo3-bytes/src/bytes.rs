@@ -58,6 +58,18 @@ impl PyBytes {
     }
 }
 
+impl From<PyBytes> for Bytes {
+    fn from(value: PyBytes) -> Self {
+        value.0
+    }
+}
+
+impl From<Bytes> for PyBytes {
+    fn from(value: Bytes) -> Self {
+        PyBytes(value)
+    }
+}
+
 #[pymethods]
 impl PyBytes {
     // By setting the argument to PyBytes, this means that any buffer-protocol object is supported
