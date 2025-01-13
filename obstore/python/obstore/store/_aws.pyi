@@ -25,6 +25,7 @@ S3ConfigKey = Literal[
     "aws_imdsv1_fallback",
     "aws_metadata_endpoint",
     "aws_region",
+    "aws_request_payer",
     "aws_s3_express",
     "aws_secret_access_key",
     "aws_server_side_encryption",
@@ -47,6 +48,7 @@ S3ConfigKey = Literal[
     "imdsv1_fallback",
     "metadata_endpoint",
     "region",
+    "request_payer",
     "s3_express",
     "secret_access_key",
     "session_token",
@@ -70,6 +72,7 @@ S3ConfigKey = Literal[
     "AWS_IMDSV1_FALLBACK",
     "AWS_METADATA_ENDPOINT",
     "AWS_REGION",
+    "AWS_REQUEST_PAYER",
     "AWS_S3_EXPRESS",
     "AWS_SECRET_ACCESS_KEY",
     "AWS_SERVER_SIDE_ENCRYPTION",
@@ -92,6 +95,7 @@ S3ConfigKey = Literal[
     "IMDSV1_FALLBACK",
     "METADATA_ENDPOINT",
     "REGION",
+    "REQUEST_PAYER",
     "S3_EXPRESS",
     "SECRET_ACCESS_KEY",
     "SESSION_TOKEN",
@@ -107,6 +111,7 @@ Either lower case or upper case strings are accepted.
 - `aws_access_key_id`, `access_key_id`: AWS Access Key
 - `aws_secret_access_key`, `secret_access_key`: Secret Access Key
 - `aws_region`, `region`: Region
+- `aws_request_payer`, `request_payer`: if `True`, enable operations on requester-pays buckets.
 - `aws_default_region`, `default_region`: Default region
 - `aws_bucket`, `aws_bucket_name`, `bucket`, `bucket_name`: Bucket name
 - `aws_endpoint`, `aws_endpoint_url`, `endpoint`, `endpoint_url`: Sets custom endpoint for communicating with AWS S3.
