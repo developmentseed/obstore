@@ -10,7 +10,7 @@ use url::Url;
 use crate::error::PyObjectStoreResult;
 
 /// A Python-facing wrapper around a [`LocalFileSystem`].
-#[pyclass(name = "LocalStore")]
+#[pyclass(name = "LocalStore", frozen)]
 pub struct PyLocalStore(Arc<LocalFileSystem>);
 
 impl AsRef<Arc<LocalFileSystem>> for PyLocalStore {

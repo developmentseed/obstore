@@ -39,7 +39,7 @@ pub(crate) fn open_async(py: Python, store: PyObjectStore, path: String) -> PyRe
     })
 }
 
-#[pyclass(name = "ReadableFile")]
+#[pyclass(name = "ReadableFile", frozen)]
 pub(crate) struct PyReadableFile {
     reader: Arc<Mutex<BufReader>>,
     r#async: bool,
@@ -67,7 +67,7 @@ impl PyReadableFile {
     fn close(&self) {}
 
     #[pyo3(signature = (size = None, /))]
-    fn read<'py>(&'py mut self, py: Python<'py>, size: Option<usize>) -> PyResult<PyObject> {
+    fn read<'py>(&'py self, py: Python<'py>, size: Option<usize>) -> PyResult<PyObject> {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, read(reader, size))?;
@@ -79,11 +79,11 @@ impl PyReadableFile {
         }
     }
 
-    fn readall<'py>(&'py mut self, py: Python<'py>) -> PyResult<PyObject> {
+    fn readall<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
         self.read(py, None)
     }
 
-    fn readline<'py>(&'py mut self, py: Python<'py>) -> PyResult<PyObject> {
+    fn readline<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, readline(reader))?;
@@ -97,7 +97,7 @@ impl PyReadableFile {
     }
 
     #[pyo3(signature = (hint = -1))]
-    fn readlines<'py>(&'py mut self, py: Python<'py>, hint: i64) -> PyResult<PyObject> {
+    fn readlines<'py>(&'py self, py: Python<'py>, hint: i64) -> PyResult<PyObject> {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, readlines(reader, hint))?;
@@ -113,7 +113,7 @@ impl PyReadableFile {
         signature = (offset, whence=0, /),
         text_signature = "(offset, whence=os.SEEK_SET, /)")
     ]
-    fn seek<'py>(&'py mut self, py: Python<'py>, offset: i64, whence: usize) -> PyResult<PyObject> {
+    fn seek<'py>(&'py self, py: Python<'py>, offset: i64, whence: usize) -> PyResult<PyObject> {
         let reader = self.reader.clone();
         let pos = match whence {
             0 => SeekFrom::Start(offset as _),
@@ -141,7 +141,7 @@ impl PyReadableFile {
         true
     }
 
-    fn tell<'py>(&'py mut self, py: Python<'py>) -> PyResult<PyObject> {
+    fn tell<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
         let reader = self.reader.clone();
         if self.r#async {
             let out = future_into_py(py, tell(reader))?;
@@ -219,17 +219,17 @@ async fn tell(reader: Arc<Mutex<BufReader>>) -> PyResult<u64> {
     Ok(pos)
 }
 
-#[pyclass]
+#[pyclass(frozen)]
 pub(crate) struct PyLinesReader(Arc<Mutex<Lines<BufReader>>>);
 
 #[pymethods]
 impl PyLinesReader {
-    fn __anext__<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let lines = self.0.clone();
         future_into_py(py, next_line(lines, true))
     }
 
-    fn __next__<'py>(&'py mut self, py: Python<'py>) -> PyResult<String> {
+    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<String> {
         let runtime = get_runtime(py)?;
         let lines = self.0.clone();
         py.allow_threads(|| runtime.block_on(next_line(lines, false)))

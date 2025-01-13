@@ -31,6 +31,7 @@ nav:
           - api/store/local.md
           - api/store/memory.md
           - api/store/config.md
+          - api/store/middleware.md
       - api/copy.md
       - api/delete.md
       - api/get.md

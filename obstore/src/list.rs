@@ -74,7 +74,7 @@ impl<'py> IntoPyObject<'py> for PyObjectMeta {
 // Ref:
 // - https://stackoverflow.com/a/66964599
 // - https://docs.rs/futures/latest/futures/prelude/stream/trait.StreamExt.html#method.fuse
-#[pyclass(name = "ListStream")]
+#[pyclass(name = "ListStream", frozen)]
 pub(crate) struct PyListStream {
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<ObjectMeta>>>>>,
     chunk_size: usize,

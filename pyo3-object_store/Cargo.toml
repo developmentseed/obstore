@@ -15,7 +15,12 @@ include = ["src", "type-hints", "README.md", "LICENSE"]
 
 [dependencies]
 futures = "0.3"
-object_store = { version = "0.11", features = ["aws", "azure", "gcp", "http"] }
+object_store = { version = "0.11.2", features = [
+    "aws",
+    "azure",
+    "gcp",
+    "http",
+] }
 pyo3 = { version = "0.23", features = ["chrono", "indexmap"] }
 pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
 thiserror = "1"
