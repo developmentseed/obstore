@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-bytes"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
 description = "bytes integration for pyo3."
