@@ -12,8 +12,9 @@ use object_store::{
 };
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
+use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
+use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
 
@@ -61,7 +62,7 @@ impl<'py> FromPyObject<'py> for PyUpdateVersion {
 pub(crate) enum MultipartPutInput {
     File(BufReader<File>),
     FileLike(PyFileLikeObject),
-    Buffer(Cursor<PyBackedBytes>),
+    Buffer(Cursor<PyBytes>),
 }
 
 impl MultipartPutInput {
@@ -83,7 +84,7 @@ impl<'py> FromPyObject<'py> for MultipartPutInput {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(path) = ob.extract::<PathBuf>() {
             Ok(Self::File(BufReader::new(File::open(path)?)))
-        } else if let Ok(buffer) = ob.extract::<PyBackedBytes>() {
+        } else if let Ok(buffer) = ob.extract::<PyBytes>() {
             Ok(Self::Buffer(Cursor::new(buffer)))
         } else {
             Ok(Self::FileLike(PyFileLikeObject::with_requirements(
