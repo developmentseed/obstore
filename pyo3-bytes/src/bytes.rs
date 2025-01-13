@@ -32,6 +32,7 @@ use pyo3::prelude::*;
 /// `memoryview` constructors, `numpy.frombuffer`, or any other function that supports buffer
 /// protocol input.
 #[pyclass(name = "Bytes", subclass, frozen)]
+#[derive(Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct PyBytes(Bytes);
 
 impl AsRef<Bytes> for PyBytes {
