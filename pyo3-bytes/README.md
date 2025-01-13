@@ -46,9 +46,9 @@ to Rust.
 
 For more reading:
 
-- https://alexgaynor.net/2022/oct/23/buffers-on-the-edge/
-- https://github.com/PyO3/pyo3/issues/2824
-- https://github.com/PyO3/pyo3/issues/4736
+- <https://alexgaynor.net/2022/oct/23/buffers-on-the-edge/>
+- <https://github.com/PyO3/pyo3/issues/2824>
+- <https://github.com/PyO3/pyo3/issues/4736>
 
 ## Python type hints
 

@@ -52,7 +52,7 @@ impl PyBytes {
         Self(buffer)
     }
 
-    /// Consume and return the [Buffer]
+    /// Consume and return the [Bytes]
     pub fn into_inner(self) -> Bytes {
         self.0
     }
