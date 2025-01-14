@@ -239,7 +239,7 @@ impl PutInput {
         }
     }
 
-    async fn read_all(&mut self) -> PyObjectStoreResult<Bytes> {
+    async fn read_all(&mut self) -> PyObjectStoreResult<PutPayload> {
         match self {
             Self::Pull(pull_source) => {
                 let mut buf = Vec::new();
@@ -432,8 +432,7 @@ async fn put_inner(
         opts.mode = mode.0;
     }
 
-    let buffer = reader.read_all().await?;
-    let payload = PutPayload::from_bytes(buffer);
+    let payload = reader.read_all().await?;
     Ok(PyPutResult(store.put_opts(path, payload, opts).await?))
 }
 
