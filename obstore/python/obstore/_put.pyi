@@ -140,6 +140,7 @@ async def put_async(
 
     # This only constructs the stream, it doesn't materialize the data in memory
     resp = await obs.get_async(store1, path1)
+    # A streaming upload is created to copy the file to path2
     await obs.put_async(store2, path2)
     ```
     """
