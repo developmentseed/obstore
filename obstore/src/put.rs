@@ -261,9 +261,17 @@ impl<'py> FromPyObject<'py> for PutInput {
             )))
         }
         // Ensure we check _first_ for an async generator before a sync one
-        else if ob.hasattr(intern!(py, "__anext__"))? {
+        else if ob.hasattr(intern!(py, "__aiter__"))? {
+            Ok(Self::AsyncPush(AsyncPushSource::AsyncIterator(
+                ob.call_method0(intern!(py, "__aiter__"))?.unbind(),
+            )))
+        } else if ob.hasattr(intern!(py, "__anext__"))? {
             Ok(Self::AsyncPush(AsyncPushSource::AsyncIterator(
                 ob.clone().unbind(),
+            )))
+        } else if ob.hasattr(intern!(py, "__iter__"))? {
+            Ok(Self::SyncPush(SyncPushSource::Iterator(
+                ob.call_method0(intern!(py, "__iter__"))?.unbind(),
             )))
         } else if ob.hasattr(intern!(py, "__next__"))? {
             Ok(Self::SyncPush(SyncPushSource::Iterator(
