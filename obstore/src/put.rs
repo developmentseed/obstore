@@ -119,9 +119,12 @@ impl Seek for PullSource {
     }
 }
 
-/// Sources to `put` that are push-based. I.e. we don't know how large each chunk will be before we
-/// receive it.
+/// Sources to `put` that are push-based and synchronous.
+///
+/// I.e. we don't know how large each chunk will be before we receive it.
 pub(crate) enum SyncPushSource {
+    /// A Python Iterator: An object with a __next__ method that returns a buffer protocol object
+    /// (anything that can be extracted into `PyBytes`)
     Iterator(PyObject),
 }
 
@@ -165,7 +168,12 @@ impl Iterator for SyncPushSource {
     }
 }
 
+/// Sources to `put` that are push-based and asynchronous.
+///
+/// I.e. we don't know how large each chunk will be before we receive it.
 pub(crate) enum AsyncPushSource {
+    /// A Python Async Iterator: An object with an __anext__ method that returns a buffer protocol
+    /// object (anything that can be extracted into `PyBytes`)
     AsyncIterator(Py<PyAny>),
 }
 
