@@ -101,47 +101,51 @@ pub enum PyObjectStoreError {
 
 impl From<PyObjectStoreError> for PyErr {
     fn from(error: PyObjectStoreError) -> Self {
+        // #? gives "pretty-printing" in the errors
+        // https://doc.rust-lang.org/std/fmt/trait.Debug.html
         match error {
             PyObjectStoreError::PyErr(err) => err,
             PyObjectStoreError::ObjectStoreError(ref err) => match err {
                 object_store::Error::Generic {
                     store: _,
                     source: _,
-                } => GenericError::new_err(err.to_string()),
+                } => GenericError::new_err(format!("{err:#?}")),
                 object_store::Error::NotFound { path: _, source: _ } => {
-                    PyFileNotFoundError::new_err(err.to_string())
+                    PyFileNotFoundError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::InvalidPath { source: _ } => {
-                    InvalidPathError::new_err(err.to_string())
+                    InvalidPathError::new_err(format!("{err:#?}"))
                 }
-                object_store::Error::JoinError { source: _ } => JoinError::new_err(err.to_string()),
+                object_store::Error::JoinError { source: _ } => {
+                    JoinError::new_err(format!("{err:#?}"))
+                }
                 object_store::Error::NotSupported { source: _ } => {
-                    NotSupportedError::new_err(err.to_string())
+                    NotSupportedError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::AlreadyExists { path: _, source: _ } => {
-                    AlreadyExistsError::new_err(err.to_string())
+                    AlreadyExistsError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::Precondition { path: _, source: _ } => {
-                    PreconditionError::new_err(err.to_string())
+                    PreconditionError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::NotModified { path: _, source: _ } => {
-                    NotModifiedError::new_err(err.to_string())
+                    NotModifiedError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::NotImplemented => {
-                    PyNotImplementedError::new_err(err.to_string())
+                    PyNotImplementedError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::PermissionDenied { path: _, source: _ } => {
-                    PermissionDeniedError::new_err(err.to_string())
+                    PermissionDeniedError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::Unauthenticated { path: _, source: _ } => {
-                    UnauthenticatedError::new_err(err.to_string())
+                    UnauthenticatedError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::UnknownConfigurationKey { store: _, key: _ } => {
-                    UnknownConfigurationKeyError::new_err(err.to_string())
+                    UnknownConfigurationKeyError::new_err(format!("{err:#?}"))
                 }
-                _ => GenericError::new_err(err.to_string()),
+                _ => GenericError::new_err(format!("{err:#?}")),
             },
-            PyObjectStoreError::IOError(err) => PyIOError::new_err(err.to_string()),
+            PyObjectStoreError::IOError(err) => PyIOError::new_err(format!("{err:#?}")),
         }
     }
 }
