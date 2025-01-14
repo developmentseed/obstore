@@ -1,13 +1,14 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
+use pyo3_bytes::PyBytes;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
@@ -185,7 +186,7 @@ impl PyGetResult {
     }
 
     #[pyo3(signature = (min_chunk_size = DEFAULT_BYTES_CHUNK_SIZE))]
-    fn stream(&self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
+    fn stream(&self, min_chunk_size: Option<usize>) -> PyResult<PyBytesStream> {
         let get_result = self
             .0
             .lock()
@@ -196,11 +197,11 @@ impl PyGetResult {
     }
 
     fn __aiter__(&self) -> PyResult<PyBytesStream> {
-        self.stream(DEFAULT_BYTES_CHUNK_SIZE)
+        self.stream(Some(DEFAULT_BYTES_CHUNK_SIZE))
     }
 
     fn __iter__(&self) -> PyResult<PyBytesStream> {
-        self.stream(DEFAULT_BYTES_CHUNK_SIZE)
+        self.stream(Some(DEFAULT_BYTES_CHUNK_SIZE))
     }
 }
 
@@ -209,11 +210,14 @@ impl PyGetResult {
 #[pyclass(name = "BytesStream", frozen)]
 pub struct PyBytesStream {
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<Bytes>>>>>,
-    min_chunk_size: usize,
+    min_chunk_size: Option<usize>,
 }
 
 impl PyBytesStream {
-    fn new(stream: BoxStream<'static, object_store::Result<Bytes>>, min_chunk_size: usize) -> Self {
+    fn new(
+        stream: BoxStream<'static, object_store::Result<Bytes>>,
+        min_chunk_size: Option<usize>,
+    ) -> Self {
         Self {
             stream: Arc::new(Mutex::new(stream.fuse())),
             min_chunk_size,
@@ -223,18 +227,26 @@ impl PyBytesStream {
 
 async fn next_stream(
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<Bytes>>>>>,
-    min_chunk_size: usize,
+    min_chunk_size: Option<usize>,
     sync: bool,
-) -> PyResult<PyBytesWrapper> {
+) -> PyResult<PyBytes> {
     let mut stream = stream.lock().await;
     let mut buffers: Vec<Bytes> = vec![];
+    let mut total_buffer_len = 0;
     loop {
         match stream.next().await {
             Some(Ok(bytes)) => {
-                buffers.push(bytes);
-                let total_buffer_len = buffers.iter().fold(0, |acc, buf| acc + buf.len());
-                if total_buffer_len >= min_chunk_size {
-                    return Ok(PyBytesWrapper::new_multiple(buffers));
+                if let Some(min_chunk_size) = min_chunk_size {
+                    total_buffer_len += bytes.len();
+                    buffers.push(bytes);
+                    if total_buffer_len >= min_chunk_size {
+                        return Ok(repack_buffers(buffers, total_buffer_len).into());
+                    }
+                } else {
+                    // If min_chunk_size is None, we don't coalesce buffers to ensure that we're
+                    // fully zero-copy. This is not the default because the Python loop overhead
+                    // may be more of a slowdown than the memory copy.
+                    return Ok(bytes.into());
                 }
             }
             Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
@@ -248,11 +260,19 @@ async fn next_stream(
                         return Err(PyStopAsyncIteration::new_err("stream exhausted"));
                     }
                 } else {
-                    return Ok(PyBytesWrapper::new_multiple(buffers));
+                    return Ok(repack_buffers(buffers, total_buffer_len).into());
                 }
             }
         };
     }
+}
+
+fn repack_buffers(buffers: Vec<Bytes>, total_buffer_len: usize) -> Bytes {
+    let mut output_buf = BytesMut::with_capacity(total_buffer_len);
+    for source_buf in buffers {
+        output_buf.extend_from_slice(&source_buf);
+    }
+    output_buf.into()
 }
 
 #[pymethods]
@@ -273,7 +293,7 @@ impl PyBytesStream {
         )
     }
 
-    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyBytesWrapper> {
+    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyBytes> {
         let runtime = get_runtime(py)?;
         let stream = self.stream.clone();
         runtime.block_on(next_stream(stream, self.min_chunk_size, true))
@@ -304,7 +324,6 @@ impl<'py> IntoPyObject<'py> for PyBytesWrapper {
         let total_len = self.0.iter().fold(0, |acc, buf| acc + buf.len());
 
         // Copy all internal Bytes objects into a single PyBytes
-        // Since our inner callback is infallible, this will only panic on out of memory
         pyo3::types::PyBytes::new_with(py, total_len, |target| {
             let mut offset = 0;
             for buf in self.0.iter() {
