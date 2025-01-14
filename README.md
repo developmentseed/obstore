@@ -2,11 +2,14 @@
 
 [![PyPI][pypi_badge]][pypi_link]
 [![Conda Version][conda_version_badge]][conda_version]
+[![PyPI - Downloads][pypi-img]][pypi-link]
 
 [pypi_badge]: https://badge.fury.io/py/obstore.svg
 [pypi_link]: https://pypi.org/project/obstore/
 [conda_version_badge]: https://img.shields.io/conda/vn/conda-forge/obstore.svg
 [conda_version]: https://prefix.dev/channels/conda-forge/packages/obstore
+[pypi-img]: https://img.shields.io/pypi/dm/obstore
+[pypi-link]: https://pypi.org/project/obstore/
 
 Simple, fast integration with object storage services like Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
 
