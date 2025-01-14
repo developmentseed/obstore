@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 from typing import (
     IO,
@@ -12,6 +13,11 @@ from typing import (
 
 from ._attributes import Attributes
 from .store import ObjectStore
+
+if sys.version_info >= (3, 12):
+    from collections.abc import Buffer
+else:
+    from typing_extensions import Buffer
 
 class UpdateVersion(TypedDict, total=False):
     """
@@ -62,7 +68,7 @@ class PutResult(TypedDict):
 def put(
     store: ObjectStore,
     path: str,
-    file: IO[bytes] | Path | bytes | Iterator[bytes] | Iterable[bytes],
+    file: IO[bytes] | Path | bytes | Buffer | Iterator[Buffer] | Iterable[Buffer],
     *,
     attributes: Attributes | None = None,
     tags: Dict[str, str] | None = None,
@@ -80,8 +86,16 @@ def put(
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore for where to save the file.
-        file: The object to upload. Can either be file-like, a `Path` to a local file,
-            or a `bytes` object.
+        file: The object to upload. Supports various input:
+
+            - A file-like object opened in binary read mode
+            - A [`Path`][pathlib.Path] to a local file
+            - A [`bytes`][] object.
+            - Any object implementing the Python [buffer
+              protocol](https://docs.python.org/3/c-api/buffer.html) (includes `bytes`
+              but also `memoryview`, numpy arrays, and more).
+            - An iterator or iterable of objects implementing the Python buffer
+              protocol.
 
     Keyword args:
         mode: Configure the `PutMode` for this operation. If this provided and is not `"overwrite"`, a non-multipart upload will be performed. Defaults to `"overwrite"`.
@@ -98,10 +112,11 @@ async def put_async(
     file: IO[bytes]
     | Path
     | bytes
-    | AsyncIterator[bytes]
-    | AsyncIterable[bytes]
-    | Iterator[bytes]
-    | Iterable[bytes],
+    | Buffer
+    | AsyncIterator[Buffer]
+    | AsyncIterable[Buffer]
+    | Iterator[Buffer]
+    | Iterable[Buffer],
     *,
     attributes: Attributes | None = None,
     tags: Dict[str, str] | None = None,
@@ -112,5 +127,19 @@ async def put_async(
 ) -> PutResult:
     """Call `put` asynchronously.
 
-    Refer to the documentation for [put][obstore.put].
+    Refer to the documentation for [`put`][obstore.put]. In addition to what the
+    synchronous `put` allows for the `file` parameter, this **also supports an async
+    iterator or iterable** of objects implementing the Python buffer protocol.
+
+    This means, for example, you can pass the result of `get_async` directly to
+    `put_async`, and the request will be streamed through Python during the put
+    operation:
+
+    ```py
+    import obstore as obs
+
+    # This only constructs the stream, it doesn't materialize the data in memory
+    resp = await obs.get_async(store1, path1)
+    await obs.put_async(store2, path2)
+    ```
     """

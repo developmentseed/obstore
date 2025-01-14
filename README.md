@@ -12,6 +12,7 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 
 - Sync and async API.
 - Streaming downloads with configurable chunking.
+- Streaming uploads from async or sync iterators.
 - Streaming `list`, with no need to paginate.
 - File-like object API and [fsspec](https://github.com/fsspec/filesystem_spec) integration.
 - Support for conditional put ("put if not exists"), as well as custom tags and attributes.
@@ -19,7 +20,7 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 - Optionally return list results as [Arrow](https://arrow.apache.org/), which is faster than materializing Python `dict`/`list` objects.
 - Easy to install with no required Python dependencies.
 - The [underlying Rust library](https://docs.rs/object_store) is production quality and used in large scale production systems, such as the Rust package registry [crates.io](https://crates.io/).
-- Support for zero-copy data exchange from Rust into Python in `get_range` and `get_ranges`.
+- Zero-copy data exchange between Rust and Python in `get_range`, `get_ranges`, and `put` via the Python buffer protocol.
 - Simple API with static type checking.
 - Helpers for constructing from environment variables and `boto3.Session` objects
 
@@ -56,6 +57,10 @@ Classes to construct a store are exported from the `obstore.store` submodule:
 - [`LocalStore`](https://developmentseed.org/obstore/latest/api/store/local/): Local filesystem storage providing the same object store interface.
 - [`MemoryStore`](https://developmentseed.org/obstore/latest/api/store/memory/): A fully in-memory implementation of ObjectStore.
 
+Additionally, some middlewares exist:
+
+- [`PrefixStore`](https://developmentseed.org/obstore/latest/api/store/middleware/#obstore.store.PrefixStore): Store wrapper that applies a constant prefix to all paths handled by the store.
+
 #### Example
 
 ```py
@@ -81,7 +86,7 @@ All methods for interacting with a store are exported as **top-level functions**
 - [`get`](https://developmentseed.org/obstore/latest/api/get/): Return the bytes that are stored at the specified location.
 - [`head`](https://developmentseed.org/obstore/latest/api/head/): Return the metadata for the specified location
 - [`list`](https://developmentseed.org/obstore/latest/api/list/): List all the objects with the given prefix.
-- [`put`](https://developmentseed.org/obstore/latest/api/put/): Save the provided bytes to the specified location
+- [`put`](https://developmentseed.org/obstore/latest/api/put/): Save the provided buffer to the specified location.
 - [`rename`](https://developmentseed.org/obstore/latest/api/rename/): Move an object from one path to another in the same object store.
 
 There are a few additional APIs useful for specific use cases:
