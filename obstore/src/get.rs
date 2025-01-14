@@ -110,9 +110,6 @@ impl<'py> FromPyObject<'py> for PyGetRange {
         } else if let Ok(suffix_range) = ob.extract::<PySuffixRange>() {
             Ok(Self(suffix_range.into()))
         } else {
-            // dbg!(ob);
-            // let x = ob.extract::<PyOffsetRange>()?;
-            // dbg!(x.offset);
             Err(PyValueError::new_err("Unexpected input for byte range.\nExpected two-integer tuple or list, or dict with 'offset' or 'suffix' key." ))
         }
     }
