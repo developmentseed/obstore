@@ -20,7 +20,7 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 - Optionally return list results as [Arrow](https://arrow.apache.org/), which is faster than materializing Python `dict`/`list` objects.
 - Easy to install with no required Python dependencies.
 - The [underlying Rust library](https://docs.rs/object_store) is production quality and used in large scale production systems, such as the Rust package registry [crates.io](https://crates.io/).
-- Zero-copy data exchange between Rust and Python in `get_range`, `get_ranges`, and `put` via the Python buffer protocol.
+- Zero-copy data exchange between Rust and Python in `get_range`, `get_ranges`, `GetResult.bytes`, and `put` via the Python buffer protocol.
 - Simple API with static type checking.
 - Helpers for constructing from environment variables and `boto3.Session` objects
 
