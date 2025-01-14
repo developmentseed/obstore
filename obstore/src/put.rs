@@ -321,8 +321,6 @@ pub(crate) fn put(
     chunk_size: usize,
     max_concurrency: usize,
 ) -> PyObjectStoreResult<PyPutResult> {
-    // if matches!(file, )
-
     let mut use_multipart = if let Some(use_multipart) = use_multipart {
         use_multipart
     } else {
