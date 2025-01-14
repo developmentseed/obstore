@@ -8,6 +8,7 @@ use futures::StreamExt;
 use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
+use pyo3_bytes::PyBytes;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
@@ -126,7 +127,7 @@ impl PyGetResult {
 
 #[pymethods]
 impl PyGetResult {
-    fn bytes(&self, py: Python) -> PyObjectStoreResult<PyBytesWrapper> {
+    fn bytes(&self, py: Python) -> PyObjectStoreResult<PyBytes> {
         let get_result = self
             .0
             .lock()
@@ -136,7 +137,7 @@ impl PyGetResult {
         let runtime = get_runtime(py)?;
         py.allow_threads(|| {
             let bytes = runtime.block_on(get_result.bytes())?;
-            Ok::<_, PyObjectStoreError>(PyBytesWrapper::new(bytes))
+            Ok::<_, PyObjectStoreError>(PyBytes::new(bytes))
         })
     }
 
@@ -152,7 +153,7 @@ impl PyGetResult {
                 .bytes()
                 .await
                 .map_err(PyObjectStoreError::ObjectStoreError)?;
-            Ok(PyBytesWrapper::new(bytes))
+            Ok(PyBytes::new(bytes))
         })
     }
 
@@ -228,11 +229,12 @@ async fn next_stream(
 ) -> PyResult<PyBytesWrapper> {
     let mut stream = stream.lock().await;
     let mut buffers: Vec<Bytes> = vec![];
+    let mut total_buffer_len = 0;
     loop {
         match stream.next().await {
             Some(Ok(bytes)) => {
+                total_buffer_len += bytes.len();
                 buffers.push(bytes);
-                let total_buffer_len = buffers.iter().fold(0, |acc, buf| acc + buf.len());
                 if total_buffer_len >= min_chunk_size {
                     return Ok(PyBytesWrapper::new_multiple(buffers));
                 }
@@ -280,14 +282,10 @@ impl PyBytesStream {
     }
 }
 
-pub(crate) struct PyBytesWrapper(Vec<Bytes>);
+struct PyBytesWrapper(Vec<Bytes>);
 
 impl PyBytesWrapper {
-    pub fn new(buf: Bytes) -> Self {
-        Self(vec![buf])
-    }
-
-    pub fn new_multiple(buffers: Vec<Bytes>) -> Self {
+    fn new_multiple(buffers: Vec<Bytes>) -> Self {
         Self(buffers)
     }
 }

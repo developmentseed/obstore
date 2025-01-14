@@ -150,14 +150,16 @@ class GetResult:
         This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
         """
 
-    def bytes(self) -> bytes:
+    def bytes(self) -> Bytes:
         """
-        Collects the data into bytes
+        Collects the data into a `Bytes` object, which implements the Python buffer
+        protocol. You can copy the buffer to Python memory by passing to [`bytes`][].
         """
 
-    async def bytes_async(self) -> bytes:
+    async def bytes_async(self) -> Bytes:
         """
-        Collects the data into bytes
+        Collects the data into a `Bytes` object, which implements the Python buffer
+        protocol. You can copy the buffer to Python memory by passing to [`bytes`][].
         """
 
     @property
