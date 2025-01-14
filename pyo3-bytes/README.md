@@ -52,28 +52,9 @@ For more reading:
 
 ## Python type hints
 
-PyBytes has a small type surface, making it easy to copy the relevant type hint
-into your library.
+On the Python side, the exported `Bytes` class implements many of the same
+methods (with the same signature) as the Python `bytes` object.
 
-```py
-import sys
-
-if sys.version_info >= (3, 12):
-    from collections.abc import Buffer as _Buffer
-else:
-    from typing_extensions import Buffer as _Buffer
-
-class Bytes(_Buffer):
-    """
-    A buffer implementing the Python buffer protocol, allowing zero-copy access
-    to underlying Rust memory.
-
-    You can pass this to `memoryview` for a zero-copy view into the underlying
-    data.
-    """
-
-    def to_bytes(self) -> bytes:
-        """Copy this buffer's contents into a Python `bytes` object."""
-    def __repr__(self) -> str: ...
-    def __len__(self) -> int: ...
-```
+The Python type hints are available in the Github repo in the file `bytes.pyi`.
+I don't know the best way to distribute this to downstream projects. If you have
+an idea, create an issue to discuss.

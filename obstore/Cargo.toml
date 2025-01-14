@@ -28,7 +28,7 @@ object_store = { workspace = true }
 pyo3 = { workspace = true, features = ["chrono"] }
 pyo3-arrow = "0.6"
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
-pyo3-bytes = "0.1.2"
+pyo3-bytes = { path = "../pyo3-bytes" }
 pyo3-file = { workspace = true }
 pyo3-object_store = { path = "../pyo3-object_store" }
 tokio = { workspace = true, features = [

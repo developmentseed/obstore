@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Sequence, Tuple, TypedDict
 
 from ._attributes import Attributes
-from ._buffer import Bytes
+from ._bytes import Bytes
 from ._list import ObjectMeta
 from .store import ObjectStore
 
