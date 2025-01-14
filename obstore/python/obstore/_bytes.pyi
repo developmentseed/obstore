@@ -1,0 +1,1 @@
+../../../pyo3-bytes/bytes.pyi

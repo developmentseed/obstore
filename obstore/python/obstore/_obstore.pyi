@@ -4,11 +4,11 @@ from ._buffered import AsyncReadableFile as AsyncReadableFile
 from ._buffered import ReadableFile as ReadableFile
 from ._buffered import open as open
 from ._buffered import open_async as open_async
+from ._bytes import Bytes as Bytes
 from ._copy import copy as copy
 from ._copy import copy_async as copy_async
 from ._delete import delete as delete
 from ._delete import delete_async as delete_async
-from ._get import Bytes as Bytes
 from ._get import BytesStream as BytesStream
 from ._get import GetOptions as GetOptions
 from ._get import GetResult as GetResult
