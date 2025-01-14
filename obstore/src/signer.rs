@@ -13,6 +13,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
+use pyo3::types::PyString;
 use pyo3_object_store::{
     PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult, PyS3Store,
 };
@@ -130,32 +131,23 @@ impl<'py> FromPyObject<'py> for PyMethod {
 
 pub(crate) struct PyUrl(url::Url);
 
-impl IntoPy<PyObject> for PyUrl {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        String::from(self.0).into_py(py)
+impl<'py> IntoPyObject<'py> for PyUrl {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = std::convert::Infallible;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        String::from(self.0).into_pyobject(py)
     }
 }
 
+#[derive(IntoPyObject)]
 pub(crate) struct PyUrls(Vec<PyUrl>);
 
-impl IntoPy<PyObject> for PyUrls {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        self.0.into_py(py)
-    }
-}
-
+#[derive(IntoPyObject)]
 pub(crate) enum PySignResult {
     One(PyUrl),
     Many(PyUrls),
-}
-
-impl IntoPy<PyObject> for PySignResult {
-    fn into_py(self, py: Python<'_>) -> PyObject {
-        match self {
-            Self::One(url) => url.into_py(py),
-            Self::Many(urls) => urls.into_py(py),
-        }
-    }
 }
 
 #[pyfunction]

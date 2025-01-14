@@ -9,7 +9,7 @@ use crate::retry::PyRetryConfig;
 use crate::PyClientOptions;
 
 /// A Python-facing wrapper around a [`HttpStore`].
-#[pyclass(name = "HTTPStore")]
+#[pyclass(name = "HTTPStore", frozen)]
 pub struct PyHttpStore(Arc<HttpStore>);
 
 impl AsRef<Arc<HttpStore>> for PyHttpStore {

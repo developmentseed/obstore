@@ -13,7 +13,7 @@ use crate::error::{PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around an [`AmazonS3`].
-#[pyclass(name = "S3Store")]
+#[pyclass(name = "S3Store", frozen)]
 pub struct PyS3Store(Arc<AmazonS3>);
 
 impl AsRef<Arc<AmazonS3>> for PyS3Store {

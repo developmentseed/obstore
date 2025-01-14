@@ -10,6 +10,7 @@ mod gcp;
 mod http;
 mod local;
 mod memory;
+mod prefix;
 mod retry;
 mod store;
 
@@ -22,4 +23,5 @@ pub use gcp::PyGCSStore;
 pub use http::PyHttpStore;
 pub use local::PyLocalStore;
 pub use memory::PyMemoryStore;
+pub use prefix::PyPrefixStore;
 pub use store::PyObjectStore;

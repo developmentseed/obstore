@@ -14,7 +14,9 @@ use object_store::{
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
+use pyo3::pybacked::PyBackedStr;
+use pyo3::types::PyDict;
+use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
 
@@ -61,7 +63,7 @@ impl<'py> FromPyObject<'py> for PyUpdateVersion {
 pub(crate) enum PullSource {
     File(BufReader<File>),
     FileLike(PyFileLikeObject),
-    Buffer(Cursor<PyBackedBytes>),
+    Buffer(Cursor<PyBytes>),
 }
 
 impl PullSource {
@@ -76,6 +78,24 @@ impl PullSource {
     /// Whether to use multipart uploads.
     fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
         Ok(self.nbytes()? > chunk_size)
+    }
+}
+
+impl<'py> FromPyObject<'py> for PullSource {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(path) = ob.extract::<PathBuf>() {
+            Ok(Self::File(BufReader::new(File::open(path)?)))
+        } else if let Ok(buffer) = ob.extract::<PyBytes>() {
+            Ok(Self::Buffer(Cursor::new(buffer)))
+        } else {
+            Ok(Self::FileLike(PyFileLikeObject::with_requirements(
+                ob.clone().unbind(),
+                true,
+                false,
+                true,
+                false,
+            )?))
+        }
     }
 }
 
@@ -111,8 +131,8 @@ impl SyncPushSource {
             Self::Iterator(iter) => {
                 Python::with_gil(|py| match iter.call_method0(py, intern!(py, "__next__")) {
                     Ok(item) => {
-                        let buf = item.extract::<PyBackedBytes>(py)?;
-                        Ok(Some(Bytes::from(buf.as_ref().to_vec())))
+                        let buf = item.extract::<PyBytes>(py)?;
+                        Ok(Some(buf.into_inner()))
                     }
                     Err(err) => {
                         if err.is_instance_of::<PyStopIteration>(py) {
@@ -172,8 +192,8 @@ impl AsyncPushSource {
 
                 Python::with_gil(|py| match future_result {
                     Ok(result) => {
-                        let buf = result.extract::<PyBackedBytes>(py)?;
-                        Ok(Some(buf.as_ref().to_vec().into()))
+                        let buf = result.extract::<PyBytes>(py)?;
+                        Ok(Some(buf.into_inner()))
                     }
                     Err(err) => {
                         if err.is_instance_of::<PyStopAsyncIteration>(py) {
@@ -231,13 +251,13 @@ impl<'py> FromPyObject<'py> for PutInput {
             Ok(Self::Pull(PullSource::File(BufReader::new(File::open(
                 path,
             )?))))
-        } else if let Ok(buffer) = ob.extract::<PyBackedBytes>() {
+        } else if let Ok(buffer) = ob.extract::<PyBytes>() {
             Ok(Self::Pull(PullSource::Buffer(Cursor::new(buffer))))
         }
         // Check for file-like object
         else if ob.hasattr(intern!(py, "read"))? && ob.hasattr(intern!(py, "seek"))? {
             Ok(Self::Pull(PullSource::FileLike(
-                PyFileLikeObject::with_requirements(ob.into_py(py), true, false, true, false)?,
+                PyFileLikeObject::with_requirements(ob.clone().unbind(), true, false, true, false)?,
             )))
         }
         // Ensure we check _first_ for an async generator before a sync one
@@ -257,12 +277,16 @@ impl<'py> FromPyObject<'py> for PutInput {
 
 pub(crate) struct PyPutResult(PutResult);
 
-impl IntoPy<PyObject> for PyPutResult {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyPutResult {
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let mut dict = IndexMap::with_capacity(2);
-        dict.insert("e_tag", self.0.e_tag.into_py(py));
-        dict.insert("version", self.0.version.into_py(py));
-        dict.into_py(py)
+        dict.insert("e_tag", self.0.e_tag.into_pyobject(py)?.into_any());
+        dict.insert("version", self.0.version.into_pyobject(py)?.into_any());
+        dict.into_pyobject(py)
     }
 }
 

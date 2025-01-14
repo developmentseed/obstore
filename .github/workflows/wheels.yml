@@ -26,25 +26,30 @@ jobs:
         platform:
           - runner: ubuntu-latest
             target: x86_64
+            manylinux: auto
           - runner: ubuntu-latest
             target: x86
-          # Need to fix ring compilation: https://github.com/briansmith/ring/issues/1414#issuecomment-1055177218
-          # - runner: ubuntu-latest
-          #   target: aarch64
+            manylinux: auto
+          - runner: ubuntu-latest
+            target: aarch64
+            manylinux: "2_28"
           - runner: ubuntu-latest
             target: armv7
+            manylinux: auto
           - runner: ubuntu-latest
             target: s390x
+            manylinux: auto
           - runner: ubuntu-latest
             target: ppc64le
+            manylinux: auto
     steps:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.4.x"
+          version: "0.5.x"
 
       - name: Install Python versions
         run: uv python install 3.9 3.10 3.11 3.12 3.13 pypy3.10
@@ -55,7 +60,7 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
           sccache: "true"
-          manylinux: auto
+          manylinux: ${{ matrix.platform.manylinux }}
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -79,10 +84,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.4.x"
+          version: "0.5.x"
 
       - name: Install Python versions
         run: uv python install 3.9 3.10 3.11 3.12 3.13 pypy3.10
@@ -115,13 +120,13 @@ jobs:
       # Seems to be this question: https://stackoverflow.com/questions/78557803/python-with-rust-cannot-open-input-file-python3-lib
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: 3.13
           architecture: ${{ matrix.platform.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter --manifest-path obstore/Cargo.toml
+          args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -134,7 +139,7 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: macos-12
+          - runner: macos-13
             target: x86_64
           - runner: macos-14
             target: aarch64
@@ -142,10 +147,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.4.x"
+          version: "0.5.x"
 
       - name: Install Python versions
         run: uv python install 3.9 3.10 3.11 3.12 3.13 pypy3.10
@@ -196,7 +201,7 @@ jobs:
           pattern: wheels-*-obstore
           merge-multiple: true
           path: dist
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: 3.9
 

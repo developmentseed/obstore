@@ -1,0 +1,19 @@
+[package]
+name = "pyo3-bytes"
+version = "0.1.2"
+authors = ["Kyle Barron <kyle@developmentseed.org>"]
+edition = "2021"
+description = "bytes integration for pyo3."
+readme = "README.md"
+repository = "https://github.com/developmentseed/obstore"
+license = "MIT OR Apache-2.0"
+keywords = ["python", "pyo3", "buffers", "zero-copy"]
+categories = []
+rust-version = "1.75"
+
+[dependencies]
+bytes = "1.9"
+pyo3 = "0.23"
+
+[lib]
+crate-type = ["rlib"]

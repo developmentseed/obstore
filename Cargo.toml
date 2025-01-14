@@ -7,7 +7,7 @@ members = ["obstore"]
 #
 # But pyo3-object_store gets published to crates.io, which can't have git
 # dependencies.
-exclude = ["pyo3-object_store"]
+exclude = ["pyo3-object_store", "pyo3-bytes"]
 resolver = "2"
 
 [workspace.package]
@@ -27,15 +27,15 @@ futures = "0.3.31"
 http = "1.1"
 indexmap = "2"
 object_store = "0.11"
-pyo3 = { version = "0.22", features = ["macros", "indexmap"] }
-pyo3-async-runtimes = { version = "0.22", features = ["tokio-runtime"] }
-pyo3-file = "0.9"
+pyo3 = { version = "0.23", features = ["macros", "indexmap"] }
+pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
+pyo3-file = "0.10"
 thiserror = "1"
 tokio = "1.40"
 url = "2"
 
 [patch.crates-io]
-object_store = { git = "https://github.com/kylebarron/arrow-rs", branch = "kyle/list-returns-static-stream" }
+object_store = { git = "https://github.com/apache/arrow-rs", rev = "74499c0e7846cfbc498bf9fd7a2c1a4c8731c897" }
 
 [profile.release]
 lto = true

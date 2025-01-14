@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use arrow::buffer::Buffer;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
@@ -9,8 +8,6 @@ use futures::StreamExt;
 use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
-use pyo3_arrow::buffer::PyArrowBuffer;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
@@ -121,20 +118,22 @@ impl<'py> FromPyObject<'py> for PyGetRange {
     }
 }
 
-#[pyclass(name = "GetResult")]
-pub(crate) struct PyGetResult(Option<GetResult>);
+#[pyclass(name = "GetResult", frozen)]
+pub(crate) struct PyGetResult(std::sync::Mutex<Option<GetResult>>);
 
 impl PyGetResult {
     fn new(result: GetResult) -> Self {
-        Self(Some(result))
+        Self(std::sync::Mutex::new(Some(result)))
     }
 }
 
 #[pymethods]
 impl PyGetResult {
-    fn bytes(&mut self, py: Python) -> PyObjectStoreResult<PyBytesWrapper> {
+    fn bytes(&self, py: Python) -> PyObjectStoreResult<PyBytesWrapper> {
         let get_result = self
             .0
+            .lock()
+            .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         let runtime = get_runtime(py)?;
@@ -144,9 +143,11 @@ impl PyGetResult {
         })
     }
 
-    fn bytes_async<'py>(&'py mut self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+    fn bytes_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let get_result = self
             .0
+            .lock()
+            .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -160,8 +161,8 @@ impl PyGetResult {
 
     #[getter]
     fn attributes(&self) -> PyResult<PyAttributes> {
-        let inner = self
-            .0
+        let inner = self.0.lock().unwrap();
+        let inner = inner
             .as_ref()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyAttributes::new(inner.attributes.clone()))
@@ -169,8 +170,8 @@ impl PyGetResult {
 
     #[getter]
     fn meta(&self) -> PyResult<PyObjectMeta> {
-        let inner = self
-            .0
+        let inner = self.0.lock().unwrap();
+        let inner = inner
             .as_ref()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyObjectMeta::new(inner.meta.clone()))
@@ -178,34 +179,37 @@ impl PyGetResult {
 
     #[getter]
     fn range(&self) -> PyResult<(usize, usize)> {
-        let inner = self
-            .0
+        let inner = self.0.lock().unwrap();
+        let range = &inner
             .as_ref()
-            .ok_or(PyValueError::new_err("Result has already been disposed."))?;
-        Ok((inner.range.start, inner.range.end))
+            .ok_or(PyValueError::new_err("Result has already been disposed."))?
+            .range;
+        Ok((range.start, range.end))
     }
 
     #[pyo3(signature = (min_chunk_size = DEFAULT_BYTES_CHUNK_SIZE))]
-    fn stream(&mut self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
+    fn stream(&self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
         let get_result = self
             .0
+            .lock()
+            .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         Ok(PyBytesStream::new(get_result.into_stream(), min_chunk_size))
     }
 
-    fn __aiter__(&mut self) -> PyResult<PyBytesStream> {
+    fn __aiter__(&self) -> PyResult<PyBytesStream> {
         self.stream(DEFAULT_BYTES_CHUNK_SIZE)
     }
 
-    fn __iter__(&mut self) -> PyResult<PyBytesStream> {
+    fn __iter__(&self) -> PyResult<PyBytesStream> {
         self.stream(DEFAULT_BYTES_CHUNK_SIZE)
     }
 }
 
 // Note: we fuse the underlying stream so that we can get `None` multiple times.
 // See the note on PyListStream for more background.
-#[pyclass(name = "BytesStream")]
+#[pyclass(name = "BytesStream", frozen)]
 pub struct PyBytesStream {
     stream: Arc<Mutex<Fuse<BoxStream<'static, object_store::Result<Bytes>>>>>,
     min_chunk_size: usize,
@@ -264,7 +268,7 @@ impl PyBytesStream {
         slf
     }
 
-    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<PyAny>> {
+    fn __anext__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let stream = self.stream.clone();
         pyo3_async_runtimes::tokio::future_into_py(
             py,
@@ -294,12 +298,17 @@ impl PyBytesWrapper {
 // TODO: return buffer protocol object? This isn't possible on an array of Bytes, so if you want to
 // support the buffer protocol in the future (e.g. for get_range) you may need to have a separate
 // wrapper of Bytes
-impl IntoPy<PyObject> for PyBytesWrapper {
-    fn into_py(self, py: Python<'_>) -> PyObject {
+impl<'py> IntoPyObject<'py> for PyBytesWrapper {
+    type Target = pyo3::types::PyBytes;
+    type Output = Bound<'py, Self::Target>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let total_len = self.0.iter().fold(0, |acc, buf| acc + buf.len());
+
         // Copy all internal Bytes objects into a single PyBytes
         // Since our inner callback is infallible, this will only panic on out of memory
-        PyBytes::new_bound_with(py, total_len, |target| {
+        pyo3::types::PyBytes::new_with(py, total_len, |target| {
             let mut offset = 0;
             for buf in self.0.iter() {
                 target[offset..offset + buf.len()].copy_from_slice(buf);
@@ -307,8 +316,6 @@ impl IntoPy<PyObject> for PyBytesWrapper {
             }
             Ok(())
         })
-        .unwrap()
-        .into_py(py)
     }
 }
 
@@ -360,11 +367,11 @@ pub(crate) fn get_range(
     path: String,
     start: usize,
     end: usize,
-) -> PyObjectStoreResult<PyArrowBuffer> {
+) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_range(&path.into(), start..end))?;
-        Ok::<_, PyObjectStoreError>(PyArrowBuffer::new(Buffer::from_bytes(out.into())))
+        Ok::<_, PyObjectStoreError>(pyo3_bytes::PyBytes::new(out))
     })
 }
 
@@ -382,7 +389,7 @@ pub(crate) fn get_range_async(
             .get_range(&path.into(), start..end)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(PyArrowBuffer::new(Buffer::from_bytes(out.into())))
+        Ok(pyo3_bytes::PyBytes::new(out))
     })
 }
 
@@ -393,7 +400,7 @@ pub(crate) fn get_ranges(
     path: String,
     starts: Vec<usize>,
     ends: Vec<usize>,
-) -> PyObjectStoreResult<Vec<PyArrowBuffer>> {
+) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
     let runtime = get_runtime(py)?;
     let ranges = starts
         .into_iter()
@@ -402,11 +409,7 @@ pub(crate) fn get_ranges(
         .collect::<Vec<_>>();
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;
-        Ok::<_, PyObjectStoreError>(
-            out.into_iter()
-                .map(|buf| PyArrowBuffer::new(Buffer::from_bytes(buf.into())))
-                .collect(),
-        )
+        Ok::<_, PyObjectStoreError>(out.into_iter().map(|buf| buf.into()).collect())
     })
 }
 
@@ -431,7 +434,7 @@ pub(crate) fn get_ranges_async(
             .map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(out
             .into_iter()
-            .map(|buf| PyArrowBuffer::new(Buffer::from_bytes(buf.into())))
+            .map(pyo3_bytes::PyBytes::new)
             .collect::<Vec<_>>())
     })
 }

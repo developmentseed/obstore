@@ -12,7 +12,7 @@ use crate::error::{PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around a [`GoogleCloudStorage`].
-#[pyclass(name = "GCSStore")]
+#[pyclass(name = "GCSStore", frozen)]
 pub struct PyGCSStore(Arc<GoogleCloudStorage>);
 
 impl AsRef<Arc<GoogleCloudStorage>> for PyGCSStore {
