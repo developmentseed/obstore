@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Sequence, Tuple, TypedDict
 
 from ._attributes import Attributes
-from ._buffer import Buffer
+from ._buffer import Bytes
 from ._list import ObjectMeta
 from .store import ObjectStore
 
@@ -199,7 +199,30 @@ class GetResult:
         """
 
 class BytesStream:
-    """An async stream of bytes."""
+    """An async stream of bytes.
+
+    !!! note "Request timeouts"
+        The underlying stream needs to stay alive until the last chunk is polled. If the
+        file is large, it may exceed the default timeout of 30 seconds. In this case,
+        you may see an error like:
+
+        ```
+        GenericError: Generic {
+            store: "HTTP",
+            source: reqwest::Error {
+                kind: Decode,
+                source: reqwest::Error {
+                    kind: Body,
+                    source: TimedOut,
+                },
+            },
+        }
+        ```
+
+        To fix this, set the `timeout` parameter in the `client_options` passed to the
+        initial `get` or `get_async` call. See
+        [ClientConfigKey][obstore.store.ClientConfigKey].
+    """
 
     def __aiter__(self) -> BytesStream:
         """Return `Self` as an async iterator."""
@@ -235,7 +258,7 @@ async def get_async(
     Refer to the documentation for [get][obstore.get].
     """
 
-def get_range(store: ObjectStore, path: str, start: int, end: int) -> Buffer:
+def get_range(store: ObjectStore, path: str, start: int, end: int) -> Bytes:
     """
     Return the bytes that are stored at the specified location in the given byte range.
 
@@ -251,13 +274,11 @@ def get_range(store: ObjectStore, path: str, start: int, end: int) -> Buffer:
         end: The end of the byte range (exclusive).
 
     Returns:
-        A `Buffer` object implementing the Python buffer protocol, allowing
+        A `Bytes` object implementing the Python buffer protocol, allowing
             zero-copy access to the underlying memory provided by Rust.
     """
 
-async def get_range_async(
-    store: ObjectStore, path: str, start: int, end: int
-) -> Buffer:
+async def get_range_async(store: ObjectStore, path: str, start: int, end: int) -> Bytes:
     """Call `get_range` asynchronously.
 
     Refer to the documentation for [get_range][obstore.get_range].
@@ -265,7 +286,7 @@ async def get_range_async(
 
 def get_ranges(
     store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
-) -> List[Buffer]:
+) -> List[Bytes]:
     """
     Return the bytes that are stored at the specified location in the given byte ranges
 
@@ -281,14 +302,14 @@ def get_ranges(
         ends: A sequence of `int` where each offset ends (exclusive).
 
     Returns:
-        A sequence of `Buffer`, one for each range. This `Buffer` object implements the
+        A sequence of `Bytes`, one for each range. This `Bytes` object implements the
             Python buffer protocol, allowing zero-copy access to the underlying memory
             provided by Rust.
     """
 
 async def get_ranges_async(
     store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
-) -> List[Buffer]:
+) -> List[Bytes]:
     """Call `get_ranges` asynchronously.
 
     Refer to the documentation for [get_ranges][obstore.get_ranges].

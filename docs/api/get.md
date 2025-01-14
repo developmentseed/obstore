@@ -8,6 +8,7 @@
 ::: obstore.get_ranges_async
 ::: obstore.GetOptions
 ::: obstore.GetResult
-::: obstore.Buffer
+::: obstore.BytesStream
+::: obstore.Bytes
 ::: obstore.OffsetRange
 ::: obstore.SuffixRange

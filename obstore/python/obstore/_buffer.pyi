@@ -5,7 +5,7 @@ if sys.version_info >= (3, 12):
 else:
     from typing_extensions import Buffer as _Buffer
 
-class Buffer(_Buffer):
+class Bytes(_Buffer):
     """
     A buffer implementing the Python buffer protocol, allowing zero-copy access to the
     underlying memory provided by Rust.
@@ -15,4 +15,5 @@ class Buffer(_Buffer):
 
     def to_bytes(self) -> bytes:
         """Copy this buffer into a Python `bytes` object."""
+    def __repr__(self) -> str: ...
     def __len__(self) -> int: ...
