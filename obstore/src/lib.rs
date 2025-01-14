@@ -1,4 +1,3 @@
-use pyo3::intern;
 use pyo3::prelude::*;
 
 mod attributes;
@@ -28,6 +27,7 @@ fn check_debug_build(_py: Python) -> PyResult<()> {
     #[cfg(debug_assertions)]
     {
         use pyo3::exceptions::PyRuntimeWarning;
+        use pyo3::intern;
         use pyo3::types::PyTuple;
 
         let warnings_mod = _py.import(intern!(_py, "warnings"))?;
