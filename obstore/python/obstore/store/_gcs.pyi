@@ -92,6 +92,11 @@ class GCSStore:
 
         - `gs://<bucket>/<path>`
 
+        !!! note
+            Note that `from_url` will not use any additional parts of the path as a
+            bucket prefix. It will only extract the bucket name. If you wish to use a
+            path prefix, consider wrapping this with `PrefixStore`.
+
         Args:
             url: well-known storage URL.
 
