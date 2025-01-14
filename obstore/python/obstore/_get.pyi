@@ -180,7 +180,7 @@ class GetResult:
         Args:
             min_chunk_size: The minimum size in bytes for each chunk in the returned
                 `BytesStream`. All chunks except for the last chunk will be at least
-                this size. Defaults to 10*1024*1024 (10MB).
+                this size. Defaults to 10\\*1024\\*1024 (10MB).
 
         Returns:
             A chunked stream
