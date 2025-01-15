@@ -1551,6 +1551,7 @@ name = "pyo3-object_store"
 version = "0.1.0-beta.1"
 dependencies = [
  "futures",
+ "humantime",
  "object_store",
  "pyo3",
  "pyo3-async-runtimes",

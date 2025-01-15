@@ -223,7 +223,7 @@ class BytesStream:
 
         To fix this, set the `timeout` parameter in the `client_options` passed to the
         initial `get` or `get_async` call. See
-        [ClientConfigKey][obstore.store.ClientConfigKey].
+        [ClientConfig][obstore.store.ClientConfig].
     """
 
     def __aiter__(self) -> BytesStream:
