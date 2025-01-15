@@ -21,6 +21,8 @@ extra:
 
 nav:
   - "index.md"
+  - Examples:
+      - examples/fastapi.md
   - API Reference:
       - obstore.store:
           - api/store/index.md
