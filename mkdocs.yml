@@ -21,6 +21,8 @@ extra:
 
 nav:
   - "index.md"
+  - getting-started.md
+  - cookbook.md
   - Examples:
       - examples/fastapi.md
   - API Reference:
@@ -46,6 +48,7 @@ nav:
       - api/exceptions.md
       - api/file.md
       - obstore.fsspec: api/fsspec.md
+  - CHANGELOG.md
 
 watch:
   - obstore/python
