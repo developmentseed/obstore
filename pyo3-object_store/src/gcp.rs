@@ -8,6 +8,7 @@ use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyType;
 
 use crate::client::PyClientOptions;
+use crate::config::PyConfigValue;
 use crate::error::{PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
@@ -127,7 +128,7 @@ impl<'py> FromPyObject<'py> for PyGoogleConfigKey {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, String>);
+pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyGoogleConfig {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
@@ -138,7 +139,7 @@ impl<'py> FromPyObject<'py> for PyGoogleConfig {
 impl PyGoogleConfig {
     fn apply_config(self, mut builder: GoogleCloudStorageBuilder) -> GoogleCloudStorageBuilder {
         for (key, value) in self.0.into_iter() {
-            builder = builder.with_config(key.0, value);
+            builder = builder.with_config(key.0, value.0);
         }
         builder
     }

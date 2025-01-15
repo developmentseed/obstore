@@ -67,11 +67,10 @@ Additionally, some middlewares exist:
 #### Example
 
 ```py
-import boto3
 from obstore.store import S3Store
 
 session = boto3.Session()
-store = S3Store.from_session(session, "bucket-name", config={"AWS_REGION": "us-east-1"})
+store = S3Store("bucket-name", region="us-east-1")
 ```
 
 #### Configuration

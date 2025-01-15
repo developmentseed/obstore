@@ -21,7 +21,7 @@ class S3Config(TypedDict, total=False):
     """AWS Access Key"""
     aws_access_key_id: str
     """AWS Access Key"""
-    aws_allow_http: str
+    aws_allow_http: bool
     aws_bucket_name: str
     """Bucket name"""
     aws_bucket: str
@@ -32,7 +32,7 @@ class S3Config(TypedDict, total=False):
     aws_copy_if_not_exists: str
     aws_default_region: str
     """Default region"""
-    aws_disable_tagging: str
+    aws_disable_tagging: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
     aws_endpoint_url: str
     """Sets custom endpoint for communicating with AWS S3."""
@@ -44,23 +44,24 @@ class S3Config(TypedDict, total=False):
     """Set the instance metadata endpoint"""
     aws_region: str
     """Region"""
-    aws_request_payer: str
+    aws_request_payer: bool
     """If `True`, enable operations on requester-pays buckets."""
-    aws_s3_express: str
+    aws_s3_express: bool
     """Enable Support for S3 Express One Zone"""
     aws_secret_access_key: str
     """Secret Access Key"""
     aws_server_side_encryption: str
     aws_session_token: str
     """Token to use for requests (passed to underlying provider)"""
-    aws_skip_signature: str
-    aws_sse_bucket_key_enabled: str
+    aws_skip_signature: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests."""
+    aws_sse_bucket_key_enabled: bool
     aws_sse_kms_key_id: str
     aws_token: str
     """Token to use for requests (passed to underlying provider)"""
-    aws_unsigned_payload: str
+    aws_unsigned_payload: bool
     """Avoid computing payload checksum when calculating signature."""
-    aws_virtual_hosted_style_request: str
+    aws_virtual_hosted_style_request: bool
     """If virtual hosted style request has to be used."""
     bucket_name: str
     """Bucket name"""
@@ -69,7 +70,7 @@ class S3Config(TypedDict, total=False):
     copy_if_not_exists: str
     default_region: str
     """Default region"""
-    disable_tagging: str
+    disable_tagging: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
     endpoint_url: str
     """Sets custom endpoint for communicating with AWS S3."""
@@ -81,26 +82,27 @@ class S3Config(TypedDict, total=False):
     """Set the instance metadata endpoint"""
     region: str
     """Region"""
-    request_payer: str
+    request_payer: bool
     """If `True`, enable operations on requester-pays buckets."""
-    s3_express: str
+    s3_express: bool
     """Enable Support for S3 Express One Zone"""
     secret_access_key: str
     """Secret Access Key"""
     session_token: str
     """Token to use for requests (passed to underlying provider)"""
-    skip_signature: str
+    skip_signature: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests."""
     token: str
     """Token to use for requests (passed to underlying provider)"""
-    unsigned_payload: str
+    unsigned_payload: bool
     """Avoid computing payload checksum when calculating signature."""
-    virtual_hosted_style_request: str
+    virtual_hosted_style_request: bool
     """If virtual hosted style request has to be used."""
     ACCESS_KEY_ID: str
     """AWS Access Key"""
     AWS_ACCESS_KEY_ID: str
     """AWS Access Key"""
-    AWS_ALLOW_HTTP: str
+    AWS_ALLOW_HTTP: bool
     AWS_BUCKET_NAME: str
     """Bucket name"""
     AWS_BUCKET: str
@@ -111,7 +113,7 @@ class S3Config(TypedDict, total=False):
     AWS_COPY_IF_NOT_EXISTS: str
     AWS_DEFAULT_REGION: str
     """Default region"""
-    AWS_DISABLE_TAGGING: str
+    AWS_DISABLE_TAGGING: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
     AWS_ENDPOINT_URL: str
     """Sets custom endpoint for communicating with AWS S3."""
@@ -123,7 +125,7 @@ class S3Config(TypedDict, total=False):
     """Set the instance metadata endpoint"""
     AWS_REGION: str
     """Region"""
-    AWS_REQUEST_PAYER: str
+    AWS_REQUEST_PAYER: bool
     """If `True`, enable operations on requester-pays buckets."""
     AWS_S3_EXPRESS: str
     """Enable Support for S3 Express One Zone"""
@@ -132,14 +134,15 @@ class S3Config(TypedDict, total=False):
     AWS_SERVER_SIDE_ENCRYPTION: str
     AWS_SESSION_TOKEN: str
     """Token to use for requests (passed to underlying provider)"""
-    AWS_SKIP_SIGNATURE: str
-    AWS_SSE_BUCKET_KEY_ENABLED: str
+    AWS_SKIP_SIGNATURE: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests."""
+    AWS_SSE_BUCKET_KEY_ENABLED: bool
     AWS_SSE_KMS_KEY_ID: str
     AWS_TOKEN: str
     """Token to use for requests (passed to underlying provider)"""
-    AWS_UNSIGNED_PAYLOAD: str
+    AWS_UNSIGNED_PAYLOAD: bool
     """Avoid computing payload checksum when calculating signature."""
-    AWS_VIRTUAL_HOSTED_STYLE_REQUEST: str
+    AWS_VIRTUAL_HOSTED_STYLE_REQUEST: bool
     """If virtual hosted style request has to be used."""
     BUCKET_NAME: str
     """Bucket name"""
@@ -150,7 +153,7 @@ class S3Config(TypedDict, total=False):
     COPY_IF_NOT_EXISTS: str
     DEFAULT_REGION: str
     """Default region"""
-    DISABLE_TAGGING: str
+    DISABLE_TAGGING: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
     ENDPOINT_URL: str
     """Sets custom endpoint for communicating with AWS S3."""
@@ -162,7 +165,7 @@ class S3Config(TypedDict, total=False):
     """Set the instance metadata endpoint"""
     REGION: str
     """Region"""
-    REQUEST_PAYER: str
+    REQUEST_PAYER: bool
     """If `True`, enable operations on requester-pays buckets."""
     S3_EXPRESS: str
     """Enable Support for S3 Express One Zone"""
@@ -170,12 +173,13 @@ class S3Config(TypedDict, total=False):
     """Secret Access Key"""
     SESSION_TOKEN: str
     """Token to use for requests (passed to underlying provider)"""
-    SKIP_SIGNATURE: str
+    SKIP_SIGNATURE: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests."""
     TOKEN: str
     """Token to use for requests (passed to underlying provider)"""
-    UNSIGNED_PAYLOAD: str
+    UNSIGNED_PAYLOAD: bool
     """Avoid computing payload checksum when calculating signature."""
-    VIRTUAL_HOSTED_STYLE_REQUEST: str
+    VIRTUAL_HOSTED_STYLE_REQUEST: bool
     """If virtual hosted style request has to be used."""
 
 class S3Store:
@@ -187,12 +191,13 @@ class S3Store:
 
     **Using requester-pays buckets**:
 
-    Include `'AWS_REQUESTER_PAYS': True` as an element in the `config`. Or, if you're
-    using `S3Store.from_env`, have `AWS_REQUESTER_PAYS=True` set in the environment.
+    Pass `request_payer=True` as a keyword argument. Or, if you're using
+    `S3Store.from_env`, have `AWS_REQUESTER_PAYS=True` set in the environment.
 
     **Anonymous requests**:
 
-    Pass `skip_signature=True` as a keyword argument.
+    Pass `skip_signature=True` as a keyword argument. Or, if you're using
+    `S3Store.from_env`, have `AWS_SKIP_SIGNATURE=True` set in the environment.
     """
 
     def __init__(
@@ -226,6 +231,7 @@ class S3Store:
         config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[S3Config],
     ) -> S3Store:
         """Construct a new S3Store with regular AWS environment variables
 
@@ -265,13 +271,16 @@ class S3Store:
         config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[S3Config],
     ) -> S3Store:
         """Construct a new S3Store with credentials inferred from a boto3 Session
+
+        This can be useful to read S3 credentials from [disk-based credentials sources](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html).
 
         !!! note
             This is a convenience function for users who are already using `boto3` or
             `botocore`. If you're not already using `boto3` or `botocore`, use other
-            classmethods, which do not need `boto3` or `botocore` to be installed.
+            constructors, which do not need `boto3` or `botocore` to be installed.
 
         Examples:
 
@@ -279,11 +288,7 @@ class S3Store:
         import boto3
 
         session = boto3.Session()
-        store = S3Store.from_session(
-            session,
-            "bucket-name",
-            config={"AWS_REGION": "us-east-1"},
-        )
+        store = S3Store.from_session(session, "bucket-name", region="us-east-1")
         ```
 
         Args:
@@ -306,6 +311,7 @@ class S3Store:
         config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[S3Config],
     ) -> S3Store:
         """
         Parse available connection info from a well-known storage URL.

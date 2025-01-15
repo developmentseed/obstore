@@ -15,3 +15,8 @@ async def test_get_async(s3_store: S3Store):
     resp = await obs.get_async(s3_store, "afile")
     buf = await resp.bytes_async()
     assert buf == b"hello world"
+
+
+def test_construct_store_boolean_config():
+    # Should allow boolean parameter
+    S3Store("bucket", skip_signature=True)

@@ -26,7 +26,7 @@ class AzureConfig(TypedDict, total=False):
     """Service principal client secret for authorizing requests"""
     azure_container_name: str
     """Container name"""
-    azure_disable_tagging: str
+    azure_disable_tagging: bool
     """Disables tagging objects"""
     azure_endpoint: str
     """Override the endpoint used to communicate with blob storage"""
@@ -40,7 +40,7 @@ class AzureConfig(TypedDict, total=False):
     """Msi resource id for use with managed identity authentication"""
     azure_object_id: str
     """Object id for use with managed identity authentication"""
-    azure_skip_signature: str
+    azure_skip_signature: bool
     """Skip signing requests"""
     azure_storage_access_key: str
     """Master key for accessing storage account"""
@@ -76,13 +76,13 @@ class AzureConfig(TypedDict, total=False):
     """Tenant id used in oauth flows"""
     azure_storage_token: str
     """Bearer token"""
-    azure_storage_use_emulator: str
+    azure_storage_use_emulator: bool
     """Use object store with azurite storage emulator"""
     azure_tenant_id: str
     """Tenant id used in oauth flows"""
-    azure_use_azure_cli: str
+    azure_use_azure_cli: bool
     """Use azure cli for acquiring access token"""
-    azure_use_fabric_endpoint: str
+    azure_use_fabric_endpoint: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
     bearer_token: str
     """Bearer token"""
@@ -92,7 +92,7 @@ class AzureConfig(TypedDict, total=False):
     """Service principal client secret for authorizing requests"""
     container_name: str
     """Container name"""
-    disable_tagging: str
+    disable_tagging: bool
     """Disables tagging objects"""
     endpoint: str
     """Override the endpoint used to communicate with blob storage"""
@@ -122,17 +122,17 @@ class AzureConfig(TypedDict, total=False):
     The signature is expected to be percent-encoded, `much `like they are provided in
     the azure storage explorer or azure portal.
     """
-    skip_signature: str
+    skip_signature: bool
     """Skip signing requests"""
     tenant_id: str
     """Tenant id used in oauth flows"""
     token: str
     """Bearer token"""
-    use_azure_cli: str
+    use_azure_cli: bool
     """Use azure cli for acquiring access token"""
-    use_emulator: str
+    use_emulator: bool
     """Use object store with azurite storage emulator"""
-    use_fabric_endpoint: str
+    use_fabric_endpoint: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
     ACCESS_KEY: str
     """Master key for accessing storage account"""
@@ -150,7 +150,7 @@ class AzureConfig(TypedDict, total=False):
     """Service principal client secret for authorizing requests"""
     AZURE_CONTAINER_NAME: str
     """Container name"""
-    AZURE_DISABLE_TAGGING: str
+    AZURE_DISABLE_TAGGING: bool
     """Disables tagging objects"""
     AZURE_ENDPOINT: str
     """Override the endpoint used to communicate with blob storage"""
@@ -164,7 +164,7 @@ class AzureConfig(TypedDict, total=False):
     """Msi resource id for use with managed identity authentication"""
     AZURE_OBJECT_ID: str
     """Object id for use with managed identity authentication"""
-    AZURE_SKIP_SIGNATURE: str
+    AZURE_SKIP_SIGNATURE: bool
     """Skip signing requests"""
     AZURE_STORAGE_ACCESS_KEY: str
     """Master key for accessing storage account"""
@@ -200,13 +200,13 @@ class AzureConfig(TypedDict, total=False):
     """Tenant id used in oauth flows"""
     AZURE_STORAGE_TOKEN: str
     """Bearer token"""
-    AZURE_STORAGE_USE_EMULATOR: str
+    AZURE_STORAGE_USE_EMULATOR: bool
     """Use object store with azurite storage emulator"""
     AZURE_TENANT_ID: str
     """Tenant id used in oauth flows"""
-    AZURE_USE_AZURE_CLI: str
+    AZURE_USE_AZURE_CLI: bool
     """Use azure cli for acquiring access token"""
-    AZURE_USE_FABRIC_ENDPOINT: str
+    AZURE_USE_FABRIC_ENDPOINT: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
     BEARER_TOKEN: str
     """Bearer token"""
@@ -216,7 +216,7 @@ class AzureConfig(TypedDict, total=False):
     """Service principal client secret for authorizing requests"""
     CONTAINER_NAME: str
     """Container name"""
-    DISABLE_TAGGING: str
+    DISABLE_TAGGING: bool
     """Disables tagging objects"""
     ENDPOINT: str
     """Override the endpoint used to communicate with blob storage"""
@@ -246,17 +246,17 @@ class AzureConfig(TypedDict, total=False):
     The signature is expected to be percent-encoded, `much `like they are provided in
     the azure storage explorer or azure portal.
     """
-    SKIP_SIGNATURE: str
+    SKIP_SIGNATURE: bool
     """Skip signing requests"""
     TENANT_ID: str
     """Tenant id used in oauth flows"""
     TOKEN: str
     """Bearer token"""
-    USE_AZURE_CLI: str
+    USE_AZURE_CLI: bool
     """Use azure cli for acquiring access token"""
-    USE_EMULATOR: str
+    USE_EMULATOR: bool
     """Use object store with azurite storage emulator"""
-    USE_FABRIC_ENDPOINT: str
+    USE_FABRIC_ENDPOINT: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
 
 class AzureStore:

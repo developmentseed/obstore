@@ -8,6 +8,7 @@ use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyType;
 
 use crate::client::PyClientOptions;
+use crate::config::PyConfigValue;
 use crate::error::{PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
@@ -127,7 +128,7 @@ impl<'py> FromPyObject<'py> for PyAzureConfigKey {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct PyAzureConfig(HashMap<PyAzureConfigKey, String>);
+pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyAzureConfig {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
@@ -138,7 +139,7 @@ impl<'py> FromPyObject<'py> for PyAzureConfig {
 impl PyAzureConfig {
     fn apply_config(self, mut builder: MicrosoftAzureBuilder) -> MicrosoftAzureBuilder {
         for (key, value) in self.0.into_iter() {
-            builder = builder.with_config(key.0, value);
+            builder = builder.with_config(key.0, value.0);
         }
         builder
     }

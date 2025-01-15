@@ -5,6 +5,7 @@ mod api;
 mod aws;
 mod azure;
 mod client;
+mod config;
 pub(crate) mod error;
 mod gcp;
 mod http;

@@ -5,6 +5,7 @@ use object_store::{ClientConfigKey, ClientOptions};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 
+use crate::config::PyConfigValue;
 use crate::error::PyObjectStoreError;
 
 /// A wrapper around `ClientConfigKey` that implements [`FromPyObject`].
@@ -19,32 +20,16 @@ impl<'py> FromPyObject<'py> for PyClientConfigKey {
     }
 }
 
-/// A wrapper around `String` used to store values for the ClientConfig. This allows Python `True`
-/// and `False` as well as `str`. A Python `True` becomes `"true"` and a Python `False` becomes
-/// `"false"`.
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct PyClientConfigValue(String);
-
-impl<'py> FromPyObject<'py> for PyClientConfigValue {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(val) = ob.extract::<bool>() {
-            Ok(Self(val.to_string()))
-        } else {
-            Ok(Self(ob.extract()?))
-        }
-    }
-}
-
 /// A wrapper around `ClientOptions` that implements [`FromPyObject`].
 #[derive(Debug)]
 pub struct PyClientOptions(ClientOptions);
 
 impl<'py> FromPyObject<'py> for PyClientOptions {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let py_input = ob.extract::<HashMap<PyClientConfigKey, String>>()?;
+        let py_input = ob.extract::<HashMap<PyClientConfigKey, PyConfigValue>>()?;
         let mut options = ClientOptions::new();
         for (key, value) in py_input.into_iter() {
-            options = options.with_config(key.0, value);
+            options = options.with_config(key.0, value.0);
         }
         Ok(Self(options))
     }
