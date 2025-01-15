@@ -83,6 +83,24 @@ def put(
     entirety of `file` to `location`, or fail. No clients should be able to observe a
     partially written object.
 
+    !!! warning "Aborted multipart uploads"
+        This function will automatically use [multipart
+        uploads](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)
+        under the hood for large file objects (whenever the length of the file is
+        greater than `chunk_size`) or for iterable or async iterable input.
+
+        Multipart uploads have a variety of advantages, including performance and
+        reliability.
+
+        However, aborted or incomplete multipart uploads can leave partial content in a
+        hidden state in your bucket, silently adding to your storage costs. It's
+        recommended to configure lifecycle rules to automatically delete aborted
+        multipart uploads. See
+        [here](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpu-abort-incomplete-mpu-lifecycle-config.html)
+        for the AWS S3 documentation, for example.
+
+        You can turn off multipart uploads by passing `use_multipart=False`.
+
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore for where to save the file.

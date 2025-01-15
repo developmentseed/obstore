@@ -139,6 +139,28 @@ Either lower case or upper case strings are accepted.
 class AzureStore:
     """Configure a connection to Microsoft Azure Blob Storage container using the specified credentials."""
 
+    def __init__(
+        self,
+        container: str,
+        *,
+        config: Dict[AzureConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        retry_config: RetryConfig | None = None,
+    ) -> None:
+        """Construct a new AzureStore.
+
+        Args:
+            container: _description_
+
+        Keyword Args:
+            config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
+            client_options: HTTP Client options. Defaults to None.
+            retry_config: Retry configuration. Defaults to None.
+
+        Returns:
+            AzureStore
+        """
+
     @classmethod
     def from_env(
         cls,
