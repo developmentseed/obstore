@@ -28,6 +28,9 @@ dev-dependencies = [
     "ruff>=0.8.4"
 ]
 
+[tool.uv.workspace]
+members = ["examples/fastapi-example"]
+
 [tool.ruff]
 select = [
     # Pyflakes

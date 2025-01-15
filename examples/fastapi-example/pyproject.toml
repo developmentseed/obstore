@@ -1,0 +1,11 @@
+[project]
+name = "fastapi-example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["fastapi[standard]>=0.115.6", "obstore"]
+
+# TODO: remove this; use published obstore
+[tool.uv.sources]
+obstore = { path = "../../obstore" }
