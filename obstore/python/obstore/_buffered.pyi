@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-from ._buffer import Buffer
+from ._bytes import Buffer
 from .store import ObjectStore
 
 def open(store: ObjectStore, path: str) -> ReadableFile:
@@ -18,7 +18,7 @@ def open(store: ObjectStore, path: str) -> ReadableFile:
 async def open_async(store: ObjectStore, path: str) -> AsyncReadableFile:
     """Call `open` asynchronously, returning a file object with asynchronous operations.
 
-    Refer to the documentation for [open][object_store_rs.open].
+    Refer to the documentation for [open][obstore.open].
     """
 
 class ReadableFile:

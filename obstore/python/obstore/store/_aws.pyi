@@ -137,10 +137,32 @@ class S3Store:
     using `S3Store.from_env`, have `AWS_REQUESTER_PAYS=True` set in the environment.
     """
 
+    def __init__(
+        self,
+        bucket: str,
+        *,
+        config: Dict[S3ConfigKey | str, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        retry_config: RetryConfig | None = None,
+    ) -> None:
+        """Create a new S3Store
+
+        Args:
+            bucket: The AWS bucket to use.
+
+        Keyword Args:
+            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
+            client_options: HTTP Client options. Defaults to None.
+            retry_config: Retry configuration. Defaults to None.
+
+        Returns:
+            S3Store
+        """
+
     @classmethod
     def from_env(
         cls,
-        bucket: str,
+        bucket: str | None = None,
         *,
         config: Dict[S3ConfigKey | str, str] | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,

@@ -30,6 +30,30 @@ impl PyAzureStore {
 
 #[pymethods]
 impl PyAzureStore {
+    // Create from parameters
+    #[new]
+    #[pyo3(signature = (container, *, config=None, client_options=None, retry_config=None))]
+    fn new(
+        container: String,
+        config: Option<HashMap<PyAzureConfigKey, String>>,
+        client_options: Option<PyClientOptions>,
+        retry_config: Option<PyRetryConfig>,
+    ) -> PyObjectStoreResult<Self> {
+        let mut builder = MicrosoftAzureBuilder::new().with_container_name(container);
+        if let Some(config) = config {
+            for (key, value) in config.into_iter() {
+                builder = builder.with_config(key.0, value);
+            }
+        }
+        if let Some(client_options) = client_options {
+            builder = builder.with_client_options(client_options.into())
+        }
+        if let Some(retry_config) = retry_config {
+            builder = builder.with_retry(retry_config.into())
+        }
+        Ok(Self(Arc::new(builder.build()?)))
+    }
+
     // Create from env variables
     #[classmethod]
     #[pyo3(signature = (container, *, config=None, client_options=None, retry_config=None))]

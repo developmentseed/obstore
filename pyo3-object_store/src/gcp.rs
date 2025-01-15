@@ -30,6 +30,30 @@ impl PyGCSStore {
 
 #[pymethods]
 impl PyGCSStore {
+    // Create from parameters
+    #[new]
+    #[pyo3(signature = (bucket, *, config=None, client_options=None, retry_config=None))]
+    fn new(
+        bucket: String,
+        config: Option<HashMap<PyGoogleConfigKey, String>>,
+        client_options: Option<PyClientOptions>,
+        retry_config: Option<PyRetryConfig>,
+    ) -> PyObjectStoreResult<Self> {
+        let mut builder = GoogleCloudStorageBuilder::new().with_bucket_name(bucket);
+        if let Some(config) = config {
+            for (key, value) in config.into_iter() {
+                builder = builder.with_config(key.0, value);
+            }
+        }
+        if let Some(client_options) = client_options {
+            builder = builder.with_client_options(client_options.into())
+        }
+        if let Some(retry_config) = retry_config {
+            builder = builder.with_retry(retry_config.into())
+        }
+        Ok(Self(Arc::new(builder.build()?)))
+    }
+
     // Create from env variables
     #[classmethod]
     #[pyo3(signature = (bucket, *, config=None, client_options=None, retry_config=None))]

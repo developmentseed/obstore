@@ -45,6 +45,28 @@ class GCSStore:
     [here](https://cloud.google.com/docs/authentication/application-default-credentials).
     """
 
+    def __init__(
+        self,
+        bucket: str,
+        *,
+        config: Dict[GCSConfigKey, str] | None = None,
+        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        retry_config: RetryConfig | None = None,
+    ) -> None:
+        """Construct a new GCSStore.
+
+        Args:
+            bucket: The GCS bucket to use.
+
+        Keyword Args:
+            config: GCS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
+            client_options: HTTP Client options. Defaults to None.
+            retry_config: Retry configuration. Defaults to None.
+
+        Returns:
+            GCSStore
+        """
+
     @classmethod
     def from_env(
         cls,

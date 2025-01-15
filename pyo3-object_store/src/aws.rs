@@ -31,17 +31,44 @@ impl PyS3Store {
 
 #[pymethods]
 impl PyS3Store {
-    // Create from env variables
-    #[classmethod]
+    // Create from parameters
+    #[new]
     #[pyo3(signature = (bucket, *, config=None, client_options=None, retry_config=None))]
-    fn from_env(
-        _cls: &Bound<PyType>,
+    fn new(
         bucket: String,
         config: Option<HashMap<PyAmazonS3ConfigKey, String>>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
     ) -> PyObjectStoreResult<Self> {
-        let mut builder = AmazonS3Builder::from_env().with_bucket_name(bucket);
+        let mut builder = AmazonS3Builder::new().with_bucket_name(bucket);
+        if let Some(config) = config {
+            for (key, value) in config.into_iter() {
+                builder = builder.with_config(key.0, value);
+            }
+        }
+        if let Some(client_options) = client_options {
+            builder = builder.with_client_options(client_options.into())
+        }
+        if let Some(retry_config) = retry_config {
+            builder = builder.with_retry(retry_config.into())
+        }
+        Ok(Self(Arc::new(builder.build()?)))
+    }
+
+    // Create from env variables
+    #[classmethod]
+    #[pyo3(signature = (bucket=None, *, config=None, client_options=None, retry_config=None))]
+    fn from_env(
+        _cls: &Bound<PyType>,
+        bucket: Option<String>,
+        config: Option<HashMap<PyAmazonS3ConfigKey, String>>,
+        client_options: Option<PyClientOptions>,
+        retry_config: Option<PyRetryConfig>,
+    ) -> PyObjectStoreResult<Self> {
+        let mut builder = AmazonS3Builder::from_env();
+        if let Some(bucket) = bucket {
+            builder = builder.with_bucket_name(bucket);
+        }
         if let Some(config) = config {
             for (key, value) in config.into_iter() {
                 builder = builder.with_config(key.0, value);
