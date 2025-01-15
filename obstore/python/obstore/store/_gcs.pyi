@@ -1,6 +1,6 @@
-from typing import Dict, TypedDict, Unpack
+from typing import TypedDict, Unpack
 
-from ._client import ClientConfigKey
+from ._client import ClientConfig
 from ._retry import RetryConfig
 
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
@@ -72,7 +72,7 @@ class GCSStore:
         bucket: str,
         *,
         config: GCSConfig | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[GCSConfig],
     ) -> None:
@@ -96,7 +96,7 @@ class GCSStore:
         bucket: str,
         *,
         config: GCSConfig | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[GCSConfig],
     ) -> GCSStore:
@@ -129,7 +129,7 @@ class GCSStore:
         url: str,
         *,
         config: GCSConfig | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[GCSConfig],
     ) -> GCSStore:

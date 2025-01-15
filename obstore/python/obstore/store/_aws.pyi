@@ -1,11 +1,11 @@
-from typing import Dict, TypedDict, Unpack
+from typing import TypedDict, Unpack
 
 import boto3
 import boto3.session
 import botocore
 import botocore.session
 
-from ._client import ClientConfigKey
+from ._client import ClientConfig
 from ._retry import RetryConfig
 
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
@@ -205,7 +205,7 @@ class S3Store:
         bucket: str,
         *,
         config: S3Config | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[S3Config],
     ) -> None:
@@ -229,7 +229,7 @@ class S3Store:
         bucket: str | None = None,
         *,
         config: S3Config | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[S3Config],
     ) -> S3Store:
@@ -269,7 +269,7 @@ class S3Store:
         bucket: str,
         *,
         config: S3Config | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[S3Config],
     ) -> S3Store:
@@ -309,7 +309,7 @@ class S3Store:
         url: str,
         *,
         config: S3Config | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[S3Config],
     ) -> S3Store:

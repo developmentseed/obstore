@@ -1,6 +1,4 @@
-from typing import Dict
-
-from ._client import ClientConfigKey
+from ._client import ClientConfig
 from ._retry import RetryConfig
 
 class HTTPStore:
@@ -28,7 +26,7 @@ class HTTPStore:
         cls,
         url: str,
         *,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
     ) -> HTTPStore:
         """Construct a new HTTPStore from a URL

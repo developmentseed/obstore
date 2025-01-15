@@ -1,6 +1,6 @@
-from typing import Dict, TypedDict, Unpack
+from typing import TypedDict, Unpack
 
-from ._client import ClientConfigKey
+from ._client import ClientConfig
 from ._retry import RetryConfig
 
 class AzureConfig(TypedDict, total=False):
@@ -267,7 +267,7 @@ class AzureStore:
         container: str,
         *,
         config: AzureConfig | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[AzureConfig],
     ) -> None:
@@ -291,7 +291,7 @@ class AzureStore:
         container: str,
         *,
         config: AzureConfig | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[AzureConfig],
     ) -> AzureStore:
@@ -324,7 +324,7 @@ class AzureStore:
         url: str,
         *,
         config: AzureConfig | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
+        client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[AzureConfig],
     ) -> AzureStore:

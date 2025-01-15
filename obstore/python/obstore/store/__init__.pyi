@@ -5,7 +5,7 @@ from ._aws import S3Config as S3Config
 from ._aws import S3Store as S3Store
 from ._azure import AzureConfig as AzureConfig
 from ._azure import AzureStore as AzureStore
-from ._client import ClientConfigKey as ClientConfigKey
+from ._client import ClientConfig as ClientConfig
 from ._gcs import GCSConfig as GCSConfig
 from ._gcs import GCSStore as GCSStore
 from ._http import HTTPStore as HTTPStore
