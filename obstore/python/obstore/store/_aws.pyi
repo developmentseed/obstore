@@ -1,4 +1,4 @@
-from typing import Dict, Literal
+from typing import Dict, TypedDict, Unpack
 
 import boto3
 import boto3.session
@@ -8,102 +8,103 @@ import botocore.session
 from ._client import ClientConfigKey
 from ._retry import RetryConfig
 
-S3ConfigKey = Literal[
-    "access_key_id",
-    "aws_access_key_id",
-    "aws_allow_http",
-    "aws_bucket_name",
-    "aws_bucket",
-    "aws_checksum_algorithm",
-    "aws_conditional_put",
-    "aws_container_credentials_relative_uri",
-    "aws_copy_if_not_exists",
-    "aws_default_region",
-    "aws_disable_tagging",
-    "aws_endpoint_url",
-    "aws_endpoint",
-    "aws_imdsv1_fallback",
-    "aws_metadata_endpoint",
-    "aws_region",
-    "aws_request_payer",
-    "aws_s3_express",
-    "aws_secret_access_key",
-    "aws_server_side_encryption",
-    "aws_session_token",
-    "aws_skip_signature",
-    "aws_sse_bucket_key_enabled",
-    "aws_sse_kms_key_id",
-    "aws_token",
-    "aws_unsigned_payload",
-    "aws_virtual_hosted_style_request",
-    "bucket_name",
-    "bucket",
-    "checksum_algorithm",
-    "conditional_put",
-    "copy_if_not_exists",
-    "default_region",
-    "disable_tagging",
-    "endpoint_url",
-    "endpoint",
-    "imdsv1_fallback",
-    "metadata_endpoint",
-    "region",
-    "request_payer",
-    "s3_express",
-    "secret_access_key",
-    "session_token",
-    "skip_signature",
-    "token",
-    "unsigned_payload",
-    "virtual_hosted_style_request",
-    "ACCESS_KEY_ID",
-    "AWS_ACCESS_KEY_ID",
-    "AWS_ALLOW_HTTP",
-    "AWS_BUCKET_NAME",
-    "AWS_BUCKET",
-    "AWS_CHECKSUM_ALGORITHM",
-    "AWS_CONDITIONAL_PUT",
-    "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI",
-    "AWS_COPY_IF_NOT_EXISTS",
-    "AWS_DEFAULT_REGION",
-    "AWS_DISABLE_TAGGING",
-    "AWS_ENDPOINT_URL",
-    "AWS_ENDPOINT",
-    "AWS_IMDSV1_FALLBACK",
-    "AWS_METADATA_ENDPOINT",
-    "AWS_REGION",
-    "AWS_REQUEST_PAYER",
-    "AWS_S3_EXPRESS",
-    "AWS_SECRET_ACCESS_KEY",
-    "AWS_SERVER_SIDE_ENCRYPTION",
-    "AWS_SESSION_TOKEN",
-    "AWS_SKIP_SIGNATURE",
-    "AWS_SSE_BUCKET_KEY_ENABLED",
-    "AWS_SSE_KMS_KEY_ID",
-    "AWS_TOKEN",
-    "AWS_UNSIGNED_PAYLOAD",
-    "AWS_VIRTUAL_HOSTED_STYLE_REQUEST",
-    "BUCKET_NAME",
-    "BUCKET",
-    "CHECKSUM_ALGORITHM",
-    "CONDITIONAL_PUT",
-    "COPY_IF_NOT_EXISTS",
-    "DEFAULT_REGION",
-    "DISABLE_TAGGING",
-    "ENDPOINT_URL",
-    "ENDPOINT",
-    "IMDSV1_FALLBACK",
-    "METADATA_ENDPOINT",
-    "REGION",
-    "REQUEST_PAYER",
-    "S3_EXPRESS",
-    "SECRET_ACCESS_KEY",
-    "SESSION_TOKEN",
-    "SKIP_SIGNATURE",
-    "TOKEN",
-    "UNSIGNED_PAYLOAD",
-    "VIRTUAL_HOSTED_STYLE_REQUEST",
-]
+# Note: we removed `bucket` because it overlaps with an existing named arg in the
+# constructors
+class S3Config(TypedDict, total=False):
+    access_key_id: str
+    aws_access_key_id: str
+    aws_allow_http: str
+    aws_bucket_name: str
+    aws_bucket: str
+    aws_checksum_algorithm: str
+    aws_conditional_put: str
+    aws_container_credentials_relative_uri: str
+    aws_copy_if_not_exists: str
+    aws_default_region: str
+    aws_disable_tagging: str
+    aws_endpoint_url: str
+    aws_endpoint: str
+    aws_imdsv1_fallback: str
+    aws_metadata_endpoint: str
+    aws_region: str
+    aws_request_payer: str
+    aws_s3_express: str
+    aws_secret_access_key: str
+    aws_server_side_encryption: str
+    aws_session_token: str
+    aws_skip_signature: str
+    aws_sse_bucket_key_enabled: str
+    aws_sse_kms_key_id: str
+    aws_token: str
+    aws_unsigned_payload: str
+    aws_virtual_hosted_style_request: str
+    bucket_name: str
+    checksum_algorithm: str
+    conditional_put: str
+    copy_if_not_exists: str
+    default_region: str
+    disable_tagging: str
+    endpoint_url: str
+    endpoint: str
+    imdsv1_fallback: str
+    metadata_endpoint: str
+    region: str
+    request_payer: str
+    s3_express: str
+    secret_access_key: str
+    session_token: str
+    skip_signature: str
+    token: str
+    unsigned_payload: str
+    virtual_hosted_style_request: str
+    ACCESS_KEY_ID: str
+    AWS_ACCESS_KEY_ID: str
+    AWS_ALLOW_HTTP: str
+    AWS_BUCKET_NAME: str
+    AWS_BUCKET: str
+    AWS_CHECKSUM_ALGORITHM: str
+    AWS_CONDITIONAL_PUT: str
+    AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: str
+    AWS_COPY_IF_NOT_EXISTS: str
+    AWS_DEFAULT_REGION: str
+    AWS_DISABLE_TAGGING: str
+    AWS_ENDPOINT_URL: str
+    AWS_ENDPOINT: str
+    AWS_IMDSV1_FALLBACK: str
+    AWS_METADATA_ENDPOINT: str
+    AWS_REGION: str
+    AWS_REQUEST_PAYER: str
+    AWS_S3_EXPRESS: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_SERVER_SIDE_ENCRYPTION: str
+    AWS_SESSION_TOKEN: str
+    AWS_SKIP_SIGNATURE: str
+    AWS_SSE_BUCKET_KEY_ENABLED: str
+    AWS_SSE_KMS_KEY_ID: str
+    AWS_TOKEN: str
+    AWS_UNSIGNED_PAYLOAD: str
+    AWS_VIRTUAL_HOSTED_STYLE_REQUEST: str
+    BUCKET_NAME: str
+    BUCKET: str
+    CHECKSUM_ALGORITHM: str
+    CONDITIONAL_PUT: str
+    COPY_IF_NOT_EXISTS: str
+    DEFAULT_REGION: str
+    DISABLE_TAGGING: str
+    ENDPOINT_URL: str
+    ENDPOINT: str
+    IMDSV1_FALLBACK: str
+    METADATA_ENDPOINT: str
+    REGION: str
+    REQUEST_PAYER: str
+    S3_EXPRESS: str
+    SECRET_ACCESS_KEY: str
+    SESSION_TOKEN: str
+    SKIP_SIGNATURE: str
+    TOKEN: str
+    UNSIGNED_PAYLOAD: str
+    VIRTUAL_HOSTED_STYLE_REQUEST: str
+
 """Valid AWS S3 configuration keys.
 
 Either lower case or upper case strings are accepted.
@@ -141,9 +142,10 @@ class S3Store:
         self,
         bucket: str,
         *,
-        config: Dict[S3ConfigKey | str, str] | None = None,
+        config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[S3Config],
     ) -> None:
         """Create a new S3Store
 
@@ -164,9 +166,10 @@ class S3Store:
         cls,
         bucket: str,
         *,
-        config: Dict[S3ConfigKey | str, str] | None = None,
+        config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[S3Config],
     ) -> S3Store:
         """Construct a new anonymous S3Store.
 
@@ -187,7 +190,7 @@ class S3Store:
         cls,
         bucket: str | None = None,
         *,
-        config: Dict[S3ConfigKey | str, str] | None = None,
+        config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> S3Store:
@@ -226,7 +229,7 @@ class S3Store:
         session: boto3.session.Session | botocore.session.Session,
         bucket: str,
         *,
-        config: Dict[S3ConfigKey | str, str] | None = None,
+        config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> S3Store:
@@ -267,7 +270,7 @@ class S3Store:
         cls,
         url: str,
         *,
-        config: Dict[S3ConfigKey | str, str] | None = None,
+        config: S3Config | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
     ) -> S3Store:

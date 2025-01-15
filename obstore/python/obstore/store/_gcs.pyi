@@ -1,32 +1,33 @@
-from typing import Dict, Literal
+from typing import Dict, TypedDict, Unpack
 
 from ._client import ClientConfigKey
 from ._retry import RetryConfig
 
-GCSConfigKey = Literal[
-    "bucket_name",
-    "bucket",
-    "google_application_credentials",
-    "google_bucket_name",
-    "google_bucket",
-    "google_service_account_key",
-    "google_service_account_path",
-    "google_service_account",
-    "service_account_key",
-    "service_account_path",
-    "service_account",
-    "BUCKET_NAME",
-    "BUCKET",
-    "GOOGLE_APPLICATION_CREDENTIALS",
-    "GOOGLE_BUCKET_NAME",
-    "GOOGLE_BUCKET",
-    "GOOGLE_SERVICE_ACCOUNT_KEY",
-    "GOOGLE_SERVICE_ACCOUNT_PATH",
-    "GOOGLE_SERVICE_ACCOUNT",
-    "SERVICE_ACCOUNT_KEY",
-    "SERVICE_ACCOUNT_PATH",
-    "SERVICE_ACCOUNT",
-]
+# Note: we removed `bucket` because it overlaps with an existing named arg in the
+# constructors
+class GCSConfig(TypedDict, total=False):
+    bucket_name: str
+    google_application_credentials: str
+    google_bucket_name: str
+    google_bucket: str
+    google_service_account_key: str
+    google_service_account_path: str
+    google_service_account: str
+    service_account_key: str
+    service_account_path: str
+    service_account: str
+    BUCKET_NAME: str
+    BUCKET: str
+    GOOGLE_APPLICATION_CREDENTIALS: str
+    GOOGLE_BUCKET_NAME: str
+    GOOGLE_BUCKET: str
+    GOOGLE_SERVICE_ACCOUNT_KEY: str
+    GOOGLE_SERVICE_ACCOUNT_PATH: str
+    GOOGLE_SERVICE_ACCOUNT: str
+    SERVICE_ACCOUNT_KEY: str
+    SERVICE_ACCOUNT_PATH: str
+    SERVICE_ACCOUNT: str
+
 """Valid Google Cloud Storage configuration keys
 
 Either lower case or upper case strings are accepted.
@@ -49,9 +50,10 @@ class GCSStore:
         self,
         bucket: str,
         *,
-        config: Dict[GCSConfigKey, str] | None = None,
+        config: GCSConfig | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[GCSConfig],
     ) -> None:
         """Construct a new GCSStore.
 
@@ -72,9 +74,10 @@ class GCSStore:
         cls,
         bucket: str,
         *,
-        config: Dict[GCSConfigKey, str] | None = None,
+        config: GCSConfig | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[GCSConfig],
     ) -> GCSStore:
         """Construct a new GCSStore with values pre-populated from environment variables.
 
@@ -104,9 +107,10 @@ class GCSStore:
         cls,
         url: str,
         *,
-        config: Dict[GCSConfigKey, str] | None = None,
+        config: GCSConfig | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[GCSConfig],
     ) -> GCSStore:
         """Construct a new GCSStore with values populated from a well-known storage URL.
 

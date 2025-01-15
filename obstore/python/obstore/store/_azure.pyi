@@ -1,114 +1,114 @@
-from typing import Dict, Literal
+from typing import Dict, TypedDict, Unpack
 
 from ._client import ClientConfigKey
 from ._retry import RetryConfig
 
-AzureConfigKey = Literal[
-    "access_key",
-    "account_key",
-    "account_name",
-    "authority_id",
-    "azure_authority_id",
-    "azure_client_id",
-    "azure_client_secret",
-    "azure_container_name",
-    "azure_disable_tagging",
-    "azure_endpoint",
-    "azure_federated_token_file",
-    "azure_identity_endpoint",
-    "azure_msi_endpoint",
-    "azure_msi_resource_id",
-    "azure_object_id",
-    "azure_skip_signature",
-    "azure_storage_access_key",
-    "azure_storage_account_key",
-    "azure_storage_account_name",
-    "azure_storage_authority_id",
-    "azure_storage_client_id",
-    "azure_storage_client_secret",
-    "azure_storage_endpoint",
-    "azure_storage_master_key",
-    "azure_storage_sas_key",
-    "azure_storage_sas_token",
-    "azure_storage_tenant_id",
-    "azure_storage_token",
-    "azure_storage_use_emulator",
-    "azure_tenant_id",
-    "azure_use_azure_cli",
-    "azure_use_fabric_endpoint",
-    "bearer_token",
-    "client_id",
-    "client_secret",
-    "container_name",
-    "disable_tagging",
-    "endpoint",
-    "federated_token_file",
-    "identity_endpoint",
-    "master_key",
-    "msi_endpoint",
-    "msi_resource_id",
-    "object_id",
-    "sas_key",
-    "sas_token",
-    "skip_signature",
-    "tenant_id",
-    "token",
-    "use_azure_cli",
-    "use_emulator",
-    "use_fabric_endpoint",
-    "ACCESS_KEY",
-    "ACCOUNT_KEY",
-    "ACCOUNT_NAME",
-    "AUTHORITY_ID",
-    "AZURE_AUTHORITY_ID",
-    "AZURE_CLIENT_ID",
-    "AZURE_CLIENT_SECRET",
-    "AZURE_CONTAINER_NAME",
-    "AZURE_DISABLE_TAGGING",
-    "AZURE_ENDPOINT",
-    "AZURE_FEDERATED_TOKEN_FILE",
-    "AZURE_IDENTITY_ENDPOINT",
-    "AZURE_MSI_ENDPOINT",
-    "AZURE_MSI_RESOURCE_ID",
-    "AZURE_OBJECT_ID",
-    "AZURE_SKIP_SIGNATURE",
-    "AZURE_STORAGE_ACCESS_KEY",
-    "AZURE_STORAGE_ACCOUNT_KEY",
-    "AZURE_STORAGE_ACCOUNT_NAME",
-    "AZURE_STORAGE_AUTHORITY_ID",
-    "AZURE_STORAGE_CLIENT_ID",
-    "AZURE_STORAGE_CLIENT_SECRET",
-    "AZURE_STORAGE_ENDPOINT",
-    "AZURE_STORAGE_MASTER_KEY",
-    "AZURE_STORAGE_SAS_KEY",
-    "AZURE_STORAGE_SAS_TOKEN",
-    "AZURE_STORAGE_TENANT_ID",
-    "AZURE_STORAGE_TOKEN",
-    "AZURE_STORAGE_USE_EMULATOR",
-    "AZURE_TENANT_ID",
-    "AZURE_USE_AZURE_CLI",
-    "AZURE_USE_FABRIC_ENDPOINT",
-    "BEARER_TOKEN",
-    "CLIENT_ID",
-    "CLIENT_SECRET",
-    "CONTAINER_NAME",
-    "DISABLE_TAGGING",
-    "ENDPOINT",
-    "FEDERATED_TOKEN_FILE",
-    "IDENTITY_ENDPOINT",
-    "MASTER_KEY",
-    "MSI_ENDPOINT",
-    "MSI_RESOURCE_ID",
-    "OBJECT_ID",
-    "SAS_KEY",
-    "SAS_TOKEN",
-    "SKIP_SIGNATURE",
-    "TENANT_ID",
-    "TOKEN",
-    "USE_AZURE_CLI",
-    "USE_EMULATOR",
-    "USE_FABRIC_ENDPOINT",
-]
+class AzureConfig(TypedDict, total=False):
+    access_key: str
+    account_key: str
+    account_name: str
+    authority_id: str
+    azure_authority_id: str
+    azure_client_id: str
+    azure_client_secret: str
+    azure_container_name: str
+    azure_disable_tagging: str
+    azure_endpoint: str
+    azure_federated_token_file: str
+    azure_identity_endpoint: str
+    azure_msi_endpoint: str
+    azure_msi_resource_id: str
+    azure_object_id: str
+    azure_skip_signature: str
+    azure_storage_access_key: str
+    azure_storage_account_key: str
+    azure_storage_account_name: str
+    azure_storage_authority_id: str
+    azure_storage_client_id: str
+    azure_storage_client_secret: str
+    azure_storage_endpoint: str
+    azure_storage_master_key: str
+    azure_storage_sas_key: str
+    azure_storage_sas_token: str
+    azure_storage_tenant_id: str
+    azure_storage_token: str
+    azure_storage_use_emulator: str
+    azure_tenant_id: str
+    azure_use_azure_cli: str
+    azure_use_fabric_endpoint: str
+    bearer_token: str
+    client_id: str
+    client_secret: str
+    container_name: str
+    disable_tagging: str
+    endpoint: str
+    federated_token_file: str
+    identity_endpoint: str
+    master_key: str
+    msi_endpoint: str
+    msi_resource_id: str
+    object_id: str
+    sas_key: str
+    sas_token: str
+    skip_signature: str
+    tenant_id: str
+    token: str
+    use_azure_cli: str
+    use_emulator: str
+    use_fabric_endpoint: str
+    ACCESS_KEY: str
+    ACCOUNT_KEY: str
+    ACCOUNT_NAME: str
+    AUTHORITY_ID: str
+    AZURE_AUTHORITY_ID: str
+    AZURE_CLIENT_ID: str
+    AZURE_CLIENT_SECRET: str
+    AZURE_CONTAINER_NAME: str
+    AZURE_DISABLE_TAGGING: str
+    AZURE_ENDPOINT: str
+    AZURE_FEDERATED_TOKEN_FILE: str
+    AZURE_IDENTITY_ENDPOINT: str
+    AZURE_MSI_ENDPOINT: str
+    AZURE_MSI_RESOURCE_ID: str
+    AZURE_OBJECT_ID: str
+    AZURE_SKIP_SIGNATURE: str
+    AZURE_STORAGE_ACCESS_KEY: str
+    AZURE_STORAGE_ACCOUNT_KEY: str
+    AZURE_STORAGE_ACCOUNT_NAME: str
+    AZURE_STORAGE_AUTHORITY_ID: str
+    AZURE_STORAGE_CLIENT_ID: str
+    AZURE_STORAGE_CLIENT_SECRET: str
+    AZURE_STORAGE_ENDPOINT: str
+    AZURE_STORAGE_MASTER_KEY: str
+    AZURE_STORAGE_SAS_KEY: str
+    AZURE_STORAGE_SAS_TOKEN: str
+    AZURE_STORAGE_TENANT_ID: str
+    AZURE_STORAGE_TOKEN: str
+    AZURE_STORAGE_USE_EMULATOR: str
+    AZURE_TENANT_ID: str
+    AZURE_USE_AZURE_CLI: str
+    AZURE_USE_FABRIC_ENDPOINT: str
+    BEARER_TOKEN: str
+    CLIENT_ID: str
+    CLIENT_SECRET: str
+    CONTAINER_NAME: str
+    DISABLE_TAGGING: str
+    ENDPOINT: str
+    FEDERATED_TOKEN_FILE: str
+    IDENTITY_ENDPOINT: str
+    MASTER_KEY: str
+    MSI_ENDPOINT: str
+    MSI_RESOURCE_ID: str
+    OBJECT_ID: str
+    SAS_KEY: str
+    SAS_TOKEN: str
+    SKIP_SIGNATURE: str
+    TENANT_ID: str
+    TOKEN: str
+    USE_AZURE_CLI: str
+    USE_EMULATOR: str
+    USE_FABRIC_ENDPOINT: str
+
 """Valid Azure storage configuration keys
 
 Either lower case or upper case strings are accepted.
@@ -143,9 +143,10 @@ class AzureStore:
         self,
         container: str,
         *,
-        config: Dict[AzureConfigKey, str] | None = None,
+        config: AzureConfig | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[AzureConfig],
     ) -> None:
         """Construct a new AzureStore.
 
@@ -166,9 +167,10 @@ class AzureStore:
         cls,
         container: str,
         *,
-        config: Dict[AzureConfigKey, str] | None = None,
+        config: AzureConfig | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[AzureConfig],
     ) -> AzureStore:
         """Construct a new AzureStore with values pre-populated from environment variables.
 
@@ -198,9 +200,10 @@ class AzureStore:
         cls,
         url: str,
         *,
-        config: Dict[AzureConfigKey, str] | None = None,
+        config: AzureConfig | None = None,
         client_options: Dict[ClientConfigKey, str | bool] | None = None,
         retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[AzureConfig],
     ) -> AzureStore:
         """Construct a new AzureStore with values populated from a well-known storage URL.
 
