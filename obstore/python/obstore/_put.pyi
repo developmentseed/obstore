@@ -101,7 +101,7 @@ def put(
         mode: Configure the `PutMode` for this operation. If this provided and is not `"overwrite"`, a non-multipart upload will be performed. Defaults to `"overwrite"`.
         attributes: Provide a set of `Attributes`. Defaults to `None`.
         tags: Provide tags for this object. Defaults to `None`.
-        use_multipart: Whether to use a multipart upload under the hood. Defaults using a multipart upload if the length of the file is greater than `chunk_size`.
+        use_multipart: Whether to use a multipart upload under the hood. Defaults using a multipart upload if the length of the file is greater than `chunk_size`. When `use_multipart` is `False`, the entire input will be materialized in memory as part of the upload.
         chunk_size: The size of chunks to use within each part of the multipart upload. Defaults to 5 MB.
         max_concurrency: The maximum number of chunks to upload concurrently. Defaults to 12.
     """

@@ -4,7 +4,7 @@ use std::io::{BufReader, Cursor, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use bytes::{Bytes, BytesMut};
+use bytes::Bytes;
 use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{
@@ -149,14 +149,9 @@ impl SyncPushSource {
         }
     }
 
-    fn read_all(&mut self) -> PyObjectStoreResult<Bytes> {
+    fn read_all(self) -> PyObjectStoreResult<PutPayload> {
         let buffers = self.into_iter().collect::<PyObjectStoreResult<Vec<_>>>()?;
-        let capacity = buffers.iter().fold(0, |acc, buf| acc + buf.len());
-        let mut single_buf = BytesMut::with_capacity(capacity);
-        for buf in buffers {
-            single_buf.extend_from_slice(&buf);
-        }
-        Ok(single_buf.into())
+        Ok(PutPayload::from_iter(buffers))
     }
 }
 
@@ -178,10 +173,12 @@ pub(crate) enum AsyncPushSource {
 }
 
 impl AsyncPushSource {
-    async fn read_all(&mut self) -> PyObjectStoreResult<Bytes> {
-        // Note: this code path is never hit because async generator input always uses multipart
-        // uploads. But we should still implement this to flesh out support.
-        todo!()
+    async fn read_all(mut self) -> PyObjectStoreResult<PutPayload> {
+        let mut buffers = vec![];
+        while let Some(buf) = self.next_chunk().await? {
+            buffers.push(buf);
+        }
+        Ok(PutPayload::from_iter(buffers))
     }
 
     async fn next_chunk(&mut self) -> PyObjectStoreResult<Option<Bytes>> {
@@ -239,13 +236,16 @@ impl PutInput {
         }
     }
 
-    async fn read_all(&mut self) -> PyObjectStoreResult<PutPayload> {
+    async fn read_all(self) -> PyObjectStoreResult<PutPayload> {
         match self {
-            Self::Pull(pull_source) => {
-                let mut buf = Vec::new();
-                pull_source.read_to_end(&mut buf)?;
-                Ok(Bytes::from(buf))
-            }
+            Self::Pull(pull_source) => match pull_source {
+                PullSource::Buffer(buffer) => Ok(buffer.into_inner().into_inner().into()),
+                mut source => {
+                    let mut buf = Vec::new();
+                    source.read_to_end(&mut buf)?;
+                    Ok(Bytes::from(buf).into())
+                }
+            },
             Self::SyncPush(push_source) => push_source.read_all(),
             Self::AsyncPush(push_source) => push_source.read_all().await,
         }
@@ -415,7 +415,7 @@ pub(crate) fn put_async(
 async fn put_inner(
     store: Arc<dyn ObjectStore>,
     path: &Path,
-    mut reader: PutInput,
+    reader: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
