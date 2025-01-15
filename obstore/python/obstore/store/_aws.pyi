@@ -136,6 +136,10 @@ class S3Store:
 
     Include `'AWS_REQUESTER_PAYS': True` as an element in the `config`. Or, if you're
     using `S3Store.from_env`, have `AWS_REQUESTER_PAYS=True` set in the environment.
+
+    **Anonymous requests**:
+
+    Pass `skip_signature=True` as a keyword argument.
     """
 
     def __init__(
@@ -148,30 +152,6 @@ class S3Store:
         **kwargs: Unpack[S3Config],
     ) -> None:
         """Create a new S3Store
-
-        Args:
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-
-        Returns:
-            S3Store
-        """
-
-    @classmethod
-    def anon(
-        cls,
-        bucket: str,
-        *,
-        config: S3Config | None = None,
-        client_options: Dict[ClientConfigKey, str | bool] | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
-    ) -> S3Store:
-        """Construct a new anonymous S3Store.
 
         Args:
             bucket: The AWS bucket to use.

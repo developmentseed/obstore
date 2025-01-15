@@ -57,36 +57,6 @@ impl PyS3Store {
         Ok(Self(Arc::new(builder.build()?)))
     }
 
-    // Helper to create anonymous connections
-    #[classmethod]
-    #[pyo3(signature = (bucket, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn anon(
-        _cls: &Bound<PyType>,
-        bucket: String,
-        config: Option<PyAmazonS3Config>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
-        let mut builder = AmazonS3Builder::new()
-            .with_bucket_name(bucket)
-            .with_skip_signature(true);
-
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
-        }
-        if let Some(client_options) = client_options {
-            builder = builder.with_client_options(client_options.into())
-        }
-        if let Some(retry_config) = retry_config {
-            builder = builder.with_retry(retry_config.into())
-        }
-        Ok(Self(Arc::new(builder.build()?)))
-    }
-
     // Create from env variables
     #[classmethod]
     #[pyo3(signature = (bucket=None, *, config=None, client_options=None, retry_config=None, **kwargs))]
