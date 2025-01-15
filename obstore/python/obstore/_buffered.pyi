@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-from ._bytes import Buffer
+from ._bytes import Bytes
 from .store import ObjectStore
 
 def open(store: ObjectStore, path: str) -> ReadableFile:
@@ -22,7 +22,11 @@ async def open_async(store: ObjectStore, path: str) -> AsyncReadableFile:
     """
 
 class ReadableFile:
-    """A readable file object with synchronous operations."""
+    """A readable file object with synchronous operations.
+
+    This implements a similar interface as a generic readable Python binary file-like
+    object.
+    """
 
     def close(self) -> None:
         """Close the current file.
@@ -30,22 +34,22 @@ class ReadableFile:
         This is currently a no-op.
         """
 
-    def read(self, size: int | None = None, /) -> Buffer:
+    def read(self, size: int | None = None, /) -> Bytes:
         """
         Read up to `size` bytes from the object and return them. As a convenience, if
         size is unspecified or `None`, all bytes until EOF are returned.
         """
 
-    def readall(self) -> Buffer:
+    def readall(self) -> Bytes:
         """
         Read and return all the bytes from the stream until EOF, using multiple calls to
         the stream if necessary.
         """
 
-    def readline(self) -> Buffer:
+    def readline(self) -> Bytes:
         """Read a single line of the file, up until the next newline character."""
 
-    def readlines(self, hint: int = -1, /) -> List[Buffer]:
+    def readlines(self, hint: int = -1, /) -> List[Bytes]:
         """Read all remaining lines into a list of buffers"""
 
     def seek(self, offset: int, whence: int = os.SEEK_SET, /) -> int:
@@ -74,22 +78,22 @@ class AsyncReadableFile:
         This is currently a no-op.
         """
 
-    async def read(self, size: int | None = None, /) -> Buffer:
+    async def read(self, size: int | None = None, /) -> Bytes:
         """
         Read up to `size` bytes from the object and return them. As a convenience, if
         size is unspecified or `None`, all bytes until EOF are returned.
         """
 
-    async def readall(self) -> Buffer:
+    async def readall(self) -> Bytes:
         """
         Read and return all the bytes from the stream until EOF, using multiple calls to
         the stream if necessary.
         """
 
-    async def readline(self) -> Buffer:
+    async def readline(self) -> Bytes:
         """Read a single line of the file, up until the next newline character."""
 
-    async def readlines(self, hint: int = -1, /) -> List[Buffer]:
+    async def readlines(self, hint: int = -1, /) -> List[Bytes]:
         """Read all remaining lines into a list of buffers"""
 
     async def seek(self, offset: int, whence: int = os.SEEK_SET, /) -> int:
