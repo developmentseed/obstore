@@ -11,119 +11,172 @@ from ._retry import RetryConfig
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
 # constructors
 class S3Config(TypedDict, total=False):
+    """Configuration parameters for S3Store.
+
+    There are duplicates of many parameters, and parameters can be either upper or lower
+    case. Not all parameters are required.
+    """
+
     access_key_id: str
+    """AWS Access Key"""
     aws_access_key_id: str
+    """AWS Access Key"""
     aws_allow_http: str
     aws_bucket_name: str
+    """Bucket name"""
     aws_bucket: str
+    """Bucket name"""
     aws_checksum_algorithm: str
     aws_conditional_put: str
     aws_container_credentials_relative_uri: str
     aws_copy_if_not_exists: str
     aws_default_region: str
+    """Default region"""
     aws_disable_tagging: str
+    """Disable tagging objects. This can be desirable if not supported by the backing store."""
     aws_endpoint_url: str
+    """Sets custom endpoint for communicating with AWS S3."""
     aws_endpoint: str
+    """Sets custom endpoint for communicating with AWS S3."""
     aws_imdsv1_fallback: str
+    """Fall back to ImdsV1"""
     aws_metadata_endpoint: str
+    """Set the instance metadata endpoint"""
     aws_region: str
+    """Region"""
     aws_request_payer: str
+    """If `True`, enable operations on requester-pays buckets."""
     aws_s3_express: str
+    """Enable Support for S3 Express One Zone"""
     aws_secret_access_key: str
+    """Secret Access Key"""
     aws_server_side_encryption: str
     aws_session_token: str
+    """Token to use for requests (passed to underlying provider)"""
     aws_skip_signature: str
     aws_sse_bucket_key_enabled: str
     aws_sse_kms_key_id: str
     aws_token: str
+    """Token to use for requests (passed to underlying provider)"""
     aws_unsigned_payload: str
+    """Avoid computing payload checksum when calculating signature."""
     aws_virtual_hosted_style_request: str
+    """If virtual hosted style request has to be used."""
     bucket_name: str
+    """Bucket name"""
     checksum_algorithm: str
     conditional_put: str
     copy_if_not_exists: str
     default_region: str
+    """Default region"""
     disable_tagging: str
+    """Disable tagging objects. This can be desirable if not supported by the backing store."""
     endpoint_url: str
+    """Sets custom endpoint for communicating with AWS S3."""
     endpoint: str
+    """Sets custom endpoint for communicating with AWS S3."""
     imdsv1_fallback: str
+    """Fall back to ImdsV1"""
     metadata_endpoint: str
+    """Set the instance metadata endpoint"""
     region: str
+    """Region"""
     request_payer: str
+    """If `True`, enable operations on requester-pays buckets."""
     s3_express: str
+    """Enable Support for S3 Express One Zone"""
     secret_access_key: str
+    """Secret Access Key"""
     session_token: str
+    """Token to use for requests (passed to underlying provider)"""
     skip_signature: str
     token: str
+    """Token to use for requests (passed to underlying provider)"""
     unsigned_payload: str
+    """Avoid computing payload checksum when calculating signature."""
     virtual_hosted_style_request: str
+    """If virtual hosted style request has to be used."""
     ACCESS_KEY_ID: str
+    """AWS Access Key"""
     AWS_ACCESS_KEY_ID: str
+    """AWS Access Key"""
     AWS_ALLOW_HTTP: str
     AWS_BUCKET_NAME: str
+    """Bucket name"""
     AWS_BUCKET: str
+    """Bucket name"""
     AWS_CHECKSUM_ALGORITHM: str
     AWS_CONDITIONAL_PUT: str
     AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: str
     AWS_COPY_IF_NOT_EXISTS: str
     AWS_DEFAULT_REGION: str
+    """Default region"""
     AWS_DISABLE_TAGGING: str
+    """Disable tagging objects. This can be desirable if not supported by the backing store."""
     AWS_ENDPOINT_URL: str
+    """Sets custom endpoint for communicating with AWS S3."""
     AWS_ENDPOINT: str
+    """Sets custom endpoint for communicating with AWS S3."""
     AWS_IMDSV1_FALLBACK: str
+    """Fall back to ImdsV1"""
     AWS_METADATA_ENDPOINT: str
+    """Set the instance metadata endpoint"""
     AWS_REGION: str
+    """Region"""
     AWS_REQUEST_PAYER: str
+    """If `True`, enable operations on requester-pays buckets."""
     AWS_S3_EXPRESS: str
+    """Enable Support for S3 Express One Zone"""
     AWS_SECRET_ACCESS_KEY: str
+    """Secret Access Key"""
     AWS_SERVER_SIDE_ENCRYPTION: str
     AWS_SESSION_TOKEN: str
+    """Token to use for requests (passed to underlying provider)"""
     AWS_SKIP_SIGNATURE: str
     AWS_SSE_BUCKET_KEY_ENABLED: str
     AWS_SSE_KMS_KEY_ID: str
     AWS_TOKEN: str
+    """Token to use for requests (passed to underlying provider)"""
     AWS_UNSIGNED_PAYLOAD: str
+    """Avoid computing payload checksum when calculating signature."""
     AWS_VIRTUAL_HOSTED_STYLE_REQUEST: str
+    """If virtual hosted style request has to be used."""
     BUCKET_NAME: str
+    """Bucket name"""
     BUCKET: str
+    """Bucket name"""
     CHECKSUM_ALGORITHM: str
     CONDITIONAL_PUT: str
     COPY_IF_NOT_EXISTS: str
     DEFAULT_REGION: str
+    """Default region"""
     DISABLE_TAGGING: str
+    """Disable tagging objects. This can be desirable if not supported by the backing store."""
     ENDPOINT_URL: str
+    """Sets custom endpoint for communicating with AWS S3."""
     ENDPOINT: str
+    """Sets custom endpoint for communicating with AWS S3."""
     IMDSV1_FALLBACK: str
+    """Fall back to ImdsV1"""
     METADATA_ENDPOINT: str
+    """Set the instance metadata endpoint"""
     REGION: str
+    """Region"""
     REQUEST_PAYER: str
+    """If `True`, enable operations on requester-pays buckets."""
     S3_EXPRESS: str
+    """Enable Support for S3 Express One Zone"""
     SECRET_ACCESS_KEY: str
+    """Secret Access Key"""
     SESSION_TOKEN: str
+    """Token to use for requests (passed to underlying provider)"""
     SKIP_SIGNATURE: str
     TOKEN: str
+    """Token to use for requests (passed to underlying provider)"""
     UNSIGNED_PAYLOAD: str
+    """Avoid computing payload checksum when calculating signature."""
     VIRTUAL_HOSTED_STYLE_REQUEST: str
-
-"""Valid AWS S3 configuration keys.
-
-Either lower case or upper case strings are accepted.
-
-- `aws_access_key_id`, `access_key_id`: AWS Access Key
-- `aws_secret_access_key`, `secret_access_key`: Secret Access Key
-- `aws_region`, `region`: Region
-- `aws_request_payer`, `request_payer`: if `True`, enable operations on requester-pays buckets.
-- `aws_default_region`, `default_region`: Default region
-- `aws_bucket`, `aws_bucket_name`, `bucket`, `bucket_name`: Bucket name
-- `aws_endpoint`, `aws_endpoint_url`, `endpoint`, `endpoint_url`: Sets custom endpoint for communicating with AWS S3.
-- `aws_session_token`, `aws_token`, `session_token`, `token`: Token to use for requests (passed to underlying provider)
-- `aws_imdsv1_fallback`, `imdsv1_fallback`: Fall back to ImdsV1
-- `aws_virtual_hosted_style_request`, `virtual_hosted_style_request`: If virtual hosted style request has to be used
-- `aws_unsigned_payload`, `unsigned_payload`: Avoid computing payload checksum when calculating signature.
-- `aws_metadata_endpoint`, `metadata_endpoint`: Set the instance metadata endpoint
-- `aws_disable_tagging`, `disable_tagging`: Disable tagging objects. This can be desirable if not supported by the backing store.
-- `aws_s3_express`, `s3_express`: Enable Support for S3 Express One Zone
-"""
+    """If virtual hosted style request has to be used."""
 
 class S3Store:
     """

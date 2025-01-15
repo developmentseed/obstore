@@ -6,37 +6,58 @@ from ._retry import RetryConfig
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
 # constructors
 class GCSConfig(TypedDict, total=False):
+    """Configuration parameters for GCSStore.
+
+    There are duplicates of many parameters, and parameters can be either upper or lower
+    case. Not all parameters are required.
+    """
+
     bucket_name: str
+    """Bucket name."""
     google_application_credentials: str
+    """Application credentials path.
+
+    See <https://cloud.google.com/docs/authentication/provide-credentials-adc>."""
     google_bucket_name: str
+    """Bucket name."""
     google_bucket: str
+    """Bucket name."""
     google_service_account_key: str
+    """The serialized service account key"""
     google_service_account_path: str
+    """Path to the service account file."""
     google_service_account: str
+    """Path to the service account file."""
     service_account_key: str
+    """The serialized service account key"""
     service_account_path: str
+    """Path to the service account file."""
     service_account: str
+    """Path to the service account file."""
     BUCKET_NAME: str
+    """Bucket name."""
     BUCKET: str
+    """Bucket name."""
     GOOGLE_APPLICATION_CREDENTIALS: str
+    """Application credentials path.
+
+    See <https://cloud.google.com/docs/authentication/provide-credentials-adc>."""
     GOOGLE_BUCKET_NAME: str
+    """Bucket name."""
     GOOGLE_BUCKET: str
+    """Bucket name."""
     GOOGLE_SERVICE_ACCOUNT_KEY: str
+    """The serialized service account key"""
     GOOGLE_SERVICE_ACCOUNT_PATH: str
+    """Path to the service account file."""
     GOOGLE_SERVICE_ACCOUNT: str
+    """Path to the service account file."""
     SERVICE_ACCOUNT_KEY: str
+    """The serialized service account key"""
     SERVICE_ACCOUNT_PATH: str
+    """Path to the service account file."""
     SERVICE_ACCOUNT: str
-
-"""Valid Google Cloud Storage configuration keys
-
-Either lower case or upper case strings are accepted.
-
-- `"google_service_account"` or `"service_account"` or `"google_service_account_path"` or "service_account_path":  Path to the service account file.
-- `"google_service_account_key"` or `"service_account_key"`: The serialized service account key
-- `"google_bucket"` or `"google_bucket_name"` or `"bucket"` or `"bucket_name"`: Bucket name.
-- `"google_application_credentials"`: Application credentials path. See <https://cloud.google.com/docs/authentication/provide-credentials-adc>.
-"""
+    """Path to the service account file."""
 
 class GCSStore:
     """Configure a connection to Google Cloud Storage.
