@@ -14,6 +14,29 @@ def test_put_non_multipart():
     assert obs.get(store, "file1.txt").bytes() == b"foo"
 
 
+def test_put_non_multipart_sync_iterable():
+    store = MemoryStore()
+
+    b = b"the quick brown fox jumps over the lazy dog,"
+    iterator = itertools.repeat(b, 5)
+    obs.put(store, "file1.txt", iterator, use_multipart=False)
+    assert obs.get(store, "file1.txt").bytes() == (b * 5)
+
+
+@pytest.mark.asyncio
+async def test_put_non_multipart_async_iterable():
+    store = MemoryStore()
+
+    b = b"the quick brown fox jumps over the lazy dog,"
+
+    async def it():
+        for i in range(5):
+            yield b"the quick brown fox jumps over the lazy dog,"
+
+    await obs.put_async(store, "file1.txt", it(), use_multipart=False)
+    assert obs.get(store, "file1.txt").bytes() == (b * 5)
+
+
 def test_put_multipart_one_chunk():
     store = MemoryStore()
 
