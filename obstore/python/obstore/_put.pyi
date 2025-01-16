@@ -39,15 +39,19 @@ class UpdateVersion(TypedDict, total=False):
 PutMode = Literal["create", "overwrite"] | UpdateVersion
 """Configure preconditions for the put operation
 
+There are three modes:
+
+- Overwrite: Perform an atomic write operation, overwriting any object present at the provided path.
+- Create: Perform an atomic write operation, returning [`AlreadyExistsError`][obstore.exceptions.AlreadyExistsError] if an object already exists at the provided path.
+- Update: Perform an atomic write operation if the current version of the object matches the provided [`UpdateVersion`][obstore.UpdateVersion], returning [`PreconditionError`][obstore.exceptions.PreconditionError] otherwise.
+
 If a string is provided, it must be one of:
 
-- `"overwrite"`: Perform an atomic write operation, overwriting any object present at the provided path.
-- `"create"`: Perform an atomic write operation, returning [`AlreadyExistsError`][obstore.exceptions.AlreadyExistsError] if an object already exists at the provided path
+- `"overwrite"`
+- `"create"`
 
-If a `dict` is provided, it must meet the criteria of `UpdateVersion`. In this case,
-perform an atomic write operation if the current version of the object matches the
-provided [`UpdateVersion`][obstore.UpdateVersion], returning
-[`PreconditionError`][obstore.exceptions.PreconditionError] otherwise.
+If a `dict` is provided, it must meet the criteria of
+[`UpdateVersion`][obstore.UpdateVersion].
 """
 
 class PutResult(TypedDict):
@@ -116,7 +120,9 @@ def put(
               protocol.
 
     Keyword args:
-        mode: Configure the `PutMode` for this operation. If this provided and is not `"overwrite"`, a non-multipart upload will be performed. Defaults to `"overwrite"`.
+        mode: Configure the [`PutMode`][obstore.PutMode] for this operation. Refer to the [`PutMode`][obstore.PutMode] docstring for more information.
+
+            If this provided and is not `"overwrite"`, a non-multipart upload will be performed. Defaults to `"overwrite"`.
         attributes: Provide a set of `Attributes`. Defaults to `None`.
         tags: Provide tags for this object. Defaults to `None`.
         use_multipart: Whether to use a multipart upload under the hood. Defaults using a multipart upload if the length of the file is greater than `chunk_size`. When `use_multipart` is `False`, the entire input will be materialized in memory as part of the upload.
