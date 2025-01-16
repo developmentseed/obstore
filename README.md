@@ -13,19 +13,17 @@
 
 Simple, fast integration with object storage services like Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
 
-- Sync and async API.
-- Streaming downloads with configurable chunking.
-- Streaming uploads from async or sync iterators.
-- Streaming `list`, with no need to paginate.
+- Sync and async API with **full type hinting**.
+- **Streaming downloads** with configurable chunking.
+- **Streaming uploads** from async or sync iterators.
+- **Streaming list**, with no need to paginate.
+- Automatically uses [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
+- Support for **conditional put** ("put if not exists"), as well as custom tags and attributes.
+- Optionally return list results as [Arrow](https://arrow.apache.org/), which is faster than materializing Python `dict`s.
 - File-like object API and [fsspec](https://github.com/fsspec/filesystem_spec) integration.
-- Support for conditional put ("put if not exists"), as well as custom tags and attributes.
-- Automatically uses [multipart uploads](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) under the hood for large file objects.
-- Optionally return list results as [Arrow](https://arrow.apache.org/), which is faster than materializing Python `dict`/`list` objects.
 - Easy to install with no required Python dependencies.
 - The [underlying Rust library](https://docs.rs/object_store) is production quality and used in large scale production systems, such as the Rust package registry [crates.io](https://crates.io/).
-- Zero-copy data exchange between Rust and Python in `get_range`, `get_ranges`, `GetResult.bytes`, and `put` via the Python [buffer protocol](https://jakevdp.github.io/blog/2014/05/05/introduction-to-the-python-buffer-protocol/).
-- Simple API with static type checking.
-- Helpers for constructing from environment variables and `boto3.Session` objects
+- Zero-copy data exchange between Rust and Python via the [buffer protocol](https://jakevdp.github.io/blog/2014/05/05/introduction-to-the-python-buffer-protocol/).
 
 <!-- For Rust developers looking to add object_store support to their Python packages, refer to pyo3-object_store. -->
 
