@@ -21,15 +21,81 @@ class S3Config(TypedDict, total=False):
     """AWS Access Key"""
     aws_access_key_id: str
     """AWS Access Key"""
-    aws_allow_http: bool
     aws_bucket_name: str
     """Bucket name"""
     aws_bucket: str
     """Bucket name"""
     aws_checksum_algorithm: str
+    """
+    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+
+    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    """
     aws_conditional_put: str
+    """Configure how to provide conditional put support
+
+    Supported values:
+
+    - `"etag"`: Supported for S3-compatible stores that support conditional
+        put using the standard [HTTP precondition] headers `If-Match` and
+        `If-None-Match`.
+
+        [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
+
+        This will use the same region, credentials and endpoint as configured for S3.
+    """
     aws_container_credentials_relative_uri: str
+    """Set the container credentials relative URI
+
+    <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
+    """
     aws_copy_if_not_exists: str
+    """Configure how to provide "copy if not exists".
+
+    Supported values:
+
+    - `"multipart"`:
+
+        Native Amazon S3 supports copy if not exists through a multipart upload
+        where the upload copies an existing object and is completed only if the
+        new object does not already exist.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` does not copy tags
+            or attributes from the source object.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` makes only a best
+            effort attempt to clean up the multipart upload if the copy operation
+            fails. Consider using a lifecycle rule to automatically clean up
+            abandoned multipart uploads.
+
+    - `"header:<HEADER_NAME>:<HEADER_VALUE>"`:
+
+        Some S3-compatible stores, such as Cloudflare R2, support copy if not exists
+        semantics through custom headers.
+
+        If set, `copy_if_not_exists` will perform a normal copy operation with the
+        provided header pair, and expect the store to fail with `412 Precondition
+        Failed` if the destination file already exists.
+
+        For example `header: cf-copy-destination-if-none-match: *`, would set
+        the header `cf-copy-destination-if-none-match` to `*`.
+
+    - `"header-with-status:<HEADER_NAME>:<HEADER_VALUE>:<STATUS>"`:
+
+        The same as the header variant above but allows custom status code checking, for
+        object stores that return values other than 412.
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
+
+        The name of a DynamoDB table to use for coordination.
+
+        The default timeout is used if not specified. This will use the same region,
+        credentials and endpoint as configured for S3.
+    """
     aws_default_region: str
     """Default region"""
     aws_disable_tagging: bool
@@ -51,12 +117,35 @@ class S3Config(TypedDict, total=False):
     aws_secret_access_key: str
     """Secret Access Key"""
     aws_server_side_encryption: str
+    """Type of encryption to use.
+
+    If set, must be one of:
+
+    - `"AES256"` (SSE-S3)
+    - `"aws:kms"` (SSE-KMS)
+    - `"aws:kms:dsse"` (DSSE-KMS)
+    - `"sse-c"`
+    """
     aws_session_token: str
     """Token to use for requests (passed to underlying provider)"""
     aws_skip_signature: bool
     """If `True`, S3Store will not fetch credentials and will not sign requests."""
     aws_sse_bucket_key_enabled: bool
+    """
+    If set to `True`, will use the bucket's default KMS key for server-side encryption.
+    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
+    """
+    aws_sse_customer_key_base64: str
+    """
+    The base64 encoded, 256-bit customer encryption key to use for server-side
+    encryption. If set, the server side encryption config value must be `"sse-c"`.
+    """
     aws_sse_kms_key_id: str
+    """
+    The KMS key ID to use for server-side encryption.
+
+    If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
+    """
     aws_token: str
     """Token to use for requests (passed to underlying provider)"""
     aws_unsigned_payload: bool
@@ -66,8 +155,71 @@ class S3Config(TypedDict, total=False):
     bucket_name: str
     """Bucket name"""
     checksum_algorithm: str
+    """
+    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+
+    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    """
     conditional_put: str
+    """Configure how to provide conditional put support
+
+    Supported values:
+
+    - `"etag"`: Supported for S3-compatible stores that support conditional
+        put using the standard [HTTP precondition] headers `If-Match` and
+        `If-None-Match`.
+
+        [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
+
+        This will use the same region, credentials and endpoint as configured for S3.
+    """
     copy_if_not_exists: str
+    """Configure how to provide "copy if not exists".
+
+    Supported values:
+
+    - `"multipart"`:
+
+        Native Amazon S3 supports copy if not exists through a multipart upload
+        where the upload copies an existing object and is completed only if the
+        new object does not already exist.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` does not copy tags
+            or attributes from the source object.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` makes only a best
+            effort attempt to clean up the multipart upload if the copy operation
+            fails. Consider using a lifecycle rule to automatically clean up
+            abandoned multipart uploads.
+
+    - `"header:<HEADER_NAME>:<HEADER_VALUE>"`:
+
+        Some S3-compatible stores, such as Cloudflare R2, support copy if not exists
+        semantics through custom headers.
+
+        If set, `copy_if_not_exists` will perform a normal copy operation with the
+        provided header pair, and expect the store to fail with `412 Precondition
+        Failed` if the destination file already exists.
+
+        For example `header: cf-copy-destination-if-none-match: *`, would set
+        the header `cf-copy-destination-if-none-match` to `*`.
+
+    - `"header-with-status:<HEADER_NAME>:<HEADER_VALUE>:<STATUS>"`:
+
+        The same as the header variant above but allows custom status code checking, for
+        object stores that return values other than 412.
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
+
+        The name of a DynamoDB table to use for coordination.
+
+        The default timeout is used if not specified. This will use the same region,
+        credentials and endpoint as configured for S3.
+    """
     default_region: str
     """Default region"""
     disable_tagging: bool
@@ -102,15 +254,81 @@ class S3Config(TypedDict, total=False):
     """AWS Access Key"""
     AWS_ACCESS_KEY_ID: str
     """AWS Access Key"""
-    AWS_ALLOW_HTTP: bool
     AWS_BUCKET_NAME: str
     """Bucket name"""
     AWS_BUCKET: str
     """Bucket name"""
     AWS_CHECKSUM_ALGORITHM: str
+    """
+    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+
+    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    """
     AWS_CONDITIONAL_PUT: str
+    """Configure how to provide conditional put support
+
+    Supported values:
+
+    - `"etag"`: Supported for S3-compatible stores that support conditional
+        put using the standard [HTTP precondition] headers `If-Match` and
+        `If-None-Match`.
+
+        [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
+
+        This will use the same region, credentials and endpoint as configured for S3.
+    """
     AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: str
+    """Set the container credentials relative URI
+
+    <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
+    """
     AWS_COPY_IF_NOT_EXISTS: str
+    """Configure how to provide "copy if not exists".
+
+    Supported values:
+
+    - `"multipart"`:
+
+        Native Amazon S3 supports copy if not exists through a multipart upload
+        where the upload copies an existing object and is completed only if the
+        new object does not already exist.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` does not copy tags
+            or attributes from the source object.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` makes only a best
+            effort attempt to clean up the multipart upload if the copy operation
+            fails. Consider using a lifecycle rule to automatically clean up
+            abandoned multipart uploads.
+
+    - `"header:<HEADER_NAME>:<HEADER_VALUE>"`:
+
+        Some S3-compatible stores, such as Cloudflare R2, support copy if not exists
+        semantics through custom headers.
+
+        If set, `copy_if_not_exists` will perform a normal copy operation with the
+        provided header pair, and expect the store to fail with `412 Precondition
+        Failed` if the destination file already exists.
+
+        For example `header: cf-copy-destination-if-none-match: *`, would set
+        the header `cf-copy-destination-if-none-match` to `*`.
+
+    - `"header-with-status:<HEADER_NAME>:<HEADER_VALUE>:<STATUS>"`:
+
+        The same as the header variant above but allows custom status code checking, for
+        object stores that return values other than 412.
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
+
+        The name of a DynamoDB table to use for coordination.
+
+        The default timeout is used if not specified. This will use the same region,
+        credentials and endpoint as configured for S3.
+    """
     AWS_DEFAULT_REGION: str
     """Default region"""
     AWS_DISABLE_TAGGING: bool
@@ -132,12 +350,35 @@ class S3Config(TypedDict, total=False):
     AWS_SECRET_ACCESS_KEY: str
     """Secret Access Key"""
     AWS_SERVER_SIDE_ENCRYPTION: str
+    """Type of encryption to use.
+
+    If set, must be one of:
+
+    - `"AES256"` (SSE-S3)
+    - `"aws:kms"` (SSE-KMS)
+    - `"aws:kms:dsse"` (DSSE-KMS)
+    - `"sse-c"`
+    """
     AWS_SESSION_TOKEN: str
     """Token to use for requests (passed to underlying provider)"""
     AWS_SKIP_SIGNATURE: bool
     """If `True`, S3Store will not fetch credentials and will not sign requests."""
     AWS_SSE_BUCKET_KEY_ENABLED: bool
+    """
+    If set to `True`, will use the bucket's default KMS key for server-side encryption.
+    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
+    """
+    AWS_SSE_CUSTOMER_KEY_BASE64: str
+    """
+    The base64 encoded, 256-bit customer encryption key to use for server-side
+    encryption. If set, the server side encryption config value must be `"sse-c"`.
+    """
     AWS_SSE_KMS_KEY_ID: str
+    """
+    The KMS key ID to use for server-side encryption.
+
+    If set, the server side encrypting config value must be `"aws:kms"` or `"aws:kms:dsse"`.
+    """
     AWS_TOKEN: str
     """Token to use for requests (passed to underlying provider)"""
     AWS_UNSIGNED_PAYLOAD: bool
@@ -149,8 +390,71 @@ class S3Config(TypedDict, total=False):
     BUCKET: str
     """Bucket name"""
     CHECKSUM_ALGORITHM: str
+    """
+    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+
+    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    """
     CONDITIONAL_PUT: str
+    """Configure how to provide conditional put support
+
+    Supported values:
+
+    - `"etag"`: Supported for S3-compatible stores that support conditional
+        put using the standard [HTTP precondition] headers `If-Match` and
+        `If-None-Match`.
+
+        [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
+
+        This will use the same region, credentials and endpoint as configured for S3.
+    """
     COPY_IF_NOT_EXISTS: str
+    """Configure how to provide "copy if not exists".
+
+    Supported values:
+
+    - `"multipart"`:
+
+        Native Amazon S3 supports copy if not exists through a multipart upload
+        where the upload copies an existing object and is completed only if the
+        new object does not already exist.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` does not copy tags
+            or attributes from the source object.
+
+        !!! warning
+            When using this mode, `copy_if_not_exists` makes only a best
+            effort attempt to clean up the multipart upload if the copy operation
+            fails. Consider using a lifecycle rule to automatically clean up
+            abandoned multipart uploads.
+
+    - `"header:<HEADER_NAME>:<HEADER_VALUE>"`:
+
+        Some S3-compatible stores, such as Cloudflare R2, support copy if not exists
+        semantics through custom headers.
+
+        If set, `copy_if_not_exists` will perform a normal copy operation with the
+        provided header pair, and expect the store to fail with `412 Precondition
+        Failed` if the destination file already exists.
+
+        For example `header: cf-copy-destination-if-none-match: *`, would set
+        the header `cf-copy-destination-if-none-match` to `*`.
+
+    - `"header-with-status:<HEADER_NAME>:<HEADER_VALUE>:<STATUS>"`:
+
+        The same as the header variant above but allows custom status code checking, for
+        object stores that return values other than 412.
+
+    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
+
+        The name of a DynamoDB table to use for coordination.
+
+        The default timeout is used if not specified. This will use the same region,
+        credentials and endpoint as configured for S3.
+    """
     DEFAULT_REGION: str
     """Default region"""
     DISABLE_TAGGING: bool
@@ -247,7 +551,6 @@ class S3Store:
         - `AWS_ENDPOINT` -> endpoint
         - `AWS_SESSION_TOKEN` -> token
         - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
-        - `AWS_ALLOW_HTTP` -> set to "true" to permit HTTP connections without TLS
         - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
 
         Args:

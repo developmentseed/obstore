@@ -445,8 +445,24 @@ async fn put_multipart_inner(
     }
 
     let upload = store.put_multipart_opts(path, opts).await?;
-    let mut write = WriteMultipart::new(upload);
+    let mut writer = WriteMultipart::new_with_chunk_size(upload, chunk_size);
 
+    // Make sure to call abort if the multipart upload failed for any reason
+    match write_multipart(&mut writer, reader, chunk_size, max_concurrency).await {
+        Ok(()) => Ok(PyPutResult(writer.finish().await?)),
+        Err(err) => {
+            writer.abort().await?;
+            Err(err)
+        }
+    }
+}
+
+async fn write_multipart(
+    writer: &mut WriteMultipart,
+    reader: PutInput,
+    chunk_size: usize,
+    max_concurrency: usize,
+) -> PyObjectStoreResult<()> {
     // Match across pull, push, async push
     match reader {
         PutInput::Pull(mut pull_reader) => loop {
@@ -455,24 +471,24 @@ async fn put_multipart_inner(
             if read_size == 0 {
                 break;
             } else {
-                write.wait_for_capacity(max_concurrency).await?;
-                write.write(&scratch_buffer[0..read_size]);
+                writer.wait_for_capacity(max_concurrency).await?;
+                writer.write(&scratch_buffer[0..read_size]);
             }
         },
         PutInput::SyncPush(push_reader) => {
             for buf in push_reader {
-                write.wait_for_capacity(max_concurrency).await?;
-                write.write(&buf?);
+                writer.wait_for_capacity(max_concurrency).await?;
+                writer.put(buf?);
             }
         }
         PutInput::AsyncPush(mut push_reader) => {
             // Note: I believe that only one __anext__ call can happen at a time
             while let Some(buf) = push_reader.next_chunk().await? {
-                write.wait_for_capacity(max_concurrency).await?;
-                write.write(&buf);
+                writer.wait_for_capacity(max_concurrency).await?;
+                writer.put(buf);
             }
         }
     }
 
-    Ok(PyPutResult(write.finish().await?))
+    Ok(())
 }
