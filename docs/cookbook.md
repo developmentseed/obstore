@@ -178,7 +178,7 @@ obs.put(store, path, content)
 
 ## Copy objects from one store to another
 
-Perhaps you have data in AWS S3 that you need to copy to Google Cloud Storage. It's easy to **stream** a `get` from one store directly to the `put` of another. The first file is not
+Perhaps you have data in AWS S3 that you need to copy to Google Cloud Storage. It's easy to **stream** a `get` from one store directly to the `put` of another.
 
 !!! note
     Using the async API is required for this.
