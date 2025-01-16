@@ -7,8 +7,7 @@ Use the [`obstore.list`][] method.
 ```py
 import obstore as obs
 
-# Create a Store
-store = get_object_store()
+store = ... # store of your choice
 
 # Recursively list all files below the 'data' path.
 # 1. On AWS S3 this would be the 'data/' prefix
@@ -35,8 +34,7 @@ This Arrow integration requires the [`arro3-core` dependency](https://kylebarron
 ```py
 import obstore as obs
 
-# Create a Store
-store = get_object_store()
+store = ... # store of your choice
 
 # Get a stream of Arrow RecordBatches of metadata
 list_stream = obs.list(store, prefix="data", return_arrow=True)
@@ -80,8 +78,7 @@ Use the [`obstore.get`][] function to fetch data bytes from remote storage or fi
 ```py
 import obstore as obs
 
-# Create a Store
-store = get_object_store()
+store = ... # store of your choice
 
 # Retrieve a specific file
 path = "data/file01.parquet"
@@ -131,7 +128,7 @@ Use the [`obstore.put`][] function to atomically write data. `obstore.put` will 
 ```py
 import obstore as obs
 
-store = get_object_store()
+store = ... # store of your choice
 path = "data/file1"
 content = b"hello"
 obs.put(store, path, content)
@@ -143,7 +140,7 @@ You can also upload local files:
 from pathlib import Path
 import obstore as obs
 
-store = get_object_store()
+store = ... # store of your choice
 path = "data/file1"
 content = Path("path/to/local/file")
 obs.put(store, path, content)
@@ -154,7 +151,7 @@ Or file-like objects:
 ```py
 import obstore as obs
 
-store = get_object_store()
+store = ... # store of your choice
 path = "data/file1"
 with open("path/to/local/file", "rb") as content:
     obs.put(store, path, content)
@@ -169,7 +166,7 @@ def bytes_iter():
     for i in range(5):
         yield b"foo"
 
-store = get_object_store()
+store = ... # store of your choice
 path = "data/file1"
 content = bytes_iter()
 obs.put(store, path, content)
@@ -184,7 +181,7 @@ async def bytes_stream():
     for i in range(5):
         yield b"foo"
 
-store = get_object_store()
+store = ... # store of your choice
 path = "data/file1"
 content = bytes_stream()
 obs.put(store, path, content)
@@ -201,8 +198,8 @@ Download the file, collect its bytes in memory, then upload it. Note that this w
 ```py
 import obstore as obs
 
-store1 = get_object_store()
-store2 = get_object_store()
+store1 = ... # store of your choice
+store2 = ... # store of your choice
 
 path1 = "data/file1"
 path2 = "data/file2"
@@ -219,8 +216,8 @@ First download the file to disk, then upload it.
 from pathlib import Path
 import obstore as obs
 
-store1 = get_object_store()
-store2 = get_object_store()
+store1 = ... # store of your choice
+store2 = ... # store of your choice
 
 path1 = "data/file1"
 path2 = "data/file2"
@@ -245,8 +242,8 @@ Using the async API is currently required to use streaming copies.
 ```py
 import obstore as obs
 
-store1 = get_object_store()
-store2 = get_object_store()
+store1 = ... # store of your choice
+store2 = ... # store of your choice
 
 path1 = "data/file1"
 path2 = "data/file2"
