@@ -8,6 +8,7 @@ use bytes::{Bytes, BytesMut};
 use pyo3::buffer::PyBuffer;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::{PySlice, PyString, PyType};
 use pyo3::{ffi, IntoPyObjectExt};
 
 /// A wrapper around a [`bytes::Bytes`][].
@@ -93,8 +94,15 @@ impl PyBytes {
     // By setting the argument to PyBytes, this means that any buffer-protocol object is supported
     // here, since it will use the FromPyObject impl.
     #[new]
+    #[pyo3(signature = (buf = PyBytes(Bytes::new())))]
     fn py_new(buf: PyBytes) -> Self {
         buf
+    }
+
+    #[allow(non_snake_case)]
+    #[classattr]
+    fn ZERO() -> Self {
+        Self(Bytes::new())
     }
 
     /// The number of bytes in this Bytes
@@ -103,7 +111,7 @@ impl PyBytes {
     }
 
     fn __repr__(&self) -> String {
-        format!("Bytes({})", self.0.len())
+        format!("Bytes({})", python_bytes_repr(self.0.as_ref()))
     }
 
     fn __add__(&self, other: PyBytes) -> PyBytes {
@@ -124,20 +132,73 @@ impl PyBytes {
         self.0.as_ref() == other.0.as_ref()
     }
 
-    fn __getitem__(&self, py: Python, key: Bound<PyAny>) -> PyResult<PyObject> {
-        if let Ok(mut index) = key.extract::<isize>() {
-            if index < 0 {
-                index += self.0.len() as isize;
-            }
+    fn slice(&self, slice: &Bound<'_, PySlice>) -> PyResult<PyBytes> {
+        let len_isize = self.0.len() as isize;
+        let psi = slice.indices(len_isize)?;
+        let (start, stop, step) = (psi.start, psi.stop, psi.step);
+        if step == 0 {
+            return Err(PyValueError::new_err("step is zero"));
+        }
 
-            self.0
-                .get(index as usize)
-                .ok_or(PyIndexError::new_err("Index out of range"))?
-                .into_py_any(py)
+        // I think this is right!?
+        let new_cap_usize = if (step > 0 && stop > start) || (step < 0 && stop < start) {
+            (((stop - start).abs() + step.abs() - 1) / step.abs()) as usize
         } else {
-            Err(PyValueError::new_err(
-                "Currently, only integer keys are allowed in __getitem__.",
-            ))
+            0
+        };
+
+        if new_cap_usize == 0 {
+            return Ok(PyBytes(Bytes::new()));
+        }
+
+        // if start < 0  and stop > len and step == 1 just copy?
+        if step == 1 && start < 0 && stop >= len_isize {
+            let out = self.0.slice(..);
+            let py_bytes = PyBytes(out);
+            return Ok(py_bytes);
+        }
+
+        if step == 1 && start >= 0 && stop <= len_isize && start < stop {
+            let out = self.0.slice(start as usize..stop as usize);
+            let py_bytes = PyBytes(out);
+            return Ok(py_bytes);
+        }
+        let mut new_buf = BytesMut::with_capacity(new_cap_usize);
+        if step > 0 {
+            // forward
+            new_buf.extend(
+                (start..stop)
+                    .step_by(step as usize)
+                    .map(|i| self.0[i as usize]),
+            );
+        } else {
+            // backward
+            new_buf.extend(
+                (stop + 1..=start)
+                    .rev()
+                    .step_by((-step) as usize)
+                    .map(|i| self.0[i as usize]),
+            );
+        }
+        Ok(PyBytes(new_buf.freeze()))
+    }
+
+    fn __getitem__<'py>(&self, py: Python<'py>, key: BytesGetItemKey<'py>) -> PyResult<PyObject> {
+        match key {
+            BytesGetItemKey::Int(mut index) => {
+                if index < 0 {
+                    index += self.0.len() as isize;
+                }
+
+                self.0
+                    .get(index as usize)
+                    .ok_or(PyIndexError::new_err("Index out of range"))?
+                    .into_py_any(py)
+            }
+            BytesGetItemKey::Slice(slice) => {
+                let s = self.slice(&slice)?;
+                s.into_py_any(py)
+            }
         }
     }
 
@@ -149,6 +210,7 @@ impl PyBytes {
 
     /// This is taken from opendal:
     /// https://github.com/apache/opendal/blob/d001321b0f9834bc1e2e7d463bcfdc3683e968c9/bindings/python/src/utils.rs#L51-L72
+    #[allow(unsafe_code)]
     unsafe fn __getbuffer__(
         slf: PyRef<Self>,
         view: *mut ffi::Py_buffer,
@@ -174,12 +236,13 @@ impl PyBytes {
     // > don't need to treat the allocation as owned separately. It should be good enough to keep
     // > the allocation owned by the object.
     // https://discord.com/channels/1209263839632424990/1324816949464666194/1328299411427557397
+    #[allow(unsafe_code)]
     unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {}
 
     /// If the binary data starts with the prefix string, return bytes[len(prefix):]. Otherwise,
     /// return a copy of the original binary data:
     #[pyo3(signature = (prefix, /))]
-    fn removeprefix(&self, prefix: PyBytes) -> PyBytes {
+    fn removeprefix(&self, prefix: &PyBytes) -> PyBytes {
         if self.0.starts_with(prefix.as_ref()) {
             self.0.slice(prefix.0.len()..).into()
         } else {
@@ -190,7 +253,7 @@ impl PyBytes {
     /// If the binary data ends with the suffix string and that suffix is not empty, return
     /// `bytes[:-len(suffix)]`. Otherwise, return the original binary data.
     #[pyo3(signature = (suffix, /))]
-    fn removesuffix(&self, suffix: PyBytes) -> PyBytes {
+    fn removesuffix(&self, suffix: &PyBytes) -> PyBytes {
         if self.0.ends_with(suffix.as_ref()) {
             self.0.slice(0..self.0.len() - suffix.0.len()).into()
         } else {
@@ -323,13 +386,102 @@ impl PyBytes {
     fn to_bytes<'py>(&'py self, py: Python<'py>) -> Bound<'py, pyo3::types::PyBytes> {
         pyo3::types::PyBytes::new(py, &self.0)
     }
+
+    // ========================================================================
+    // RY IMPLEMENTED ~ to go upstream into `pyo3-bytes`
+    // ========================================================================
+    /// Return hex string for bytes
+    #[pyo3(signature = (sep=None, bytes_per_sep=None))]
+    fn hex(&self, sep: Option<&str>, bytes_per_sep: Option<usize>) -> PyResult<String> {
+        // TODO handle sep and bytes_per_sep
+        if sep.is_some() || bytes_per_sep.is_some() {
+            Err(pyo3::exceptions::PyNotImplementedError::new_err(
+                "Not implemented (yet)",
+            ))
+        } else {
+            Ok(format!("{:02x}", self.0))
+        }
+    }
+
+    /// Create a bytes object from a string of hexadecimal numbers.
+    ///
+    /// Spaces between two numbers are accepted.
+    /// Example: bytes.fromhex('B9 01EF') -> b'\\xb9\\x01\\xef'.
+    ///
+    /// ## python-signature
+    /// ```python
+    /// (string, /)
+    /// ```
+    #[classmethod]
+    fn fromhex(_cls: &Bound<'_, PyType>) -> PyResult<Self> {
+        Err(pyo3::exceptions::PyNotImplementedError::new_err(
+            "Not implemented (yet) ~ Bytes.fromhex",
+        ))
+    }
+
+    // -----------------------------------------------------------------------
+    // python builtin `bytes` methods TODO
+    // -----------------------------------------------------------------------
+    /// Implement iter(self).
+    ///
+    /// ## python-signature
+    /// ```python
+    /// ()
+    /// ```
+    fn __iter__(&self) -> PyResult<()> {
+        Err(pyo3::exceptions::PyNotImplementedError::new_err(
+            "Not implemented (yet) ~ Bytes.__iter__",
+        ))
+    }
+
+    /// Decode the bytes using the codec registered for encoding.
+    ///
+    ///   encoding
+    ///     The encoding with which to decode the bytes.
+    ///   errors
+    ///     The error handling scheme to use for the handling of decoding errors.
+    ///     The default is 'strict' meaning that decoding errors raise a
+    ///     UnicodeDecodeError. Other possible values are 'ignore' and 'replace'
+    ///     as well as any other name registered with codecs.register_error that
+    ///     can handle UnicodeDecodeErrors.
+    ///
+    /// ## python-signature
+    /// ```python
+    /// (encoding='utf-8', errors='strict')
+    /// ```
+    #[pyo3(signature = (encoding="utf-8", errors="strict"))]
+    fn decode<'py>(
+        slf: PyRef<'py, Self>,
+        py: Python<'py>,
+        encoding: &str,
+        errors: &str,
+    ) -> PyResult<Bound<'py, PyString>> {
+        let a = slf.into_bound_py_any(py)?;
+        // this is screwy?
+        PyString::from_object(&a, encoding, errors)
+    }
+
+    /// B.startswith(prefix[, start[, end]]) -> bool
+    ///
+    /// Return True if B starts with the specified prefix, False otherwise.
+    /// With optional start, test B beginning at that position.
+    /// With optional end, stop comparing B at that position.
+    /// prefix can also be a tuple of bytes to try.
+    ///
+    fn startswith(&self, prefix: &PyBytes) -> bool {
+        self.0.starts_with(prefix.as_ref())
+    }
 }
 
 impl<'py> FromPyObject<'py> for PyBytes {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let buffer = ob.extract::<PyBytesWrapper>()?;
-        let bytes = Bytes::from_owner(buffer);
-        Ok(Self(bytes))
+        if ob.is_none() {
+            Ok(PyBytes(Bytes::new()))
+        } else {
+            let buffer = ob.extract::<PyBytesWrapper>()?;
+            let bytes = Bytes::from_owner(buffer);
+            Ok(Self(bytes))
+        }
     }
 }
 
@@ -341,6 +493,7 @@ impl<'py> FromPyObject<'py> for PyBytes {
 struct PyBytesWrapper(Option<PyBuffer<u8>>);
 
 impl Drop for PyBytesWrapper {
+    #[allow(unsafe_code)]
     fn drop(&mut self) {
         // Only call the underlying Drop of PyBuffer if the Python interpreter is still
         // initialized. Sometimes the Drop can attempt to happen after the Python interpreter was
@@ -351,13 +504,14 @@ impl Drop for PyBytesWrapper {
             if is_initialized == 0 {
                 std::mem::forget(val);
             } else {
-                std::mem::drop(val);
+                drop(val);
             }
         }
     }
 }
 
 impl AsRef<[u8]> for PyBytesWrapper {
+    #[allow(unsafe_code)]
     fn as_ref(&self) -> &[u8] {
         let buffer = self.0.as_ref().expect("Buffer already disposed");
         let len = buffer.item_count();
@@ -395,4 +549,37 @@ impl<'py> FromPyObject<'py> for PyBytesWrapper {
         validate_buffer(&buffer)?;
         Ok(Self(Some(buffer)))
     }
+}
+
+/// Returns a string like `b"asdf\n\0"` for the given byte slice.
+fn python_bytes_repr(data: &[u8]) -> String {
+    let mut out = String::from("b\"");
+    for &byte in data {
+        match byte {
+            b'\\' => out.push_str("\\\\"),
+            b'"' => out.push_str("\\\""),
+            b'\n' => out.push_str("\\n"),
+            b'\r' => out.push_str("\\r"),
+            b'\t' => out.push_str("\\t"),
+            0x20..=0x7E => {
+                // ASCII printable range
+                out.push(byte as char);
+            }
+            _ => {
+                // For everything else, use \xNN
+                out.push_str(&format!("\\x{byte:02x}"));
+            }
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// A key for the `__getitem__` method of `PyBytes` - int/slice
+#[derive(FromPyObject)]
+pub enum BytesGetItemKey<'py> {
+    /// An integer index
+    Int(isize),
+    /// A python slice
+    Slice(Bound<'py, PySlice>),
 }
