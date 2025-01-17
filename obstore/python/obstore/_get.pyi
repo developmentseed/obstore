@@ -280,6 +280,8 @@ def get_range(
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
+
+    Other Args:
         start: The start of the byte range.
         end: The end of the byte range (exclusive). Either `end` or `length` must be non-None.
         length: The number of bytes of the byte range. Either `end` or `length` must be non-None.
@@ -303,7 +305,12 @@ async def get_range_async(
     """
 
 def get_ranges(
-    store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
+    store: ObjectStore,
+    path: str,
+    *,
+    starts: Sequence[int],
+    ends: Sequence[int],
+    lengths: Sequence[int],
 ) -> List[Bytes]:
     """
     Return the bytes that are stored at the specified location in the given byte ranges
@@ -316,8 +323,11 @@ def get_ranges(
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
+
+    Other Args:
         starts: A sequence of `int` where each offset starts.
-        ends: A sequence of `int` where each offset ends (exclusive).
+        ends: A sequence of `int` where each offset ends (exclusive). Either `ends` or `lengths` must be non-None.
+        lengths: A sequence of `int` with the number of bytes of each byte range. Either `ends` or `lengths` must be non-None.
 
     Returns:
         A sequence of `Bytes`, one for each range. This `Bytes` object implements the
@@ -326,7 +336,12 @@ def get_ranges(
     """
 
 async def get_ranges_async(
-    store: ObjectStore, path: str, starts: Sequence[int], ends: Sequence[int]
+    store: ObjectStore,
+    path: str,
+    *,
+    starts: Sequence[int],
+    ends: Sequence[int],
+    lengths: Sequence[int],
 ) -> List[Bytes]:
     """Call `get_ranges` asynchronously.
 
