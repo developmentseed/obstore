@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] -
+
+### Breaking changes :wrench:
+
+- `get_range`, `get_range_async`, `get_ranges`, and `get_ranges_async` now require named parameters for `start`, `end`, and `length` to make the semantics of the range request fully explicit. by @kylebarron in https://github.com/developmentseed/obstore/pull/156
+
 ## [0.3.0] - 2025-01-16
 
 ### New Features :magic_wand:

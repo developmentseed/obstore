@@ -309,8 +309,8 @@ def get_ranges(
     path: str,
     *,
     starts: Sequence[int],
-    ends: Sequence[int],
-    lengths: Sequence[int],
+    ends: Sequence[int] | None = None,
+    lengths: Sequence[int] | None = None,
 ) -> List[Bytes]:
     """
     Return the bytes that are stored at the specified location in the given byte ranges
@@ -340,8 +340,8 @@ async def get_ranges_async(
     path: str,
     *,
     starts: Sequence[int],
-    ends: Sequence[int],
-    lengths: Sequence[int],
+    ends: Sequence[int] | None = None,
+    lengths: Sequence[int] | None = None,
 ) -> List[Bytes]:
     """Call `get_ranges` asynchronously.
 
