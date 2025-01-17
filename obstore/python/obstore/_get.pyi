@@ -261,7 +261,14 @@ async def get_async(
     Refer to the documentation for [get][obstore.get].
     """
 
-def get_range(store: ObjectStore, path: str, start: int, end: int) -> Bytes:
+def get_range(
+    store: ObjectStore,
+    path: str,
+    *,
+    start: int,
+    end: int | None = None,
+    length: int | None = None,
+) -> Bytes:
     """
     Return the bytes that are stored at the specified location in the given byte range.
 
@@ -274,14 +281,22 @@ def get_range(store: ObjectStore, path: str, start: int, end: int) -> Bytes:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
         start: The start of the byte range.
-        end: The end of the byte range (exclusive).
+        end: The end of the byte range (exclusive). Either `end` or `length` must be non-None.
+        length: The number of bytes of the byte range. Either `end` or `length` must be non-None.
 
     Returns:
         A `Bytes` object implementing the Python buffer protocol, allowing
             zero-copy access to the underlying memory provided by Rust.
     """
 
-async def get_range_async(store: ObjectStore, path: str, start: int, end: int) -> Bytes:
+async def get_range_async(
+    store: ObjectStore,
+    path: str,
+    *,
+    start: int,
+    end: int | None = None,
+    length: int | None = None,
+) -> Bytes:
     """Call `get_range` asynchronously.
 
     Refer to the documentation for [get_range][obstore.get_range].
