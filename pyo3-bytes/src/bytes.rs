@@ -1,5 +1,6 @@
 //! Support for Python buffer protocol
 
+use std::ffi::c_char;
 use std::os::raw::c_int;
 use std::ptr::NonNull;
 
@@ -242,7 +243,7 @@ impl PyBytes {
     /// If the binary data starts with the prefix string, return bytes[len(prefix):]. Otherwise,
     /// return a copy of the original binary data:
     #[pyo3(signature = (prefix, /))]
-    fn removeprefix(&self, prefix: &PyBytes) -> PyBytes {
+    fn removeprefix(&self, prefix: PyBytes) -> PyBytes {
         if self.0.starts_with(prefix.as_ref()) {
             self.0.slice(prefix.0.len()..).into()
         } else {
@@ -253,7 +254,7 @@ impl PyBytes {
     /// If the binary data ends with the suffix string and that suffix is not empty, return
     /// `bytes[:-len(suffix)]`. Otherwise, return the original binary data.
     #[pyo3(signature = (suffix, /))]
-    fn removesuffix(&self, suffix: &PyBytes) -> PyBytes {
+    fn removesuffix(&self, suffix: PyBytes) -> PyBytes {
         if self.0.ends_with(suffix.as_ref()) {
             self.0.slice(0..self.0.len() - suffix.0.len()).into()
         } else {
@@ -457,8 +458,51 @@ impl PyBytes {
         errors: &str,
     ) -> PyResult<Bound<'py, PyString>> {
         let a = slf.into_bound_py_any(py)?;
+        // let enc_c = std::ffi::CString::new(encoding).map_err(PyValueError::new_err)?;
+        // let err_c = std::ffi::CString::new(errors).map_err(PyValueError::new_err)?;
+        // ensure str is null-term
+        let encoding = {
+            let mut enc = encoding.to_owned();
+            if !enc.ends_with('\0') {
+                enc.push('\0');
+            }
+            enc
+        };
+        let errors = {
+            let mut err = errors.to_owned();
+            if !err.ends_with('\0') {
+                err.push('\0');
+            }
+            err
+        };
         // this is screwy?
-        PyString::from_object(&a, encoding, errors)
+        PyString::from_object(&a, &encoding, &errors)
+    }
+
+    #[allow(unsafe_code)]
+    #[pyo3(signature = (encoding="utf-8", errors="strict"))]
+    fn __decode_v2<'py>(
+        &self,
+        py: Python<'py>,
+        encoding: &str,
+        errors: &str,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let data_ptr = self.0.as_ptr() as *const c_char;
+        let data_len = self.0.len() as isize;
+        // rust `&str` NEEDS to be null-term CString... classic
+        let enc_c = std::ffi::CString::new(encoding).map_err(PyValueError::new_err)?;
+        let err_c = std::ffi::CString::new(errors).map_err(PyValueError::new_err)?;
+        unsafe {
+            // CPython function: PyUnicode_Decode(const char *data, Py_ssize_t size,
+            //                                     const char *encoding, const char *errors)
+            let obj_ptr = ffi::PyUnicode_Decode(data_ptr, data_len, enc_c.as_ptr(), err_c.as_ptr());
+            if obj_ptr.is_null() {
+                // CPython sets an exception if decode fails
+                Err(PyErr::fetch(py))
+            } else {
+                Ok(Bound::from_owned_ptr(py, obj_ptr))
+            }
+        }
     }
 
     /// B.startswith(prefix[, start[, end]]) -> bool
@@ -468,7 +512,7 @@ impl PyBytes {
     /// With optional end, stop comparing B at that position.
     /// prefix can also be a tuple of bytes to try.
     ///
-    fn startswith(&self, prefix: &PyBytes) -> bool {
+    fn startswith(&self, prefix: PyBytes) -> bool {
         self.0.starts_with(prefix.as_ref())
     }
 }
@@ -532,9 +576,9 @@ fn validate_buffer(buf: &PyBuffer<u8>) -> PyResult<()> {
         return Err(PyValueError::new_err("Buffer is not C contiguous"));
     }
 
-    if buf.shape().iter().any(|s| *s == 0) {
-        return Err(PyValueError::new_err("0-length dimension not supported."));
-    }
+    // if buf.shape().iter().any(|s| *s == 0) {
+    //     return Err(PyValueError::new_err("0-length dimension not supported."));
+    // }
 
     if buf.strides().iter().any(|s| *s == 0) {
         return Err(PyValueError::new_err("Non-zero strides not supported."));
