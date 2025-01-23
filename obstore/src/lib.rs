@@ -1,5 +1,4 @@
 use pyo3::prelude::*;
-use pyo3_bytes::PyBytes;
 mod attributes;
 mod buffered;
 mod copy;
