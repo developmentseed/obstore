@@ -291,7 +291,7 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, attributes = None, tags = None, mode = None, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
+#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=5242880, max_concurrency=12))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put(
     py: Python,
@@ -348,7 +348,7 @@ pub(crate) fn put(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, attributes = None, tags = None, mode = None, use_multipart = None, chunk_size = 5242880, max_concurrency = 12))]
+#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=5242880, max_concurrency=12))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put_async(
     py: Python,

@@ -316,7 +316,7 @@ impl<'py> IntoPyObject<'py> for PyBytesWrapper {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, options = None))]
+#[pyo3(signature = (store, path, *, options=None))]
 pub(crate) fn get(
     py: Python,
     store: PyObjectStore,
@@ -337,7 +337,7 @@ pub(crate) fn get(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, options = None))]
+#[pyo3(signature = (store, path, *, options=None))]
 pub(crate) fn get_async(
     py: Python,
     store: PyObjectStore,

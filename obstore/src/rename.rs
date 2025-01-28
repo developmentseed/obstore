@@ -5,7 +5,7 @@ use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use crate::runtime::get_runtime;
 
 #[pyfunction]
-#[pyo3(signature = (store, from_, to, *, overwrite = true))]
+#[pyo3(signature = (store, from_, to, *, overwrite=true))]
 pub(crate) fn rename(
     py: Python,
     store: PyObjectStore,
@@ -28,7 +28,7 @@ pub(crate) fn rename(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, from_, to, *, overwrite = true))]
+#[pyo3(signature = (store, from_, to, *, overwrite=true))]
 pub(crate) fn rename_async(
     py: Python,
     store: PyObjectStore,

@@ -347,7 +347,7 @@ impl<'py> IntoPyObject<'py> for PyListResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None, *, offset = None, chunk_size = 50, return_arrow = false))]
+#[pyo3(signature = (store, prefix=None, *, offset=None, chunk_size=50, return_arrow=false))]
 pub(crate) fn list(
     py: Python,
     store: PyObjectStore,
@@ -379,7 +379,7 @@ pub(crate) fn list(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None))]
+#[pyo3(signature = (store, prefix=None))]
 pub(crate) fn list_with_delimiter(
     py: Python,
     store: PyObjectStore,
@@ -396,7 +396,7 @@ pub(crate) fn list_with_delimiter(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix = None))]
+#[pyo3(signature = (store, prefix=None))]
 pub(crate) fn list_with_delimiter_async(
     py: Python,
     store: PyObjectStore,
