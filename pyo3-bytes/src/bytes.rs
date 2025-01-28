@@ -1,14 +1,15 @@
 //! Support for Python buffer protocol
 
+use std::fmt::Write;
 use std::os::raw::c_int;
 use std::ptr::NonNull;
 
 use bytes::{Bytes, BytesMut};
 
 use pyo3::buffer::PyBuffer;
-use pyo3::exceptions::{PyIndexError, PyValueError};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::{ffi, IntoPyObjectExt};
+use pyo3::ffi;
 
 /// A wrapper around a [`bytes::Bytes`][].
 ///
@@ -32,7 +33,7 @@ use pyo3::{ffi, IntoPyObjectExt};
 /// `memoryview` constructors, `numpy.frombuffer`, or any other function that supports buffer
 /// protocol input.
 #[pyclass(name = "Bytes", subclass, frozen, sequence, weakref)]
-#[derive(Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct PyBytes(Bytes);
 
 impl AsRef<Bytes> for PyBytes {
@@ -93,6 +94,7 @@ impl PyBytes {
     // By setting the argument to PyBytes, this means that any buffer-protocol object is supported
     // here, since it will use the FromPyObject impl.
     #[new]
+    #[pyo3(signature = (buf = PyBytes(Bytes::new())))]
     fn py_new(buf: PyBytes) -> Self {
         buf
     }
@@ -103,7 +105,7 @@ impl PyBytes {
     }
 
     fn __repr__(&self) -> String {
-        format!("Bytes({})", self.0.len())
+        format!("{self:?}")
     }
 
     fn __add__(&self, other: PyBytes) -> PyBytes {
@@ -124,23 +126,6 @@ impl PyBytes {
         self.0.as_ref() == other.0.as_ref()
     }
 
-    fn __getitem__(&self, py: Python, key: Bound<PyAny>) -> PyResult<PyObject> {
-        if let Ok(mut index) = key.extract::<isize>() {
-            if index < 0 {
-                index += self.0.len() as isize;
-            }
-
-            self.0
-                .get(index as usize)
-                .ok_or(PyIndexError::new_err("Index out of range"))?
-                .into_py_any(py)
-        } else {
-            Err(PyValueError::new_err(
-                "Currently, only integer keys are allowed in __getitem__.",
-            ))
-        }
-    }
-
     fn __mul__(&self, value: usize) -> PyBytes {
         let mut out_buf = BytesMut::with_capacity(self.0.len() * value);
         (0..value).for_each(|_| out_buf.extend_from_slice(self.0.as_ref()));
@@ -149,6 +134,7 @@ impl PyBytes {
 
     /// This is taken from opendal:
     /// https://github.com/apache/opendal/blob/d001321b0f9834bc1e2e7d463bcfdc3683e968c9/bindings/python/src/utils.rs#L51-L72
+    #[allow(unsafe_code)]
     unsafe fn __getbuffer__(
         slf: PyRef<Self>,
         view: *mut ffi::Py_buffer,
@@ -174,6 +160,7 @@ impl PyBytes {
     // > don't need to treat the allocation as owned separately. It should be good enough to keep
     // > the allocation owned by the object.
     // https://discord.com/channels/1209263839632424990/1324816949464666194/1328299411427557397
+    #[allow(unsafe_code)]
     unsafe fn __releasebuffer__(&self, _view: *mut ffi::Py_buffer) {}
 
     /// If the binary data starts with the prefix string, return bytes[len(prefix):]. Otherwise,
@@ -327,9 +314,13 @@ impl PyBytes {
 
 impl<'py> FromPyObject<'py> for PyBytes {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let buffer = ob.extract::<PyBytesWrapper>()?;
-        let bytes = Bytes::from_owner(buffer);
-        Ok(Self(bytes))
+        if ob.is_none() {
+            Ok(PyBytes(Bytes::new()))
+        } else {
+            let buffer = ob.extract::<PyBytesWrapper>()?;
+            let bytes = Bytes::from_owner(buffer);
+            Ok(Self(bytes))
+        }
     }
 }
 
@@ -341,6 +332,7 @@ impl<'py> FromPyObject<'py> for PyBytes {
 struct PyBytesWrapper(Option<PyBuffer<u8>>);
 
 impl Drop for PyBytesWrapper {
+    #[allow(unsafe_code)]
     fn drop(&mut self) {
         // Only call the underlying Drop of PyBuffer if the Python interpreter is still
         // initialized. Sometimes the Drop can attempt to happen after the Python interpreter was
@@ -351,13 +343,14 @@ impl Drop for PyBytesWrapper {
             if is_initialized == 0 {
                 std::mem::forget(val);
             } else {
-                std::mem::drop(val);
+                drop(val);
             }
         }
     }
 }
 
 impl AsRef<[u8]> for PyBytesWrapper {
+    #[allow(unsafe_code)]
     fn as_ref(&self) -> &[u8] {
         let buffer = self.0.as_ref().expect("Buffer already disposed");
         let len = buffer.item_count();
@@ -378,10 +371,6 @@ fn validate_buffer(buf: &PyBuffer<u8>) -> PyResult<()> {
         return Err(PyValueError::new_err("Buffer is not C contiguous"));
     }
 
-    if buf.shape().iter().any(|s| *s == 0) {
-        return Err(PyValueError::new_err("0-length dimension not supported."));
-    }
-
     if buf.strides().iter().any(|s| *s == 0) {
         return Err(PyValueError::new_err("Non-zero strides not supported."));
     }
@@ -394,5 +383,41 @@ impl<'py> FromPyObject<'py> for PyBytesWrapper {
         let buffer = ob.extract::<PyBuffer<u8>>()?;
         validate_buffer(&buffer)?;
         Ok(Self(Some(buffer)))
+    }
+}
+
+/// Implement Debug for PyBytes
+///
+/// Don't use the `bytes::Bytes` Debug impl, b/c it doesn't _look_
+/// how the python bytes repr looks; this isn't exactly the same
+/// either, as the python repr will switch between `'` and `"` based
+/// on the presence of the other in the string, but it's close enough
+/// AND we don't have to do a full scan of the bytes to check for
+/// that.
+///
+/// BABOOM!
+impl std::fmt::Debug for PyBytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Bytes(b\"")?;
+        for &byte in self.0.as_ref() {
+            match byte {
+                // bing
+                b'\\' => f.write_str(r"\\")?,
+                // bop
+                b'"' => f.write_str("\\\"")?,
+                // boom
+                b'\n' => f.write_str(r"\n")?,
+                // boom
+                b'\r' => f.write_str(r"\r")?,
+                // boom
+                b'\t' => f.write_str(r"\t")?,
+                // bop
+                0x20..=0x7E => f.write_char(byte as char)?, // printable ASCII
+                // bam
+                _ => write!(f, "\\x{byte:02x}")?,
+            }
+        }
+        f.write_str("\")")?;
+        Ok(())
     }
 }
