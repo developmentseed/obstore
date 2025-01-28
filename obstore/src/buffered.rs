@@ -353,6 +353,8 @@ async fn flush(writer: Arc<Mutex<BufWriter>>) -> PyResult<()> {
 
 async fn write(writer: Arc<Mutex<BufWriter>>, buffer: PyBytes) -> PyResult<usize> {
     let mut writer = writer.lock().await;
-    let num_bytes_written = writer.write(buffer.as_slice()).await?;
-    Ok(num_bytes_written)
+    let buffer = buffer.into_inner();
+    let buffer_length = buffer.len();
+    writer.put(buffer).await.map_err(PyObjectStoreError::from)?;
+    Ok(buffer_length)
 }
