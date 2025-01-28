@@ -2,13 +2,13 @@ use std::io::SeekFrom;
 use std::sync::Arc;
 
 use bytes::Bytes;
-use object_store::buffered::BufReader;
+use object_store::buffered::{BufReader, BufWriter};
 use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_bytes::PyBytes;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, Lines};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Lines};
 use tokio::sync::Mutex;
 
 use crate::runtime::get_runtime;
@@ -245,4 +245,49 @@ async fn next_line(reader: Arc<Mutex<Lines<BufReader>>>, r#async: bool) -> PyRes
     } else {
         Err(PyStopIteration::new_err("stream exhausted"))
     }
+}
+
+#[pyclass(name = "WriteableFile", frozen)]
+pub(crate) struct PyWriteableFile {
+    writer: Arc<Mutex<BufWriter>>,
+    r#async: bool,
+}
+
+#[pymethods]
+impl PyWriteableFile {
+    fn flush<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
+        let writer = self.writer.clone();
+        if self.r#async {
+            let out = future_into_py(py, flush(writer))?;
+            Ok(out.unbind())
+        } else {
+            let runtime = get_runtime(py)?;
+            py.allow_threads(|| runtime.block_on(flush(writer)))?;
+            Ok(py.None())
+        }
+    }
+
+    fn write<'py>(&'py self, py: Python<'py>, buffer: PyBytes) -> PyResult<PyObject> {
+        let writer = self.writer.clone();
+        if self.r#async {
+            let out = future_into_py(py, write(writer, buffer))?;
+            Ok(out.unbind())
+        } else {
+            let runtime = get_runtime(py)?;
+            let out = py.allow_threads(|| runtime.block_on(write(writer, buffer)))?;
+            Ok(out.into_pyobject(py)?.into_any().unbind())
+        }
+    }
+}
+
+async fn flush(writer: Arc<Mutex<BufWriter>>) -> PyResult<()> {
+    let mut writer = writer.lock().await;
+    writer.flush().await?;
+    Ok(())
+}
+
+async fn write(writer: Arc<Mutex<BufWriter>>, buffer: PyBytes) -> PyResult<usize> {
+    let mut writer = writer.lock().await;
+    let num_bytes_written = writer.write(buffer.as_slice()).await?;
+    Ok(num_bytes_written)
 }
