@@ -1,6 +1,7 @@
 import os
 import sys
-from typing import Dict, List
+from contextlib import AbstractAsyncContextManager, AbstractContextManager
+from typing import Dict, List, Self
 
 from ._attributes import Attributes
 from ._bytes import Bytes
@@ -145,7 +146,7 @@ def open_writer(
         ReadableFile
     """
 
-async def open_writer_async(
+def open_writer_async(
     store: ObjectStore,
     path: str,
     *,
@@ -159,17 +160,22 @@ async def open_writer_async(
     Refer to the documentation for [open_writer][obstore.open_writer].
     """
 
-class WritableFile:
+class WritableFile(AbstractContextManager):
     """A buffered writable file object with synchronous operations.
 
     This implements a similar interface as a Python
     [`BufferedWriter`][io.BufferedWriter].
     """
 
+    def __enter__(self) -> Self: ...
+    def __exit__(self, exc_type, exc_value, traceback) -> None: ...
     def close(self) -> None:
-        """Close the current file.
+        """Close the current file."""
 
-        This is currently a no-op.
+    def closed(self) -> bool:
+        """Returns `True` if the current file has already been closed.
+
+        Note that this is a method, not an attribute.
         """
 
     def flush(self) -> None:
@@ -182,13 +188,18 @@ class WritableFile:
         Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written.
         """
 
-class AsyncWritableFile:
+class AsyncWritableFile(AbstractAsyncContextManager):
     """A buffered writable file object with **asynchronous** operations."""
 
-    def close(self) -> None:
-        """Close the current file.
+    async def __aenter__(self) -> Self: ...
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None: ...
+    async def close(self) -> None:
+        """Close the current file."""
 
-        This is currently a no-op.
+    async def closed(self) -> bool:
+        """Returns `True` if the current file has already been closed.
+
+        Note that this is an async method, not an attribute.
         """
 
     async def flush(self) -> None:
