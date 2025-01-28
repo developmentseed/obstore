@@ -4,8 +4,8 @@ from typing import List
 from ._bytes import Bytes
 from .store import ObjectStore
 
-def open(store: ObjectStore, path: str) -> ReadableFile:
-    """Open a file object from the specified location.
+def open_reader(store: ObjectStore, path: str) -> ReadableFile:
+    """Open a readable file object from the specified location.
 
     Args:
         store: The ObjectStore instance to use.
@@ -15,10 +15,10 @@ def open(store: ObjectStore, path: str) -> ReadableFile:
         ReadableFile
     """
 
-async def open_async(store: ObjectStore, path: str) -> AsyncReadableFile:
-    """Call `open` asynchronously, returning a file object with asynchronous operations.
+async def open_reader_async(store: ObjectStore, path: str) -> AsyncReadableFile:
+    """Call `open_reader` asynchronously, returning a readable file object with asynchronous operations.
 
-    Refer to the documentation for [open][obstore.open].
+    Refer to the documentation for [open_reader][obstore.open_reader].
     """
 
 class ReadableFile:

@@ -14,7 +14,7 @@ use tokio::sync::Mutex;
 use crate::runtime::get_runtime;
 
 #[pyfunction]
-pub(crate) fn open(
+pub(crate) fn open_reader(
     py: Python,
     store: PyObjectStore,
     path: String,
@@ -27,7 +27,11 @@ pub(crate) fn open(
 }
 
 #[pyfunction]
-pub(crate) fn open_async(py: Python, store: PyObjectStore, path: String) -> PyResult<Bound<PyAny>> {
+pub(crate) fn open_reader_async(
+    py: Python,
+    store: PyObjectStore,
+    path: String,
+) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
     future_into_py(py, async move {
         let meta = store
