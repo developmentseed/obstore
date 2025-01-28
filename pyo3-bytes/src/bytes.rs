@@ -126,6 +126,23 @@ impl PyBytes {
         self.0.as_ref() == other.0.as_ref()
     }
 
+    fn __getitem__(&self, py: Python, key: Bound<PyAny>) -> PyResult<PyObject> {
+        if let Ok(mut index) = key.extract::<isize>() {
+            if index < 0 {
+                index += self.0.len() as isize;
+            }
+
+            self.0
+                .get(index as usize)
+                .ok_or(PyIndexError::new_err("Index out of range"))?
+                .into_py_any(py)
+        } else {
+            Err(PyValueError::new_err(
+                "Currently, only integer keys are allowed in __getitem__.",
+            ))
+        }
+    }
+
     fn __mul__(&self, value: usize) -> PyBytes {
         let mut out_buf = BytesMut::with_capacity(self.0.len() * value);
         (0..value).for_each(|_| out_buf.extend_from_slice(self.0.as_ref()));
