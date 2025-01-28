@@ -8,8 +8,8 @@ use bytes::{Bytes, BytesMut};
 
 use pyo3::buffer::PyBuffer;
 use pyo3::exceptions::PyValueError;
-use pyo3::prelude::*;
 use pyo3::ffi;
+use pyo3::prelude::*;
 
 /// A wrapper around a [`bytes::Bytes`][].
 ///
