@@ -138,7 +138,7 @@ def open_writer(
 
     Keyword args:
         attributes: Provide a set of `Attributes`. Defaults to `None`.
-        buffer_size: The underlying buffer size to use. Up to `buffer_size` bytes will be buffered in memory. If `buffer_size` is exceeded, data will be uploaded as a multipart upload.
+        buffer_size: The underlying buffer size to use. Up to `buffer_size` bytes will be buffered in memory. If `buffer_size` is exceeded, data will be uploaded as a multipart upload in chunks of `buffer_size`.
         tags: Provide tags for this object. Defaults to `None`.
         max_concurrency: The maximum number of chunks to upload concurrently. Defaults to 12.
 
