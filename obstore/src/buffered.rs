@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use object_store::buffered::{BufReader, BufWriter};
+use object_store::ObjectStore;
 use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -11,7 +12,9 @@ use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Lines};
 use tokio::sync::Mutex;
 
+use crate::attributes::PyAttributes;
 use crate::runtime::get_runtime;
+use crate::tags::PyTagSet;
 
 #[pyfunction]
 pub(crate) fn open_reader(
@@ -251,14 +254,72 @@ async fn next_line(reader: Arc<Mutex<Lines<BufReader>>>, r#async: bool) -> PyRes
     }
 }
 
-#[pyclass(name = "WriteableFile", frozen)]
-pub(crate) struct PyWriteableFile {
+#[pyfunction]
+#[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12))]
+pub(crate) fn open_writer(
+    store: PyObjectStore,
+    path: String,
+    attributes: Option<PyAttributes>,
+    buffer_size: usize,
+    tags: Option<PyTagSet>,
+    max_concurrency: usize,
+) -> PyObjectStoreResult<PyWritableFile> {
+    Ok(PyWritableFile::new(
+        create_writer(store, path, attributes, buffer_size, tags, max_concurrency),
+        false,
+    ))
+}
+
+#[pyfunction]
+#[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12))]
+pub(crate) fn open_writer_async(
+    store: PyObjectStore,
+    path: String,
+    attributes: Option<PyAttributes>,
+    buffer_size: usize,
+    tags: Option<PyTagSet>,
+    max_concurrency: usize,
+) -> PyResult<PyWritableFile> {
+    Ok(PyWritableFile::new(
+        create_writer(store, path, attributes, buffer_size, tags, max_concurrency),
+        true,
+    ))
+}
+
+fn create_writer(
+    store: PyObjectStore,
+    path: String,
+    attributes: Option<PyAttributes>,
+    capacity: usize,
+    tags: Option<PyTagSet>,
+    max_concurrency: usize,
+) -> Arc<Mutex<BufWriter>> {
+    let store = store.into_inner();
+    let mut writer = BufWriter::with_capacity(store, path.into(), capacity)
+        .with_max_concurrency(max_concurrency);
+    if let Some(attributes) = attributes {
+        writer = writer.with_attributes(attributes.into_inner());
+    }
+    if let Some(tags) = tags {
+        writer = writer.with_tags(tags.into_inner());
+    }
+    Arc::new(Mutex::new(writer))
+}
+
+#[pyclass(name = "WritableFile", frozen)]
+pub(crate) struct PyWritableFile {
     writer: Arc<Mutex<BufWriter>>,
     r#async: bool,
 }
 
+impl PyWritableFile {
+    fn new(writer: Arc<Mutex<BufWriter>>, r#async: bool) -> Self {
+        Self { writer, r#async }
+    }
+}
+
 #[pymethods]
-impl PyWriteableFile {
+impl PyWritableFile {
     fn flush<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
         let writer = self.writer.clone();
         if self.r#async {

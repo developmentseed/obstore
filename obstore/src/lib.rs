@@ -53,6 +53,8 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add_wrapped(wrap_pyfunction!(buffered::open_reader))?;
     m.add_wrapped(wrap_pyfunction!(buffered::open_reader_async))?;
+    m.add_wrapped(wrap_pyfunction!(buffered::open_writer))?;
+    m.add_wrapped(wrap_pyfunction!(buffered::open_writer_async))?;
     m.add_wrapped(wrap_pyfunction!(copy::copy_async))?;
     m.add_wrapped(wrap_pyfunction!(copy::copy))?;
     m.add_wrapped(wrap_pyfunction!(delete::delete_async))?;

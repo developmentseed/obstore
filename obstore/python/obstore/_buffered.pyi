@@ -112,3 +112,58 @@ class AsyncReadableFile:
 
     async def tell(self) -> int:
         """Return the current stream position."""
+
+def open_writer(store: ObjectStore, path: str) -> WritableFile:
+    """Open a writable file object from the specified location.
+
+    Args:
+        store: The ObjectStore instance to use.
+        path: The path within ObjectStore to retrieve.
+
+    Returns:
+        ReadableFile
+    """
+
+async def open_writer_async(store: ObjectStore, path: str) -> AsyncWritableFile:
+    """Call `open_writer` asynchronously, returning a writable file object with asynchronous operations.
+
+    Refer to the documentation for [open_reader][obstore.open_reader].
+    """
+
+class WritableFile:
+    """A writable file object with synchronous operations.
+
+    This implements a similar interface as a generic writable Python binary file-like
+    object.
+    """
+
+    def close(self) -> None:
+        """Close the current file.
+
+        This is currently a no-op.
+        """
+
+    def flush(self) -> None:
+        """
+        Flushes this output stream, ensuring that all intermediately buffered contents reach their destination.
+        """
+
+    def write(self, buffer: Bytes, /) -> int:
+        """ """
+
+class AsyncWritableFile:
+    """A writable file object with **asynchronous** operations."""
+
+    def close(self) -> None:
+        """Close the current file.
+
+        This is currently a no-op.
+        """
+
+    async def flush(self) -> None:
+        """
+        Flushes this output stream, ensuring that all intermediately buffered contents reach their destination.
+        """
+
+    async def write(self, buffer: Bytes, /) -> int:
+        """ """
