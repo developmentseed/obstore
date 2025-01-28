@@ -1,6 +1,7 @@
 //! Support for Python buffer protocol
 
 use std::ffi::c_char;
+use std::fmt::Write;
 use std::os::raw::c_int;
 use std::ptr::NonNull;
 
@@ -34,7 +35,7 @@ use pyo3::{ffi, IntoPyObjectExt};
 /// `memoryview` constructors, `numpy.frombuffer`, or any other function that supports buffer
 /// protocol input.
 #[pyclass(name = "Bytes", subclass, frozen, sequence, weakref)]
-#[derive(Debug, Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct PyBytes(Bytes);
 
 impl AsRef<Bytes> for PyBytes {
@@ -112,7 +113,7 @@ impl PyBytes {
     }
 
     fn __repr__(&self) -> String {
-        format!("Bytes({})", python_bytes_repr(self.0.as_ref()))
+        format!("{self:?}")
     }
 
     fn __add__(&self, other: PyBytes) -> PyBytes {
@@ -595,28 +596,30 @@ impl<'py> FromPyObject<'py> for PyBytesWrapper {
     }
 }
 
-/// Returns a string like `b"asdf\n\0"` for the given byte slice.
-fn python_bytes_repr(data: &[u8]) -> String {
-    let mut out = String::from("b\"");
-    for &byte in data {
-        match byte {
-            b'\\' => out.push_str("\\\\"),
-            b'"' => out.push_str("\\\""),
-            b'\n' => out.push_str("\\n"),
-            b'\r' => out.push_str("\\r"),
-            b'\t' => out.push_str("\\t"),
-            0x20..=0x7E => {
-                // ASCII printable range
-                out.push(byte as char);
-            }
-            _ => {
-                // For everything else, use \xNN
-                out.push_str(&format!("\\x{byte:02x}"));
+impl std::fmt::Debug for PyBytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Bytes(b\"")?;
+        for &byte in self.0.as_ref() {
+            match byte {
+                // bing
+                b'\\' => f.write_str(r"\\")?,
+                // bop
+                b'"' => f.write_str("\\\"")?,
+                // boom
+                b'\n' => f.write_str(r"\n")?,
+                // boom
+                b'\r' => f.write_str(r"\r")?,
+                // boom
+                b'\t' => f.write_str(r"\t")?,
+                // bop
+                0x20..=0x7E => f.write_char(byte as char)?, // printable ASCII
+                // bam
+                _ => write!(f, "\\x{byte:02x}")?,
             }
         }
+        f.write_str("\")")?;
+        Ok(())
     }
-    out.push('"');
-    out
 }
 
 /// A key for the `__getitem__` method of `PyBytes` - int/slice
