@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::Range;
 use std::sync::Arc;
 
 use bytes::Bytes;
@@ -356,52 +357,71 @@ pub(crate) fn get_async(
 }
 
 #[pyfunction]
+#[pyo3(signature = (store, path, *, start, end=None, length=None))]
 pub(crate) fn get_range(
     py: Python,
     store: PyObjectStore,
     path: String,
     start: usize,
-    end: usize,
+    end: Option<usize>,
+    length: Option<usize>,
 ) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
     let runtime = get_runtime(py)?;
+    let range = params_to_range(start, end, length)?;
     py.allow_threads(|| {
-        let out = runtime.block_on(store.as_ref().get_range(&path.into(), start..end))?;
+        let out = runtime.block_on(store.as_ref().get_range(&path.into(), range))?;
         Ok::<_, PyObjectStoreError>(pyo3_bytes::PyBytes::new(out))
     })
 }
 
 #[pyfunction]
+#[pyo3(signature = (store, path, *, start, end=None, length=None))]
 pub(crate) fn get_range_async(
     py: Python,
     store: PyObjectStore,
     path: String,
     start: usize,
-    end: usize,
+    end: Option<usize>,
+    length: Option<usize>,
 ) -> PyResult<Bound<PyAny>> {
+    let range = params_to_range(start, end, length)?;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let out = store
             .as_ref()
-            .get_range(&path.into(), start..end)
+            .get_range(&path.into(), range)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(pyo3_bytes::PyBytes::new(out))
     })
 }
 
+fn params_to_range(
+    start: usize,
+    end: Option<usize>,
+    length: Option<usize>,
+) -> PyObjectStoreResult<Range<usize>> {
+    match (end, length) {
+        (Some(_), Some(_)) => {
+            Err(PyValueError::new_err("end and length cannot both be non-None.").into())
+        }
+        (None, None) => Err(PyValueError::new_err("Either end or length must be non-None.").into()),
+        (Some(end), None) => Ok(start..end),
+        (None, Some(length)) => Ok(start..start + length),
+    }
+}
+
 #[pyfunction]
+#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None))]
 pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
     path: String,
     starts: Vec<usize>,
-    ends: Vec<usize>,
+    ends: Option<Vec<usize>>,
+    lengths: Option<Vec<usize>>,
 ) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
     let runtime = get_runtime(py)?;
-    let ranges = starts
-        .into_iter()
-        .zip(ends)
-        .map(|(start, end)| start..end)
-        .collect::<Vec<_>>();
+    let ranges = params_to_ranges(starts, ends, lengths)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;
         Ok::<_, PyObjectStoreError>(out.into_iter().map(|buf| buf.into()).collect())
@@ -409,18 +429,16 @@ pub(crate) fn get_ranges(
 }
 
 #[pyfunction]
+#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None))]
 pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
     path: String,
     starts: Vec<usize>,
-    ends: Vec<usize>,
+    ends: Option<Vec<usize>>,
+    lengths: Option<Vec<usize>>,
 ) -> PyResult<Bound<PyAny>> {
-    let ranges = starts
-        .into_iter()
-        .zip(ends)
-        .map(|(start, end)| start..end)
-        .collect::<Vec<_>>();
+    let ranges = params_to_ranges(starts, ends, lengths)?;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let out = store
             .as_ref()
@@ -432,4 +450,29 @@ pub(crate) fn get_ranges_async(
             .map(pyo3_bytes::PyBytes::new)
             .collect::<Vec<_>>())
     })
+}
+
+fn params_to_ranges(
+    starts: Vec<usize>,
+    ends: Option<Vec<usize>>,
+    lengths: Option<Vec<usize>>,
+) -> PyObjectStoreResult<Vec<Range<usize>>> {
+    match (ends, lengths) {
+        (Some(_), Some(_)) => {
+            Err(PyValueError::new_err("ends and lengths cannot both be non-None.").into())
+        }
+        (None, None) => {
+            Err(PyValueError::new_err("Either ends or lengths must be non-None.").into())
+        }
+        (Some(ends), None) => Ok(starts
+            .into_iter()
+            .zip(ends)
+            .map(|(start, end)| start..end)
+            .collect()),
+        (None, Some(lengths)) => Ok(starts
+            .into_iter()
+            .zip(lengths)
+            .map(|(start, length)| start..start + length)
+            .collect()),
+    }
 }
