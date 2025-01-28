@@ -1,4 +1,7 @@
-"""[fsspec] integration.
+"""Integration with the [fsspec] library.
+
+This integration is designed for compatibility and may not provide the same performance
+as other obstore APIs.
 
 [fsspec]: https://github.com/fsspec/filesystem_spec
 
@@ -188,7 +191,8 @@ class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
     def read(self, length: int = -1):
         """Return bytes from the remote file
 
-        length: if positive, returns up to this many bytes; if negative, return all
+        Args:
+            length: if positive, returns up to this many bytes; if negative, return all
             remaining byets.
         """
         if length < 0:

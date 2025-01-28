@@ -1,9 +1,13 @@
 from ._attributes import Attribute as Attribute
 from ._attributes import Attributes as Attributes
 from ._buffered import AsyncReadableFile as AsyncReadableFile
+from ._buffered import AsyncWritableFile as AsyncWritableFile
 from ._buffered import ReadableFile as ReadableFile
+from ._buffered import WritableFile as WritableFile
 from ._buffered import open_reader as open_reader
 from ._buffered import open_reader_async as open_reader_async
+from ._buffered import open_writer as open_writer
+from ._buffered import open_writer_async as open_writer_async
 from ._bytes import Bytes as Bytes
 from ._copy import copy as copy
 from ._copy import copy_async as copy_async

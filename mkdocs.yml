@@ -47,7 +47,7 @@ nav:
       - api/attributes.md
       - api/exceptions.md
       - api/file.md
-      - obstore.fsspec: api/fsspec.md
+      - fsspec Integration: api/fsspec.md
   - CHANGELOG.md
 
 watch:

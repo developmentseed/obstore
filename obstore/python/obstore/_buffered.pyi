@@ -125,7 +125,7 @@ def open_writer(
     path: str,
     *,
     attributes: Attributes | None = None,
-    buffer_size=10 * 1024 * 1024,
+    buffer_size: int = 10 * 1024 * 1024,
     tags: Dict[str, str] | None = None,
     max_concurrency: int = 12,
 ) -> WritableFile:
@@ -150,7 +150,7 @@ async def open_writer_async(
     path: str,
     *,
     attributes: Attributes | None = None,
-    buffer_size=10 * 1024 * 1024,
+    buffer_size: int = 10 * 1024 * 1024,
     tags: Dict[str, str] | None = None,
     max_concurrency: int = 12,
 ) -> AsyncWritableFile:
@@ -160,10 +160,10 @@ async def open_writer_async(
     """
 
 class WritableFile:
-    """A writable file object with synchronous operations.
+    """A buffered writable file object with synchronous operations.
 
-    This implements a similar interface as a generic writable Python binary file-like
-    object.
+    This implements a similar interface as a Python
+    [`BufferedWriter`][io.BufferedWriter].
     """
 
     def close(self) -> None:
@@ -178,10 +178,12 @@ class WritableFile:
         """
 
     def write(self, buffer: bytes | Buffer, /) -> int:
-        """ """
+        """
+        Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written.
+        """
 
 class AsyncWritableFile:
-    """A writable file object with **asynchronous** operations."""
+    """A buffered writable file object with **asynchronous** operations."""
 
     def close(self) -> None:
         """Close the current file.
@@ -195,4 +197,6 @@ class AsyncWritableFile:
         """
 
     async def write(self, buffer: bytes | Buffer, /) -> int:
-        """ """
+        """
+        Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written.
+        """
