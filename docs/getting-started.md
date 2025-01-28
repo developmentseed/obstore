@@ -85,7 +85,7 @@ response.meta
 #  'version': None}
 assert response.bytes() == b"hello world!"
 
-byte_range = obs.get_range(store, "file.txt", offset=0, length=5)
+byte_range = obs.get_range(store, "file.txt", start=0, end=5)
 assert byte_range == b"hello"
 
 obs.copy(store, "file.txt", "other.txt")
@@ -109,7 +109,7 @@ response.meta
 #  'version': None}
 assert await response.bytes_async() == b"hello world!"
 
-byte_range = await obs.get_range_async(store, "file.txt", offset=0, length=5)
+byte_range = await obs.get_range_async(store, "file.txt", start=0, end=5)
 assert byte_range == b"hello"
 
 await obs.copy_async(store, "file.txt", "other.txt")
