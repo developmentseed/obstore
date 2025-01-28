@@ -13,17 +13,17 @@ def test_readable_file_sync():
 
     obs.put(store, path, data)
 
-    file = obs.open(store, path)
+    file = obs.open_reader(store, path)
     assert line == file.readline().to_bytes()
 
-    file = obs.open(store, path)
+    file = obs.open_reader(store, path)
     buffer = file.read()
     assert memoryview(data) == memoryview(buffer)
 
-    file = obs.open(store, path)
+    file = obs.open_reader(store, path)
     assert line == file.readline().to_bytes()
 
-    file = obs.open(store, path)
+    file = obs.open_reader(store, path)
     assert memoryview(data[:20]) == memoryview(file.read(20))
 
 
@@ -37,15 +37,15 @@ async def test_readable_file_async():
 
     await obs.put_async(store, path, data)
 
-    file = await obs.open_async(store, path)
+    file = await obs.open_reader_async(store, path)
     assert line == (await file.readline()).to_bytes()
 
-    file = await obs.open_async(store, path)
+    file = await obs.open_reader_async(store, path)
     buffer = await file.read()
     assert memoryview(data) == memoryview(buffer)
 
-    file = await obs.open_async(store, path)
+    file = await obs.open_reader_async(store, path)
     assert line == (await file.readline()).to_bytes()
 
-    file = await obs.open_async(store, path)
+    file = await obs.open_reader_async(store, path)
     assert memoryview(data[:20]) == memoryview(await file.read(20))
