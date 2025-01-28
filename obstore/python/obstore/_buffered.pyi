@@ -1,8 +1,15 @@
 import os
-from typing import List
+import sys
+from typing import Dict, List
 
+from ._attributes import Attributes
 from ._bytes import Bytes
 from .store import ObjectStore
+
+if sys.version_info >= (3, 12):
+    from collections.abc import Buffer
+else:
+    from typing_extensions import Buffer
 
 def open_reader(store: ObjectStore, path: str) -> ReadableFile:
     """Open a readable file object from the specified location.
@@ -113,21 +120,43 @@ class AsyncReadableFile:
     async def tell(self) -> int:
         """Return the current stream position."""
 
-def open_writer(store: ObjectStore, path: str) -> WritableFile:
-    """Open a writable file object from the specified location.
+def open_writer(
+    store: ObjectStore,
+    path: str,
+    *,
+    attributes: Attributes | None = None,
+    buffer_size=10 * 1024 * 1024,
+    tags: Dict[str, str] | None = None,
+    max_concurrency: int = 12,
+) -> WritableFile:
+    """Open a writable file object at the specified location.
 
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
 
+    Keyword args:
+        attributes: Provide a set of `Attributes`. Defaults to `None`.
+        buffer_size: The underlying buffer size to use. Up to `buffer_size` bytes will be buffered in memory. If `buffer_size` is exceeded, data will be uploaded as a multipart upload.
+        tags: Provide tags for this object. Defaults to `None`.
+        max_concurrency: The maximum number of chunks to upload concurrently. Defaults to 12.
+
     Returns:
         ReadableFile
     """
 
-async def open_writer_async(store: ObjectStore, path: str) -> AsyncWritableFile:
-    """Call `open_writer` asynchronously, returning a writable file object with asynchronous operations.
+async def open_writer_async(
+    store: ObjectStore,
+    path: str,
+    *,
+    attributes: Attributes | None = None,
+    buffer_size=10 * 1024 * 1024,
+    tags: Dict[str, str] | None = None,
+    max_concurrency: int = 12,
+) -> AsyncWritableFile:
+    """Open an **asynchronous** writable file object at the specified location.
 
-    Refer to the documentation for [open_reader][obstore.open_reader].
+    Refer to the documentation for [open_writer][obstore.open_writer].
     """
 
 class WritableFile:
@@ -148,7 +177,7 @@ class WritableFile:
         Flushes this output stream, ensuring that all intermediately buffered contents reach their destination.
         """
 
-    def write(self, buffer: Bytes, /) -> int:
+    def write(self, buffer: bytes | Buffer, /) -> int:
         """ """
 
 class AsyncWritableFile:
@@ -165,5 +194,5 @@ class AsyncWritableFile:
         Flushes this output stream, ensuring that all intermediately buffered contents reach their destination.
         """
 
-    async def write(self, buffer: Bytes, /) -> int:
+    async def write(self, buffer: bytes | Buffer, /) -> int:
         """ """
