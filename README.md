@@ -19,7 +19,7 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 - **Streaming list**, with no need to paginate.
 - Automatically uses [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
 - Support for **conditional put** ("put if not exists"), as well as custom tags and attributes.
-- Optionally return list results as [Arrow](https://arrow.apache.org/), which is faster than materializing Python `dict`s.
+- Optionally return list results in [Apache Arrow](https://arrow.apache.org/) format, which is faster and more memory-efficient than materializing Python `dict`s.
 - File-like object API and [fsspec](https://github.com/fsspec/filesystem_spec) integration.
 - Easy to install with no required Python dependencies.
 - The [underlying Rust library](https://docs.rs/object_store) is production quality and used in large scale production systems, such as the Rust package registry [crates.io](https://crates.io/).
