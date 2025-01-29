@@ -398,17 +398,18 @@ impl<'py> FromPyObject<'py> for PyBytesWrapper {
     }
 }
 
-/// We don't use the `bytes::Bytes` Debug impl, b/c it doesn't _look_
-/// how the python bytes repr looks; this isn't exactly the same
-/// either, as the python repr will switch between `'` and `"` based
-/// on the presence of the other in the string, but it's close enough
-/// AND we don't have to do a full scan of the bytes to check for
-/// that.
+/// This is _mostly_ the same as the upstream [`bytes::Bytes` Debug
+/// impl](https://github.com/tokio-rs/bytes/blob/71824b095c4150b3af0776ac158795c00ff9d53f/src/fmt/debug.rs#L6-L37),
+/// however we don't use it because that impl doesn't look how the python bytes repr looks; this
+/// isn't exactly the same either, as the python repr will switch between `'` and `"` based on the
+/// presence of the other in the string, but it's close enough AND we don't have to do a full scan
+/// of the bytes to check for that.
 impl std::fmt::Debug for PyBytes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Bytes(b\"")?;
         for &byte in self.0.as_ref() {
             match byte {
+                // https://doc.rust-lang.org/reference/tokens.html#byte-escapes
                 b'\\' => f.write_str(r"\\")?,
                 b'"' => f.write_str("\\\"")?,
                 b'\n' => f.write_str(r"\n")?,
