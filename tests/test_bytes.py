@@ -6,9 +6,14 @@ from obstore import Bytes
 
 
 def test_empty_eq() -> None:
-    py_bytes = b""
-    ry_bytes = Bytes(py_bytes)
-    assert py_bytes == ry_bytes
+    assert b"" == Bytes(b"")
+
+
+def test_repr():
+    py_buf = b"foo\nbar\nbaz"
+    rust_buf = Bytes(py_buf)
+    # Assert reprs are the same excluding the prefix and suffix
+    assert repr(py_buf)[2:-1] == repr(rust_buf)[8:-2]
 
 
 @pytest.mark.parametrize(
@@ -16,7 +21,7 @@ def test_empty_eq() -> None:
     [bytes([i]) for i in range(256)],
 )
 def test_uno_byte_bytes_repr(b: bytes) -> None:
-    ry_bytes = Bytes(b)
-    ry_bytes_str = str(ry_bytes)
-    ry_bytes_str_eval = eval(ry_bytes_str)
-    assert ry_bytes_str_eval == ry_bytes
+    rust_bytes = Bytes(b)
+    rust_bytes_str = repr(rust_bytes)
+    rust_bytes_str_eval = eval(rust_bytes_str)
+    assert rust_bytes_str_eval == rust_bytes == b
