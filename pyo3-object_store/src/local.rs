@@ -29,13 +29,17 @@ impl PyLocalStore {
 #[pymethods]
 impl PyLocalStore {
     #[new]
-    #[pyo3(signature = (prefix = None))]
-    fn py_new(prefix: Option<std::path::PathBuf>) -> PyObjectStoreResult<Self> {
+    #[pyo3(signature = (prefix = None, *, automatic_cleanup=false))]
+    fn py_new(
+        prefix: Option<std::path::PathBuf>,
+        automatic_cleanup: bool,
+    ) -> PyObjectStoreResult<Self> {
         let fs = if let Some(prefix) = prefix {
             LocalFileSystem::new_with_prefix(prefix)?
         } else {
             LocalFileSystem::new()
         };
+        let fs = fs.with_automatic_cleanup(automatic_cleanup);
         Ok(Self(Arc::new(fs)))
     }
 
