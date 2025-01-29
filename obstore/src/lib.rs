@@ -1,4 +1,6 @@
-use pyo3::prelude::*;
+// Except for explicit areas where we enable unsafe
+#![deny(unsafe_code)]
+
 mod attributes;
 mod buffered;
 mod copy;
@@ -12,6 +14,8 @@ mod rename;
 mod runtime;
 mod signer;
 mod tags;
+
+use pyo3::prelude::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
