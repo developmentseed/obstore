@@ -387,6 +387,21 @@ impl PyWritableFile {
         }
     }
 
+    /// It's a little unfortunate that this is a method instead of an attribute.
+    ///
+    /// We need an `Option` somewhere in order to be able to drop the internal `BufWriter` to check
+    /// that it has already been closed. (The `object_store` API will error if the file is closed
+    /// twice, but doesn't give a way to check if the file has already been closed).
+    ///
+    /// This being an async method is an artifact of storing the underlying BufWriter inside of an
+    /// ```rs
+    /// Arc<Mutex<Option<BufWriter>>>
+    /// ```
+    /// where the `Mutex` is a `tokio::sync::Mutex`.
+    ///
+    /// Thus we need to use async to open the mutex. We could add a second layer of mutex, where
+    /// the top-level mutex is a `std::sync::Mutex`, but I assume that two levels of mutexes would
+    /// be detrimental for performance.
     fn closed<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
         let writer = self.writer.clone();
         if self.r#async {
