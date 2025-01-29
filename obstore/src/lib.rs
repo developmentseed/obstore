@@ -1,4 +1,5 @@
-use pyo3::prelude::*;
+// Except for explicit areas where we enable unsafe
+#![deny(unsafe_code)]
 
 mod attributes;
 mod buffered;
@@ -13,6 +14,8 @@ mod rename;
 mod runtime;
 mod signer;
 mod tags;
+
+use pyo3::prelude::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -51,6 +54,7 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     pyo3_object_store::register_store_module(py, m, "obstore")?;
     pyo3_object_store::register_exceptions_module(py, m, "obstore")?;
 
+    m.add_class::<pyo3_bytes::PyBytes>()?;
     m.add_wrapped(wrap_pyfunction!(buffered::open_reader))?;
     m.add_wrapped(wrap_pyfunction!(buffered::open_reader_async))?;
     m.add_wrapped(wrap_pyfunction!(buffered::open_writer))?;
