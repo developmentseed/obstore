@@ -5,14 +5,6 @@ import pytest
 from obstore import Bytes
 
 
-@pytest.mark.skip(reason="Not implemented *yet*")
-def test_decode() -> None:
-    py_bytes = b"asdf"
-    ry_bytes = Bytes(py_bytes)
-    assert ry_bytes.decode() == "asdf"
-
-
-# TODO: figure out if accepts empty bytes (i jessekrubin think it should if it is trying to be `bytes`)
 def test_empty_eq() -> None:
     py_bytes = b""
     ry_bytes = Bytes(py_bytes)

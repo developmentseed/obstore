@@ -93,7 +93,7 @@ impl PyBytes {
     // By setting the argument to PyBytes, this means that any buffer-protocol object is supported
     // here, since it will use the FromPyObject impl.
     #[new]
-    #[pyo3(signature = (buf = PyBytes(Bytes::new())))]
+    #[pyo3(signature = (buf = PyBytes(Bytes::new())), text_signature = "(buf = b'')")]
     fn py_new(buf: PyBytes) -> Self {
         buf
     }
@@ -330,13 +330,9 @@ impl PyBytes {
 
 impl<'py> FromPyObject<'py> for PyBytes {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if ob.is_none() {
-            Ok(PyBytes(Bytes::new()))
-        } else {
-            let buffer = ob.extract::<PyBytesWrapper>()?;
-            let bytes = Bytes::from_owner(buffer);
-            Ok(Self(bytes))
-        }
+        let buffer = ob.extract::<PyBytesWrapper>()?;
+        let bytes = Bytes::from_owner(buffer);
+        Ok(Self(bytes))
     }
 }
 
