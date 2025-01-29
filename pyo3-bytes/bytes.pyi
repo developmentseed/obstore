@@ -17,7 +17,7 @@ class Bytes(Buffer):
     """
 
     def __init__(self, buf: Buffer = b"") -> None:
-        """Construct a new byte buffer.
+        """Construct a new Bytes object.
 
         This will be a zero-copy view on the Python byte slice.
         """
