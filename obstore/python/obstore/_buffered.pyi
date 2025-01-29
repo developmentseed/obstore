@@ -5,6 +5,7 @@ from typing import Dict, List, Self
 
 from ._attributes import Attributes
 from ._bytes import Bytes
+from ._list import ObjectMeta
 from .store import ObjectStore
 
 if sys.version_info >= (3, 12):
@@ -65,6 +66,10 @@ class ReadableFile:
         This is currently a no-op.
         """
 
+    @property
+    def meta(self) -> ObjectMeta:
+        """Access the metadata of the underlying file"""
+
     def read(self, size: int | None = None, /) -> Bytes:
         """
         Read up to `size` bytes from the object and return them. As a convenience, if
@@ -96,6 +101,10 @@ class ReadableFile:
 
     def seekable(self) -> bool:
         """Return True if the stream supports random access."""
+
+    @property
+    def size(self) -> int:
+        """The size in bytes of the object."""
 
     def tell(self) -> int:
         """Return the current stream position."""
@@ -129,6 +138,10 @@ class AsyncReadableFile:
         This is currently a no-op.
         """
 
+    @property
+    def meta(self) -> ObjectMeta:
+        """Access the metadata of the underlying file"""
+
     async def read(self, size: int | None = None, /) -> Bytes:
         """
         Read up to `size` bytes from the object and return them. As a convenience, if
@@ -160,6 +173,10 @@ class AsyncReadableFile:
 
     def seekable(self) -> bool:
         """Return True if the stream supports random access."""
+
+    @property
+    def size(self) -> int:
+        """The size in bytes of the object."""
 
     async def tell(self) -> int:
         """Return the current stream position."""

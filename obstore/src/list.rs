@@ -34,6 +34,12 @@ impl AsRef<ObjectMeta> for PyObjectMeta {
     }
 }
 
+impl From<ObjectMeta> for PyObjectMeta {
+    fn from(value: ObjectMeta) -> Self {
+        Self(value)
+    }
+}
+
 impl<'py> IntoPyObject<'py> for PyObjectMeta {
     type Target = PyDict;
     type Output = Bound<'py, PyDict>;
