@@ -1,3 +1,4 @@
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -42,3 +43,14 @@ def test_local_from_url():
     url = f"file://{HERE.absolute()}//"
     with pytest.raises(GenericError):
         store = LocalStore.from_url(url)
+
+
+def test_create_prefix():
+    tmpdir = Path(tempfile.gettempdir()) / "abc"
+    assert not tmpdir.exists()
+    LocalStore(tmpdir, mkdir=True)
+    assert tmpdir.exists()
+
+    # Assert that mkdir=True works even when the dir already exists
+    LocalStore(tmpdir, mkdir=True)
+    assert tmpdir.exists()
