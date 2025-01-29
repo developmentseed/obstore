@@ -19,33 +19,46 @@ use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
 
 #[pyfunction]
+#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024))]
 pub(crate) fn open_reader(
     py: Python,
     store: PyObjectStore,
     path: String,
+    buffer_size: usize,
 ) -> PyObjectStoreResult<PyReadableFile> {
     let store = store.into_inner();
     let runtime = get_runtime(py)?;
-    let meta = py.allow_threads(|| runtime.block_on(store.head(&path.into())))?;
-    let reader = Arc::new(Mutex::new(BufReader::new(store, &meta)));
+    let reader = py.allow_threads(|| runtime.block_on(create_reader(store, path, buffer_size)))?;
     Ok(PyReadableFile::new(reader, false))
 }
 
 #[pyfunction]
+#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024))]
 pub(crate) fn open_reader_async(
     py: Python,
     store: PyObjectStore,
     path: String,
+    buffer_size: usize,
 ) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
     future_into_py(py, async move {
-        let meta = store
-            .head(&path.into())
-            .await
-            .map_err(PyObjectStoreError::ObjectStoreError)?;
-        let reader = Arc::new(Mutex::new(BufReader::new(store, &meta)));
+        let reader = create_reader(store, path, buffer_size).await?;
         Ok(PyReadableFile::new(reader, true))
     })
+}
+
+async fn create_reader(
+    store: Arc<dyn ObjectStore>,
+    path: String,
+    capacity: usize,
+) -> PyObjectStoreResult<Arc<Mutex<BufReader>>> {
+    let meta = store
+        .head(&path.into())
+        .await
+        .map_err(PyObjectStoreError::ObjectStoreError)?;
+    Ok(Arc::new(Mutex::new(BufReader::with_capacity(
+        store, &meta, capacity,
+    ))))
 }
 
 #[pyclass(name = "ReadableFile", frozen)]

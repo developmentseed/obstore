@@ -12,28 +12,51 @@ if sys.version_info >= (3, 12):
 else:
     from typing_extensions import Buffer
 
-def open_reader(store: ObjectStore, path: str) -> ReadableFile:
+def open_reader(
+    store: ObjectStore, path: str, *, buffer_size: int = 1024 * 1024
+) -> ReadableFile:
     """Open a readable file object from the specified location.
 
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
 
+    Keyword Args:
+        buffer_size: The number of bytes to read in a single request. Up to `buffer_size` bytes will be buffered in memory. If `buffer_size` is exceeded, data will be uploaded as a multipart upload in chunks of `buffer_size`.
+
     Returns:
         ReadableFile
     """
 
-async def open_reader_async(store: ObjectStore, path: str) -> AsyncReadableFile:
+async def open_reader_async(
+    store: ObjectStore, path: str, *, buffer_size: int = 1024 * 1024
+) -> AsyncReadableFile:
     """Call `open_reader` asynchronously, returning a readable file object with asynchronous operations.
 
     Refer to the documentation for [open_reader][obstore.open_reader].
     """
 
 class ReadableFile:
-    """A readable file object with synchronous operations.
+    """A synchronous-buffered reader that implements a similar interface as a Python
+    [`BufferedReader`][io.BufferedReader].
 
-    This implements a similar interface as a generic readable Python binary file-like
-    object.
+    Internally this maintains a buffer of the requested size, and uses
+    [`get_range`][obstore.get_range] to populate its internal buffer once depleted. This
+    buffer is cleared on seek.
+
+    Whilst simple, this interface will typically be outperformed by the native `obstore`
+    methods that better map to the network APIs. This is because most object stores have
+    very [high first-byte latencies], on the order of 100-200ms, and so avoiding
+    unnecessary round-trips is critical to throughput.
+
+    Systems looking to sequentially scan a file should instead consider using
+    [`get`][obstore.get], or [`get_range`][obstore.get_range] to read a particular
+    range.
+
+    Systems looking to read multiple ranges of a file should instead consider using
+    [`get_ranges`][obstore.get_ranges], which will optimise the vectored IO.
+
+    [high first-byte latencies]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html
     """
 
     def close(self) -> None:
@@ -78,7 +101,27 @@ class ReadableFile:
         """Return the current stream position."""
 
 class AsyncReadableFile:
-    """A readable file object with **asynchronous** operations."""
+    """An async-buffered reader that implements a similar interface as a Python
+    [`BufferedReader`][io.BufferedReader].
+
+    Internally this maintains a buffer of the requested size, and uses
+    [`get_range`][obstore.get_range] to populate its internal buffer once depleted. This
+    buffer is cleared on seek.
+
+    Whilst simple, this interface will typically be outperformed by the native `obstore`
+    methods that better map to the network APIs. This is because most object stores have
+    very [high first-byte latencies], on the order of 100-200ms, and so avoiding
+    unnecessary round-trips is critical to throughput.
+
+    Systems looking to sequentially scan a file should instead consider using
+    [`get`][obstore.get], or [`get_range`][obstore.get_range] to read a particular
+    range.
+
+    Systems looking to read multiple ranges of a file should instead consider using
+    [`get_ranges`][obstore.get_ranges], which will optimise the vectored IO.
+
+    [high first-byte latencies]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html
+    """
 
     def close(self) -> None:
         """Close the current file.
