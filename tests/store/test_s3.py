@@ -1,7 +1,7 @@
 import pytest
 
 import obstore as obs
-from obstore.store import S3Store
+from obstore.store import S3Store, new_store
 
 
 @pytest.mark.asyncio
@@ -20,3 +20,13 @@ async def test_get_async(s3_store: S3Store):
 def test_construct_store_boolean_config():
     # Should allow boolean parameter
     S3Store("bucket", skip_signature=True)
+
+
+@pytest.mark.asyncio
+async def test_new_store():
+    store = new_store(
+        "s3://ookla-open-data/parquet/performance/type=fixed/year=2024/quarter=1",
+        region="us-west-2",
+        skip_signature=True,
+    )
+    _meta = await obs.head_async(store, "2024-01-01_performance_fixed_tiles.parquet")
