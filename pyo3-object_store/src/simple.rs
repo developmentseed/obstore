@@ -1,6 +1,5 @@
 use object_store::prefix::PrefixStore;
-use object_store::{parse_url, parse_url_opts};
-use pyo3::exceptions::PyValueError;
+use object_store::{parse_url, parse_url_opts, ObjectStoreScheme};
 use pyo3::prelude::*;
 
 use crate::aws::PyAmazonS3Config;
@@ -9,40 +8,52 @@ use crate::gcp::PyGoogleConfig;
 use crate::url::PyUrl;
 use crate::{PyObjectStoreResult, PyPrefixStore};
 
-#[derive(FromPyObject)]
-pub enum ParseUrlConfig {
-    Aws(PyAmazonS3Config),
-    Azure(PyAzureConfig),
-    Google(PyGoogleConfig),
-}
-
 /// Wrapper around [`object_store::parse_url`] for simple construction of stores by url.
+// Note: We don't extract the PyObject in the function signature because it's possible that
+// AWS/Azure/Google config keys could overlap. And so we don't want to accidentally parse a config
+// as an AWS config before knowing that the URL scheme is AWS.
 #[pyfunction]
 #[pyo3(signature = (url, *, config=None, **kwargs))]
 pub fn new_store(
     url: PyUrl,
-    config: Option<ParseUrlConfig>,
-    kwargs: Option<ParseUrlConfig>,
+    config: Option<Bound<PyAny>>,
+    kwargs: Option<Bound<PyAny>>,
 ) -> PyObjectStoreResult<PyPrefixStore> {
-    let (store, path) = match (config, kwargs) {
-        (Some(_), Some(_)) => {
-            // TODO: merge configs
-            return Err(PyValueError::new_err("Cannot pass both config and kwargs").into());
+    let url = url.into_inner();
+    let (scheme, _) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
+    let (store, path) = match scheme {
+        ObjectStoreScheme::AmazonS3 => {
+            let config = config
+                .map(|x| x.extract::<PyAmazonS3Config>())
+                .transpose()?;
+            let kwargs = kwargs
+                .map(|x| x.extract::<PyAmazonS3Config>())
+                .transpose()?;
+            // TODO: merge config and kwargs
+            parse_url_opts(&url, config.unwrap().into_inner())?
         }
-        // Note: In theory, we could avoid a match by implementing `IntoIterator` on
-        // `ParseUrlConfig`, but I can't figure out the generics.
-        (None, Some(config)) | (Some(config), None) => match config {
-            ParseUrlConfig::Aws(aws_config) => {
-                parse_url_opts(url.as_ref(), aws_config.into_inner())
-            }
-            ParseUrlConfig::Azure(azure_config) => {
-                parse_url_opts(url.as_ref(), azure_config.into_inner())
-            }
-            ParseUrlConfig::Google(google_config) => {
-                parse_url_opts(url.as_ref(), google_config.into_inner())
-            }
-        },
-        (None, None) => parse_url(url.as_ref()),
-    }?;
+        ObjectStoreScheme::GoogleCloudStorage => {
+            let config = config.map(|x| x.extract::<PyGoogleConfig>()).transpose()?;
+            let kwargs = kwargs.map(|x| x.extract::<PyGoogleConfig>()).transpose()?;
+            // TODO: merge config and kwargs
+            parse_url_opts(&url, config.unwrap().into_inner())?
+        }
+        ObjectStoreScheme::MicrosoftAzure => {
+            let config = config.map(|x| x.extract::<PyAzureConfig>()).transpose()?;
+            let kwargs = kwargs.map(|x| x.extract::<PyAzureConfig>()).transpose()?;
+            // TODO: merge config and kwargs
+            parse_url_opts(&url, config.unwrap().into_inner())?
+        }
+        // TODO: assert no config or kwargs provided
+        _ => parse_url(&url)?,
+        // scheme => {
+        //     return Err(PyValueError::new_err(format!(
+        //         "Cannot pass config parameters for scheme {:?}",
+        //         scheme,
+        //     ))
+        //     .into())
+        // }
+    };
+
     Ok(PrefixStore::new(store.into(), path).into())
 }

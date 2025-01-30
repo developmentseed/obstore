@@ -17,18 +17,18 @@ from ._retry import RetryConfig as RetryConfig
 @overload
 def new_store(
     url: str, *, config: S3Config | None = None, **kwargs: Unpack[S3Config]
-) -> ObjectStore: ...
+) -> PrefixStore: ...
 @overload
 def new_store(
     url: str, *, config: GCSConfig | None = None, **kwargs: Unpack[GCSConfig]
-) -> ObjectStore: ...
+) -> PrefixStore: ...
 @overload
 def new_store(
     url: str, *, config: AzureConfig | None = None, **kwargs: Unpack[AzureConfig]
-) -> ObjectStore: ...
+) -> PrefixStore: ...
 def new_store(
     url: str, *, config: S3Config | GCSConfig | AzureConfig | None = None, **kwargs: Any
-) -> ObjectStore:
+) -> PrefixStore:
     """Easy construction of store by URL"""
 
 class LocalStore:
