@@ -29,6 +29,8 @@ pub fn new_store(
             // TODO: merge configs
             return Err(PyValueError::new_err("Cannot pass both config and kwargs").into());
         }
+        // Note: In theory, we could avoid a match by implementing `IntoIterator` on
+        // `ParseUrlConfig`, but I can't figure out the generics.
         (None, Some(config)) | (Some(config), None) => match config {
             ParseUrlConfig::Aws(aws_config) => {
                 parse_url_opts(url.as_ref(), aws_config.into_inner())
