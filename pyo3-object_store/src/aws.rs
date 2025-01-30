@@ -3,7 +3,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
-use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -11,7 +10,7 @@ use pyo3::types::PyType;
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
-use crate::error::{PyObjectStoreError, PyObjectStoreResult};
+use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around an [`AmazonS3`].
@@ -204,7 +203,7 @@ impl PyAmazonS3Config {
         for (k, v) in other.0.into_iter() {
             let old_value = self.0.insert(k.clone(), v);
             if old_value.is_some() {
-                return Err(PyValueError::new_err(format!(
+                return Err(ObstoreError::new_err(format!(
                     "Duplicate key {} between config and kwargs",
                     k.0.as_ref()
                 ))
