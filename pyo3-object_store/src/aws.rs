@@ -188,7 +188,7 @@ impl AsRef<str> for PyAmazonS3ConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyAmazonS3Config {
@@ -225,7 +225,7 @@ impl PyAmazonS3Config {
     }
 }
 
-fn combine_config_kwargs(
+pub(crate) fn combine_config_kwargs(
     config: Option<PyAmazonS3Config>,
     kwargs: Option<PyAmazonS3Config>,
 ) -> PyObjectStoreResult<Option<PyAmazonS3Config>> {

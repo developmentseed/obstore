@@ -4,6 +4,7 @@ use pyo3::prelude::*;
 
 use crate::aws::PyAmazonS3Config;
 use crate::azure::PyAzureConfig;
+use crate::error::ObstoreError;
 use crate::gcp::PyGoogleConfig;
 use crate::url::PyUrl;
 use crate::{PyObjectStoreResult, PyPrefixStore};
@@ -29,30 +30,31 @@ pub fn new_store(
             let kwargs = kwargs
                 .map(|x| x.extract::<PyAmazonS3Config>())
                 .transpose()?;
-            // TODO: merge config and kwargs
-            parse_url_opts(&url, config.unwrap().into_inner())?
+            let config = crate::aws::combine_config_kwargs(config, kwargs)?.unwrap_or_default();
+            parse_url_opts(&url, config.into_inner())?
         }
         ObjectStoreScheme::GoogleCloudStorage => {
             let config = config.map(|x| x.extract::<PyGoogleConfig>()).transpose()?;
             let kwargs = kwargs.map(|x| x.extract::<PyGoogleConfig>()).transpose()?;
-            // TODO: merge config and kwargs
-            parse_url_opts(&url, config.unwrap().into_inner())?
+            let config = crate::gcp::combine_config_kwargs(config, kwargs)?.unwrap_or_default();
+            parse_url_opts(&url, config.into_inner())?
         }
         ObjectStoreScheme::MicrosoftAzure => {
             let config = config.map(|x| x.extract::<PyAzureConfig>()).transpose()?;
             let kwargs = kwargs.map(|x| x.extract::<PyAzureConfig>()).transpose()?;
-            // TODO: merge config and kwargs
-            parse_url_opts(&url, config.unwrap().into_inner())?
+            let config = crate::azure::combine_config_kwargs(config, kwargs)?.unwrap_or_default();
+            parse_url_opts(&url, config.into_inner())?
         }
-        // TODO: assert no config or kwargs provided
-        _ => parse_url(&url)?,
-        // scheme => {
-        //     return Err(PyValueError::new_err(format!(
-        //         "Cannot pass config parameters for scheme {:?}",
-        //         scheme,
-        //     ))
-        //     .into())
-        // }
+        scheme => {
+            if config.is_some() || kwargs.is_some() {
+                return Err(ObstoreError::new_err(format!(
+                    "Cannot pass config or keyword parameters for scheme {:?}",
+                    scheme,
+                ))
+                .into());
+            }
+            parse_url(&url)?
+        }
     };
 
     Ok(PrefixStore::new(store.into(), path).into())

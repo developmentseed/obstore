@@ -124,7 +124,7 @@ impl AsRef<str> for PyGoogleConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyGoogleConfig {
@@ -161,7 +161,7 @@ impl PyGoogleConfig {
     }
 }
 
-fn combine_config_kwargs(
+pub(crate) fn combine_config_kwargs(
     config: Option<PyGoogleConfig>,
     kwargs: Option<PyGoogleConfig>,
 ) -> PyObjectStoreResult<Option<PyGoogleConfig>> {

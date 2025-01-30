@@ -124,7 +124,7 @@ impl AsRef<str> for PyAzureConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyAzureConfig {
@@ -161,7 +161,7 @@ impl PyAzureConfig {
     }
 }
 
-fn combine_config_kwargs(
+pub(crate) fn combine_config_kwargs(
     config: Option<PyAzureConfig>,
     kwargs: Option<PyAzureConfig>,
 ) -> PyObjectStoreResult<Option<PyAzureConfig>> {
