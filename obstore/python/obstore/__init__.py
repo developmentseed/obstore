@@ -4,6 +4,6 @@ from ._obstore import *
 from ._obstore import ___version
 
 if TYPE_CHECKING:
-    from . import store
+    from . import exceptions, store
 
 __version__: str = ___version()
