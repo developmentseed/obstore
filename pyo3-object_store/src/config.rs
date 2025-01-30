@@ -10,7 +10,7 @@ use pyo3::prelude::*;
 /// - `True` and `False` (becomes `"true"` and `"false"`)
 /// - `timedelta`
 /// - `str`
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyConfigValue(pub String);
 
 impl<'py> FromPyObject<'py> for PyConfigValue {

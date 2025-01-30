@@ -17,7 +17,7 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 - **Streaming downloads** with configurable chunking.
 - **Streaming uploads** from async or sync iterators.
 - **Streaming list**, with no need to paginate.
-- Automatically uses [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
+- Automatic [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
 - Support for **conditional put** ("put if not exists"), as well as custom tags and attributes.
 - Optionally return list results in [Apache Arrow](https://arrow.apache.org/) format, which is faster and more memory-efficient than materializing Python `dict`s.
 - File-like object API and [fsspec](https://github.com/fsspec/filesystem_spec) integration.

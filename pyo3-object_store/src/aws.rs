@@ -3,6 +3,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
+use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -43,11 +44,8 @@ impl PyS3Store {
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = AmazonS3Builder::new().with_bucket_name(bucket);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -73,11 +71,8 @@ impl PyS3Store {
         if let Some(bucket) = bucket {
             builder = builder.with_bucket_name(bucket);
         }
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -135,11 +130,8 @@ impl PyS3Store {
         if let Some(token) = token {
             builder = builder.with_token(token);
         }
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -162,11 +154,8 @@ impl PyS3Store {
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = AmazonS3Builder::from_env().with_url(url);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -183,7 +172,7 @@ impl PyS3Store {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyAmazonS3ConfigKey(AmazonS3ConfigKey);
 
 impl<'py> FromPyObject<'py> for PyAmazonS3ConfigKey {
@@ -194,7 +183,7 @@ impl<'py> FromPyObject<'py> for PyAmazonS3ConfigKey {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyAmazonS3Config {
@@ -209,5 +198,31 @@ impl PyAmazonS3Config {
             builder = builder.with_config(key.0, value.0);
         }
         builder
+    }
+
+    fn merge(mut self, other: PyAmazonS3Config) -> PyObjectStoreResult<PyAmazonS3Config> {
+        for (k, v) in other.0.into_iter() {
+            let old_value = self.0.insert(k.clone(), v);
+            if old_value.is_some() {
+                return Err(PyValueError::new_err(format!(
+                    "Duplicate key {} between config and kwargs",
+                    k.0.as_ref()
+                ))
+                .into());
+            }
+        }
+
+        Ok(self)
+    }
+}
+
+fn combine_config_kwargs(
+    config: Option<PyAmazonS3Config>,
+    kwargs: Option<PyAmazonS3Config>,
+) -> PyObjectStoreResult<Option<PyAmazonS3Config>> {
+    match (config, kwargs) {
+        (None, None) => Ok(None),
+        (Some(x), None) | (None, Some(x)) => Ok(Some(x)),
+        (Some(config), Some(kwargs)) => Ok(Some(config.merge(kwargs)?)),
     }
 }
