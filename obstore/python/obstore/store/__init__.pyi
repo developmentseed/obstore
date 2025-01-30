@@ -1,5 +1,6 @@
 # TODO: move to reusable types package
 from pathlib import Path
+from typing import Any, Unpack, overload
 
 from ._aws import S3Config as S3Config
 from ._aws import S3Store as S3Store
@@ -12,6 +13,23 @@ from ._http import HTTPStore as HTTPStore
 from ._prefix import PrefixStore as PrefixStore
 from ._retry import BackoffConfig as BackoffConfig
 from ._retry import RetryConfig as RetryConfig
+
+@overload
+def new_store(
+    url: str, *, config: S3Config | None = None, **kwargs: Unpack[S3Config]
+) -> ObjectStore: ...
+@overload
+def new_store(
+    url: str, *, config: GCSConfig | None = None, **kwargs: Unpack[GCSConfig]
+) -> ObjectStore: ...
+@overload
+def new_store(
+    url: str, *, config: AzureConfig | None = None, **kwargs: Unpack[AzureConfig]
+) -> ObjectStore: ...
+def new_store(
+    url: str, *, config: S3Config | GCSConfig | AzureConfig | None = None, **kwargs: Any
+) -> ObjectStore:
+    """Easy construction of store by URL"""
 
 class LocalStore:
     """

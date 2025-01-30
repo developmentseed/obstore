@@ -127,6 +127,12 @@ impl<'py> FromPyObject<'py> for PyAzureConfigKey {
     }
 }
 
+impl AsRef<str> for PyAzureConfigKey {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
@@ -142,5 +148,9 @@ impl PyAzureConfig {
             builder = builder.with_config(key.0, value.0);
         }
         builder
+    }
+
+    pub(crate) fn into_inner(self) -> HashMap<PyAzureConfigKey, PyConfigValue> {
+        self.0
     }
 }

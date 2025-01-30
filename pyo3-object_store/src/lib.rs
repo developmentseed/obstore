@@ -13,7 +13,9 @@ mod local;
 mod memory;
 mod prefix;
 mod retry;
+mod simple;
 mod store;
+mod url;
 
 pub use api::{register_exceptions_module, register_store_module};
 pub use aws::PyS3Store;
@@ -25,4 +27,5 @@ pub use http::PyHttpStore;
 pub use local::PyLocalStore;
 pub use memory::PyMemoryStore;
 pub use prefix::PyPrefixStore;
+pub use simple::new_store;
 pub use store::PyObjectStore;

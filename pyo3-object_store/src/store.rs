@@ -53,7 +53,6 @@ impl<'py> FromPyObject<'py> for PyObjectStore {
                 return Err(PyValueError::new_err("You must use an object store instance exported from **the same library** as this function. They cannot be used across libraries.\nThis is because object store instances are compiled with a specific version of Rust and Python." ));
             }
 
-            // TODO: Check for fsspec
             Err(PyValueError::new_err(format!(
                 "Expected an object store instance, got {}",
                 ob.repr()?

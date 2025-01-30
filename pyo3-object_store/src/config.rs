@@ -24,3 +24,9 @@ impl<'py> FromPyObject<'py> for PyConfigValue {
         }
     }
 }
+
+impl From<PyConfigValue> for String {
+    fn from(value: PyConfigValue) -> Self {
+        value.0
+    }
+}

@@ -17,6 +17,12 @@ impl AsRef<Arc<PrefixStore<Arc<dyn ObjectStore>>>> for PyPrefixStore {
     }
 }
 
+impl From<PrefixStore<Arc<dyn ObjectStore>>> for PyPrefixStore {
+    fn from(value: PrefixStore<Arc<dyn ObjectStore>>) -> Self {
+        PyPrefixStore(Arc::new(value))
+    }
+}
+
 #[pymethods]
 impl PyPrefixStore {
     #[new]

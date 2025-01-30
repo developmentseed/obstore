@@ -127,6 +127,12 @@ impl<'py> FromPyObject<'py> for PyGoogleConfigKey {
     }
 }
 
+impl AsRef<str> for PyGoogleConfigKey {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 
@@ -142,5 +148,9 @@ impl PyGoogleConfig {
             builder = builder.with_config(key.0, value.0);
         }
         builder
+    }
+
+    pub(crate) fn into_inner(self) -> HashMap<PyGoogleConfigKey, PyConfigValue> {
+        self.0
     }
 }

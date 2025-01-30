@@ -194,6 +194,12 @@ impl<'py> FromPyObject<'py> for PyAmazonS3ConfigKey {
     }
 }
 
+impl AsRef<str> for PyAmazonS3ConfigKey {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 
@@ -209,5 +215,9 @@ impl PyAmazonS3Config {
             builder = builder.with_config(key.0, value.0);
         }
         builder
+    }
+
+    pub(crate) fn into_inner(self) -> HashMap<PyAmazonS3ConfigKey, PyConfigValue> {
+        self.0
     }
 }
