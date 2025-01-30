@@ -29,7 +29,26 @@ def new_store(
 def new_store(
     url: str, *, config: S3Config | GCSConfig | AzureConfig | None = None, **kwargs: Any
 ) -> PrefixStore:
-    """Easy construction of store by URL"""
+    """Easy construction of store by URL
+
+    Recognizes various URL formats, identifying the relevant [`ObjectStore`]
+
+    Supported formats:
+
+    - `file:///path/to/my/file` -> [`LocalFileSystem`]
+    - `memory:///` -> [`InMemory`]
+    - `s3://bucket/path` -> [`AmazonS3`](crate::aws::AmazonS3) (also supports `s3a`)
+    - `gs://bucket/path` -> [`GoogleCloudStorage`](crate::gcp::GoogleCloudStorage)
+    - `az://account/container/path` -> [`MicrosoftAzure`](crate::azure::MicrosoftAzure) (also supports `adl`, `azure`, `abfs`, `abfss`)
+    - `http://mydomain/path` -> [`HttpStore`](crate::http::HttpStore)
+    - `https://mydomain/path` -> [`HttpStore`](crate::http::HttpStore)
+
+    There are also special cases for AWS and Azure for `https://{host?}/path` paths:
+
+    - `dfs.core.windows.net`, `blob.core.windows.net`, `dfs.fabric.microsoft.com`, `blob.fabric.microsoft.com` -> [`MicrosoftAzure`](crate::azure::MicrosoftAzure)
+    - `amazonaws.com` -> [`AmazonS3`](crate::aws::AmazonS3)
+    - `r2.cloudflarestorage.com` -> [`AmazonS3`](crate::aws::AmazonS3)
+    """
 
 class LocalStore:
     """
