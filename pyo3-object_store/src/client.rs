@@ -21,7 +21,7 @@ impl<'py> FromPyObject<'py> for PyClientConfigKey {
 }
 
 /// A wrapper around `ClientOptions` that implements [`FromPyObject`].
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PyClientOptions(ClientOptions);
 
 impl<'py> FromPyObject<'py> for PyClientOptions {

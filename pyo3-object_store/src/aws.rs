@@ -3,10 +3,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::PyType;
+use pyo3::types::{PyDict, PyString, PyTuple, PyType};
+use pyo3::{intern, IntoPyObjectExt};
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
@@ -14,19 +14,25 @@ use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around an [`AmazonS3`].
-#[pyclass(name = "S3Store", frozen)]
-pub struct PyS3Store(Arc<AmazonS3>);
+#[pyclass(name = "S3Store", module = "obstore.store", frozen)]
+pub struct PyS3Store {
+    store: Arc<AmazonS3>,
+    bucket: String,
+    config: Option<PyAmazonS3Config>,
+    client_options: Option<PyClientOptions>,
+    retry_config: Option<PyRetryConfig>,
+}
 
 impl AsRef<Arc<AmazonS3>> for PyS3Store {
     fn as_ref(&self) -> &Arc<AmazonS3> {
-        &self.0
+        &self.store
     }
 }
 
 impl PyS3Store {
     /// Consume self and return the underlying [`AmazonS3`].
     pub fn into_inner(self) -> Arc<AmazonS3> {
-        self.0
+        self.store
     }
 }
 
@@ -42,131 +48,148 @@ impl PyS3Store {
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
-        let mut builder = AmazonS3Builder::new().with_bucket_name(bucket);
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
-            builder = config_kwargs.apply_config(builder);
+        let mut builder = AmazonS3Builder::new().with_bucket_name(bucket.clone());
+        let combined_config = combine_config_kwargs(config, kwargs)?;
+        if let Some(combined_config) = combined_config.clone() {
+            builder = combined_config.apply_config(builder);
         }
-        if let Some(client_options) = client_options {
+        if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
-        if let Some(retry_config) = retry_config {
+        if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        Ok(Self(Arc::new(builder.build()?)))
+        Ok(Self {
+            store: Arc::new(builder.build()?),
+            bucket,
+            config: combined_config,
+            client_options,
+            retry_config,
+        })
     }
 
-    // Create from env variables
-    #[classmethod]
-    #[pyo3(signature = (bucket=None, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_env(
-        _cls: &Bound<PyType>,
-        bucket: Option<String>,
-        config: Option<PyAmazonS3Config>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
-        let mut builder = AmazonS3Builder::from_env();
-        if let Some(bucket) = bucket {
-            builder = builder.with_bucket_name(bucket);
+    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+        let args = PyTuple::new(py, vec![PyString::new(py, &self.bucket)])?.into_py_any(py)?;
+        let mut kwargs = HashMap::new();
+        if let Some(config) = &self.config {
+            // Can we avoid this clone somehow?
+            kwargs.insert("config", config.clone().into_py_any(py)?);
         }
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
-            builder = config_kwargs.apply_config(builder);
-        }
-        if let Some(client_options) = client_options {
-            builder = builder.with_client_options(client_options.into())
-        }
-        if let Some(retry_config) = retry_config {
-            builder = builder.with_retry(retry_config.into())
-        }
-        Ok(Self(Arc::new(builder.build()?)))
+        Ok(PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)?)
     }
 
-    // Create from an existing boto3.Session or botocore.session.Session object
-    // https://stackoverflow.com/a/36291428
-    #[classmethod]
-    #[pyo3(signature = (session, bucket, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_session(
-        _cls: &Bound<PyType>,
-        py: Python,
-        session: &Bound<PyAny>,
-        bucket: String,
-        config: Option<PyAmazonS3Config>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
-        // boto3.Session has a region_name attribute, but botocore.session.Session does not.
-        let region = if let Ok(region) = session.getattr(intern!(py, "region_name")) {
-            region.extract::<Option<String>>()?
-        } else {
-            None
-        };
+    // // Create from env variables
+    // #[classmethod]
+    // #[pyo3(signature = (bucket=None, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    // fn from_env(
+    //     _cls: &Bound<PyType>,
+    //     bucket: Option<String>,
+    //     config: Option<PyAmazonS3Config>,
+    //     client_options: Option<PyClientOptions>,
+    //     retry_config: Option<PyRetryConfig>,
+    //     kwargs: Option<PyAmazonS3Config>,
+    // ) -> PyObjectStoreResult<Self> {
+    //     let mut builder = AmazonS3Builder::from_env();
+    //     if let Some(bucket) = bucket {
+    //         builder = builder.with_bucket_name(bucket);
+    //     }
+    //     if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+    //         builder = config_kwargs.apply_config(builder);
+    //     }
+    //     if let Some(client_options) = client_options {
+    //         builder = builder.with_client_options(client_options.into())
+    //     }
+    //     if let Some(retry_config) = retry_config {
+    //         builder = builder.with_retry(retry_config.into())
+    //     }
+    //     Ok(Self(Arc::new(builder.build()?)))
+    // }
 
-        let creds = session.call_method0(intern!(py, "get_credentials"))?;
-        let frozen_creds = creds.call_method0(intern!(py, "get_frozen_credentials"))?;
+    // // Create from an existing boto3.Session or botocore.session.Session object
+    // // https://stackoverflow.com/a/36291428
+    // #[classmethod]
+    // #[pyo3(signature = (session, bucket, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    // fn from_session(
+    //     _cls: &Bound<PyType>,
+    //     py: Python,
+    //     session: &Bound<PyAny>,
+    //     bucket: String,
+    //     config: Option<PyAmazonS3Config>,
+    //     client_options: Option<PyClientOptions>,
+    //     retry_config: Option<PyRetryConfig>,
+    //     kwargs: Option<PyAmazonS3Config>,
+    // ) -> PyObjectStoreResult<Self> {
+    //     // boto3.Session has a region_name attribute, but botocore.session.Session does not.
+    //     let region = if let Ok(region) = session.getattr(intern!(py, "region_name")) {
+    //         region.extract::<Option<String>>()?
+    //     } else {
+    //         None
+    //     };
 
-        let access_key = frozen_creds
-            .getattr(intern!(py, "access_key"))?
-            .extract::<Option<String>>()?;
-        let secret_key = frozen_creds
-            .getattr(intern!(py, "secret_key"))?
-            .extract::<Option<String>>()?;
-        let token = frozen_creds
-            .getattr(intern!(py, "token"))?
-            .extract::<Option<String>>()?;
+    //     let creds = session.call_method0(intern!(py, "get_credentials"))?;
+    //     let frozen_creds = creds.call_method0(intern!(py, "get_frozen_credentials"))?;
 
-        let mut builder = AmazonS3Builder::new().with_bucket_name(bucket);
-        if let Some(region) = region {
-            builder = builder.with_region(region);
-        }
-        if let Some(access_key) = access_key {
-            builder = builder.with_access_key_id(access_key);
-        }
-        if let Some(secret_key) = secret_key {
-            builder = builder.with_secret_access_key(secret_key);
-        }
-        if let Some(token) = token {
-            builder = builder.with_token(token);
-        }
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
-            builder = config_kwargs.apply_config(builder);
-        }
-        if let Some(client_options) = client_options {
-            builder = builder.with_client_options(client_options.into())
-        }
-        if let Some(retry_config) = retry_config {
-            builder = builder.with_retry(retry_config.into())
-        }
+    //     let access_key = frozen_creds
+    //         .getattr(intern!(py, "access_key"))?
+    //         .extract::<Option<String>>()?;
+    //     let secret_key = frozen_creds
+    //         .getattr(intern!(py, "secret_key"))?
+    //         .extract::<Option<String>>()?;
+    //     let token = frozen_creds
+    //         .getattr(intern!(py, "token"))?
+    //         .extract::<Option<String>>()?;
 
-        Ok(Self(Arc::new(builder.build()?)))
-    }
+    //     let mut builder = AmazonS3Builder::new().with_bucket_name(bucket);
+    //     if let Some(region) = region {
+    //         builder = builder.with_region(region);
+    //     }
+    //     if let Some(access_key) = access_key {
+    //         builder = builder.with_access_key_id(access_key);
+    //     }
+    //     if let Some(secret_key) = secret_key {
+    //         builder = builder.with_secret_access_key(secret_key);
+    //     }
+    //     if let Some(token) = token {
+    //         builder = builder.with_token(token);
+    //     }
+    //     if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+    //         builder = config_kwargs.apply_config(builder);
+    //     }
+    //     if let Some(client_options) = client_options {
+    //         builder = builder.with_client_options(client_options.into())
+    //     }
+    //     if let Some(retry_config) = retry_config {
+    //         builder = builder.with_retry(retry_config.into())
+    //     }
 
-    #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_url(
-        _cls: &Bound<PyType>,
-        url: &str,
-        config: Option<PyAmazonS3Config>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
-        let mut builder = AmazonS3Builder::from_env().with_url(url);
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
-            builder = config_kwargs.apply_config(builder);
-        }
-        if let Some(client_options) = client_options {
-            builder = builder.with_client_options(client_options.into())
-        }
-        if let Some(retry_config) = retry_config {
-            builder = builder.with_retry(retry_config.into())
-        }
-        Ok(Self(Arc::new(builder.build()?)))
-    }
+    //     Ok(Self(Arc::new(builder.build()?)))
+    // }
+
+    // #[classmethod]
+    // #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    // fn from_url(
+    //     _cls: &Bound<PyType>,
+    //     url: &str,
+    //     config: Option<PyAmazonS3Config>,
+    //     client_options: Option<PyClientOptions>,
+    //     retry_config: Option<PyRetryConfig>,
+    //     kwargs: Option<PyAmazonS3Config>,
+    // ) -> PyObjectStoreResult<Self> {
+    //     let mut builder = AmazonS3Builder::from_env().with_url(url);
+    //     if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+    //         builder = config_kwargs.apply_config(builder);
+    //     }
+    //     if let Some(client_options) = client_options {
+    //         builder = builder.with_client_options(client_options.into())
+    //     }
+    //     if let Some(retry_config) = retry_config {
+    //         builder = builder.with_retry(retry_config.into())
+    //     }
+    //     Ok(Self(Arc::new(builder.build()?)))
+    // }
 
     fn __repr__(&self) -> String {
-        let repr = self.0.to_string();
+        let repr = self.store.to_string();
         repr.replacen("AmazonS3", "S3Store", 1)
     }
 }
@@ -182,7 +205,17 @@ impl<'py> FromPyObject<'py> for PyAmazonS3ConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+impl<'py> IntoPyObject<'py> for PyAmazonS3ConfigKey {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(PyString::new(py, self.0.as_ref()))
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyAmazonS3Config {
