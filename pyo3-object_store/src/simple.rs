@@ -2,10 +2,7 @@ use object_store::prefix::PrefixStore;
 use object_store::{parse_url, parse_url_opts, ObjectStoreScheme};
 use pyo3::prelude::*;
 
-use crate::aws::PyAmazonS3Config;
-use crate::azure::PyAzureConfig;
 use crate::error::ObstoreError;
-use crate::gcp::PyGoogleConfig;
 use crate::url::PyUrl;
 use crate::{PyObjectStoreResult, PyPrefixStore};
 
@@ -24,26 +21,28 @@ pub fn new_store(
     let (scheme, _) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
     let (store, path) = match scheme {
         ObjectStoreScheme::AmazonS3 => {
-            let config = config
-                .map(|x| x.extract::<PyAmazonS3Config>())
-                .transpose()?;
-            let kwargs = kwargs
-                .map(|x| x.extract::<PyAmazonS3Config>())
-                .transpose()?;
-            let config = crate::aws::combine_config_kwargs(config, kwargs)?.unwrap_or_default();
-            parse_url_opts(&url, config.into_inner())?
+            let combined = crate::aws::combine_config_kwargs(
+                config.map(|x| x.extract()).transpose()?,
+                kwargs.map(|x| x.extract()).transpose()?,
+            )?
+            .unwrap_or_default();
+            parse_url_opts(&url, combined.into_inner())?
         }
         ObjectStoreScheme::GoogleCloudStorage => {
-            let config = config.map(|x| x.extract::<PyGoogleConfig>()).transpose()?;
-            let kwargs = kwargs.map(|x| x.extract::<PyGoogleConfig>()).transpose()?;
-            let config = crate::gcp::combine_config_kwargs(config, kwargs)?.unwrap_or_default();
-            parse_url_opts(&url, config.into_inner())?
+            let combined = crate::gcp::combine_config_kwargs(
+                config.map(|x| x.extract()).transpose()?,
+                kwargs.map(|x| x.extract()).transpose()?,
+            )?
+            .unwrap_or_default();
+            parse_url_opts(&url, combined.into_inner())?
         }
         ObjectStoreScheme::MicrosoftAzure => {
-            let config = config.map(|x| x.extract::<PyAzureConfig>()).transpose()?;
-            let kwargs = kwargs.map(|x| x.extract::<PyAzureConfig>()).transpose()?;
-            let config = crate::azure::combine_config_kwargs(config, kwargs)?.unwrap_or_default();
-            parse_url_opts(&url, config.into_inner())?
+            let combined = crate::azure::combine_config_kwargs(
+                config.map(|x| x.extract()).transpose()?,
+                kwargs.map(|x| x.extract()).transpose()?,
+            )?
+            .unwrap_or_default();
+            parse_url_opts(&url, combined.into_inner())?
         }
         scheme => {
             if config.is_some() || kwargs.is_some() {
