@@ -9,7 +9,7 @@ use pyo3::types::PyType;
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
-use crate::error::{PyObjectStoreError, PyObjectStoreResult};
+use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
@@ -42,11 +42,8 @@ impl PyAzureStore {
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::new().with_container_name(container);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -69,11 +66,8 @@ impl PyAzureStore {
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env().with_container_name(container);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -95,11 +89,8 @@ impl PyAzureStore {
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env().with_url(url);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -116,7 +107,7 @@ impl PyAzureStore {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyAzureConfigKey(AzureConfigKey);
 
 impl<'py> FromPyObject<'py> for PyAzureConfigKey {
@@ -133,7 +124,7 @@ impl AsRef<str> for PyAzureConfigKey {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyAzureConfig {
@@ -152,5 +143,31 @@ impl PyAzureConfig {
 
     pub(crate) fn into_inner(self) -> HashMap<PyAzureConfigKey, PyConfigValue> {
         self.0
+    }
+
+    fn merge(mut self, other: PyAzureConfig) -> PyObjectStoreResult<PyAzureConfig> {
+        for (k, v) in other.0.into_iter() {
+            let old_value = self.0.insert(k.clone(), v);
+            if old_value.is_some() {
+                return Err(ObstoreError::new_err(format!(
+                    "Duplicate key {} between config and kwargs",
+                    k.0.as_ref()
+                ))
+                .into());
+            }
+        }
+
+        Ok(self)
+    }
+}
+
+fn combine_config_kwargs(
+    config: Option<PyAzureConfig>,
+    kwargs: Option<PyAzureConfig>,
+) -> PyObjectStoreResult<Option<PyAzureConfig>> {
+    match (config, kwargs) {
+        (None, None) => Ok(None),
+        (Some(x), None) | (None, Some(x)) => Ok(Some(x)),
+        (Some(config), Some(kwargs)) => Ok(Some(config.merge(kwargs)?)),
     }
 }

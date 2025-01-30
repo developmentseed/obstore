@@ -9,7 +9,7 @@ use pyo3::types::PyType;
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
-use crate::error::{PyObjectStoreError, PyObjectStoreResult};
+use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around a [`GoogleCloudStorage`].
@@ -42,11 +42,8 @@ impl PyGCSStore {
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = GoogleCloudStorageBuilder::new().with_bucket_name(bucket);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -69,11 +66,8 @@ impl PyGCSStore {
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(bucket);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -95,11 +89,8 @@ impl PyGCSStore {
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = GoogleCloudStorageBuilder::from_env().with_url(url);
-        if let Some(config) = config {
-            builder = config.apply_config(builder);
-        }
-        if let Some(kwargs) = kwargs {
-            builder = kwargs.apply_config(builder);
+        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+            builder = config_kwargs.apply_config(builder);
         }
         if let Some(client_options) = client_options {
             builder = builder.with_client_options(client_options.into())
@@ -116,7 +107,7 @@ impl PyGCSStore {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyGoogleConfigKey(GoogleConfigKey);
 
 impl<'py> FromPyObject<'py> for PyGoogleConfigKey {
@@ -133,7 +124,7 @@ impl AsRef<str> for PyGoogleConfigKey {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 
 impl<'py> FromPyObject<'py> for PyGoogleConfig {
@@ -152,5 +143,31 @@ impl PyGoogleConfig {
 
     pub(crate) fn into_inner(self) -> HashMap<PyGoogleConfigKey, PyConfigValue> {
         self.0
+    }
+
+    fn merge(mut self, other: PyGoogleConfig) -> PyObjectStoreResult<PyGoogleConfig> {
+        for (k, v) in other.0.into_iter() {
+            let old_value = self.0.insert(k.clone(), v);
+            if old_value.is_some() {
+                return Err(ObstoreError::new_err(format!(
+                    "Duplicate key {} between config and kwargs",
+                    k.0.as_ref()
+                ))
+                .into());
+            }
+        }
+
+        Ok(self)
+    }
+}
+
+fn combine_config_kwargs(
+    config: Option<PyGoogleConfig>,
+    kwargs: Option<PyGoogleConfig>,
+) -> PyObjectStoreResult<Option<PyGoogleConfig>> {
+    match (config, kwargs) {
+        (None, None) => Ok(None),
+        (Some(x), None) | (None, Some(x)) => Ok(Some(x)),
+        (Some(config), Some(kwargs)) => Ok(Some(config.merge(kwargs)?)),
     }
 }
