@@ -16,15 +16,39 @@ use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
 
-/// A Python-facing wrapper around an [`AmazonS3`].
-#[pyclass(name = "S3Store", module = "obstore.store", frozen)]
-pub struct PyS3Store {
-    store: Arc<MaybePrefixedStore<AmazonS3>>,
+struct S3Config {
     prefix: Option<Path>,
     bucket: String,
     config: Option<PyAmazonS3Config>,
     // client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
+}
+
+impl S3Config {
+    fn pickle_get_new_args<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let args = PyTuple::new(py, vec![PyString::new(py, &self.bucket)])?.into_py_any(py)?;
+        let kwargs = PyDict::new(py);
+
+        if let Some(prefix) = &self.prefix {
+            kwargs.set_item(intern!(py, "prefix"), PyString::new(py, prefix.as_ref()))?;
+        }
+        if let Some(config) = &self.config {
+            kwargs.set_item(intern!(py, "config"), config.clone())?;
+        }
+        if let Some(retry_config) = &self.retry_config {
+            kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
+        }
+
+        Ok(PyTuple::new(py, [args, kwargs.into_py_any(py)?])?)
+    }
+}
+
+/// A Python-facing wrapper around an [`AmazonS3`].
+#[pyclass(name = "S3Store", module = "obstore.store", frozen)]
+pub struct PyS3Store {
+    store: Arc<MaybePrefixedStore<AmazonS3>>,
+    /// A config used for pickling. This must stay in sync with the underlying store's config.
+    config: S3Config,
 }
 
 impl AsRef<Arc<MaybePrefixedStore<AmazonS3>>> for PyS3Store {
@@ -67,29 +91,18 @@ impl PyS3Store {
         let prefix = prefix.map(|x| x.into_inner());
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
-            prefix,
-            bucket,
-            config: combined_config,
-            // client_options,
-            retry_config,
+            config: S3Config {
+                prefix,
+                bucket,
+                config: combined_config,
+                // client_options,
+                retry_config,
+            },
         })
     }
 
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args = PyTuple::new(py, vec![PyString::new(py, &self.bucket)])?.into_py_any(py)?;
-        let kwargs = PyDict::new(py);
-
-        if let Some(prefix) = &self.prefix {
-            kwargs.setattr(intern!(py, "prefix"), PyString::new(py, prefix.as_ref()))?;
-        }
-        if let Some(config) = &self.config {
-            kwargs.setattr(intern!(py, "config"), config.clone())?;
-        }
-        if let Some(retry_config) = &self.retry_config {
-            kwargs.setattr(intern!(py, "retry_config"), retry_config.clone())?;
-        }
-
-        Ok(PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)?)
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        self.config.pickle_get_new_args(py)
     }
 
     // // Create from env variables
