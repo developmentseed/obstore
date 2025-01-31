@@ -51,6 +51,10 @@ def from_url(
 ) -> ObjectStore:
     """Easy construction of store by URL, identifying the relevant store.
 
+    This will defer to a store-specific `from_url` constructor based on the provided
+    `url`. E.g. passing `"s3://bucket/path"` will defer to
+    [`S3Store.from_url`][obstore.store.S3Store.from_url].
+
     Supported formats:
 
     - `file:///path/to/my/file` -> [`LocalStore`][obstore.store.LocalStore]
