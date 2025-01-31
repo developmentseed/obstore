@@ -14,6 +14,8 @@ rust-version = "1.75"
 include = ["src", "type-hints", "README.md", "LICENSE"]
 
 [dependencies]
+async-trait = "0.1.85"
+bytes = "1"
 futures = "0.3"
 # This is already an object_store dependency
 humantime = "2.1"
@@ -25,6 +27,7 @@ object_store = { version = "0.11.2", features = [
 ] }
 pyo3 = { version = "0.23", features = ["chrono", "indexmap"] }
 pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
+serde = "1"
 thiserror = "1"
 url = "2"
 

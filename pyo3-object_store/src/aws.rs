@@ -3,35 +3,39 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
+use object_store::path::Path;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::{PyDict, PyString, PyTuple, PyType};
+use pyo3::types::{PyDict, PyString, PyTuple};
 use pyo3::{intern, IntoPyObjectExt};
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
+use crate::path::PyPath;
+use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
 
 /// A Python-facing wrapper around an [`AmazonS3`].
 #[pyclass(name = "S3Store", module = "obstore.store", frozen)]
 pub struct PyS3Store {
-    store: Arc<AmazonS3>,
+    store: Arc<MaybePrefixedStore<AmazonS3>>,
+    prefix: Option<Path>,
     bucket: String,
     config: Option<PyAmazonS3Config>,
-    client_options: Option<PyClientOptions>,
+    // client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
 }
 
-impl AsRef<Arc<AmazonS3>> for PyS3Store {
-    fn as_ref(&self) -> &Arc<AmazonS3> {
+impl AsRef<Arc<MaybePrefixedStore<AmazonS3>>> for PyS3Store {
+    fn as_ref(&self) -> &Arc<MaybePrefixedStore<AmazonS3>> {
         &self.store
     }
 }
 
 impl PyS3Store {
     /// Consume self and return the underlying [`AmazonS3`].
-    pub fn into_inner(self) -> Arc<AmazonS3> {
+    pub fn into_inner(self) -> Arc<MaybePrefixedStore<AmazonS3>> {
         self.store
     }
 }
@@ -40,9 +44,10 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (bucket, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
     fn new(
         bucket: String,
+        prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
@@ -59,22 +64,31 @@ impl PyS3Store {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
+        let prefix = prefix.map(|x| x.into_inner());
         Ok(Self {
-            store: Arc::new(builder.build()?),
+            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
+            prefix,
             bucket,
             config: combined_config,
-            client_options,
+            // client_options,
             retry_config,
         })
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
         let args = PyTuple::new(py, vec![PyString::new(py, &self.bucket)])?.into_py_any(py)?;
-        let mut kwargs = HashMap::new();
-        if let Some(config) = &self.config {
-            // Can we avoid this clone somehow?
-            kwargs.insert("config", config.clone().into_py_any(py)?);
+        let kwargs = PyDict::new(py);
+
+        if let Some(prefix) = &self.prefix {
+            kwargs.setattr(intern!(py, "prefix"), PyString::new(py, prefix.as_ref()))?;
         }
+        if let Some(config) = &self.config {
+            kwargs.setattr(intern!(py, "config"), config.clone())?;
+        }
+        if let Some(retry_config) = &self.retry_config {
+            kwargs.setattr(intern!(py, "retry_config"), retry_config.clone())?;
+        }
+
         Ok(PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)?)
     }
 

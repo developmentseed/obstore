@@ -15,7 +15,8 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyString;
 use pyo3_object_store::{
-    PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult, PyS3Store,
+    MaybePrefixedStore, PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult,
+    PyS3Store,
 };
 use url::Url;
 
@@ -24,7 +25,7 @@ use crate::runtime::get_runtime;
 
 #[derive(Debug)]
 pub(crate) enum SignCapableStore {
-    S3(Arc<AmazonS3>),
+    S3(Arc<MaybePrefixedStore<AmazonS3>>),
     Gcs(Arc<GoogleCloudStorage>),
     Azure(Arc<MicrosoftAzure>),
 }
@@ -32,11 +33,11 @@ pub(crate) enum SignCapableStore {
 impl<'py> FromPyObject<'py> for SignCapableStore {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(store) = ob.downcast::<PyS3Store>() {
-            Ok(Self::S3(store.borrow().as_ref().clone()))
+            Ok(Self::S3(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyGCSStore>() {
-            Ok(Self::Gcs(store.borrow().as_ref().clone()))
+            Ok(Self::Gcs(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyAzureStore>() {
-            Ok(Self::Azure(store.borrow().as_ref().clone()))
+            Ok(Self::Azure(store.get().as_ref().clone()))
         } else {
             let py = ob.py();
             // Check for object-store instance from other library
@@ -78,7 +79,7 @@ impl Signer for SignCapableStore {
         Self: 'async_trait,
     {
         match self {
-            Self::S3(inner) => inner.signed_url(method, path, expires_in),
+            Self::S3(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
             Self::Gcs(inner) => inner.signed_url(method, path, expires_in),
             Self::Azure(inner) => inner.signed_url(method, path, expires_in),
         }
@@ -96,7 +97,10 @@ impl Signer for SignCapableStore {
         Self: 'async_trait,
     {
         match self {
-            Self::S3(inner) => inner.signed_urls(method, paths, expires_in),
+            Self::S3(inner) => inner
+                .as_ref()
+                .inner()
+                .signed_urls(method, paths, expires_in),
             Self::Gcs(inner) => inner.signed_urls(method, paths, expires_in),
             Self::Azure(inner) => inner.signed_urls(method, paths, expires_in),
         }
