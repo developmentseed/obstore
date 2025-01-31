@@ -49,7 +49,7 @@ impl PyLocalStore {
     }
 
     #[classmethod]
-    fn from_url(_cls: &Bound<PyType>, url: &str) -> PyObjectStoreResult<Self> {
+    pub(crate) fn from_url(_cls: &Bound<PyType>, url: &str) -> PyObjectStoreResult<Self> {
         let url = Url::parse(url).map_err(|err| PyValueError::new_err(err.to_string()))?;
         let (scheme, path) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
 

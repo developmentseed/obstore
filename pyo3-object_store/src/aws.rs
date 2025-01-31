@@ -144,7 +144,7 @@ impl PyS3Store {
 
     #[classmethod]
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_url(
+    pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: &str,
         config: Option<PyAmazonS3Config>,
@@ -205,10 +205,6 @@ impl PyAmazonS3Config {
         builder
     }
 
-    pub(crate) fn into_inner(self) -> HashMap<PyAmazonS3ConfigKey, PyConfigValue> {
-        self.0
-    }
-
     fn merge(mut self, other: PyAmazonS3Config) -> PyObjectStoreResult<PyAmazonS3Config> {
         for (k, v) in other.0.into_iter() {
             let old_value = self.0.insert(k.clone(), v);
@@ -225,7 +221,7 @@ impl PyAmazonS3Config {
     }
 }
 
-pub(crate) fn combine_config_kwargs(
+fn combine_config_kwargs(
     config: Option<PyAmazonS3Config>,
     kwargs: Option<PyAmazonS3Config>,
 ) -> PyObjectStoreResult<Option<PyAmazonS3Config>> {

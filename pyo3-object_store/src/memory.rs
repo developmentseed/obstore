@@ -15,6 +15,12 @@ impl AsRef<Arc<InMemory>> for PyMemoryStore {
     }
 }
 
+impl From<Arc<InMemory>> for PyMemoryStore {
+    fn from(value: Arc<InMemory>) -> Self {
+        Self(value)
+    }
+}
+
 impl<'py> PyMemoryStore {
     /// Consume self and return the underlying [`InMemory`].
     pub fn into_inner(self) -> Arc<InMemory> {

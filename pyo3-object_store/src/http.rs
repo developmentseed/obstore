@@ -33,7 +33,7 @@ impl PyHttpStore {
 impl PyHttpStore {
     #[classmethod]
     #[pyo3(signature = (url, *, client_options=None, retry_config=None))]
-    fn from_url(
+    pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: &str,
         client_options: Option<PyClientOptions>,

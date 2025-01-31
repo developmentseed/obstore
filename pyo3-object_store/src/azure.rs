@@ -80,7 +80,7 @@ impl PyAzureStore {
 
     #[classmethod]
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_url(
+    pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: &str,
         config: Option<PyAzureConfig>,
@@ -141,10 +141,6 @@ impl PyAzureConfig {
         builder
     }
 
-    pub(crate) fn into_inner(self) -> HashMap<PyAzureConfigKey, PyConfigValue> {
-        self.0
-    }
-
     fn merge(mut self, other: PyAzureConfig) -> PyObjectStoreResult<PyAzureConfig> {
         for (k, v) in other.0.into_iter() {
             let old_value = self.0.insert(k.clone(), v);
@@ -161,7 +157,7 @@ impl PyAzureConfig {
     }
 }
 
-pub(crate) fn combine_config_kwargs(
+fn combine_config_kwargs(
     config: Option<PyAzureConfig>,
     kwargs: Option<PyAzureConfig>,
 ) -> PyObjectStoreResult<Option<PyAzureConfig>> {

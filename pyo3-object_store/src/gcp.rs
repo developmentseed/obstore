@@ -80,7 +80,7 @@ impl PyGCSStore {
 
     #[classmethod]
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_url(
+    pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: &str,
         config: Option<PyGoogleConfig>,
@@ -141,10 +141,6 @@ impl PyGoogleConfig {
         builder
     }
 
-    pub(crate) fn into_inner(self) -> HashMap<PyGoogleConfigKey, PyConfigValue> {
-        self.0
-    }
-
     fn merge(mut self, other: PyGoogleConfig) -> PyObjectStoreResult<PyGoogleConfig> {
         for (k, v) in other.0.into_iter() {
             let old_value = self.0.insert(k.clone(), v);
@@ -161,7 +157,7 @@ impl PyGoogleConfig {
     }
 }
 
-pub(crate) fn combine_config_kwargs(
+fn combine_config_kwargs(
     config: Option<PyGoogleConfig>,
     kwargs: Option<PyGoogleConfig>,
 ) -> PyObjectStoreResult<Option<PyGoogleConfig>> {
