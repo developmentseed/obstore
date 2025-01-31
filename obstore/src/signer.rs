@@ -13,9 +13,8 @@ use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::PyString;
 use pyo3_object_store::{
-    PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult, PyS3Store,
+    PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult, PyS3Store, PyUrl,
 };
 use url::Url;
 
@@ -129,18 +128,6 @@ impl<'py> FromPyObject<'py> for PyMethod {
     }
 }
 
-pub(crate) struct PyUrl(url::Url);
-
-impl<'py> IntoPyObject<'py> for PyUrl {
-    type Target = PyString;
-    type Output = Bound<'py, PyString>;
-    type Error = std::convert::Infallible;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        String::from(self.0).into_pyobject(py)
-    }
-}
-
 #[derive(IntoPyObject)]
 pub(crate) struct PyUrls(Vec<PyUrl>);
 
@@ -164,12 +151,12 @@ pub(crate) fn sign(
     py.allow_threads(|| match paths {
         PyPaths::One(path) => {
             let url = runtime.block_on(store.signed_url(method, &path, expires_in))?;
-            Ok(PySignResult::One(PyUrl(url)))
+            Ok(PySignResult::One(PyUrl::new(url)))
         }
         PyPaths::Many(paths) => {
             let urls = runtime.block_on(store.signed_urls(method, &paths, expires_in))?;
             Ok(PySignResult::Many(PyUrls(
-                urls.into_iter().map(PyUrl).collect(),
+                urls.into_iter().map(PyUrl::new).collect(),
             )))
         }
     })
@@ -191,7 +178,7 @@ pub(crate) fn sign_async(
                     .signed_url(method, &path, expires_in)
                     .await
                     .map_err(PyObjectStoreError::ObjectStoreError)?;
-                Ok(PySignResult::One(PyUrl(url)))
+                Ok(PySignResult::One(PyUrl::new(url)))
             }
             PyPaths::Many(paths) => {
                 let urls = store
@@ -199,7 +186,7 @@ pub(crate) fn sign_async(
                     .await
                     .map_err(PyObjectStoreError::ObjectStoreError)?;
                 Ok(PySignResult::Many(PyUrls(
-                    urls.into_iter().map(PyUrl).collect(),
+                    urls.into_iter().map(PyUrl::new).collect(),
                 )))
             }
         }

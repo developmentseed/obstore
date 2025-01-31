@@ -1,14 +1,20 @@
 use pyo3::exceptions::PyValueError;
+use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::PyAnyMethods;
-use pyo3::FromPyObject;
+use pyo3::types::{PyAnyMethods, PyString};
 use url::Url;
 
 /// A wrapper around [`url::Url`] that implements [`FromPyObject`].
 pub struct PyUrl(Url);
 
 impl PyUrl {
-    pub(crate) fn into_inner(self) -> Url {
+    /// Create a new PyUrl from a [Url]
+    pub fn new(url: Url) -> Self {
+        Self(url)
+    }
+
+    /// Consume self and return the underlying [Url]
+    pub fn into_inner(self) -> Url {
         self.0
     }
 }
@@ -18,6 +24,16 @@ impl<'py> FromPyObject<'py> for PyUrl {
         let s = ob.extract::<PyBackedStr>()?;
         let url = Url::parse(&s).map_err(|err| PyValueError::new_err(err.to_string()))?;
         Ok(Self(url))
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyUrl {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = std::convert::Infallible;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        String::from(self.0).into_pyobject(py)
     }
 }
 

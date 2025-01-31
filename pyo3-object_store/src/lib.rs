@@ -29,3 +29,4 @@ pub use memory::PyMemoryStore;
 pub use prefix::PyPrefixStore;
 pub use simple::new_store;
 pub use store::PyObjectStore;
+pub use url::PyUrl;
