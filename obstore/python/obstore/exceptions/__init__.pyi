@@ -1,3 +1,7 @@
+# Note: This should be able to be an `exceptions.pyi` file one level above, however
+# pylance isn't able to find that. So this is an exceptions module with only
+# `__init__.pyi` to work around pylance's bug.
+
 class ObstoreError(Exception):
     """The base exception class"""
 

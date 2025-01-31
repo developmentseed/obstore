@@ -33,39 +33,18 @@ impl PyAzureStore {
 impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (container, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (container=None, *, config=None, client_options=None, retry_config=None, **kwargs))]
     fn new(
-        container: String,
+        container: Option<String>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
-        let mut builder = MicrosoftAzureBuilder::new().with_container_name(container);
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
-            builder = config_kwargs.apply_config(builder);
+        let mut builder = MicrosoftAzureBuilder::from_env();
+        if let Some(container) = container {
+            builder = builder.with_container_name(container);
         }
-        if let Some(client_options) = client_options {
-            builder = builder.with_client_options(client_options.into())
-        }
-        if let Some(retry_config) = retry_config {
-            builder = builder.with_retry(retry_config.into())
-        }
-        Ok(Self(Arc::new(builder.build()?)))
-    }
-
-    // Create from env variables
-    #[classmethod]
-    #[pyo3(signature = (container, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_env(
-        _cls: &Bound<PyType>,
-        container: String,
-        config: Option<PyAzureConfig>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyAzureConfig>,
-    ) -> PyObjectStoreResult<Self> {
-        let mut builder = MicrosoftAzureBuilder::from_env().with_container_name(container);
         if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
             builder = config_kwargs.apply_config(builder);
         }

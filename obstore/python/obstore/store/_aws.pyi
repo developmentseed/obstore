@@ -487,71 +487,46 @@ class S3Config(TypedDict, total=False):
     """If virtual hosted style request has to be used."""
 
 class S3Store:
-    """
-    Configure a connection to Amazon S3 using the specified credentials in the specified
-    Amazon region and bucket.
+    """Interface to an Amazon S3 bucket.
+
+    All constructors will check for environment variables. All environment variables
+    starting with `AWS_` will be evaluated. Names must match keys from
+    [`S3Config`][obstore.store.S3Config]. Only upper-case environment variables are
+    accepted.
+
+    Some examples of variables extracted from environment:
+
+    - `AWS_ACCESS_KEY_ID` -> access_key_id
+    - `AWS_SECRET_ACCESS_KEY` -> secret_access_key
+    - `AWS_DEFAULT_REGION` -> region
+    - `AWS_ENDPOINT` -> endpoint
+    - `AWS_SESSION_TOKEN` -> token
+    - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
+    - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
 
     **Examples**:
 
     **Using requester-pays buckets**:
 
-    Pass `request_payer=True` as a keyword argument. Or, if you're using
-    `S3Store.from_env`, have `AWS_REQUESTER_PAYS=True` set in the environment.
+    Pass `request_payer=True` as a keyword argument or have `AWS_REQUESTER_PAYS=True`
+    set in the environment.
 
     **Anonymous requests**:
 
-    Pass `skip_signature=True` as a keyword argument. Or, if you're using
-    `S3Store.from_env`, have `AWS_SKIP_SIGNATURE=True` set in the environment.
+    Pass `skip_signature=True` as a keyword argument or have `AWS_SKIP_SIGNATURE=True`
+    set in the environment.
     """
 
     def __init__(
         self,
-        bucket: str,
-        *,
-        config: S3Config | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
-    ) -> None:
-        """Create a new S3Store
-
-        Args:
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-
-        Returns:
-            S3Store
-        """
-
-    @classmethod
-    def from_env(
-        cls,
         bucket: str | None = None,
         *,
         config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[S3Config],
-    ) -> S3Store:
-        """Construct a new S3Store with regular AWS environment variables
-
-        All environment variables starting with `AWS_` will be evaluated. Names must
-        match items from `S3ConfigKey`. Only upper-case environment variables are
-        accepted.
-
-        Some examples of variables extracted from environment:
-
-        - `AWS_ACCESS_KEY_ID` -> access_key_id
-        - `AWS_SECRET_ACCESS_KEY` -> secret_access_key
-        - `AWS_DEFAULT_REGION` -> region
-        - `AWS_ENDPOINT` -> endpoint
-        - `AWS_SESSION_TOKEN` -> token
-        - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
-        - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
+    ) -> None:
+        """Create a new S3Store.
 
         Args:
             bucket: The AWS bucket to use.
@@ -576,7 +551,7 @@ class S3Store:
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[S3Config],
     ) -> S3Store:
-        """Construct a new S3Store with credentials inferred from a boto3 Session
+        """Construct a new S3Store with credentials inferred from a boto3 Session.
 
         This can be useful to read S3 credentials from [disk-based credentials sources](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html).
 
@@ -616,8 +591,7 @@ class S3Store:
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[S3Config],
     ) -> S3Store:
-        """
-        Parse available connection info from a well-known storage URL.
+        """Parse available connection info from a well-known storage URL.
 
         The supported url schemes are:
 
