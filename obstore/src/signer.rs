@@ -26,8 +26,8 @@ use crate::runtime::get_runtime;
 #[derive(Debug)]
 pub(crate) enum SignCapableStore {
     S3(Arc<MaybePrefixedStore<AmazonS3>>),
-    Gcs(Arc<GoogleCloudStorage>),
-    Azure(Arc<MicrosoftAzure>),
+    Gcs(Arc<MaybePrefixedStore<GoogleCloudStorage>>),
+    Azure(Arc<MaybePrefixedStore<MicrosoftAzure>>),
 }
 
 impl<'py> FromPyObject<'py> for SignCapableStore {
@@ -80,8 +80,8 @@ impl Signer for SignCapableStore {
     {
         match self {
             Self::S3(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
-            Self::Gcs(inner) => inner.signed_url(method, path, expires_in),
-            Self::Azure(inner) => inner.signed_url(method, path, expires_in),
+            Self::Gcs(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
+            Self::Azure(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
         }
     }
 
@@ -101,8 +101,14 @@ impl Signer for SignCapableStore {
                 .as_ref()
                 .inner()
                 .signed_urls(method, paths, expires_in),
-            Self::Gcs(inner) => inner.signed_urls(method, paths, expires_in),
-            Self::Azure(inner) => inner.signed_urls(method, paths, expires_in),
+            Self::Gcs(inner) => inner
+                .as_ref()
+                .inner()
+                .signed_urls(method, paths, expires_in),
+            Self::Azure(inner) => inner
+                .as_ref()
+                .inner()
+                .signed_urls(method, paths, expires_in),
         }
     }
 }

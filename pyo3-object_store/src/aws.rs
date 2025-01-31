@@ -19,15 +19,15 @@ use crate::retry::PyRetryConfig;
 use crate::PyUrl;
 
 struct S3Config {
-    prefix: Option<Path>,
     bucket: Option<String>,
+    prefix: Option<Path>,
     config: Option<PyAmazonS3Config>,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
 }
 
 impl S3Config {
-    fn pickle_get_new_args<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+    fn pickle_get_new_args(&self, py: Python) -> PyResult<PyObject> {
         let args =
             PyTuple::new(py, vec![self.bucket.clone().into_pyobject(py)?])?.into_py_any(py)?;
         let kwargs = PyDict::new(py);
@@ -45,7 +45,7 @@ impl S3Config {
             kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
         }
 
-        Ok(PyTuple::new(py, [args, kwargs.into_py_any(py)?])?)
+        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
     }
 }
 
@@ -107,10 +107,6 @@ impl PyS3Store {
 
 #[pymethods]
 impl PyS3Store {
-    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        self.config.pickle_get_new_args(py)
-    }
-
     // Create from parameters
     #[new]
     #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
@@ -226,6 +222,10 @@ impl PyS3Store {
             retry_config,
             kwargs,
         )
+    }
+
+    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+        self.config.pickle_get_new_args(py)
     }
 
     fn __repr__(&self) -> String {

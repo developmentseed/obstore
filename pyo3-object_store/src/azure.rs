@@ -3,29 +3,69 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::azure::{AzureConfigKey, MicrosoftAzure, MicrosoftAzureBuilder};
+use object_store::path::Path;
+use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::PyType;
+use pyo3::types::{PyDict, PyString, PyTuple, PyType};
+use pyo3::{intern, IntoPyObjectExt};
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
+use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
+use crate::{MaybePrefixedStore, PyUrl};
+
+struct AzureConfig {
+    container: Option<String>,
+    prefix: Option<Path>,
+    config: Option<PyAzureConfig>,
+    client_options: Option<PyClientOptions>,
+    retry_config: Option<PyRetryConfig>,
+}
+
+impl AzureConfig {
+    fn pickle_get_new_args(&self, py: Python) -> PyResult<PyObject> {
+        let args =
+            PyTuple::new(py, vec![self.container.clone().into_pyobject(py)?])?.into_py_any(py)?;
+        let kwargs = PyDict::new(py);
+
+        if let Some(prefix) = &self.prefix {
+            kwargs.set_item(intern!(py, "prefix"), PyString::new(py, prefix.as_ref()))?;
+        }
+        if let Some(config) = &self.config {
+            kwargs.set_item(intern!(py, "config"), config.clone())?;
+        }
+        if let Some(client_options) = &self.client_options {
+            kwargs.set_item(intern!(py, "client_options"), client_options.clone())?;
+        }
+        if let Some(retry_config) = &self.retry_config {
+            kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
+        }
+
+        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
+    }
+}
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
 #[pyclass(name = "AzureStore", frozen)]
-pub struct PyAzureStore(Arc<MicrosoftAzure>);
+pub struct PyAzureStore {
+    store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
+    /// A config used for pickling. This must stay in sync with the underlying store's config.
+    config: AzureConfig,
+}
 
-impl AsRef<Arc<MicrosoftAzure>> for PyAzureStore {
-    fn as_ref(&self) -> &Arc<MicrosoftAzure> {
-        &self.0
+impl AsRef<Arc<MaybePrefixedStore<MicrosoftAzure>>> for PyAzureStore {
+    fn as_ref(&self) -> &Arc<MaybePrefixedStore<MicrosoftAzure>> {
+        &self.store
     }
 }
 
 impl PyAzureStore {
     /// Consume self and return the underlying [`MicrosoftAzure`].
-    pub fn into_inner(self) -> Arc<MicrosoftAzure> {
-        self.0
+    pub fn into_inner(self) -> Arc<MaybePrefixedStore<MicrosoftAzure>> {
+        self.store
     }
 }
 
@@ -33,55 +73,92 @@ impl PyAzureStore {
 impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (container=None, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
     fn new(
         container: Option<String>,
+        prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
-        if let Some(container) = container {
+        if let Some(container) = container.clone() {
             builder = builder.with_container_name(container);
         }
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+        let combined_config = combine_config_kwargs(config, kwargs)?;
+        if let Some(config_kwargs) = combined_config.clone() {
             builder = config_kwargs.apply_config(builder);
         }
-        if let Some(client_options) = client_options {
+        if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
-        if let Some(retry_config) = retry_config {
+        if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        Ok(Self(Arc::new(builder.build()?)))
+        let prefix = prefix.map(|x| x.into_inner());
+        Ok(Self {
+            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
+            config: AzureConfig {
+                prefix,
+                container,
+                config: combined_config,
+                client_options,
+                retry_config,
+            },
+        })
     }
 
     #[classmethod]
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
     fn from_url(
         _cls: &Bound<PyType>,
-        url: &str,
+        url: PyUrl,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
+        // We manually parse the URL to find the prefix because `with_url` does not apply the
+        // prefix.
+        let (_, prefix) =
+            ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
+        let prefix = if prefix.parts().count() == 0 {
+            Some(prefix.into())
+        } else {
+            None
+        };
+
         let mut builder = MicrosoftAzureBuilder::from_env().with_url(url);
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
+        let combined_config = combine_config_kwargs(config, kwargs)?;
+        if let Some(config_kwargs) = combined_config.clone() {
             builder = config_kwargs.apply_config(builder);
         }
-        if let Some(client_options) = client_options {
+        if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
-        if let Some(retry_config) = retry_config {
+        if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        Ok(Self(Arc::new(builder.build()?)))
+        Ok(Self {
+            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
+            config: AzureConfig {
+                prefix,
+                container: None,
+                config: combined_config,
+                client_options,
+                retry_config,
+            },
+        })
+        // Ok(Self(Arc::new(builder.build()?)))
+    }
+
+    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+        self.config.pickle_get_new_args(py)
     }
 
     fn __repr__(&self) -> String {
-        let repr = self.0.to_string();
+        let repr = self.store.to_string();
         repr.replacen("MicrosoftAzure", "AzureStore", 1)
     }
 }
@@ -97,7 +174,17 @@ impl<'py> FromPyObject<'py> for PyAzureConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, FromPyObject)]
+impl<'py> IntoPyObject<'py> for PyAzureConfigKey {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(PyString::new(py, self.0.as_ref()))
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, FromPyObject, IntoPyObject)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
 impl PyAzureConfig {
