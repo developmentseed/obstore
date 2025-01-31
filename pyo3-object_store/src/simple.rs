@@ -3,8 +3,8 @@ use std::sync::Arc;
 use object_store::memory::InMemory;
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
-use pyo3::types::PyType;
-use pyo3::IntoPyObjectExt;
+use pyo3::types::{PyDict, PyType};
+use pyo3::{intern, IntoPyObjectExt};
 
 use crate::error::ObstoreError;
 use crate::retry::PyRetryConfig;
@@ -28,13 +28,12 @@ pub fn from_url(
     retry_config: Option<PyRetryConfig>,
     kwargs: Option<Bound<PyAny>>,
 ) -> PyObjectStoreResult<PyObject> {
-    let url = url.into_inner();
-    let (scheme, _) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
+    let (scheme, _) = ObjectStoreScheme::parse(&url.as_ref()).map_err(object_store::Error::from)?;
     match scheme {
         ObjectStoreScheme::AmazonS3 => {
             let store = PyS3Store::from_url(
                 &PyType::new::<PyS3Store>(py),
-                url.as_str(),
+                url,
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
@@ -45,7 +44,7 @@ pub fn from_url(
         ObjectStoreScheme::GoogleCloudStorage => {
             let store = PyGCSStore::from_url(
                 &PyType::new::<PyGCSStore>(py),
-                url.as_str(),
+                url,
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
@@ -56,7 +55,7 @@ pub fn from_url(
         ObjectStoreScheme::MicrosoftAzure => {
             let store = PyAzureStore::from_url(
                 &PyType::new::<PyAzureStore>(py),
-                url.as_str(),
+                url,
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
@@ -68,15 +67,31 @@ pub fn from_url(
             raise_if_config_passed(config, kwargs, "http")?;
             let store = PyHttpStore::from_url(
                 &PyType::new::<PyHttpStore>(py),
-                url.as_str(),
+                url,
                 client_options,
                 retry_config,
             )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
         }
         ObjectStoreScheme::Local => {
-            raise_if_config_passed(config, kwargs, "local")?;
-            let store = PyLocalStore::from_url(&PyType::new::<PyLocalStore>(py), url.as_str())?;
+            let mut automatic_cleanup = false;
+            let mut mkdir = false;
+            if let Some(kwargs) = kwargs {
+                let kwargs = kwargs.extract::<Bound<PyDict>>()?;
+                if let Some(val) = kwargs.get_item(intern!(py, "automatic_cleanup"))? {
+                    automatic_cleanup = val.extract()?;
+                }
+                if let Some(val) = kwargs.get_item(intern!(py, "mkdir"))? {
+                    mkdir = val.extract()?;
+                }
+            }
+
+            let store = PyLocalStore::from_url(
+                &PyType::new::<PyLocalStore>(py),
+                url,
+                automatic_cleanup,
+                mkdir,
+            )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
         }
         ObjectStoreScheme::Memory => {

@@ -7,10 +7,10 @@ use pyo3::{intern, IntoPyObjectExt};
 
 use crate::error::PyObjectStoreResult;
 use crate::retry::PyRetryConfig;
-use crate::PyClientOptions;
+use crate::{PyClientOptions, PyUrl};
 
 struct HTTPConfig {
-    url: String,
+    url: PyUrl,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
 }
@@ -59,7 +59,7 @@ impl PyHttpStore {
     #[new]
     #[pyo3(signature = (url, *, client_options=None, retry_config=None))]
     fn new(
-        url: String,
+        url: PyUrl,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
     ) -> PyObjectStoreResult<Self> {
@@ -84,7 +84,7 @@ impl PyHttpStore {
     #[pyo3(signature = (url, *, client_options=None, retry_config=None))]
     pub(crate) fn from_url(
         _cls: &Bound<PyType>,
-        url: String,
+        url: PyUrl,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
     ) -> PyObjectStoreResult<Self> {
@@ -96,6 +96,6 @@ impl PyHttpStore {
     }
 
     fn __repr__(&self) -> String {
-        format!("HTTPStore(\"{}\")", &self.config.url)
+        format!("HTTPStore(\"{}\")", &self.config.url.as_ref())
     }
 }

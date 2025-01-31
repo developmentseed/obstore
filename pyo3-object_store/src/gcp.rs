@@ -213,9 +213,6 @@ impl<'py> IntoPyObject<'py> for PyGoogleConfigKey {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
-
 #[derive(Clone, Debug, PartialEq, Eq, FromPyObject, IntoPyObject)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 

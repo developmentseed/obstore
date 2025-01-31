@@ -40,6 +40,16 @@ def from_url(
     retry_config: RetryConfig | None = None,
     **kwargs: Unpack[AzureConfig],
 ) -> ObjectStore: ...
+@overload
+def from_url(
+    url: str,
+    *,
+    config: None = None,
+    client_options: None = None,
+    retry_config: None = None,
+    automatic_cleanup: bool = False,
+    mkdir: bool = False,
+) -> ObjectStore: ...
 def from_url(
     url: str,
     *,
