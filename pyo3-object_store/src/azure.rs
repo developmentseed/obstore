@@ -118,14 +118,8 @@ impl<'py> FromPyObject<'py> for PyAzureConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, FromPyObject)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
-
-impl<'py> FromPyObject<'py> for PyAzureConfig {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract()?))
-    }
-}
 
 impl PyAzureConfig {
     fn apply_config(self, mut builder: MicrosoftAzureBuilder) -> MicrosoftAzureBuilder {

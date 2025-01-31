@@ -118,14 +118,8 @@ impl<'py> FromPyObject<'py> for PyGoogleConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, FromPyObject)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
-
-impl<'py> FromPyObject<'py> for PyGoogleConfig {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract()?))
-    }
-}
 
 impl PyGoogleConfig {
     fn apply_config(self, mut builder: GoogleCloudStorageBuilder) -> GoogleCloudStorageBuilder {
