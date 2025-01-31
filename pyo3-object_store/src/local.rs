@@ -19,7 +19,7 @@ struct LocalConfig {
 }
 
 impl LocalConfig {
-    fn pickle_get_new_args(&self, py: Python) -> PyResult<PyObject> {
+    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
         let args =
             PyTuple::new(py, vec![self.prefix.clone().into_pyobject(py)?])?.into_py_any(py)?;
         let kwargs = PyDict::new(py);
@@ -101,7 +101,7 @@ impl PyLocalStore {
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        self.config.pickle_get_new_args(py)
+        self.config.__getnewargs_ex__(py)
     }
 
     fn __repr__(&self) -> String {
