@@ -508,6 +508,7 @@ class S3Store:
         self,
         bucket: str,
         *,
+        prefix: str | None = None,
         config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -532,6 +533,7 @@ class S3Store:
         cls,
         bucket: str | None = None,
         *,
+        prefix: str | None = None,
         config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -571,6 +573,7 @@ class S3Store:
         session: boto3.session.Session | botocore.session.Session,
         bucket: str,
         *,
+        prefix: str | None = None,
         config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -626,11 +629,6 @@ class S3Store:
         - `https://s3.<region>.amazonaws.com/<bucket>`
         - `https://<bucket>.s3.<region>.amazonaws.com`
         - `https://ACCOUNT_ID.r2.cloudflarestorage.com/bucket`
-
-        !!! note
-            Note that `from_url` will not use any additional parts of the path as a
-            bucket prefix. It will only extract the bucket, region, and endpoint. If you
-            wish to use a path prefix, consider wrapping this with `PrefixStore`.
 
         Args:
             url: well-known storage URL.
