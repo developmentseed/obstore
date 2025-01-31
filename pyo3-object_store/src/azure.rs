@@ -32,7 +32,7 @@ impl AzureConfig {
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
-            kwargs.set_item(intern!(py, "prefix"), PyString::new(py, prefix.as_ref()))?;
+            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref())?;
         }
         if let Some(config) = &self.config {
             kwargs.set_item(intern!(py, "config"), config.clone())?;

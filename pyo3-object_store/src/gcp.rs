@@ -32,7 +32,7 @@ impl GCSConfig {
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
-            kwargs.set_item(intern!(py, "prefix"), PyString::new(py, prefix.as_ref()))?;
+            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref())?;
         }
         if let Some(config) = &self.config {
             kwargs.set_item(intern!(py, "config"), config.clone())?;
@@ -47,6 +47,7 @@ impl GCSConfig {
         PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
     }
 }
+
 /// A Python-facing wrapper around a [`GoogleCloudStorage`].
 #[pyclass(name = "GCSStore", frozen)]
 pub struct PyGCSStore {
