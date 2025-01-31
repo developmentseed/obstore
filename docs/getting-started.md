@@ -16,10 +16,6 @@ Classes to construct a store are exported from the `obstore.store` submodule:
 - [`LocalStore`][obstore.store.LocalStore]: Local filesystem storage providing the same object store interface.
 - [`MemoryStore`][obstore.store.MemoryStore]: A fully in-memory implementation of ObjectStore.
 
-Additionally, some middlewares exist:
-
-- [`PrefixStore`][obstore.store.PrefixStore]: Store wrapper that applies a constant prefix to all paths handled by the store.
-
 Each store concept has a variety of constructors, and a host of configuration options.
 
 **Example:**

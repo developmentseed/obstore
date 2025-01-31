@@ -9,7 +9,6 @@ from ._client import ClientConfig as ClientConfig
 from ._gcs import GCSConfig as GCSConfig
 from ._gcs import GCSStore as GCSStore
 from ._http import HTTPStore as HTTPStore
-from ._prefix import PrefixStore as PrefixStore
 from ._retry import BackoffConfig as BackoffConfig
 from ._retry import RetryConfig as RetryConfig
 
@@ -73,7 +72,5 @@ class MemoryStore:
     def __init__(self) -> None: ...
     def __repr__(self) -> str: ...
 
-ObjectStore = (
-    AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore | PrefixStore
-)
+ObjectStore = AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
 """All supported ObjectStore implementations."""
