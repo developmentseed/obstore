@@ -3,7 +3,7 @@ use pyo3::prelude::*;
 
 use crate::error::*;
 use crate::{
-    new_store, PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyPrefixStore,
+    from_url, PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyPrefixStore,
     PyS3Store,
 };
 
@@ -47,7 +47,7 @@ pub fn register_store_module(
 
     let child_module = PyModule::new(parent_module.py(), "store")?;
 
-    child_module.add_wrapped(wrap_pyfunction!(new_store))?;
+    child_module.add_wrapped(wrap_pyfunction!(from_url))?;
     child_module.add_class::<PyAzureStore>()?;
     child_module.add_class::<PyGCSStore>()?;
     child_module.add_class::<PyHttpStore>()?;

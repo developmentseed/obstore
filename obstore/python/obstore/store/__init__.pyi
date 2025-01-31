@@ -15,7 +15,7 @@ from ._retry import BackoffConfig as BackoffConfig
 from ._retry import RetryConfig as RetryConfig
 
 @overload
-def new_store(
+def from_url(
     url: str,
     *,
     config: S3Config | None = None,
@@ -24,7 +24,7 @@ def new_store(
     **kwargs: Unpack[S3Config],
 ) -> ObjectStore: ...
 @overload
-def new_store(
+def from_url(
     url: str,
     *,
     config: GCSConfig | None = None,
@@ -33,7 +33,7 @@ def new_store(
     **kwargs: Unpack[GCSConfig],
 ) -> ObjectStore: ...
 @overload
-def new_store(
+def from_url(
     url: str,
     *,
     config: AzureConfig | None = None,
@@ -41,7 +41,7 @@ def new_store(
     retry_config: RetryConfig | None = None,
     **kwargs: Unpack[AzureConfig],
 ) -> ObjectStore: ...
-def new_store(
+def from_url(
     url: str,
     *,
     config: S3Config | GCSConfig | AzureConfig | None = None,

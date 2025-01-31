@@ -27,6 +27,6 @@ pub use http::PyHttpStore;
 pub use local::PyLocalStore;
 pub use memory::PyMemoryStore;
 pub use prefix::PyPrefixStore;
-pub use simple::new_store;
+pub use simple::from_url;
 pub use store::PyObjectStore;
 pub use url::PyUrl;

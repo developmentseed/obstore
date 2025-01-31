@@ -20,7 +20,7 @@ use crate::{
 // as an AWS config before knowing that the URL scheme is AWS.
 #[pyfunction]
 #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
-pub fn new_store(
+pub fn from_url(
     py: Python,
     url: PyUrl,
     config: Option<Bound<PyAny>>,

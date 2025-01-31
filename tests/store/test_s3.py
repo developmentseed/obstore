@@ -2,7 +2,7 @@ import pytest
 
 import obstore as obs
 from obstore.exceptions import ObstoreError
-from obstore.store import S3Store, new_store
+from obstore.store import S3Store, from_url
 
 
 @pytest.mark.asyncio
@@ -36,8 +36,8 @@ def test_error_overlapping_config_kwargs():
 
 
 @pytest.mark.asyncio
-async def test_new_store():
-    store = new_store(
+async def test_from_url():
+    store = from_url(
         "s3://ookla-open-data/parquet/performance/type=fixed/year=2024/quarter=1",
         region="us-west-2",
         skip_signature=True,

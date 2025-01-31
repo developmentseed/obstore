@@ -1,4 +1,4 @@
 # ObjectStore
 
-::: obstore.store.new_store
+::: obstore.store.from_url
 ::: obstore.store.ObjectStore
