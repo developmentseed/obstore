@@ -33,39 +33,18 @@ impl PyGCSStore {
 impl PyGCSStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, config=None, client_options=None, retry_config=None, **kwargs))]
     fn new(
-        bucket: String,
+        bucket: Option<String>,
         config: Option<PyGoogleConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
-        let mut builder = GoogleCloudStorageBuilder::new().with_bucket_name(bucket);
-        if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
-            builder = config_kwargs.apply_config(builder);
+        let mut builder = GoogleCloudStorageBuilder::from_env();
+        if let Some(bucket) = bucket {
+            builder = builder.with_bucket_name(bucket);
         }
-        if let Some(client_options) = client_options {
-            builder = builder.with_client_options(client_options.into())
-        }
-        if let Some(retry_config) = retry_config {
-            builder = builder.with_retry(retry_config.into())
-        }
-        Ok(Self(Arc::new(builder.build()?)))
-    }
-
-    // Create from env variables
-    #[classmethod]
-    #[pyo3(signature = (bucket, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_env(
-        _cls: &Bound<PyType>,
-        bucket: String,
-        config: Option<PyGoogleConfig>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyGoogleConfig>,
-    ) -> PyObjectStoreResult<Self> {
-        let mut builder = GoogleCloudStorageBuilder::from_env().with_bucket_name(bucket);
         if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
             builder = config_kwargs.apply_config(builder);
         }

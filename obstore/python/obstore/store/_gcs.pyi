@@ -60,7 +60,21 @@ class GCSConfig(TypedDict, total=False):
     """Path to the service account file."""
 
 class GCSStore:
-    """Configure a connection to Google Cloud Storage.
+    """Interface to Google Cloud Storage.
+
+    All constructors will check for environment variables. All environment variables
+    starting with `GOOGLE_` will be evaluated. Names must match keys from
+    [`GCSConfig`][obstore.store.GCSConfig]. Only upper-case environment variables are
+    accepted.
+
+    Some examples of variables extracted from environment:
+
+    - `GOOGLE_SERVICE_ACCOUNT`: location of service account file
+    - `GOOGLE_SERVICE_ACCOUNT_PATH`: (alias) location of service account file
+    - `SERVICE_ACCOUNT`: (alias) location of service account file
+    - `GOOGLE_SERVICE_ACCOUNT_KEY`: JSON serialized service account key
+    - `GOOGLE_BUCKET`: bucket name
+    - `GOOGLE_BUCKET_NAME`: (alias) bucket name
 
     If no credentials are explicitly provided, they will be sourced from the environment
     as documented
@@ -69,7 +83,7 @@ class GCSStore:
 
     def __init__(
         self,
-        bucket: str,
+        bucket: str | None = None,
         *,
         config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
@@ -77,39 +91,6 @@ class GCSStore:
         **kwargs: Unpack[GCSConfig],
     ) -> None:
         """Construct a new GCSStore.
-
-        Args:
-            bucket: The GCS bucket to use.
-
-        Keyword Args:
-            config: GCS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-
-        Returns:
-            GCSStore
-        """
-
-    @classmethod
-    def from_env(
-        cls,
-        bucket: str,
-        *,
-        config: GCSConfig | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[GCSConfig],
-    ) -> GCSStore:
-        """Construct a new GCSStore with values pre-populated from environment variables.
-
-        Variables extracted from environment:
-
-        - `GOOGLE_SERVICE_ACCOUNT`: location of service account file
-        - `GOOGLE_SERVICE_ACCOUNT_PATH`: (alias) location of service account file
-        - `SERVICE_ACCOUNT`: (alias) location of service account file
-        - `GOOGLE_SERVICE_ACCOUNT_KEY`: JSON serialized service account key
-        - `GOOGLE_BUCKET`: bucket name
-        - `GOOGLE_BUCKET_NAME`: (alias) bucket name
 
         Args:
             bucket: The GCS bucket to use.
