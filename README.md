@@ -11,7 +11,7 @@
 [pypi-img]: https://img.shields.io/pypi/dm/obstore
 [pypi-link]: https://pypi.org/project/obstore/
 
-Simple, fast integration with object storage services like Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
+The simplest, highest-throughput interface to Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2. [^1]
 
 - Sync and async API with **full type hinting**.
 - **Streaming downloads** with configurable chunking.
@@ -26,6 +26,8 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 - Zero-copy data exchange between Rust and Python via the [buffer protocol](https://jakevdp.github.io/blog/2014/05/05/introduction-to-the-python-buffer-protocol/).
 
 <!-- For Rust developers looking to add object_store support to their Python packages, refer to pyo3-object_store. -->
+
+[^1]: Benchmarking is currently ongoing, but [early results](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/2d8ee4df8c2d93463323394f09fd094ad0381122/test_results/cog_header_results.csv) indicate 9x higher throughput than aioboto3 and fsspec.
 
 ## Installation
 
