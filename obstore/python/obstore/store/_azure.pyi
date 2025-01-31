@@ -281,6 +281,7 @@ class AzureStore:
         self,
         container: str | None = None,
         *,
+        prefix: str | None = None,
         config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -305,6 +306,7 @@ class AzureStore:
         cls,
         url: str,
         *,
+        prefix: str | None = None,
         config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -328,12 +330,6 @@ class AzureStore:
         - `https://<account>.blob.fabric.microsoft.com`
         - `https://<account>.blob.fabric.microsoft.com/<container>`
 
-        !!! note
-            Note that `from_url` will not use any additional parts of the path as a
-            bucket prefix. It will only extract the container name, account name, and
-            whether it's a fabric endpoint. If you wish to use a path prefix, consider
-            wrapping this with `PrefixStore`.
-
         Args:
             url: well-known storage URL.
 
@@ -346,4 +342,5 @@ class AzureStore:
             AzureStore
         """
 
+    def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...

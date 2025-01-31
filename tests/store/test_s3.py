@@ -1,3 +1,6 @@
+import pickle
+
+# import cloudpickle
 import pytest
 
 import obstore as obs
@@ -43,3 +46,13 @@ async def test_from_url():
         skip_signature=True,
     )
     _meta = await obs.head_async(store, "2024-01-01_performance_fixed_tiles.parquet")
+
+
+def test_pickle():
+    store = S3Store(
+        "ookla-open-data",
+        region="us-west-2",
+        skip_signature=True,
+    )
+    restored = pickle.loads(pickle.dumps(store))
+    _objects = next(obs.list(restored))

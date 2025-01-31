@@ -3,11 +3,13 @@ use std::time::Duration;
 use object_store::{BackoffConfig, RetryConfig};
 use pyo3::prelude::*;
 
-#[derive(Debug, FromPyObject)]
-#[pyo3(from_item_all)]
+#[derive(Clone, Debug, FromPyObject, IntoPyObject)]
 pub struct PyBackoffConfig {
+    #[pyo3(item)]
     init_backoff: Duration,
+    #[pyo3(item)]
     max_backoff: Duration,
+    #[pyo3(item)]
     base: f64,
 }
 
@@ -21,11 +23,13 @@ impl From<PyBackoffConfig> for BackoffConfig {
     }
 }
 
-#[derive(Debug, FromPyObject)]
-#[pyo3(from_item_all)]
+#[derive(Clone, Debug, FromPyObject, IntoPyObject)]
 pub struct PyRetryConfig {
+    #[pyo3(item)]
     backoff: PyBackoffConfig,
+    #[pyo3(item)]
     max_retries: usize,
+    #[pyo3(item)]
     retry_timeout: Duration,
 }
 

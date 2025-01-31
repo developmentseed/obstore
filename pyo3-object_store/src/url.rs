@@ -2,9 +2,11 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyAnyMethods, PyString};
+use pyo3::FromPyObject;
 use url::Url;
 
 /// A wrapper around [`url::Url`] that implements [`FromPyObject`].
+#[derive(Debug, Clone)]
 pub struct PyUrl(Url);
 
 impl PyUrl {
@@ -40,5 +42,11 @@ impl<'py> IntoPyObject<'py> for PyUrl {
 impl AsRef<Url> for PyUrl {
     fn as_ref(&self) -> &Url {
         &self.0
+    }
+}
+
+impl From<PyUrl> for String {
+    fn from(value: PyUrl) -> Self {
+        value.0.into()
     }
 }

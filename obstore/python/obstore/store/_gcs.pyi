@@ -85,6 +85,7 @@ class GCSStore:
         self,
         bucket: str | None = None,
         *,
+        prefix: str | None = None,
         config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -109,6 +110,7 @@ class GCSStore:
         cls,
         url: str,
         *,
+        prefix: str | None = None,
         config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -119,11 +121,6 @@ class GCSStore:
         The supported url schemes are:
 
         - `gs://<bucket>/<path>`
-
-        !!! note
-            Note that `from_url` will not use any additional parts of the path as a
-            bucket prefix. It will only extract the bucket name. If you wish to use a
-            path prefix, consider wrapping this with `PrefixStore`.
 
         Args:
             url: well-known storage URL.
@@ -137,4 +134,5 @@ class GCSStore:
             GCSStore
         """
 
+    def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...

@@ -35,7 +35,7 @@ nav:
           - api/store/local.md
           - api/store/memory.md
           - api/store/config.md
-          - api/store/middleware.md
+          # - api/store/middleware.md
       - api/copy.md
       - api/delete.md
       - api/get.md
@@ -48,6 +48,10 @@ nav:
       - api/exceptions.md
       - api/file.md
       - fsspec Integration: api/fsspec.md
+  - Advanced:
+      - advanced/pickle.md
+  - Developer Docs:
+      - dev/pickle.md
   - CHANGELOG.md
 
 watch:

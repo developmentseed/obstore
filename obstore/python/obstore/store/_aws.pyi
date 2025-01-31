@@ -521,6 +521,7 @@ class S3Store:
         self,
         bucket: str | None = None,
         *,
+        prefix: str | None = None,
         config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -532,6 +533,7 @@ class S3Store:
             bucket: The AWS bucket to use.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
@@ -544,8 +546,9 @@ class S3Store:
     def from_session(
         cls,
         session: boto3.session.Session | botocore.session.Session,
-        bucket: str,
+        bucket: str | None = None,
         *,
+        prefix: str | None = None,
         config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -574,6 +577,7 @@ class S3Store:
             bucket: The AWS bucket to use.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: AWS Configuration. Values in this config will override values inferred from the session. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
@@ -601,11 +605,6 @@ class S3Store:
         - `https://<bucket>.s3.<region>.amazonaws.com`
         - `https://ACCOUNT_ID.r2.cloudflarestorage.com/bucket`
 
-        !!! note
-            Note that `from_url` will not use any additional parts of the path as a
-            bucket prefix. It will only extract the bucket, region, and endpoint. If you
-            wish to use a path prefix, consider wrapping this with `PrefixStore`.
-
         Args:
             url: well-known storage URL.
 
@@ -619,4 +618,5 @@ class S3Store:
             S3Store
         """
 
+    def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...

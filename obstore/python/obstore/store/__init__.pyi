@@ -10,7 +10,6 @@ from ._client import ClientConfig as ClientConfig
 from ._gcs import GCSConfig as GCSConfig
 from ._gcs import GCSStore as GCSStore
 from ._http import HTTPStore as HTTPStore
-from ._prefix import PrefixStore as PrefixStore
 from ._retry import BackoffConfig as BackoffConfig
 from ._retry import RetryConfig as RetryConfig
 
@@ -110,9 +109,14 @@ class LocalStore:
             automatic_cleanup: if `True`, enables automatic cleanup of empty directories when deleting files. Defaults to False.
             mkdir: if `True` and `prefix` is not `None`, the directory at `prefix` will attempt to be created. Note that this root directory will not be cleaned up, even if `automatic_cleanup` is `True`.
         """
-    def __repr__(self) -> str: ...
     @classmethod
-    def from_url(cls, url: str) -> LocalStore:
+    def from_url(
+        cls,
+        url: str,
+        *,
+        automatic_cleanup: bool = False,
+        mkdir: bool = False,
+    ) -> LocalStore:
         """Construct a new LocalStore from a `file://` URL.
 
         **Examples:**
@@ -130,6 +134,9 @@ class LocalStore:
         ```
         """
 
+    def __getnewargs_ex__(self): ...
+    def __repr__(self) -> str: ...
+
 class MemoryStore:
     """A fully in-memory implementation of ObjectStore.
 
@@ -141,7 +148,5 @@ class MemoryStore:
     def __init__(self) -> None: ...
     def __repr__(self) -> str: ...
 
-ObjectStore = (
-    AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore | PrefixStore
-)
+ObjectStore = AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
 """All supported ObjectStore implementations."""
