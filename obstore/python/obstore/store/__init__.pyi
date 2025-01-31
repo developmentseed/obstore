@@ -16,19 +16,39 @@ from ._retry import RetryConfig as RetryConfig
 
 @overload
 def new_store(
-    url: str, *, config: S3Config | None = None, **kwargs: Unpack[S3Config]
-) -> PrefixStore: ...
+    url: str,
+    *,
+    config: S3Config | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    **kwargs: Unpack[S3Config],
+) -> ObjectStore: ...
 @overload
 def new_store(
-    url: str, *, config: GCSConfig | None = None, **kwargs: Unpack[GCSConfig]
-) -> PrefixStore: ...
+    url: str,
+    *,
+    config: GCSConfig | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    **kwargs: Unpack[GCSConfig],
+) -> ObjectStore: ...
 @overload
 def new_store(
-    url: str, *, config: AzureConfig | None = None, **kwargs: Unpack[AzureConfig]
-) -> PrefixStore: ...
+    url: str,
+    *,
+    config: AzureConfig | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    **kwargs: Unpack[AzureConfig],
+) -> ObjectStore: ...
 def new_store(
-    url: str, *, config: S3Config | GCSConfig | AzureConfig | None = None, **kwargs: Any
-) -> PrefixStore:
+    url: str,
+    *,
+    config: S3Config | GCSConfig | AzureConfig | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    **kwargs: Any,
+) -> ObjectStore:
     """Easy construction of store by URL, identifying the relevant store.
 
     Supported formats:
@@ -46,6 +66,15 @@ def new_store(
     - `dfs.core.windows.net`, `blob.core.windows.net`, `dfs.fabric.microsoft.com`, `blob.fabric.microsoft.com` -> [`AzureStore`][obstore.store.AzureStore]
     - `amazonaws.com` -> [`S3Store`][obstore.store.S3Store]
     - `r2.cloudflarestorage.com` -> [`S3Store`][obstore.store.S3Store]
+
+    Args:
+        url: well-known storage URL.
+
+    Keyword Args:
+        config: per-store Configuration. Values in this config will override values inferred from the url. Defaults to None.
+        client_options: HTTP Client options. Defaults to None.
+        retry_config: Retry configuration. Defaults to None.
+
     """
 
 class LocalStore:

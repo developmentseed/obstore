@@ -7,10 +7,11 @@ use pyo3::types::PyType;
 use pyo3::IntoPyObjectExt;
 
 use crate::error::ObstoreError;
+use crate::retry::PyRetryConfig;
 use crate::url::PyUrl;
 use crate::{
-    PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyObjectStoreResult,
-    PyS3Store,
+    PyAzureStore, PyClientOptions, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore,
+    PyObjectStoreResult, PyS3Store,
 };
 
 /// Simple construction of stores by url.
@@ -18,11 +19,13 @@ use crate::{
 // AWS/Azure/Google config keys could overlap. And so we don't want to accidentally parse a config
 // as an AWS config before knowing that the URL scheme is AWS.
 #[pyfunction]
-#[pyo3(signature = (url, *, config=None, **kwargs))]
+#[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
 pub fn new_store(
     py: Python,
     url: PyUrl,
     config: Option<Bound<PyAny>>,
+    client_options: Option<PyClientOptions>,
+    retry_config: Option<PyRetryConfig>,
     kwargs: Option<Bound<PyAny>>,
 ) -> PyObjectStoreResult<PyObject> {
     let url = url.into_inner();
@@ -33,8 +36,8 @@ pub fn new_store(
                 &PyType::new::<PyS3Store>(py),
                 url.as_str(),
                 config.map(|x| x.extract()).transpose()?,
-                None,
-                None,
+                client_options,
+                retry_config,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
@@ -44,8 +47,8 @@ pub fn new_store(
                 &PyType::new::<PyGCSStore>(py),
                 url.as_str(),
                 config.map(|x| x.extract()).transpose()?,
-                None,
-                None,
+                client_options,
+                retry_config,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
@@ -55,16 +58,20 @@ pub fn new_store(
                 &PyType::new::<PyAzureStore>(py),
                 url.as_str(),
                 config.map(|x| x.extract()).transpose()?,
-                None,
-                None,
+                client_options,
+                retry_config,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
         }
         ObjectStoreScheme::Http => {
             raise_if_config_passed(config, kwargs, "http")?;
-            let store =
-                PyHttpStore::from_url(&PyType::new::<PyHttpStore>(py), url.as_str(), None, None)?;
+            let store = PyHttpStore::from_url(
+                &PyType::new::<PyHttpStore>(py),
+                url.as_str(),
+                client_options,
+                retry_config,
+            )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
         }
         ObjectStoreScheme::Local => {
