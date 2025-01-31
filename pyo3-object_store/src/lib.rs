@@ -4,6 +4,7 @@
 mod api;
 mod aws;
 mod azure;
+mod base;
 mod client;
 mod config;
 pub(crate) mod error;
@@ -18,6 +19,7 @@ mod store;
 pub use api::{register_exceptions_module, register_store_module};
 pub use aws::PyS3Store;
 pub use azure::PyAzureStore;
+pub use base::PyBaseObjectStore;
 pub use client::{PyClientConfigKey, PyClientOptions};
 pub use error::{PyObjectStoreError, PyObjectStoreResult};
 pub use gcp::PyGCSStore;
