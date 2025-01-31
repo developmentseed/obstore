@@ -12,9 +12,10 @@ use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
 use crate::retry::PyRetryConfig;
+use crate::PyBaseObjectStore;
 
 /// A Python-facing wrapper around an [`AmazonS3`].
-#[pyclass(name = "S3Store", frozen)]
+#[pyclass(name = "S3Store", frozen, extends=PyBaseObjectStore)]
 pub struct PyS3Store(Arc<AmazonS3>);
 
 impl AsRef<Arc<AmazonS3>> for PyS3Store {
@@ -41,7 +42,7 @@ impl PyS3Store {
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
+    ) -> PyObjectStoreResult<(Self, PyBaseObjectStore)> {
         let mut builder = AmazonS3Builder::from_env();
         if let Some(bucket) = bucket {
             builder = builder.with_bucket_name(bucket);
@@ -55,7 +56,7 @@ impl PyS3Store {
         if let Some(retry_config) = retry_config {
             builder = builder.with_retry(retry_config.into())
         }
-        Ok(Self(Arc::new(builder.build()?)))
+        Ok((Self(Arc::new(builder.build()?)), PyBaseObjectStore {}))
     }
 
     // Create from an existing boto3.Session or botocore.session.Session object
@@ -71,7 +72,7 @@ impl PyS3Store {
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
+    ) -> PyObjectStoreResult<(Self, PyBaseObjectStore)> {
         // boto3.Session has a region_name attribute, but botocore.session.Session does not.
         let region = if let Ok(region) = session.getattr(intern!(py, "region_name")) {
             region.extract::<Option<String>>()?
@@ -118,7 +119,7 @@ impl PyS3Store {
             builder = builder.with_retry(retry_config.into())
         }
 
-        Ok(Self(Arc::new(builder.build()?)))
+        Ok((Self(Arc::new(builder.build()?)), PyBaseObjectStore {}))
     }
 
     #[classmethod]
@@ -130,7 +131,7 @@ impl PyS3Store {
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
+    ) -> PyObjectStoreResult<(Self, PyBaseObjectStore)> {
         let mut builder = AmazonS3Builder::from_env().with_url(url);
         if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
             builder = config_kwargs.apply_config(builder);
@@ -141,7 +142,7 @@ impl PyS3Store {
         if let Some(retry_config) = retry_config {
             builder = builder.with_retry(retry_config.into())
         }
-        Ok(Self(Arc::new(builder.build()?)))
+        Ok((Self(Arc::new(builder.build()?)), PyBaseObjectStore {}))
     }
 
     fn __repr__(&self) -> String {
