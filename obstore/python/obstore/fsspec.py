@@ -1,9 +1,8 @@
 """Integration with the [fsspec] library.
 
-This integration is designed for compatibility and may not provide the same performance
-as other obstore APIs.
-
 [fsspec]: https://github.com/fsspec/filesystem_spec
+
+The fsspec integration is **best effort** and not the primary API of `obstore`. This integration may not be as stable and may not provide the same performance as the rest of the library. Changes may be made even in patch releases to align better with fsspec expectations. If you find any bugs, please [file an issue](https://github.com/developmentseed/obstore/issues/new/choose).
 
 The underlying `object_store` Rust crate [cautions](https://docs.rs/object_store/latest/object_store/#why-not-a-filesystem-interface) against relying too strongly on stateful filesystem representations of object stores:
 
