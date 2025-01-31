@@ -114,31 +114,8 @@ impl PyS3Store {
 
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn new_py(
-        bucket: String,
-        prefix: Option<PyPath>,
-        config: Option<PyAmazonS3Config>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
-        Self::new(
-            AmazonS3Builder::new(),
-            Some(bucket),
-            prefix,
-            config,
-            client_options,
-            retry_config,
-            kwargs,
-        )
-    }
-
-    // Create from env variables
-    #[classmethod]
     #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
-    fn from_env(
-        _cls: &Bound<PyType>,
+    fn new_py(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
@@ -160,12 +137,12 @@ impl PyS3Store {
     // Create from an existing boto3.Session or botocore.session.Session object
     // https://stackoverflow.com/a/36291428
     #[classmethod]
-    #[pyo3(signature = (session, bucket, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (session, bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
     fn from_session(
         _cls: &Bound<PyType>,
         py: Python,
         session: &Bound<PyAny>,
-        bucket: String,
+        bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
@@ -192,7 +169,13 @@ impl PyS3Store {
             .getattr(intern!(py, "token"))?
             .extract::<Option<String>>()?;
 
-        let mut builder = AmazonS3Builder::new().with_bucket_name(bucket.clone());
+        // We read env variables because even though boto3.Session reads env variables itself,
+        // there may be more variables set than just authentication. Regardless, any variables set
+        // by the environment will be overwritten below if they exist/were passed in.
+        let mut builder = AmazonS3Builder::from_env();
+        if let Some(bucket) = bucket.clone() {
+            builder = builder.with_bucket_name(bucket);
+        }
         if let Some(region) = region {
             builder = builder.with_region(region);
         }
@@ -207,7 +190,7 @@ impl PyS3Store {
         }
         Self::new(
             builder,
-            Some(bucket),
+            bucket,
             prefix,
             config,
             client_options,

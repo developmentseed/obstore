@@ -260,11 +260,26 @@ class AzureConfig(TypedDict, total=False):
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
 
 class AzureStore:
-    """Configure a connection to Microsoft Azure Blob Storage container using the specified credentials."""
+    """Interface to a Microsoft Azure Blob Storage container.
+
+    All constructors will check for environment variables. All environment variables
+    starting with `AZURE_` will be evaluated. Names must match keys from
+    [`AzureConfig`][obstore.store.AzureConfig]. Only upper-case environment variables
+    are accepted.
+
+    Some examples of variables extracted from environment:
+
+    - `AZURE_STORAGE_ACCOUNT_NAME`: storage account name
+    - `AZURE_STORAGE_ACCOUNT_KEY`: storage account master key
+    - `AZURE_STORAGE_ACCESS_KEY`: alias for `AZURE_STORAGE_ACCOUNT_KEY`
+    - `AZURE_STORAGE_CLIENT_ID` -> client id for service principal authorization
+    - `AZURE_STORAGE_CLIENT_SECRET` -> client secret for service principal authorization
+    - `AZURE_STORAGE_TENANT_ID` -> tenant id used in oauth flows
+    """
 
     def __init__(
         self,
-        container: str,
+        container: str | None = None,
         *,
         config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
@@ -274,40 +289,7 @@ class AzureStore:
         """Construct a new AzureStore.
 
         Args:
-            container: _description_
-
-        Keyword Args:
-            config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-
-        Returns:
-            AzureStore
-        """
-
-    @classmethod
-    def from_env(
-        cls,
-        container: str,
-        *,
-        config: AzureConfig | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[AzureConfig],
-    ) -> AzureStore:
-        """Construct a new AzureStore with values pre-populated from environment variables.
-
-        Variables extracted from environment:
-
-        - `AZURE_STORAGE_ACCOUNT_NAME`: storage account name
-        - `AZURE_STORAGE_ACCOUNT_KEY`: storage account master key
-        - `AZURE_STORAGE_ACCESS_KEY`: alias for `AZURE_STORAGE_ACCOUNT_KEY`
-        - `AZURE_STORAGE_CLIENT_ID` -> client id for service principal authorization
-        - `AZURE_STORAGE_CLIENT_SECRET` -> client secret for service principal authorization
-        - `AZURE_STORAGE_TENANT_ID` -> tenant id used in oauth flows
-
-        Args:
-            container: _description_
+            container: the name of the container.
 
         Keyword Args:
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.

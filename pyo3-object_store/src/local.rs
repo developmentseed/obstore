@@ -30,7 +30,7 @@ impl PyLocalStore {
 #[pymethods]
 impl PyLocalStore {
     #[new]
-    #[pyo3(signature = (prefix = None, *, automatic_cleanup=false, mkdir=false))]
+    #[pyo3(signature = (prefix=None, *, automatic_cleanup=false, mkdir=false))]
     fn py_new(
         prefix: Option<std::path::PathBuf>,
         automatic_cleanup: bool,
