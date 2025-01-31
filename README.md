@@ -11,7 +11,7 @@
 [pypi-img]: https://img.shields.io/pypi/dm/obstore
 [pypi-link]: https://pypi.org/project/obstore/
 
-The simplest, highest-throughput interface to Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2. [^1]
+The simplest, highest-throughput [^1] interface to Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
 
 - Sync and async API with **full type hinting**.
 - **Streaming downloads** with configurable chunking.
