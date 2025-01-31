@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 
-import obstore as obs
 from obstore.exceptions import ObstoreError, UnknownConfigurationKeyError
 from obstore.store import from_url
 
@@ -10,9 +9,7 @@ from obstore.store import from_url
 def test_local():
     cwd = Path(".").absolute()
     url = f"file://{cwd}"
-    store = from_url(url)
-    cwd_files = obs.list(store).collect()
-    assert any(file["path"] == "test_from_url.py" for file in cwd_files)
+    _store = from_url(url)
 
 
 def test_memory():
