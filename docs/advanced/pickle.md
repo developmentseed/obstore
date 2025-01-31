@@ -13,4 +13,3 @@ Obstore expects to support some sort of middleware in the future, such as for re
 ## MemoryStore not implemented
 
 Pickling isn't supported for [`MemoryStore`][obstore.store.MemoryStore] because we don't have a way to access the raw state of the store.
-
