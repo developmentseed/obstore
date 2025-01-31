@@ -21,19 +21,14 @@ class HTTPStore:
     ```
     """
 
-    @classmethod
-    def from_url(
-        cls,
+    def __init__(
+        self,
         url: str,
         *,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-    ) -> HTTPStore:
+    ) -> None:
         """Construct a new HTTPStore from a URL
-
-        !!! note
-            Note that in contrast to the other stores, `from_url` **will** use the full
-            URL provided here as a prefix for further operations.
 
         Args:
             url: The base URL to use for the store.
@@ -46,4 +41,18 @@ class HTTPStore:
             HTTPStore
         """
 
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+    ) -> HTTPStore:
+        """Construct a new HTTPStore from a URL
+
+        This is an alias of [`HTTPStore.__init__`][obstore.store.HTTPStore.__init__].
+        """
+
+    def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...

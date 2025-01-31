@@ -3,7 +3,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
-use object_store::path::Path;
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -21,7 +20,11 @@ use crate::PyUrl;
 #[derive(Debug, Clone)]
 struct S3Config {
     bucket: Option<String>,
-    prefix: Option<Path>,
+    // Note: we need to persist the URL passed in via from_url because object_store defers the URL
+    // parsing until its `build` method, and then we have no way to persist the state of its parsed
+    // components.
+    url: Option<PyUrl>,
+    prefix: Option<PyPath>,
     config: Option<PyAmazonS3Config>,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
@@ -34,7 +37,10 @@ impl S3Config {
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
-            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref())?;
+            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
+        }
+        if let Some(url) = &self.url {
+            kwargs.set_item(intern!(py, "url"), url.as_ref().as_str())?;
         }
         if let Some(config) = &self.config {
             kwargs.set_item(intern!(py, "config"), config.clone())?;
@@ -68,6 +74,7 @@ impl PyS3Store {
     fn new(
         mut builder: AmazonS3Builder,
         bucket: Option<String>,
+        url: Option<PyUrl>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
@@ -76,6 +83,9 @@ impl PyS3Store {
     ) -> PyObjectStoreResult<Self> {
         if let Some(bucket) = bucket.clone() {
             builder = builder.with_bucket_name(bucket);
+        }
+        if let Some(url) = url.clone() {
+            builder = builder.with_url(url);
         }
         let combined_config = combine_config_kwargs(config, kwargs)?;
         if let Some(config_kwargs) = combined_config.clone() {
@@ -87,11 +97,11 @@ impl PyS3Store {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        let prefix = prefix.map(|x| x.into_inner());
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: S3Config {
                 prefix,
+                url,
                 bucket,
                 config: combined_config,
                 client_options,
@@ -110,18 +120,21 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, url=None, **kwargs))]
     fn new_py(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        // Note: URL is undocumented in the type hint as it's only used for pickle support.
+        url: Option<PyUrl>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         Self::new(
             AmazonS3Builder::from_env(),
             bucket,
+            url,
             prefix,
             config,
             client_options,
@@ -187,6 +200,7 @@ impl PyS3Store {
         Self::new(
             builder,
             bucket,
+            None,
             prefix,
             config,
             client_options,
@@ -215,8 +229,9 @@ impl PyS3Store {
             None
         };
         Self::new(
-            AmazonS3Builder::from_env().with_url(url),
+            AmazonS3Builder::from_env(),
             None,
+            Some(url),
             prefix,
             config,
             client_options,
@@ -230,8 +245,21 @@ impl PyS3Store {
     }
 
     fn __repr__(&self) -> String {
-        let repr = self.store.to_string();
-        repr.replacen("AmazonS3", "S3Store", 1)
+        if let Some(bucket) = &self.config.bucket {
+            if let Some(prefix) = &self.config.prefix {
+                format!(
+                    "S3Store(bucket=\"{}\", prefix=\"{}\")",
+                    bucket,
+                    prefix.as_ref()
+                )
+            } else {
+                format!("S3Store(bucket=\"{}\")", bucket)
+            }
+        } else if let Some(url) = &self.config.url {
+            format!("S3Store(url=\"{}\")", url.as_ref())
+        } else {
+            "S3Store".to_string()
+        }
     }
 }
 

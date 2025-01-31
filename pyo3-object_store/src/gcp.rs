@@ -3,7 +3,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::gcp::{GoogleCloudStorage, GoogleCloudStorageBuilder, GoogleConfigKey};
-use object_store::path::Path;
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -19,7 +18,11 @@ use crate::{MaybePrefixedStore, PyUrl};
 
 struct GCSConfig {
     bucket: Option<String>,
-    prefix: Option<Path>,
+    // Note: we need to persist the URL passed in via from_url because object_store defers the URL
+    // parsing until its `build` method, and then we have no way to persist the state of its parsed
+    // components.
+    url: Option<PyUrl>,
+    prefix: Option<PyPath>,
     config: Option<PyGoogleConfig>,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
@@ -32,7 +35,10 @@ impl GCSConfig {
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
-            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref())?;
+            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
+        }
+        if let Some(url) = &self.url {
+            kwargs.set_item(intern!(py, "url"), url.as_ref().as_str())?;
         }
         if let Some(config) = &self.config {
             kwargs.set_item(intern!(py, "config"), config.clone())?;
@@ -73,18 +79,23 @@ impl PyGCSStore {
 impl PyGCSStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, url=None, **kwargs))]
     fn new(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyGoogleConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        // Note: URL is undocumented in the type hint as it's only used for pickle support.
+        url: Option<PyUrl>,
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = GoogleCloudStorageBuilder::from_env();
         if let Some(bucket) = bucket.clone() {
             builder = builder.with_bucket_name(bucket);
+        }
+        if let Some(url) = url.clone() {
+            builder = builder.with_url(url);
         }
         let combined_config = combine_config_kwargs(config, kwargs)?;
         if let Some(config_kwargs) = combined_config.clone() {
@@ -96,11 +107,11 @@ impl PyGCSStore {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        let prefix = prefix.map(|x| x.into_inner());
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: GCSConfig {
                 prefix,
+                url,
                 bucket,
                 config: combined_config,
                 client_options,
@@ -128,7 +139,7 @@ impl PyGCSStore {
         } else {
             None
         };
-        let mut builder = GoogleCloudStorageBuilder::from_env().with_url(url);
+        let mut builder = GoogleCloudStorageBuilder::from_env().with_url(url.clone());
         let combined_config = combine_config_kwargs(config, kwargs)?;
         if let Some(config_kwargs) = combined_config.clone() {
             builder = config_kwargs.apply_config(builder);
@@ -143,6 +154,7 @@ impl PyGCSStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: GCSConfig {
                 prefix,
+                url: Some(url),
                 bucket: None,
                 config: combined_config,
                 client_options,
@@ -156,8 +168,21 @@ impl PyGCSStore {
     }
 
     fn __repr__(&self) -> String {
-        let repr = self.store.to_string();
-        repr.replacen("GoogleCloudStorage", "GCSStore", 1)
+        if let Some(bucket) = &self.config.bucket {
+            if let Some(prefix) = &self.config.prefix {
+                format!(
+                    "GCSStore(bucket=\"{}\", prefix=\"{}\")",
+                    bucket,
+                    prefix.as_ref()
+                )
+            } else {
+                format!("GCSStore(bucket=\"{}\")", bucket)
+            }
+        } else if let Some(url) = &self.config.url {
+            format!("GCSStore(url=\"{}\")", url.as_ref())
+        } else {
+            "GCSStore".to_string()
+        }
     }
 }
 

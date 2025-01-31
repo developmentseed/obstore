@@ -3,7 +3,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::azure::{AzureConfigKey, MicrosoftAzure, MicrosoftAzureBuilder};
-use object_store::path::Path;
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -19,7 +18,11 @@ use crate::{MaybePrefixedStore, PyUrl};
 
 struct AzureConfig {
     container: Option<String>,
-    prefix: Option<Path>,
+    // Note: we need to persist the URL passed in via from_url because object_store defers the URL
+    // parsing until its `build` method, and then we have no way to persist the state of its parsed
+    // components.
+    url: Option<PyUrl>,
+    prefix: Option<PyPath>,
     config: Option<PyAzureConfig>,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
@@ -32,7 +35,10 @@ impl AzureConfig {
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
-            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref())?;
+            kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
+        }
+        if let Some(url) = &self.url {
+            kwargs.set_item(intern!(py, "url"), url.as_ref().as_str())?;
         }
         if let Some(config) = &self.config {
             kwargs.set_item(intern!(py, "config"), config.clone())?;
@@ -73,18 +79,23 @@ impl PyAzureStore {
 impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, url=None, **kwargs))]
     fn new(
         container: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        // Note: URL is undocumented in the type hint as it's only used for pickle support.
+        url: Option<PyUrl>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
         if let Some(container) = container.clone() {
             builder = builder.with_container_name(container);
+        }
+        if let Some(url) = url.clone() {
+            builder = builder.with_url(url);
         }
         let combined_config = combine_config_kwargs(config, kwargs)?;
         if let Some(config_kwargs) = combined_config.clone() {
@@ -96,11 +107,11 @@ impl PyAzureStore {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        let prefix = prefix.map(|x| x.into_inner());
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: AzureConfig {
                 prefix,
+                url,
                 container,
                 config: combined_config,
                 client_options,
@@ -129,7 +140,7 @@ impl PyAzureStore {
             None
         };
 
-        let mut builder = MicrosoftAzureBuilder::from_env().with_url(url);
+        let mut builder = MicrosoftAzureBuilder::from_env().with_url(url.clone());
         let combined_config = combine_config_kwargs(config, kwargs)?;
         if let Some(config_kwargs) = combined_config.clone() {
             builder = config_kwargs.apply_config(builder);
@@ -144,6 +155,7 @@ impl PyAzureStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: AzureConfig {
                 prefix,
+                url: Some(url),
                 container: None,
                 config: combined_config,
                 client_options,
@@ -158,8 +170,21 @@ impl PyAzureStore {
     }
 
     fn __repr__(&self) -> String {
-        let repr = self.store.to_string();
-        repr.replacen("MicrosoftAzure", "AzureStore", 1)
+        if let Some(container) = &self.config.container {
+            if let Some(prefix) = &self.config.prefix {
+                format!(
+                    "AzureStore(container=\"{}\", prefix=\"{}\")",
+                    container,
+                    prefix.as_ref()
+                )
+            } else {
+                format!("AzureStore(container=\"{}\")", container)
+            }
+        } else if let Some(url) = &self.config.url {
+            format!("AzureStore(url=\"{}\")", url.as_ref())
+        } else {
+            "AzureStore".to_string()
+        }
     }
 }
 

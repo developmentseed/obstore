@@ -5,6 +5,7 @@ use pyo3::FromPyObject;
 use url::Url;
 
 /// A wrapper around [`url::Url`] that implements [`FromPyObject`].
+#[derive(Debug, Clone)]
 pub struct PyUrl(Url);
 
 impl PyUrl {
