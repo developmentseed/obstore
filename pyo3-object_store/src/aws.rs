@@ -290,8 +290,16 @@ impl<'py> IntoPyObject<'py> for PyAmazonS3ConfigKey {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, FromPyObject, IntoPyObject)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
+
+// Note: we manually impl FromPyObject instead of deriving it so that we can raise an
+// UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
+impl<'py> FromPyObject<'py> for PyAmazonS3Config {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(Self(ob.extract()?))
+    }
+}
 
 impl PyAmazonS3Config {
     fn apply_config(self, mut builder: AmazonS3Builder) -> AmazonS3Builder {

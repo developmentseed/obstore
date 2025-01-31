@@ -215,8 +215,16 @@ impl<'py> IntoPyObject<'py> for PyAzureConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, FromPyObject, IntoPyObject)]
+#[derive(Clone, Debug, PartialEq, Eq, IntoPyObject)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
+
+// Note: we manually impl FromPyObject instead of deriving it so that we can raise an
+// UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
+impl<'py> FromPyObject<'py> for PyAzureConfig {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(Self(ob.extract()?))
+    }
+}
 
 impl PyAzureConfig {
     fn apply_config(self, mut builder: MicrosoftAzureBuilder) -> MicrosoftAzureBuilder {

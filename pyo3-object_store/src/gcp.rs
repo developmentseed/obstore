@@ -213,8 +213,16 @@ impl<'py> IntoPyObject<'py> for PyGoogleConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, FromPyObject, IntoPyObject)]
+#[derive(Clone, Debug, PartialEq, Eq, IntoPyObject)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
+
+// Note: we manually impl FromPyObject instead of deriving it so that we can raise an
+// UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
+impl<'py> FromPyObject<'py> for PyGoogleConfig {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        Ok(Self(ob.extract()?))
+    }
+}
 
 impl PyGoogleConfig {
     fn apply_config(self, mut builder: GoogleCloudStorageBuilder) -> GoogleCloudStorageBuilder {
