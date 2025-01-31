@@ -16,10 +16,11 @@ use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
 use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
+use crate::PyUrl;
 
 struct S3Config {
     prefix: Option<Path>,
-    bucket: String,
+    bucket: Option<String>,
     config: Option<PyAmazonS3Config>,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
@@ -27,7 +28,8 @@ struct S3Config {
 
 impl S3Config {
     fn pickle_get_new_args<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
-        let args = PyTuple::new(py, vec![PyString::new(py, &self.bucket)])?.into_py_any(py)?;
+        let args =
+            PyTuple::new(py, vec![self.bucket.clone().into_pyobject(py)?])?.into_py_any(py)?;
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
@@ -71,7 +73,7 @@ impl PyS3Store {
         retry_config: Option<PyRetryConfig>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
-        if let Some(bucket) = bucket {
+        if let Some(bucket) = bucket.clone() {
             builder = builder.with_bucket_name(bucket);
         }
         let combined_config = combine_config_kwargs(config, kwargs)?;
@@ -85,9 +87,6 @@ impl PyS3Store {
             builder = builder.with_retry(retry_config.into())
         }
         let prefix = prefix.map(|x| x.into_inner());
-        let bucket = builder
-            .get_config_value(&AmazonS3ConfigKey::Bucket)
-            .ok_or(ObstoreError::new_err("Bucket name not found"))?;
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: S3Config {
@@ -199,30 +198,35 @@ impl PyS3Store {
         )
     }
 
-    // #[classmethod]
-    // #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
-    // fn from_url(
-    //     _cls: &Bound<PyType>,
-    //     url: &str,
-    //     config: Option<PyAmazonS3Config>,
-    //     client_options: Option<PyClientOptions>,
-    //     retry_config: Option<PyRetryConfig>,
-    //     kwargs: Option<PyAmazonS3Config>,
-    // ) -> PyObjectStoreResult<Self> {
-    //     let (_, prefix) = ObjectStoreScheme::parse(url)?;
-
-    //     let mut builder = AmazonS3Builder::from_env().with_url(url);
-    //     if let Some(config_kwargs) = combine_config_kwargs(config, kwargs)? {
-    //         builder = config_kwargs.apply_config(builder);
-    //     }
-    //     if let Some(client_options) = client_options {
-    //         builder = builder.with_client_options(client_options.into())
-    //     }
-    //     if let Some(retry_config) = retry_config {
-    //         builder = builder.with_retry(retry_config.into())
-    //     }
-    //     Ok(Self(Arc::new(builder.build()?)))
-    // }
+    #[classmethod]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    fn from_url(
+        _cls: &Bound<PyType>,
+        url: PyUrl,
+        config: Option<PyAmazonS3Config>,
+        client_options: Option<PyClientOptions>,
+        retry_config: Option<PyRetryConfig>,
+        kwargs: Option<PyAmazonS3Config>,
+    ) -> PyObjectStoreResult<Self> {
+        // We manually parse the URL to find the prefix because `with_url` does not apply the
+        // prefix.
+        let (_, prefix) =
+            ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
+        let prefix = if prefix.parts().count() == 0 {
+            Some(prefix.into())
+        } else {
+            None
+        };
+        Self::new(
+            AmazonS3Builder::from_env().with_url(url),
+            None,
+            prefix,
+            config,
+            client_options,
+            retry_config,
+            kwargs,
+        )
+    }
 
     fn __repr__(&self) -> String {
         let repr = self.store.to_string();

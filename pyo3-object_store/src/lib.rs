@@ -15,6 +15,7 @@ mod path;
 mod prefix;
 mod retry;
 mod store;
+mod url;
 
 pub use api::{register_exceptions_module, register_store_module};
 pub use aws::PyS3Store;
@@ -27,3 +28,4 @@ pub use local::PyLocalStore;
 pub use memory::PyMemoryStore;
 pub use prefix::MaybePrefixedStore;
 pub use store::PyObjectStore;
+pub use url::PyUrl;

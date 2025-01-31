@@ -21,3 +21,9 @@ impl From<PyPath> for Path {
         value.0
     }
 }
+
+impl From<Path> for PyPath {
+    fn from(value: Path) -> Self {
+        Self(value)
+    }
+}

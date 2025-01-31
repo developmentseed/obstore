@@ -533,6 +533,7 @@ class S3Store:
             bucket: The AWS bucket to use.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
@@ -576,6 +577,7 @@ class S3Store:
             bucket: The AWS bucket to use.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: AWS Configuration. Values in this config will override values inferred from the session. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
