@@ -122,7 +122,7 @@ impl PyGCSStore {
         // prefix.
         let (_, prefix) =
             ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
-        let prefix = if prefix.parts().count() == 0 {
+        let prefix = if prefix.parts().count() != 0 {
             Some(prefix.into())
         } else {
             None

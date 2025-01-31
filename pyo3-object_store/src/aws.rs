@@ -18,6 +18,7 @@ use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
 use crate::PyUrl;
 
+#[derive(Debug, Clone)]
 struct S3Config {
     bucket: Option<String>,
     prefix: Option<Path>,
@@ -208,7 +209,7 @@ impl PyS3Store {
         // prefix.
         let (_, prefix) =
             ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
-        let prefix = if prefix.parts().count() == 0 {
+        let prefix = if prefix.parts().count() != 0 {
             Some(prefix.into())
         } else {
             None
