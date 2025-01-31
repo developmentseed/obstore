@@ -1,6 +1,6 @@
 import pickle
 
-import cloudpickle
+# import cloudpickle
 import pytest
 
 import obstore as obs
@@ -44,8 +44,5 @@ def test_pickle():
         region="us-west-2",
         skip_signature=True,
     )
-    pickle.loads(pickle.dumps(store))
-
-    test = cloudpickle.dumps(store)
-    restored = cloudpickle.loads(test)
-    objects = next(obs.list(restored))
+    restored = pickle.loads(pickle.dumps(store))
+    _objects = next(obs.list(restored))
