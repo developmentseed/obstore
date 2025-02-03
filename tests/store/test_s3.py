@@ -1,6 +1,5 @@
 import pickle
 
-# import cloudpickle
 import pytest
 
 import obstore as obs
