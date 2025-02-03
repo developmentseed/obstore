@@ -10,12 +10,11 @@ use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 
 /// 10MB default chunk size
 const DEFAULT_BYTES_CHUNK_SIZE: usize = 10 * 1024 * 1024;

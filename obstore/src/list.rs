@@ -15,10 +15,8 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_arrow::PyRecordBatch;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
-
-use crate::runtime::get_runtime;
 
 pub(crate) struct PyObjectMeta(ObjectMeta);
 

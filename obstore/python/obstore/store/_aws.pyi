@@ -543,6 +543,17 @@ class S3Store:
         """
 
     @classmethod
+    def from_aws_defaults(
+        cls,
+        bucket: str | None = None,
+        *,
+        prefix: str | None = None,
+        config: S3Config | None = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+        **kwargs: Unpack[S3Config],
+    ) -> S3Store: ...
+    @classmethod
     def from_session(
         cls,
         session: boto3.session.Session | botocore.session.Session,

@@ -12,6 +12,7 @@ use pyo3::{intern, IntoPyObjectExt};
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, PyObjectStoreError, PyObjectStoreResult};
+use crate::get_runtime;
 use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
@@ -136,6 +137,35 @@ impl PyS3Store {
             AmazonS3Builder::from_env(),
             bucket,
             url,
+            prefix,
+            config,
+            client_options,
+            retry_config,
+            kwargs,
+        )
+    }
+
+    #[cfg(feature = "aws-config")]
+    #[classmethod]
+    #[pyo3(signature = ( bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[allow(clippy::too_many_arguments)]
+    fn from_aws_defaults(
+        _cls: &Bound<PyType>,
+        py: Python,
+        bucket: Option<String>,
+        prefix: Option<PyPath>,
+        config: Option<PyAmazonS3Config>,
+        client_options: Option<PyClientOptions>,
+        retry_config: Option<PyRetryConfig>,
+        kwargs: Option<PyAmazonS3Config>,
+    ) -> PyObjectStoreResult<Self> {
+        let runtime = get_runtime(py)?;
+        let shared_config = py.allow_threads(|| runtime.block_on(aws_config::load_from_env()));
+        let builder = super::shared_config::from_sdk_config(shared_config);
+        Self::new(
+            builder,
+            bucket,
+            None,
             prefix,
             config,
             client_options,

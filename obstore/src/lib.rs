@@ -11,7 +11,6 @@ mod list;
 mod path;
 mod put;
 mod rename;
-mod runtime;
 mod signer;
 mod tags;
 
