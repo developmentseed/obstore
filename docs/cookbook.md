@@ -237,7 +237,7 @@ obs.put(store2, path2, Path("temporary_file"))
 It's easy to **stream** a download from one store directly as the upload to another. Only the given
 
 !!! note
-Using the async API is currently required to use streaming copies.
+    Using the async API is currently required to use streaming copies.
 
 ```py
 import obstore as obs
@@ -274,6 +274,6 @@ await obs.put_async(
 This will start up to 12 concurrent uploads, each with around 5MB chunks, giving a total memory usage of up to _roughly_ 60MB for this copy.
 
 !!! note
-You may need to increase the download timeout for large source files. The timeout defaults to 30 seconds, which may not be long enough to upload the file to the destination.
+    You may need to increase the download timeout for large source files. The timeout defaults to 30 seconds, which may not be long enough to upload the file to the destination.
 
     You may set the [`timeout` parameter][obstore.store.ClientConfig] in the `client_options` passed when creating the store.
