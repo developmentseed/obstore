@@ -7,9 +7,11 @@ use pyo3::{create_exception, DowncastError};
 use thiserror::Error;
 
 // Base exception
+// Note that this is named `BaseError` instead of `ObstoreError` to not leak the name "obstore" to
+// other Rust-Python libraries using pyo3-object_store.
 create_exception!(
     pyo3_object_store,
-    ObstoreError,
+    BaseError,
     pyo3::exceptions::PyException,
     "The base Python-facing exception from which all other errors subclass."
 );
@@ -18,67 +20,67 @@ create_exception!(
 create_exception!(
     pyo3_object_store,
     GenericError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::Generic]."
 );
 create_exception!(
     pyo3_object_store,
     NotFoundError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::NotFound]."
 );
 create_exception!(
     pyo3_object_store,
     InvalidPathError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::InvalidPath]."
 );
 create_exception!(
     pyo3_object_store,
     JoinError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::JoinError]."
 );
 create_exception!(
     pyo3_object_store,
     NotSupportedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::NotSupported]."
 );
 create_exception!(
     pyo3_object_store,
     AlreadyExistsError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::AlreadyExists]."
 );
 create_exception!(
     pyo3_object_store,
     PreconditionError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::Precondition]."
 );
 create_exception!(
     pyo3_object_store,
     NotModifiedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::NotModified]."
 );
 create_exception!(
     pyo3_object_store,
     PermissionDeniedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::PermissionDenied]."
 );
 create_exception!(
     pyo3_object_store,
     UnauthenticatedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::Unauthenticated]."
 );
 create_exception!(
     pyo3_object_store,
     UnknownConfigurationKeyError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::UnknownConfigurationKey]."
 );
 
