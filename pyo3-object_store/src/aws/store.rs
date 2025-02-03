@@ -71,6 +71,7 @@ impl AsRef<Arc<MaybePrefixedStore<AmazonS3>>> for PyS3Store {
 }
 
 impl PyS3Store {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         mut builder: AmazonS3Builder,
         bucket: Option<String>,
@@ -147,6 +148,7 @@ impl PyS3Store {
     // https://stackoverflow.com/a/36291428
     #[classmethod]
     #[pyo3(signature = (session, bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[allow(clippy::too_many_arguments)]
     fn from_session(
         _cls: &Bound<PyType>,
         py: Python,
