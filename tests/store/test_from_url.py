@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from obstore.exceptions import ObstoreError, UnknownConfigurationKeyError
+from obstore.exceptions import BaseError, UnknownConfigurationKeyError
 from obstore.store import from_url
 
 
@@ -16,7 +16,7 @@ def test_memory():
     url = "memory:///"
     _store = from_url(url)
 
-    with pytest.raises(ObstoreError):
+    with pytest.raises(BaseError):
         from_url(url, aws_access_key_id="test")
 
 
@@ -51,5 +51,5 @@ def test_http():
     url = "https://mydomain/path"
     from_url(url)
 
-    with pytest.raises(ObstoreError):
+    with pytest.raises(BaseError):
         from_url(url, aws_bucket="test")

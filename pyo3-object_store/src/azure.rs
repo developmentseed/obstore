@@ -11,7 +11,7 @@ use pyo3::{intern, IntoPyObjectExt};
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
-use crate::error::{ObstoreError, PyObjectStoreError, PyObjectStoreResult};
+use crate::error::{GenericError, PyObjectStoreError, PyObjectStoreResult};
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
@@ -238,7 +238,7 @@ impl PyAzureConfig {
         for (k, v) in other.0.into_iter() {
             let old_value = self.0.insert(k.clone(), v);
             if old_value.is_some() {
-                return Err(ObstoreError::new_err(format!(
+                return Err(GenericError::new_err(format!(
                     "Duplicate key {} between config and kwargs",
                     k.0.as_ref()
                 ))

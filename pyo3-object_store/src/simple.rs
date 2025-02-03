@@ -6,7 +6,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 
-use crate::error::ObstoreError;
+use crate::error::GenericError;
 use crate::retry::PyRetryConfig;
 use crate::url::PyUrl;
 use crate::{
@@ -100,7 +100,7 @@ pub fn from_url(
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
         }
         scheme => {
-            return Err(ObstoreError::new_err(format!("Unknown URL scheme {:?}", scheme,)).into());
+            return Err(GenericError::new_err(format!("Unknown URL scheme {:?}", scheme,)).into());
         }
     }
 }
@@ -111,7 +111,7 @@ fn raise_if_config_passed(
     scheme: &str,
 ) -> PyObjectStoreResult<()> {
     if config.is_some() || kwargs.is_some() {
-        return Err(ObstoreError::new_err(format!(
+        return Err(GenericError::new_err(format!(
             "Cannot pass config or keyword parameters for scheme {:?}",
             scheme,
         ))
