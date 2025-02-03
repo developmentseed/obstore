@@ -78,7 +78,7 @@ pub fn register_exceptions_module(
 
     let child_module = PyModule::new(parent_module.py(), "exceptions")?;
 
-    child_module.add("ObstoreError", py.get_type::<ObstoreError>())?;
+    child_module.add("BaseError", py.get_type::<BaseError>())?;
     child_module.add("GenericError", py.get_type::<GenericError>())?;
     child_module.add("NotFoundError", py.get_type::<NotFoundError>())?;
     child_module.add("InvalidPathError", py.get_type::<InvalidPathError>())?;
