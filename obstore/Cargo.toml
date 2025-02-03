@@ -30,7 +30,7 @@ pyo3-arrow = "0.6"
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
 pyo3-bytes = { path = "../pyo3-bytes" }
 pyo3-file = { workspace = true }
-pyo3-object_store = { path = "../pyo3-object_store" }
+pyo3-object_store = { path = "../pyo3-object_store", features = ["aws-config"] }
 tokio = { workspace = true, features = [
     "macros",
     "rt",
