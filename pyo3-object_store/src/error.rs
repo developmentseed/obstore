@@ -1,7 +1,7 @@
 //! Contains the [`PyObjectStoreError`], the error enum returned by all fallible functions in this
 //! crate.
 
-use pyo3::exceptions::{PyFileNotFoundError, PyIOError, PyNotImplementedError, PyValueError};
+use pyo3::exceptions::{PyIOError, PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::{create_exception, DowncastError};
 use thiserror::Error;
@@ -111,7 +111,7 @@ impl From<PyObjectStoreError> for PyErr {
                     source: _,
                 } => GenericError::new_err(format!("{err:#?}")),
                 object_store::Error::NotFound { path: _, source: _ } => {
-                    PyFileNotFoundError::new_err(format!("{err:#?}"))
+                    NotFoundError::new_err(format!("{err:#?}"))
                 }
                 object_store::Error::InvalidPath { source: _ } => {
                     InvalidPathError::new_err(format!("{err:#?}"))
