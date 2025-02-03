@@ -3,6 +3,7 @@ from tempfile import TemporaryDirectory
 import pytest
 
 import obstore as obs
+from obstore.exceptions import NotFoundError
 from obstore.store import LocalStore, MemoryStore
 
 
@@ -50,7 +51,7 @@ def test_delete_one_local_fs():
         obs.delete(store, "file3.txt")
         assert len(obs.list(store).collect()) == 0
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(NotFoundError):
             obs.delete(store, "file1.txt")
 
 
@@ -68,7 +69,7 @@ def test_delete_many_local_fs():
             ["file1.txt", "file2.txt", "file3.txt"],
         )
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(NotFoundError):
             obs.delete(
                 store,
                 ["file1.txt", "file2.txt", "file3.txt"],
