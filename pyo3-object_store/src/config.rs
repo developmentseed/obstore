@@ -19,6 +19,12 @@ impl PyConfigValue {
     }
 }
 
+impl AsRef<str> for PyConfigValue {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl<'py> FromPyObject<'py> for PyConfigValue {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(val) = ob.extract::<bool>() {

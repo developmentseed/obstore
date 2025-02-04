@@ -18,25 +18,29 @@ use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
 
 struct GCSConfig {
-    bucket: Option<String>,
     prefix: Option<PyPath>,
-    config: Option<PyGoogleConfig>,
+    config: PyGoogleConfig,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
 }
 
 impl GCSConfig {
+    fn bucket(&self) -> &str {
+        self.config
+            .0
+            .get(&PyGoogleConfigKey(GoogleConfigKey::Bucket))
+            .expect("Bucket should always exist in the config")
+            .as_ref()
+    }
+
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args =
-            PyTuple::new(py, vec![self.bucket.clone().into_pyobject(py)?])?.into_py_any(py)?;
+        let args = PyTuple::empty(py).into_py_any(py)?;
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
             kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
         }
-        if let Some(config) = &self.config {
-            kwargs.set_item(intern!(py, "config"), config.clone())?;
-        }
+        kwargs.set_item(intern!(py, "config"), self.config.clone())?;
         if let Some(client_options) = &self.client_options {
             kwargs.set_item(intern!(py, "client_options"), client_options.clone())?;
         }
@@ -83,13 +87,14 @@ impl PyGCSStore {
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = GoogleCloudStorageBuilder::from_env();
+        let mut config = config.unwrap_or_default();
         if let Some(bucket) = bucket.clone() {
-            builder = builder.with_bucket_name(bucket);
+            // Note: we apply the bucket to the config, not directly to the builder, so they stay
+            // in sync.
+            config.insert_raising_if_exists(GoogleConfigKey::Bucket, bucket)?;
         }
-        let combined_config = combine_config_kwargs(config, kwargs)?;
-        if let Some(config_kwargs) = combined_config.clone() {
-            builder = config_kwargs.apply_config(builder);
-        }
+        let combined_config = combine_config_kwargs(Some(config), kwargs)?;
+        builder = combined_config.clone().apply_config(builder);
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
@@ -100,7 +105,6 @@ impl PyGCSStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: GCSConfig {
                 prefix,
-                bucket,
                 config: combined_config,
                 client_options,
                 retry_config,
@@ -130,9 +134,7 @@ impl PyGCSStore {
         let config = parse_url(config, url.as_ref())?;
         let mut builder = GoogleCloudStorageBuilder::from_env().with_url(url.clone());
         let combined_config = combine_config_kwargs(Some(config), kwargs)?;
-        if let Some(config_kwargs) = combined_config.clone() {
-            builder = config_kwargs.apply_config(builder);
-        }
+        builder = combined_config.clone().apply_config(builder);
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
@@ -143,7 +145,6 @@ impl PyGCSStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: GCSConfig {
                 prefix,
-                bucket: None,
                 config: combined_config,
                 client_options,
                 retry_config,
@@ -156,18 +157,15 @@ impl PyGCSStore {
     }
 
     fn __repr__(&self) -> String {
-        if let Some(bucket) = &self.config.bucket {
-            if let Some(prefix) = &self.config.prefix {
-                format!(
-                    "GCSStore(bucket=\"{}\", prefix=\"{}\")",
-                    bucket,
-                    prefix.as_ref()
-                )
-            } else {
-                format!("GCSStore(bucket=\"{}\")", bucket)
-            }
+        let bucket = self.config.bucket();
+        if let Some(prefix) = &self.config.prefix {
+            format!(
+                "GCSStore(bucket=\"{}\", prefix=\"{}\")",
+                bucket,
+                prefix.as_ref()
+            )
         } else {
-            "GCSStore".to_string()
+            format!("GCSStore(bucket=\"{}\")", bucket)
         }
     }
 }
@@ -231,18 +229,29 @@ impl PyGoogleConfig {
     }
 
     fn merge(mut self, other: PyGoogleConfig) -> PyObjectStoreResult<PyGoogleConfig> {
-        for (k, v) in other.0.into_iter() {
-            let old_value = self.0.insert(k.clone(), v);
-            if old_value.is_some() {
-                return Err(GenericError::new_err(format!(
-                    "Duplicate key {} between config and kwargs",
-                    k.0.as_ref()
-                ))
-                .into());
-            }
+        for (key, val) in other.0.into_iter() {
+            self.insert_raising_if_exists(key, val)?;
         }
 
         Ok(self)
+    }
+
+    fn insert_raising_if_exists(
+        &mut self,
+        key: impl Into<PyGoogleConfigKey>,
+        val: impl Into<String>,
+    ) -> PyObjectStoreResult<()> {
+        let key = key.into();
+        let old_value = self.0.insert(key.clone(), PyConfigValue::new(val.into()));
+        if old_value.is_some() {
+            return Err(GenericError::new_err(format!(
+                "Duplicate key {} between config and kwargs",
+                key.0.as_ref()
+            ))
+            .into());
+        }
+
+        Ok(())
     }
 
     /// Insert a key only if it does not already exist.
@@ -257,11 +266,11 @@ impl PyGoogleConfig {
 fn combine_config_kwargs(
     config: Option<PyGoogleConfig>,
     kwargs: Option<PyGoogleConfig>,
-) -> PyObjectStoreResult<Option<PyGoogleConfig>> {
+) -> PyObjectStoreResult<PyGoogleConfig> {
     match (config, kwargs) {
-        (None, None) => Ok(None),
-        (Some(x), None) | (None, Some(x)) => Ok(Some(x)),
-        (Some(config), Some(kwargs)) => Ok(Some(config.merge(kwargs)?)),
+        (None, None) => Ok(Default::default()),
+        (Some(x), None) | (None, Some(x)) => Ok(x),
+        (Some(config), Some(kwargs)) => Ok(config.merge(kwargs)?),
     }
 }
 
