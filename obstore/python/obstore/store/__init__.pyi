@@ -83,6 +83,10 @@ def from_url(
     - `amazonaws.com` -> [`S3Store`][obstore.store.S3Store]
     - `r2.cloudflarestorage.com` -> [`S3Store`][obstore.store.S3Store]
 
+    !!! note
+        For best static typing, use the constructors on individual store classes
+        directly.
+
     Args:
         url: well-known storage URL.
 
