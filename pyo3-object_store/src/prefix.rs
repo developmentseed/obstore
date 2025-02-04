@@ -1,11 +1,13 @@
 //! An object store wrapper handling a constant path prefix
-//! This is vendored from https://github.com/apache/arrow-rs/blob/3bf29a2c7474e59722d885cd11fafd0dca13a28e/object_store/src/prefix.rs#L4 so that we can access the raw `T` underlying the MaybePrefixedStore.
+//! This was originally vendored from https://github.com/apache/arrow-rs/blob/3bf29a2c7474e59722d885cd11fafd0dca13a28e/object_store/src/prefix.rs#L4 so that we can access the raw `T` underlying the MaybePrefixedStore.
+//! It was further edited to use an `Option<Path>` internally so that we can apply a
+//! `MaybePrefixedStore` to all store classes.
 
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use std::borrow::Cow;
-use std::cell::OnceCell;
 use std::ops::Range;
+use std::sync::OnceLock;
 
 use object_store::path::Path;
 use object_store::{
@@ -13,7 +15,7 @@ use object_store::{
     PutOptions, PutPayload, PutResult, Result,
 };
 
-const DEFAULT_PATH: OnceCell<Path> = OnceCell::new();
+static DEFAULT_PATH: OnceLock<Path> = OnceLock::new();
 
 /// Store wrapper that applies a constant prefix to all paths handled by the store.
 #[derive(Debug, Clone)]
@@ -169,8 +171,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     }
 
     fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
-        let binding = DEFAULT_PATH;
-        let prefix = self.full_path(prefix.unwrap_or(binding.get_or_init(|| Path::default())));
+        let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         let s = self.inner.list(Some(&prefix));
         let slf_prefix = self.prefix.clone();
         s.map_ok(move |meta| strip_meta(slf_prefix.as_ref(), meta))
@@ -182,9 +183,8 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         prefix: Option<&Path>,
         offset: &Path,
     ) -> BoxStream<'static, Result<ObjectMeta>> {
-        let binding = DEFAULT_PATH;
         let offset = self.full_path(offset);
-        let prefix = self.full_path(prefix.unwrap_or(binding.get_or_init(|| Path::default())));
+        let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         let s = self.inner.list_with_offset(Some(&prefix), &offset);
         let slf_prefix = self.prefix.clone();
         s.map_ok(move |meta| strip_meta(slf_prefix.as_ref(), meta))
@@ -192,8 +192,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     }
 
     async fn list_with_delimiter(&self, prefix: Option<&Path>) -> Result<ListResult> {
-        let binding = DEFAULT_PATH;
-        let prefix = self.full_path(prefix.unwrap_or(binding.get_or_init(|| Path::default())));
+        let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         self.inner
             .list_with_delimiter(Some(&prefix))
             .await

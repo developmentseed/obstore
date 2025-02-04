@@ -8,41 +8,39 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
+use url::Url;
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
-use crate::error::{GenericError, PyObjectStoreError, PyObjectStoreResult};
+use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
 
 struct GCSConfig {
-    bucket: Option<String>,
-    // Note: we need to persist the URL passed in via from_url because object_store defers the URL
-    // parsing until its `build` method, and then we have no way to persist the state of its parsed
-    // components.
-    url: Option<PyUrl>,
     prefix: Option<PyPath>,
-    config: Option<PyGoogleConfig>,
+    config: PyGoogleConfig,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
 }
 
 impl GCSConfig {
+    fn bucket(&self) -> &str {
+        self.config
+            .0
+            .get(&PyGoogleConfigKey(GoogleConfigKey::Bucket))
+            .expect("Bucket should always exist in the config")
+            .as_ref()
+    }
+
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args =
-            PyTuple::new(py, vec![self.bucket.clone().into_pyobject(py)?])?.into_py_any(py)?;
+        let args = PyTuple::empty(py).into_py_any(py)?;
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
             kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
         }
-        if let Some(url) = &self.url {
-            kwargs.set_item(intern!(py, "url"), url.as_ref().as_str())?;
-        }
-        if let Some(config) = &self.config {
-            kwargs.set_item(intern!(py, "config"), config.clone())?;
-        }
+        kwargs.set_item(intern!(py, "config"), self.config.clone())?;
         if let Some(client_options) = &self.client_options {
             kwargs.set_item(intern!(py, "client_options"), client_options.clone())?;
         }
@@ -79,28 +77,24 @@ impl PyGCSStore {
 impl PyGCSStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, url=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
     fn new(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyGoogleConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        // Note: URL is undocumented in the type hint as it's only used for pickle support.
-        url: Option<PyUrl>,
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = GoogleCloudStorageBuilder::from_env();
+        let mut config = config.unwrap_or_default();
         if let Some(bucket) = bucket.clone() {
-            builder = builder.with_bucket_name(bucket);
+            // Note: we apply the bucket to the config, not directly to the builder, so they stay
+            // in sync.
+            config.insert_raising_if_exists(GoogleConfigKey::Bucket, bucket)?;
         }
-        if let Some(url) = url.clone() {
-            builder = builder.with_url(url);
-        }
-        let combined_config = combine_config_kwargs(config, kwargs)?;
-        if let Some(config_kwargs) = combined_config.clone() {
-            builder = config_kwargs.apply_config(builder);
-        }
+        let combined_config = combine_config_kwargs(Some(config), kwargs)?;
+        builder = combined_config.clone().apply_config(builder);
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
@@ -111,8 +105,6 @@ impl PyGCSStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: GCSConfig {
                 prefix,
-                url,
-                bucket,
                 config: combined_config,
                 client_options,
                 retry_config,
@@ -139,11 +131,10 @@ impl PyGCSStore {
         } else {
             None
         };
+        let config = parse_url(config, url.as_ref())?;
         let mut builder = GoogleCloudStorageBuilder::from_env().with_url(url.clone());
-        let combined_config = combine_config_kwargs(config, kwargs)?;
-        if let Some(config_kwargs) = combined_config.clone() {
-            builder = config_kwargs.apply_config(builder);
-        }
+        let combined_config = combine_config_kwargs(Some(config), kwargs)?;
+        builder = combined_config.clone().apply_config(builder);
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
@@ -154,8 +145,6 @@ impl PyGCSStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: GCSConfig {
                 prefix,
-                url: Some(url),
-                bucket: None,
                 config: combined_config,
                 client_options,
                 retry_config,
@@ -168,21 +157,36 @@ impl PyGCSStore {
     }
 
     fn __repr__(&self) -> String {
-        if let Some(bucket) = &self.config.bucket {
-            if let Some(prefix) = &self.config.prefix {
-                format!(
-                    "GCSStore(bucket=\"{}\", prefix=\"{}\")",
-                    bucket,
-                    prefix.as_ref()
-                )
-            } else {
-                format!("GCSStore(bucket=\"{}\")", bucket)
-            }
-        } else if let Some(url) = &self.config.url {
-            format!("GCSStore(url=\"{}\")", url.as_ref())
+        let bucket = self.config.bucket();
+        if let Some(prefix) = &self.config.prefix {
+            format!(
+                "GCSStore(bucket=\"{}\", prefix=\"{}\")",
+                bucket,
+                prefix.as_ref()
+            )
         } else {
-            "GCSStore".to_string()
+            format!("GCSStore(bucket=\"{}\")", bucket)
         }
+    }
+
+    #[getter]
+    fn prefix(&self) -> Option<&PyPath> {
+        self.config.prefix.as_ref()
+    }
+
+    #[getter]
+    fn config(&self) -> PyGoogleConfig {
+        self.config.config.clone()
+    }
+
+    #[getter]
+    fn client_options(&self) -> Option<PyClientOptions> {
+        self.config.client_options.clone()
+    }
+
+    #[getter]
+    fn retry_config(&self) -> Option<PyRetryConfig> {
+        self.config.retry_config.clone()
     }
 }
 
@@ -213,7 +217,19 @@ impl<'py> IntoPyObject<'py> for PyGoogleConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, IntoPyObject)]
+impl From<GoogleConfigKey> for PyGoogleConfigKey {
+    fn from(value: GoogleConfigKey) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PyGoogleConfigKey> for GoogleConfigKey {
+    fn from(value: PyGoogleConfigKey) -> Self {
+        value.0
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
@@ -233,28 +249,77 @@ impl PyGoogleConfig {
     }
 
     fn merge(mut self, other: PyGoogleConfig) -> PyObjectStoreResult<PyGoogleConfig> {
-        for (k, v) in other.0.into_iter() {
-            let old_value = self.0.insert(k.clone(), v);
-            if old_value.is_some() {
-                return Err(GenericError::new_err(format!(
-                    "Duplicate key {} between config and kwargs",
-                    k.0.as_ref()
-                ))
-                .into());
-            }
+        for (key, val) in other.0.into_iter() {
+            self.insert_raising_if_exists(key, val)?;
         }
 
         Ok(self)
+    }
+
+    fn insert_raising_if_exists(
+        &mut self,
+        key: impl Into<PyGoogleConfigKey>,
+        val: impl Into<String>,
+    ) -> PyObjectStoreResult<()> {
+        let key = key.into();
+        let old_value = self.0.insert(key.clone(), PyConfigValue::new(val.into()));
+        if old_value.is_some() {
+            return Err(GenericError::new_err(format!(
+                "Duplicate key {} between config and kwargs",
+                key.0.as_ref()
+            ))
+            .into());
+        }
+
+        Ok(())
+    }
+
+    /// Insert a key only if it does not already exist.
+    ///
+    /// This is used for URL parsing, where any parts of the URL **do not** override any
+    /// configuration keys passed manually.
+    fn insert_if_not_exists(&mut self, key: impl Into<PyGoogleConfigKey>, val: impl Into<String>) {
+        self.0.entry(key.into()).or_insert(PyConfigValue::new(val));
     }
 }
 
 fn combine_config_kwargs(
     config: Option<PyGoogleConfig>,
     kwargs: Option<PyGoogleConfig>,
-) -> PyObjectStoreResult<Option<PyGoogleConfig>> {
+) -> PyObjectStoreResult<PyGoogleConfig> {
     match (config, kwargs) {
-        (None, None) => Ok(None),
-        (Some(x), None) | (None, Some(x)) => Ok(Some(x)),
-        (Some(config), Some(kwargs)) => Ok(Some(config.merge(kwargs)?)),
+        (None, None) => Ok(Default::default()),
+        (Some(x), None) | (None, Some(x)) => Ok(x),
+        (Some(config), Some(kwargs)) => Ok(config.merge(kwargs)?),
     }
+}
+
+/// Sets properties on this builder based on a URL
+///
+/// This is vendored from
+/// https://github.com/apache/arrow-rs/blob/f7263e253655b2ee613be97f9d00e063444d3df5/object_store/src/gcp/builder.rs#L316-L338
+///
+/// We do our own URL parsing so that we can keep our own config in sync with what is passed to the
+/// underlying ObjectStore builder. Passing the URL on verbatim makes it hard because the URL
+/// parsing only happens in `build()`. Then the config parameters we have don't include any config
+/// applied from the URL.
+fn parse_url(config: Option<PyGoogleConfig>, parsed: &Url) -> object_store::Result<PyGoogleConfig> {
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| ParseUrlError::UrlNotRecognised {
+            url: parsed.as_str().to_string(),
+        })?;
+    let mut config = config.unwrap_or_default();
+
+    match parsed.scheme() {
+        "gs" => {
+            config.insert_if_not_exists(GoogleConfigKey::Bucket, host);
+        }
+        scheme => {
+            let scheme = scheme.to_string();
+            return Err(ParseUrlError::UnknownUrlScheme { scheme }.into());
+        }
+    }
+
+    Ok(config)
 }

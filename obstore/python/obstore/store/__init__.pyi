@@ -3,11 +3,14 @@ from pathlib import Path
 from typing import Any, Unpack, overload
 
 from ._aws import S3Config as S3Config
+from ._aws import S3ConfigInput as S3ConfigInput
 from ._aws import S3Store as S3Store
 from ._azure import AzureConfig as AzureConfig
+from ._azure import AzureConfigInput as AzureConfigInput
 from ._azure import AzureStore as AzureStore
 from ._client import ClientConfig as ClientConfig
 from ._gcs import GCSConfig as GCSConfig
+from ._gcs import GCSConfigInput as GCSConfigInput
 from ._gcs import GCSStore as GCSStore
 from ._http import HTTPStore as HTTPStore
 from ._retry import BackoffConfig as BackoffConfig
@@ -17,28 +20,28 @@ from ._retry import RetryConfig as RetryConfig
 def from_url(
     url: str,
     *,
-    config: S3Config | None = None,
+    config: S3Config | S3ConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: Unpack[S3Config],
+    **kwargs: Unpack[S3ConfigInput],
 ) -> ObjectStore: ...
 @overload
 def from_url(
     url: str,
     *,
-    config: GCSConfig | None = None,
+    config: GCSConfig | GCSConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: Unpack[GCSConfig],
+    **kwargs: Unpack[GCSConfigInput],
 ) -> ObjectStore: ...
 @overload
 def from_url(
     url: str,
     *,
-    config: AzureConfig | None = None,
+    config: AzureConfig | AzureConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: Unpack[AzureConfig],
+    **kwargs: Unpack[AzureConfigInput],
 ) -> ObjectStore: ...
 @overload
 def from_url(
@@ -53,7 +56,7 @@ def from_url(
 def from_url(
     url: str,
     *,
-    config: S3Config | GCSConfig | AzureConfig | None = None,
+    config: S3ConfigInput | GCSConfigInput | AzureConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     **kwargs: Any,
@@ -79,6 +82,10 @@ def from_url(
     - `dfs.core.windows.net`, `blob.core.windows.net`, `dfs.fabric.microsoft.com`, `blob.fabric.microsoft.com` -> [`AzureStore`][obstore.store.AzureStore]
     - `amazonaws.com` -> [`S3Store`][obstore.store.S3Store]
     - `r2.cloudflarestorage.com` -> [`S3Store`][obstore.store.S3Store]
+
+    !!! note
+        For best static typing, use the constructors on individual store classes
+        directly.
 
     Args:
         url: well-known storage URL.

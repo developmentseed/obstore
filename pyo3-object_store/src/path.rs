@@ -21,6 +21,16 @@ impl<'py> IntoPyObject<'py> for PyPath {
     }
 }
 
+impl<'py> IntoPyObject<'py> for &PyPath {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(PyString::new(py, self.0.as_ref()))
+    }
+}
+
 impl AsRef<Path> for PyPath {
     fn as_ref(&self) -> &Path {
         &self.0

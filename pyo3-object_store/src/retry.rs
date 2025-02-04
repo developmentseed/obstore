@@ -1,9 +1,10 @@
 use std::time::Duration;
 
 use object_store::{BackoffConfig, RetryConfig};
+use pyo3::intern;
 use pyo3::prelude::*;
 
-#[derive(Clone, Debug, FromPyObject, IntoPyObject)]
+#[derive(Clone, Debug, IntoPyObject)]
 pub struct PyBackoffConfig {
     #[pyo3(item)]
     init_backoff: Duration,
@@ -11,6 +12,23 @@ pub struct PyBackoffConfig {
     max_backoff: Duration,
     #[pyo3(item)]
     base: f64,
+}
+
+impl<'py> FromPyObject<'py> for PyBackoffConfig {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let mut backoff_config = BackoffConfig::default();
+        let py = ob.py();
+        if let Ok(init_backoff) = ob.get_item(intern!(py, "init_backoff")) {
+            backoff_config.init_backoff = init_backoff.extract()?;
+        }
+        if let Ok(max_backoff) = ob.get_item(intern!(py, "max_backoff")) {
+            backoff_config.max_backoff = max_backoff.extract()?;
+        }
+        if let Ok(base) = ob.get_item(intern!(py, "base")) {
+            backoff_config.base = base.extract()?;
+        }
+        Ok(backoff_config.into())
+    }
 }
 
 impl From<PyBackoffConfig> for BackoffConfig {
@@ -23,7 +41,17 @@ impl From<PyBackoffConfig> for BackoffConfig {
     }
 }
 
-#[derive(Clone, Debug, FromPyObject, IntoPyObject)]
+impl From<BackoffConfig> for PyBackoffConfig {
+    fn from(value: BackoffConfig) -> Self {
+        PyBackoffConfig {
+            init_backoff: value.init_backoff,
+            max_backoff: value.max_backoff,
+            base: value.base,
+        }
+    }
+}
+
+#[derive(Clone, Debug, IntoPyObject)]
 pub struct PyRetryConfig {
     #[pyo3(item)]
     backoff: PyBackoffConfig,
@@ -33,9 +61,36 @@ pub struct PyRetryConfig {
     retry_timeout: Duration,
 }
 
+impl<'py> FromPyObject<'py> for PyRetryConfig {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let mut retry_config = RetryConfig::default();
+        let py = ob.py();
+        if let Ok(backoff) = ob.get_item(intern!(py, "backoff")) {
+            retry_config.backoff = backoff.extract::<PyBackoffConfig>()?.into();
+        }
+        if let Ok(max_retries) = ob.get_item(intern!(py, "max_retries")) {
+            retry_config.max_retries = max_retries.extract()?;
+        }
+        if let Ok(retry_timeout) = ob.get_item(intern!(py, "retry_timeout")) {
+            retry_config.retry_timeout = retry_timeout.extract()?;
+        }
+        Ok(retry_config.into())
+    }
+}
+
 impl From<PyRetryConfig> for RetryConfig {
     fn from(value: PyRetryConfig) -> Self {
         RetryConfig {
+            backoff: value.backoff.into(),
+            max_retries: value.max_retries,
+            retry_timeout: value.retry_timeout,
+        }
+    }
+}
+
+impl From<RetryConfig> for PyRetryConfig {
+    fn from(value: RetryConfig) -> Self {
+        PyRetryConfig {
             backoff: value.backoff.into(),
             max_retries: value.max_retries,
             retry_timeout: value.retry_timeout,

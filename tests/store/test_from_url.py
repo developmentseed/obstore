@@ -33,7 +33,9 @@ def test_s3_params():
 
 def test_gcs_params():
     # Just to test the params. In practice, the bucket shouldn't be passed
-    from_url("gs://test.example.com/path", google_bucket="test_bucket")
+    # Note: we can't pass the bucket name here as a kwarg because it would conflict with
+    # the bucket name in the URL.
+    from_url("gs://test.example.com/path")
 
     with pytest.raises(UnknownConfigurationKeyError):
         from_url("gs://test.example.com/path", azure_authority_id="")

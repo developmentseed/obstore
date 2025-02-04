@@ -8,41 +8,39 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
+use url::Url;
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
-use crate::error::{GenericError, PyObjectStoreError, PyObjectStoreResult};
+use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
 
 struct AzureConfig {
-    container: Option<String>,
-    // Note: we need to persist the URL passed in via from_url because object_store defers the URL
-    // parsing until its `build` method, and then we have no way to persist the state of its parsed
-    // components.
-    url: Option<PyUrl>,
     prefix: Option<PyPath>,
-    config: Option<PyAzureConfig>,
+    config: PyAzureConfig,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
 }
 
 impl AzureConfig {
+    fn container_name(&self) -> &str {
+        self.config
+            .0
+            .get(&PyAzureConfigKey(AzureConfigKey::ContainerName))
+            .expect("Container should always exist in the config")
+            .as_ref()
+    }
+
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args =
-            PyTuple::new(py, vec![self.container.clone().into_pyobject(py)?])?.into_py_any(py)?;
+        let args = PyTuple::empty(py).into_py_any(py)?;
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
             kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
         }
-        if let Some(url) = &self.url {
-            kwargs.set_item(intern!(py, "url"), url.as_ref().as_str())?;
-        }
-        if let Some(config) = &self.config {
-            kwargs.set_item(intern!(py, "config"), config.clone())?;
-        }
+        kwargs.set_item(intern!(py, "config"), self.config.clone())?;
         if let Some(client_options) = &self.client_options {
             kwargs.set_item(intern!(py, "client_options"), client_options.clone())?;
         }
@@ -79,28 +77,24 @@ impl PyAzureStore {
 impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, url=None, **kwargs))]
+    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
     fn new(
         container: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        // Note: URL is undocumented in the type hint as it's only used for pickle support.
-        url: Option<PyUrl>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
+        let mut config = config.unwrap_or_default();
         if let Some(container) = container.clone() {
-            builder = builder.with_container_name(container);
+            // Note: we apply the bucket to the config, not directly to the builder, so they stay
+            // in sync.
+            config.insert_raising_if_exists(AzureConfigKey::ContainerName, container)?;
         }
-        if let Some(url) = url.clone() {
-            builder = builder.with_url(url);
-        }
-        let combined_config = combine_config_kwargs(config, kwargs)?;
-        if let Some(config_kwargs) = combined_config.clone() {
-            builder = config_kwargs.apply_config(builder);
-        }
+        let combined_config = combine_config_kwargs(Some(config), kwargs)?;
+        builder = combined_config.clone().apply_config(builder);
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
@@ -111,8 +105,6 @@ impl PyAzureStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: AzureConfig {
                 prefix,
-                url,
-                container,
                 config: combined_config,
                 client_options,
                 retry_config,
@@ -140,11 +132,10 @@ impl PyAzureStore {
             None
         };
 
+        let config = parse_url(config, url.as_ref())?;
         let mut builder = MicrosoftAzureBuilder::from_env().with_url(url.clone());
-        let combined_config = combine_config_kwargs(config, kwargs)?;
-        if let Some(config_kwargs) = combined_config.clone() {
-            builder = config_kwargs.apply_config(builder);
-        }
+        let combined_config = combine_config_kwargs(Some(config), kwargs)?;
+        builder = combined_config.clone().apply_config(builder);
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
@@ -155,8 +146,6 @@ impl PyAzureStore {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: AzureConfig {
                 prefix,
-                url: Some(url),
-                container: None,
                 config: combined_config,
                 client_options,
                 retry_config,
@@ -170,21 +159,36 @@ impl PyAzureStore {
     }
 
     fn __repr__(&self) -> String {
-        if let Some(container) = &self.config.container {
-            if let Some(prefix) = &self.config.prefix {
-                format!(
-                    "AzureStore(container=\"{}\", prefix=\"{}\")",
-                    container,
-                    prefix.as_ref()
-                )
-            } else {
-                format!("AzureStore(container=\"{}\")", container)
-            }
-        } else if let Some(url) = &self.config.url {
-            format!("AzureStore(url=\"{}\")", url.as_ref())
+        let container_name = self.config.container_name();
+        if let Some(prefix) = &self.config.prefix {
+            format!(
+                "AzureStore(container=\"{}\", prefix=\"{}\")",
+                container_name,
+                prefix.as_ref()
+            )
         } else {
-            "AzureStore".to_string()
+            format!("AzureStore(container=\"{}\")", container_name)
         }
+    }
+
+    #[getter]
+    fn prefix(&self) -> Option<&PyPath> {
+        self.config.prefix.as_ref()
+    }
+
+    #[getter]
+    fn config(&self) -> PyAzureConfig {
+        self.config.config.clone()
+    }
+
+    #[getter]
+    fn client_options(&self) -> Option<PyClientOptions> {
+        self.config.client_options.clone()
+    }
+
+    #[getter]
+    fn retry_config(&self) -> Option<PyRetryConfig> {
+        self.config.retry_config.clone()
     }
 }
 
@@ -215,7 +219,19 @@ impl<'py> IntoPyObject<'py> for PyAzureConfigKey {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, IntoPyObject)]
+impl From<AzureConfigKey> for PyAzureConfigKey {
+    fn from(value: AzureConfigKey) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PyAzureConfigKey> for AzureConfigKey {
+    fn from(value: PyAzureConfigKey) -> Self {
+        value.0
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
@@ -235,28 +251,138 @@ impl PyAzureConfig {
     }
 
     fn merge(mut self, other: PyAzureConfig) -> PyObjectStoreResult<PyAzureConfig> {
-        for (k, v) in other.0.into_iter() {
-            let old_value = self.0.insert(k.clone(), v);
-            if old_value.is_some() {
-                return Err(GenericError::new_err(format!(
-                    "Duplicate key {} between config and kwargs",
-                    k.0.as_ref()
-                ))
-                .into());
-            }
+        for (key, val) in other.0.into_iter() {
+            self.insert_raising_if_exists(key, val)?;
         }
 
         Ok(self)
+    }
+
+    fn insert_raising_if_exists(
+        &mut self,
+        key: impl Into<PyAzureConfigKey>,
+        val: impl Into<String>,
+    ) -> PyObjectStoreResult<()> {
+        let key = key.into();
+        let old_value = self.0.insert(key.clone(), PyConfigValue::new(val.into()));
+        if old_value.is_some() {
+            return Err(GenericError::new_err(format!(
+                "Duplicate key {} between config and kwargs",
+                key.0.as_ref()
+            ))
+            .into());
+        }
+
+        Ok(())
+    }
+
+    /// Insert a key only if it does not already exist.
+    ///
+    /// This is used for URL parsing, where any parts of the URL **do not** override any
+    /// configuration keys passed manually.
+    fn insert_if_not_exists(&mut self, key: impl Into<PyAzureConfigKey>, val: impl Into<String>) {
+        self.0.entry(key.into()).or_insert(PyConfigValue::new(val));
     }
 }
 
 fn combine_config_kwargs(
     config: Option<PyAzureConfig>,
     kwargs: Option<PyAzureConfig>,
-) -> PyObjectStoreResult<Option<PyAzureConfig>> {
+) -> PyObjectStoreResult<PyAzureConfig> {
     match (config, kwargs) {
-        (None, None) => Ok(None),
-        (Some(x), None) | (None, Some(x)) => Ok(Some(x)),
-        (Some(config), Some(kwargs)) => Ok(Some(config.merge(kwargs)?)),
+        (None, None) => Ok(Default::default()),
+        (Some(x), None) | (None, Some(x)) => Ok(x),
+        (Some(config), Some(kwargs)) => Ok(config.merge(kwargs)?),
     }
+}
+
+/// Sets properties on this builder based on a URL
+///
+/// This is vendored from
+/// https://github.com/apache/arrow-rs/blob/f7263e253655b2ee613be97f9d00e063444d3df5/object_store/src/azure/builder.rs#L639-L705
+///
+/// We do our own URL parsing so that we can keep our own config in sync with what is passed to the
+/// underlying ObjectStore builder. Passing the URL on verbatim makes it hard because the URL
+/// parsing only happens in `build()`. Then the config parameters we have don't include any config
+/// applied from the URL.
+fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Result<PyAzureConfig> {
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| ParseUrlError::UrlNotRecognised {
+            url: parsed.as_str().to_string(),
+        })?;
+    let mut config = config.unwrap_or_default();
+
+    let validate = |s: &str| match s.contains('.') {
+        true => Err(ParseUrlError::UrlNotRecognised {
+            url: parsed.as_str().to_string(),
+        }),
+        false => Ok(s.to_string()),
+    };
+
+    match parsed.scheme() {
+        "az" | "adl" | "azure" => {
+            config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
+        }
+        "abfs" | "abfss" => {
+            // abfs(s) might refer to the fsspec convention abfs://<container>/<path>
+            // or the convention for the hadoop driver abfs[s]://<file_system>@<account_name>.dfs.core.windows.net/<path>
+            if parsed.username().is_empty() {
+                config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
+            } else if let Some(a) = host.strip_suffix(".dfs.core.windows.net") {
+                config.insert_if_not_exists(
+                    AzureConfigKey::ContainerName,
+                    validate(parsed.username())?,
+                );
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+            } else if let Some(a) = host.strip_suffix(".dfs.fabric.microsoft.com") {
+                config.insert_if_not_exists(
+                    AzureConfigKey::ContainerName,
+                    validate(parsed.username())?,
+                );
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+            } else {
+                return Err(ParseUrlError::UrlNotRecognised {
+                    url: parsed.as_str().to_string(),
+                }
+                .into());
+            }
+        }
+        "https" => match host.split_once('.') {
+            Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                if let Some(container) = parsed.path_segments().unwrap().next() {
+                    config
+                        .insert_if_not_exists(AzureConfigKey::ContainerName, validate(container)?);
+                }
+            }
+            Some((a, "dfs.fabric.microsoft.com")) | Some((a, "blob.fabric.microsoft.com")) => {
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                // Attempt to infer the container name from the URL
+                // - https://onelake.dfs.fabric.microsoft.com/<workspaceGUID>/<itemGUID>/Files/test.csv
+                // - https://onelake.dfs.fabric.microsoft.com/<workspace>/<item>.<itemtype>/<path>/<fileName>
+                //
+                // See <https://learn.microsoft.com/en-us/fabric/onelake/onelake-access-api>
+                if let Some(workspace) = parsed.path_segments().unwrap().next() {
+                    if !workspace.is_empty() {
+                        config.insert_if_not_exists(AzureConfigKey::ContainerName, workspace);
+                    }
+                }
+                config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+            }
+            _ => {
+                return Err(ParseUrlError::UrlNotRecognised {
+                    url: parsed.as_str().to_string(),
+                }
+                .into())
+            }
+        },
+        scheme => {
+            let scheme = scheme.into();
+            return Err(ParseUrlError::UnknownUrlScheme { scheme }.into());
+        }
+    }
+
+    Ok(config)
 }

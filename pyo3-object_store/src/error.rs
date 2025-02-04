@@ -163,3 +163,27 @@ impl<'a, 'py> From<DowncastError<'a, 'py>> for PyObjectStoreError {
 
 /// A type wrapper around `Result<T, PyObjectStoreError>`.
 pub type PyObjectStoreResult<T> = Result<T, PyObjectStoreError>;
+
+/// A specialized `Error` for object store-related errors
+///
+/// Vendored from upstream to handle our vendored URL parsing
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum ParseUrlError {
+    #[error(
+        "Unknown url scheme cannot be parsed into storage location: {}",
+        scheme
+    )]
+    UnknownUrlScheme { scheme: String },
+
+    #[error("URL did not match any known pattern for scheme: {}", url)]
+    UrlNotRecognised { url: String },
+}
+
+impl From<ParseUrlError> for object_store::Error {
+    fn from(source: ParseUrlError) -> Self {
+        Self::Generic {
+            store: "S3",
+            source: Box::new(source),
+        }
+    }
+}
