@@ -19,6 +19,8 @@ bytes = "1"
 futures = "0.3"
 # This is already an object_store dependency
 humantime = "2.1"
+# This is already an object_store dependency
+itertools = "0.14.0"
 object_store = { version = "0.11.2", features = [
     "aws",
     "azure",

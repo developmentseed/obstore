@@ -2,16 +2,18 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use itertools::Itertools;
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
+use url::Url;
 
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
-use crate::error::{GenericError, PyObjectStoreError, PyObjectStoreResult};
+use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
 use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
@@ -20,10 +22,6 @@ use crate::PyUrl;
 #[derive(Debug, Clone)]
 struct S3Config {
     bucket: Option<String>,
-    // Note: we need to persist the URL passed in via from_url because object_store defers the URL
-    // parsing until its `build` method, and then we have no way to persist the state of its parsed
-    // components.
-    url: Option<PyUrl>,
     prefix: Option<PyPath>,
     config: Option<PyAmazonS3Config>,
     client_options: Option<PyClientOptions>,
@@ -38,9 +36,6 @@ impl S3Config {
 
         if let Some(prefix) = &self.prefix {
             kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
-        }
-        if let Some(url) = &self.url {
-            kwargs.set_item(intern!(py, "url"), url.as_ref().as_str())?;
         }
         if let Some(config) = &self.config {
             kwargs.set_item(intern!(py, "config"), config.clone())?;
@@ -74,7 +69,6 @@ impl PyS3Store {
     fn new(
         mut builder: AmazonS3Builder,
         bucket: Option<String>,
-        url: Option<PyUrl>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
@@ -83,9 +77,6 @@ impl PyS3Store {
     ) -> PyObjectStoreResult<Self> {
         if let Some(bucket) = bucket.clone() {
             builder = builder.with_bucket_name(bucket);
-        }
-        if let Some(url) = url.clone() {
-            builder = builder.with_url(url);
         }
         let combined_config = combine_config_kwargs(config, kwargs)?;
         if let Some(config_kwargs) = combined_config.clone() {
@@ -101,7 +92,6 @@ impl PyS3Store {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: S3Config {
                 prefix,
-                url,
                 bucket,
                 config: combined_config,
                 client_options,
@@ -120,21 +110,18 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, url=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
     fn new_py(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        // Note: URL is undocumented in the type hint as it's only used for pickle support.
-        url: Option<PyUrl>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         Self::new(
             AmazonS3Builder::from_env(),
             bucket,
-            url,
             prefix,
             config,
             client_options,
@@ -147,6 +134,7 @@ impl PyS3Store {
     // https://stackoverflow.com/a/36291428
     #[classmethod]
     #[pyo3(signature = (session, bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[allow(clippy::too_many_arguments)]
     fn from_session(
         _cls: &Bound<PyType>,
         py: Python,
@@ -200,7 +188,6 @@ impl PyS3Store {
         Self::new(
             builder,
             bucket,
-            None,
             prefix,
             config,
             client_options,
@@ -228,12 +215,12 @@ impl PyS3Store {
         } else {
             None
         };
+        let config = parse_url(config, url.as_ref())?;
         Self::new(
             AmazonS3Builder::from_env(),
             None,
-            Some(url),
             prefix,
-            config,
+            Some(config),
             client_options,
             retry_config,
             kwargs,
@@ -255,8 +242,6 @@ impl PyS3Store {
             } else {
                 format!("S3Store(bucket=\"{}\")", bucket)
             }
-        } else if let Some(url) = &self.config.url {
-            format!("S3Store(url=\"{}\")", url.as_ref())
         } else {
             "S3Store".to_string()
         }
@@ -287,6 +272,18 @@ impl<'py> IntoPyObject<'py> for PyAmazonS3ConfigKey {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         Ok(PyString::new(py, self.0.as_ref()))
+    }
+}
+
+impl From<AmazonS3ConfigKey> for PyAmazonS3ConfigKey {
+    fn from(value: AmazonS3ConfigKey) -> Self {
+        Self(value)
+    }
+}
+
+impl From<PyAmazonS3ConfigKey> for AmazonS3ConfigKey {
+    fn from(value: PyAmazonS3ConfigKey) -> Self {
+        value.0
     }
 }
 
@@ -323,6 +320,18 @@ impl PyAmazonS3Config {
 
         Ok(self)
     }
+
+    /// Insert a key only if it does not already exist.
+    ///
+    /// This is used for URL parsing, where any parts of the URL **do not** override any
+    /// configuration keys passed manually.
+    fn insert_if_not_exists(
+        &mut self,
+        key: impl Into<PyAmazonS3ConfigKey>,
+        val: impl Into<String>,
+    ) {
+        self.0.entry(key.into()).or_insert(PyConfigValue::new(val));
+    }
 }
 
 fn combine_config_kwargs(
@@ -334,4 +343,67 @@ fn combine_config_kwargs(
         (Some(x), None) | (None, Some(x)) => Ok(Some(x)),
         (Some(config), Some(kwargs)) => Ok(Some(config.merge(kwargs)?)),
     }
+}
+
+/// Sets properties on a configuration based on a URL
+///
+/// This is vendored from
+/// https://github.com/apache/arrow-rs/blob/f7263e253655b2ee613be97f9d00e063444d3df5/object_store/src/aws/builder.rs#L600-L647
+///
+/// We do our own URL parsing so that we can keep our own config in sync with what is passed to the
+/// underlying ObjectStore builder. Passing the URL on verbatim makes it hard because the URL
+/// parsing only happens in `build()`. Then the config parameters we have don't include any config
+/// applied from the URL.
+fn parse_url(
+    config: Option<PyAmazonS3Config>,
+    parsed: &Url,
+) -> object_store::Result<PyAmazonS3Config> {
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| ParseUrlError::UrlNotRecognised {
+            url: parsed.as_str().to_string(),
+        })?;
+    let mut config = config.unwrap_or_default();
+
+    match parsed.scheme() {
+        "s3" | "s3a" => {
+            config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, host);
+        }
+        "https" => match host.splitn(4, '.').collect_tuple() {
+            Some(("s3", region, "amazonaws", "com")) => {
+                config.insert_if_not_exists(AmazonS3ConfigKey::Region, region);
+                let bucket = parsed.path_segments().into_iter().flatten().next();
+                if let Some(bucket) = bucket {
+                    config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                }
+            }
+            Some((bucket, "s3", region, "amazonaws.com")) => {
+                config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                config.insert_if_not_exists(AmazonS3ConfigKey::Region, region);
+                config.insert_if_not_exists(AmazonS3ConfigKey::VirtualHostedStyleRequest, "true");
+            }
+            Some((account, "r2", "cloudflarestorage", "com")) => {
+                config.insert_if_not_exists(AmazonS3ConfigKey::Region, "auto");
+                let endpoint = format!("https://{account}.r2.cloudflarestorage.com");
+                config.insert_if_not_exists(AmazonS3ConfigKey::Endpoint, endpoint);
+
+                let bucket = parsed.path_segments().into_iter().flatten().next();
+                if let Some(bucket) = bucket {
+                    config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                }
+            }
+            _ => {
+                return Err(ParseUrlError::UrlNotRecognised {
+                    url: parsed.as_str().to_string(),
+                }
+                .into())
+            }
+        },
+        scheme => {
+            let scheme = scheme.into();
+            return Err(ParseUrlError::UnknownUrlScheme { scheme }.into());
+        }
+    };
+
+    Ok(config)
 }
