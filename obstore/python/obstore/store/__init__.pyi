@@ -20,28 +20,28 @@ from ._retry import RetryConfig as RetryConfig
 def from_url(
     url: str,
     *,
-    config: S3Config | None = None,
+    config: S3Config | S3ConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: Unpack[S3Config],
+    **kwargs: Unpack[S3ConfigInput],
 ) -> ObjectStore: ...
 @overload
 def from_url(
     url: str,
     *,
-    config: GCSConfig | None = None,
+    config: GCSConfig | GCSConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: Unpack[GCSConfig],
+    **kwargs: Unpack[GCSConfigInput],
 ) -> ObjectStore: ...
 @overload
 def from_url(
     url: str,
     *,
-    config: AzureConfig | None = None,
+    config: AzureConfig | AzureConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    **kwargs: Unpack[AzureConfig],
+    **kwargs: Unpack[AzureConfigInput],
 ) -> ObjectStore: ...
 @overload
 def from_url(
@@ -56,7 +56,7 @@ def from_url(
 def from_url(
     url: str,
     *,
-    config: S3Config | GCSConfig | AzureConfig | None = None,
+    config: S3ConfigInput | GCSConfigInput | AzureConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     **kwargs: Any,
