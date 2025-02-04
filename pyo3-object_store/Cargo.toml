@@ -31,5 +31,8 @@ serde = "1"
 thiserror = "1"
 url = "2"
 
+[patch.crates-io]
+object_store = { git = "https://github.com/apache/arrow-rs", rev = "74499c0e7846cfbc498bf9fd7a2c1a4c8731c897" }
+
 [lib]
 crate-type = ["rlib"]

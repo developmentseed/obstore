@@ -28,7 +28,7 @@ pub fn from_url(
     retry_config: Option<PyRetryConfig>,
     kwargs: Option<Bound<PyAny>>,
 ) -> PyObjectStoreResult<PyObject> {
-    let (scheme, _) = ObjectStoreScheme::parse(&url.as_ref()).map_err(object_store::Error::from)?;
+    let (scheme, _) = ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
     match scheme {
         ObjectStoreScheme::AmazonS3 => {
             let store = PyS3Store::from_url(
@@ -99,9 +99,7 @@ pub fn from_url(
             let store: PyMemoryStore = Arc::new(InMemory::new()).into();
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
         }
-        scheme => {
-            return Err(GenericError::new_err(format!("Unknown URL scheme {:?}", scheme,)).into());
-        }
+        scheme => Err(GenericError::new_err(format!("Unknown URL scheme {:?}", scheme,)).into()),
     }
 }
 

@@ -60,7 +60,7 @@ impl PyLocalStore {
     ) -> PyObjectStoreResult<Self> {
         let fs = if let Some(prefix) = &prefix {
             if mkdir {
-                create_dir_all(&prefix)?;
+                create_dir_all(prefix)?;
             }
             LocalFileSystem::new_with_prefix(prefix)?
         } else {

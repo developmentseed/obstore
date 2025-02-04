@@ -1,11 +1,13 @@
 //! An object store wrapper handling a constant path prefix
-//! This is vendored from https://github.com/apache/arrow-rs/blob/3bf29a2c7474e59722d885cd11fafd0dca13a28e/object_store/src/prefix.rs#L4 so that we can access the raw `T` underlying the MaybePrefixedStore.
+//! This was originally vendored from https://github.com/apache/arrow-rs/blob/3bf29a2c7474e59722d885cd11fafd0dca13a28e/object_store/src/prefix.rs#L4 so that we can access the raw `T` underlying the MaybePrefixedStore.
+//! It was further edited to use an `Option<Path>` internally so that we can apply a
+//! `MaybePrefixedStore` to all store classes.
 
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use std::borrow::Cow;
-use std::cell::OnceCell;
 use std::ops::Range;
+use std::sync::OnceLock;
 
 use object_store::path::Path;
 use object_store::{
@@ -13,7 +15,7 @@ use object_store::{
     PutOptions, PutPayload, PutResult, Result,
 };
 
-const DEFAULT_PATH: OnceCell<Path> = OnceCell::new();
+static DEFAULT_PATH: OnceLock<Path> = OnceLock::new();
 
 /// Store wrapper that applies a constant prefix to all paths handled by the store.
 #[derive(Debug, Clone)]
@@ -169,8 +171,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     }
 
     fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
-        let binding = DEFAULT_PATH;
-        let prefix = self.full_path(prefix.unwrap_or(binding.get_or_init(|| Path::default())));
+        let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         let s = self.inner.list(Some(&prefix));
         let slf_prefix = self.prefix.clone();
         s.map_ok(move |meta| strip_meta(slf_prefix.as_ref(), meta))
@@ -182,9 +183,8 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         prefix: Option<&Path>,
         offset: &Path,
     ) -> BoxStream<'static, Result<ObjectMeta>> {
-        let binding = DEFAULT_PATH;
         let offset = self.full_path(offset);
-        let prefix = self.full_path(prefix.unwrap_or(binding.get_or_init(|| Path::default())));
+        let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         let s = self.inner.list_with_offset(Some(&prefix), &offset);
         let slf_prefix = self.prefix.clone();
         s.map_ok(move |meta| strip_meta(slf_prefix.as_ref(), meta))
@@ -192,8 +192,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     }
 
     async fn list_with_delimiter(&self, prefix: Option<&Path>) -> Result<ListResult> {
-        let binding = DEFAULT_PATH;
-        let prefix = self.full_path(prefix.unwrap_or(binding.get_or_init(|| Path::default())));
+        let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         self.inner
             .list_with_delimiter(Some(&prefix))
             .await
@@ -233,76 +232,5 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         let full_from = self.full_path(from);
         let full_to = self.full_path(to);
         self.inner.rename_if_not_exists(&full_from, &full_to).await
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::integration::*;
-    use crate::local::LocalFileSystem;
-
-    use tempfile::TempDir;
-
-    #[tokio::test]
-    async fn prefix_test() {
-        let root = TempDir::new().unwrap();
-        let inner = LocalFileSystem::new_with_prefix(root.path()).unwrap();
-        let integration = MaybePrefixedStore::new(inner, Some("prefix"));
-
-        put_get_delete_list(&integration).await;
-        get_opts(&integration).await;
-        list_uses_directories_correctly(&integration).await;
-        list_with_delimiter(&integration).await;
-        rename_and_copy(&integration).await;
-        copy_if_not_exists(&integration).await;
-        stream_get(&integration).await;
-    }
-
-    #[tokio::test]
-    async fn prefix_test_applies_prefix() {
-        let tmpdir = TempDir::new().unwrap();
-        let local = LocalFileSystem::new_with_prefix(tmpdir.path()).unwrap();
-
-        let location = Path::from("prefix/test_file.json");
-        let data = Bytes::from("arbitrary data");
-
-        local.put(&location, data.clone().into()).await.unwrap();
-
-        let prefix = MaybePrefixedStore::new(local, Some("prefix"));
-        let location_prefix = Path::from("test_file.json");
-
-        let content_list = flatten_list_stream(&prefix, None).await.unwrap();
-        assert_eq!(content_list, &[location_prefix.clone()]);
-
-        let root = Path::from("/");
-        let content_list = flatten_list_stream(&prefix, Some(&root)).await.unwrap();
-        assert_eq!(content_list, &[location_prefix.clone()]);
-
-        let read_data = prefix
-            .get(&location_prefix)
-            .await
-            .unwrap()
-            .bytes()
-            .await
-            .unwrap();
-        assert_eq!(&*read_data, data);
-
-        let target_prefix = Path::from("/test_written.json");
-        prefix
-            .put(&target_prefix, data.clone().into())
-            .await
-            .unwrap();
-
-        prefix.delete(&location_prefix).await.unwrap();
-
-        let local = LocalFileSystem::new_with_prefix(tmpdir.path()).unwrap();
-
-        let err = local.get(&location).await.unwrap_err();
-        assert!(matches!(err, crate::Error::NotFound { .. }), "{}", err);
-
-        let location = Path::from("prefix/test_written.json");
-        let read_data = local.get(&location).await.unwrap().bytes().await.unwrap();
-        assert_eq!(&*read_data, data)
     }
 }
