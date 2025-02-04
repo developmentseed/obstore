@@ -55,3 +55,21 @@ def test_pickle():
     )
     restored = pickle.loads(pickle.dumps(store))
     _objects = next(obs.list(restored))
+
+
+def test_config_round_trip():
+    store = S3Store.from_url(
+        "s3://ookla-open-data/parquet/performance/type=fixed/year=2024/quarter=1",
+        region="us-west-2",
+        skip_signature=True,
+    )
+    new_store = S3Store(
+        config=store.config,
+        prefix=store.prefix,
+        client_options=store.client_options,
+        retry_config=store.retry_config,
+    )
+    assert store.config == new_store.config
+    assert store.prefix == new_store.prefix
+    assert store.client_options == new_store.client_options
+    assert store.retry_config == new_store.retry_config

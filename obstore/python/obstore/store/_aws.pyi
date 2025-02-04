@@ -11,12 +11,84 @@ from ._retry import RetryConfig
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
 # constructors
 class S3Config(TypedDict, total=False):
-    """Configuration parameters for S3Store.
+    """Configuration parameters returned from [S3Store.config][obstore.store.S3Store.config].
 
-    There are duplicates of many parameters, and parameters can be either upper or lower
-    case. Not all parameters are required.
+    Note that this is a strict subset of the keys allowed for _input_ into the store,
+    see [S3ConfigInput][obstore.store.S3ConfigInput].
     """
 
+    aws_access_key_id: str
+    """AWS Access Key"""
+    aws_bucket: str
+    """Bucket name"""
+    aws_checksum_algorithm: str
+    """
+    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+
+    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    """
+    aws_conditional_put: str
+    """
+    See [`S3ConfigInput.aws_conditional_put`][obstore.store.S3ConfigInput.aws_conditional_put].
+    """
+    aws_container_credentials_relative_uri: str
+    """
+    See [`S3ConfigInput.aws_container_credentials_relative_uri`][obstore.store.S3ConfigInput.aws_container_credentials_relative_uri].
+    """
+    aws_copy_if_not_exists: str
+    """
+    See [`S3ConfigInput.aws_copy_if_not_exists`][obstore.store.S3ConfigInput.aws_copy_if_not_exists].
+    """
+    aws_default_region: str
+    """Default region"""
+    aws_disable_tagging: bool
+    """Disable tagging objects. This can be desirable if not supported by the backing store."""
+    aws_endpoint: str
+    """Sets custom endpoint for communicating with AWS S3."""
+    aws_imdsv1_fallback: str
+    """Fall back to ImdsV1"""
+    aws_metadata_endpoint: str
+    """Set the instance metadata endpoint"""
+    aws_region: str
+    """Region"""
+    aws_request_payer: bool
+    """If `True`, enable operations on requester-pays buckets."""
+    aws_s3_express: bool
+    """Enable Support for S3 Express One Zone"""
+    aws_secret_access_key: str
+    """Secret Access Key"""
+    aws_server_side_encryption: str
+    """
+    See [`S3ConfigInput.aws_server_side_encryption`][obstore.store.S3ConfigInput.aws_server_side_encryption].
+    """
+    aws_session_token: str
+    """Token to use for requests (passed to underlying provider)"""
+    aws_skip_signature: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests."""
+    aws_sse_bucket_key_enabled: bool
+    """
+    If set to `True`, will use the bucket's default KMS key for server-side encryption.
+    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
+    """
+    aws_sse_customer_key_base64: str
+    """
+    The base64 encoded, 256-bit customer encryption key to use for server-side
+    encryption. If set, the server side encryption config value must be `"sse-c"`.
+    """
+    aws_sse_kms_key_id: str
+    """
+    The KMS key ID to use for server-side encryption.
+
+    If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
+    """
+    aws_token: str
+    """Token to use for requests (passed to underlying provider)"""
+    aws_unsigned_payload: bool
+    """Avoid computing payload checksum when calculating signature."""
+    aws_virtual_hosted_style_request: bool
+    """If virtual hosted style request has to be used."""
+
+class S3ConfigInput(TypedDict, total=False):
     access_key_id: str
     """AWS Access Key"""
     aws_access_key_id: str
@@ -152,6 +224,7 @@ class S3Config(TypedDict, total=False):
     """Avoid computing payload checksum when calculating signature."""
     aws_virtual_hosted_style_request: bool
     """If virtual hosted style request has to be used."""
+
     bucket_name: str
     """Bucket name"""
     checksum_algorithm: str
@@ -491,8 +564,8 @@ class S3Store:
 
     All constructors will check for environment variables. All environment variables
     starting with `AWS_` will be evaluated. Names must match keys from
-    [`S3Config`][obstore.store.S3Config]. Only upper-case environment variables are
-    accepted.
+    [`S3ConfigInput`][obstore.store.S3ConfigInput]. Only upper-case environment
+    variables are accepted.
 
     Some examples of variables extracted from environment:
 
@@ -522,10 +595,10 @@ class S3Store:
         bucket: str | None = None,
         *,
         prefix: str | None = None,
-        config: S3Config | None = None,
+        config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
+        **kwargs: Unpack[S3ConfigInput],
     ) -> None:
         """Create a new S3Store.
 
@@ -549,10 +622,10 @@ class S3Store:
         bucket: str | None = None,
         *,
         prefix: str | None = None,
-        config: S3Config | None = None,
+        config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
+        **kwargs: Unpack[S3ConfigInput],
     ) -> S3Store:
         """Construct a new S3Store with credentials inferred from a boto3 Session.
 
@@ -590,10 +663,10 @@ class S3Store:
         cls,
         url: str,
         *,
-        config: S3Config | None = None,
+        config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
+        **kwargs: Unpack[S3ConfigInput],
     ) -> S3Store:
         """Parse available connection info from a well-known storage URL.
 
@@ -620,3 +693,15 @@ class S3Store:
 
     def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...
+    @property
+    def prefix(self) -> str | None:
+        """Get the prefix applied to all operations in this store, if any."""
+    @property
+    def config(self) -> S3Config:
+        """Get the underlying S3 config parameters."""
+    @property
+    def client_options(self) -> ClientConfig | None:
+        """Get the store's client configuration."""
+    @property
+    def retry_config(self) -> RetryConfig | None:
+        """Get the store's retry configuration."""

@@ -111,4 +111,9 @@ impl PyLocalStore {
             "LocalStore".to_string()
         }
     }
+
+    #[getter]
+    fn prefix(&self) -> Option<&std::path::PathBuf> {
+        self.config.prefix.as_ref()
+    }
 }

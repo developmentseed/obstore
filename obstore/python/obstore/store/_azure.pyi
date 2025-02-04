@@ -3,7 +3,62 @@ from typing import TypedDict, Unpack
 from ._client import ClientConfig
 from ._retry import RetryConfig
 
+# TODO:
+# azure_storage_authority_host
+# azure_fabric_token_service_url
+# azure_fabric_workload_host
+# "azure_fabric_session_token",
+# "azure_fabric_cluster_identifier",
 class AzureConfig(TypedDict, total=False):
+    """Configuration parameters returned from [AzureStore.config][obstore.store.AzureStore.config].
+
+    Note that this is a strict subset of the keys allowed for _input_ into the store,
+    see [AzureConfigInput][obstore.store.AzureConfigInput].
+    """
+
+    azure_storage_account_name: str
+    """The name of the azure storage account"""
+    azure_storage_account_key: str
+    """Master key for accessing storage account"""
+    azure_storage_client_id: str
+    """Service principal client id for authorizing requests"""
+    azure_storage_client_secret: str
+    """Service principal client secret for authorizing requests"""
+    azure_storage_tenant_id: str
+    """Tenant id used in oauth flows"""
+    azure_storage_sas_key: str
+    """
+    Shared access signature.
+
+    The signature is expected to be percent-encoded, `much `like they are provided in
+    the azure storage explorer or azure portal.
+    """
+    azure_storage_token: str
+    """Bearer token"""
+    azure_storage_use_emulator: bool
+    """Use object store with azurite storage emulator"""
+    azure_use_fabric_endpoint: bool
+    """Use object store with url scheme account.dfs.fabric.microsoft.com"""
+    azure_storage_endpoint: str
+    """Override the endpoint used to communicate with blob storage"""
+    azure_msi_endpoint: str
+    """Endpoint to request a imds managed identity token"""
+    azure_object_id: str
+    """Object id for use with managed identity authentication"""
+    azure_msi_resource_id: str
+    """Msi resource id for use with managed identity authentication"""
+    azure_federated_token_file: str
+    """File containing token for Azure AD workload identity federation"""
+    azure_use_azure_cli: bool
+    """Use azure cli for acquiring access token"""
+    azure_skip_signature: bool
+    """Skip signing requests"""
+    azure_container_name: str
+    """Container name"""
+    azure_disable_tagging: bool
+    """Disables tagging objects"""
+
+class AzureConfigInput(TypedDict, total=False):
     """Configuration parameters for AzureStore.
 
     There are duplicates of many parameters, and parameters can be either upper or lower
@@ -282,7 +337,7 @@ class AzureStore:
         container: str | None = None,
         *,
         prefix: str | None = None,
-        config: AzureConfig | None = None,
+        config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[AzureConfig],
@@ -307,7 +362,7 @@ class AzureStore:
         url: str,
         *,
         prefix: str | None = None,
-        config: AzureConfig | None = None,
+        config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[AzureConfig],
@@ -344,3 +399,15 @@ class AzureStore:
 
     def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...
+    @property
+    def prefix(self) -> str | None:
+        """Get the prefix applied to all operations in this store, if any."""
+    @property
+    def config(self) -> AzureConfig:
+        """Get the underlying Azure config parameters."""
+    @property
+    def client_options(self) -> ClientConfig | None:
+        """Get the store's client configuration."""
+    @property
+    def retry_config(self) -> RetryConfig | None:
+        """Get the store's retry configuration."""

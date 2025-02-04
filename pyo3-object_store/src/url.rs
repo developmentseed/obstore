@@ -35,7 +35,17 @@ impl<'py> IntoPyObject<'py> for PyUrl {
     type Error = std::convert::Infallible;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        String::from(self.0).into_pyobject(py)
+        Ok(PyString::new(py, self.0.as_str()))
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &PyUrl {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = std::convert::Infallible;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(PyString::new(py, self.0.as_str()))
     }
 }
 

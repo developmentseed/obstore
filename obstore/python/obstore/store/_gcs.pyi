@@ -3,9 +3,30 @@ from typing import TypedDict, Unpack
 from ._client import ClientConfig
 from ._retry import RetryConfig
 
+class GCSConfig(TypedDict, total=False):
+    """Configuration parameters returned from [GCSStore.config][obstore.store.GCSStore.config].
+
+    Note that this is a strict subset of the keys allowed for _input_ into the store,
+    see [GCSConfigInput][obstore.store.GCSConfigInput].
+    """
+
+    google_service_account: str
+    """Path to the service account file."""
+
+    google_service_account_key: str
+    """The serialized service account key"""
+
+    google_bucket: str
+    """Bucket name."""
+
+    google_application_credentials: str
+    """Application credentials path.
+
+    See <https://cloud.google.com/docs/authentication/provide-credentials-adc>."""
+
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
 # constructors
-class GCSConfig(TypedDict, total=False):
+class GCSConfigInput(TypedDict, total=False):
     """Configuration parameters for GCSStore.
 
     There are duplicates of many parameters, and parameters can be either upper or lower
@@ -86,7 +107,7 @@ class GCSStore:
         bucket: str | None = None,
         *,
         prefix: str | None = None,
-        config: GCSConfig | None = None,
+        config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[GCSConfig],
@@ -111,7 +132,7 @@ class GCSStore:
         url: str,
         *,
         prefix: str | None = None,
-        config: GCSConfig | None = None,
+        config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         **kwargs: Unpack[GCSConfig],
@@ -136,3 +157,15 @@ class GCSStore:
 
     def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...
+    @property
+    def prefix(self) -> str | None:
+        """Get the prefix applied to all operations in this store, if any."""
+    @property
+    def config(self) -> GCSConfig:
+        """Get the underlying GCS config parameters."""
+    @property
+    def client_options(self) -> ClientConfig | None:
+        """Get the store's client configuration."""
+    @property
+    def retry_config(self) -> RetryConfig | None:
+        """Get the store's retry configuration."""

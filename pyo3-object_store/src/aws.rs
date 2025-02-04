@@ -247,6 +247,26 @@ impl PyS3Store {
             format!("S3Store(bucket=\"{}\")", bucket)
         }
     }
+
+    #[getter]
+    fn prefix(&self) -> Option<&PyPath> {
+        self.config.prefix.as_ref()
+    }
+
+    #[getter]
+    fn config(&self) -> PyAmazonS3Config {
+        self.config.config.clone()
+    }
+
+    #[getter]
+    fn client_options(&self) -> Option<PyClientOptions> {
+        self.config.client_options.clone()
+    }
+
+    #[getter]
+    fn retry_config(&self) -> Option<PyRetryConfig> {
+        self.config.retry_config.clone()
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
