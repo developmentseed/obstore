@@ -1554,6 +1554,7 @@ dependencies = [
  "bytes",
  "futures",
  "humantime",
+ "itertools",
  "object_store",
  "pyo3",
  "pyo3-async-runtimes",
