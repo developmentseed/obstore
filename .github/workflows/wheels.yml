@@ -32,7 +32,7 @@ jobs:
             manylinux: auto
           - runner: ubuntu-latest
             target: aarch64
-            manylinux: "2_28"
+            manylinux: "2_24"
           - runner: ubuntu-latest
             target: armv7
             manylinux: auto
