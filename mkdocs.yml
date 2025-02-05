@@ -48,6 +48,7 @@ nav:
       - api/exceptions.md
       - api/file.md
       - fsspec Integration: api/fsspec.md
+  - performance.md
   - Troubleshooting:
       - AWS: troubleshooting/aws.md
   - Advanced:
