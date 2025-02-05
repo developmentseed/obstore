@@ -1,8 +1,6 @@
 use object_store::ObjectStore;
 use pyo3::prelude::*;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
-
-use crate::runtime::get_runtime;
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
 #[pyfunction]
 #[pyo3(signature = (store, from_, to, *, overwrite=true))]

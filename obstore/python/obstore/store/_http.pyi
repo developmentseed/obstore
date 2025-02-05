@@ -56,3 +56,12 @@ class HTTPStore:
 
     def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...
+    @property
+    def url(self) -> str:
+        """Get the base url of this store."""
+    @property
+    def client_options(self) -> ClientConfig | None:
+        """Get the store's client configuration."""
+    @property
+    def retry_config(self) -> RetryConfig | None:
+        """Get the store's retry configuration."""

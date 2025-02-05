@@ -18,10 +18,9 @@ use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreResult};
 
 use crate::attributes::PyAttributes;
-use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
 
 pub(crate) struct PyPutMode(PutMode);

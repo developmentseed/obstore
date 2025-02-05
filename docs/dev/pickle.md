@@ -1,6 +1,6 @@
 # Pickle Implementation
 
-> Last edited 2025-01-31.
+> Last edited 2025-02-04.
 
 [Pickle support](https://github.com/developmentseed/obstore/issues/125) is important but hard to implement. It's important to support because it's commonly used from inside Dask and similar libraries to manage state across distributed workers.
 
@@ -32,7 +32,9 @@ We can't extract the configuration out from a "finished" `object_store` instance
 
 ## Drawbacks
 
-- Because `url` has _deferred parsing_ in the `object_store` builders, we need to maintain `url` as part of the config. Because `url` doesn't get parsed by `object_store` until the `build()` method, and at that point we can no longer access config information from the built `AmazonS3`. Otherwise, pickling would fail for instances created from `S3Store.from_url`.
+- Because `url` has _deferred parsing_ in the `object_store` builders, we need to special-case `url` handling. Naturally, passing `url` to a store with `with_url` means that `object_store` doesn't actually parse the URL until the `build()` method, and at that point we can no longer access config information from the built `AmazonS3`. Without special-casing this URL handling, pickling would fail for instances created from `from_url`.
+
+  Therefore, we handle this by vendoring the small amount of URL parsing from upstream. So we apply the URL parsing onto our config `HashMap`s and _then_ apply those to the builder. So our configs and those used by the raw stores stay in sync. See https://github.com/developmentseed/obstore/pull/209.
 - Unclear how to support middleware, including `PrefixStore`, because those have to support an _arbitrary_ wrapped object. Is there a way to recursively pickle and unpickle the thing it's wrapping?
   - (**Implemented**) If we can't find a way to support pickling of arbitrary middleware, we could alternatively use a `PrefixStore` internally and automatically inside an `S3Store`, `GCSStore`, `AzureStore` (NOTE: we should maybe benchmark the overhead a `PrefixStore` causes, in case it's something we don't want to force on everyone? Well, if the `S3Store` stored an arbitrary `Arc<dyn ObjectStore>` then we could prefix when asked for and not prefix when not asked for, but maybe that would conflict with signing, if that requires a raw `object_store::AmazonS3` instance?). ~~Alternatively, we could create the `PrefixStore` on demand, since it [looks virtually free](https://github.com/apache/arrow-rs/blob/3bf29a2c7474e59722d885cd11fafd0dca13a28e/object_store/src/prefix.rs#L44-L49).~~
 - We don't currently implement pickle support for `MemoryStore`, as we don't have a way to serialize the memory state across workers.

@@ -195,8 +195,11 @@ def list_with_delimiter(store: ObjectStore, prefix: str | None = None) -> ListRe
     metadata.
 
     Prefixes are evaluated on a path segment basis, i.e. `foo/bar/` is a prefix of
-    `foo/bar/x` but not of `foo/bar_baz/x`. List is not recursive, i.e. `foo/bar/more/x`
-    will not be included.
+    `foo/bar/x` but not of `foo/bar_baz/x`. This list is not recursive, i.e. `foo/bar/more/x` will **not** be included.
+
+    !!! note
+        Any prefix supplied to this `prefix` parameter will **not** be stripped off the
+        paths in the result.
 
     Args:
         store: The ObjectStore instance to use.

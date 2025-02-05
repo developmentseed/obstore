@@ -10,13 +10,12 @@ use pyo3::types::PyString;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Lines};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
 
 #[pyfunction]

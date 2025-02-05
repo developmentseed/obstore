@@ -1,9 +1,8 @@
 use futures::{StreamExt, TryStreamExt};
 use pyo3::prelude::*;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
 use crate::path::PyPaths;
-use crate::runtime::get_runtime;
 
 #[pyfunction]
 pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObjectStoreResult<()> {

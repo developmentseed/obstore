@@ -13,6 +13,18 @@ use pyo3::prelude::*;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, IntoPyObject)]
 pub struct PyConfigValue(pub String);
 
+impl PyConfigValue {
+    pub(crate) fn new(val: impl Into<String>) -> Self {
+        Self(val.into())
+    }
+}
+
+impl AsRef<str> for PyConfigValue {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl<'py> FromPyObject<'py> for PyConfigValue {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(val) = ob.extract::<bool>() {

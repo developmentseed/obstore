@@ -14,13 +14,12 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3_object_store::{
-    MaybePrefixedStore, PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult,
-    PyS3Store, PyUrl,
+    get_runtime, MaybePrefixedStore, PyAzureStore, PyGCSStore, PyObjectStoreError,
+    PyObjectStoreResult, PyS3Store, PyUrl,
 };
 use url::Url;
 
 use crate::path::PyPaths;
-use crate::runtime::get_runtime;
 
 #[derive(Debug)]
 pub(crate) enum SignCapableStore {
