@@ -19,7 +19,7 @@ pub fn from_sdk_config(config: SdkConfig) -> AmazonS3Builder {
         builder = builder.with_endpoint(endpoint);
     }
     if let Some(retry_config) = config.retry_config() {
-        builder = builder.with_retry(from_retry_config(&retry_config));
+        builder = builder.with_retry(from_retry_config(retry_config));
     }
 
     builder
@@ -61,25 +61,5 @@ impl CredentialProvider for WrappedAwsCredentialsProvider {
             token: credentials.session_token().map(|s| s.to_string()),
         };
         Ok(Arc::new(credentials))
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use object_store::aws::AwsCredentialProvider;
-
-    #[test]
-    fn tmp() {}
-
-    #[tokio::test]
-    async fn test_s3() {
-        let config = aws_config::from_env();
-
-        let config = aws_config::load_from_env().await;
-        dbg!(&config);
-        let creds = config.credentials_provider().unwrap();
-        // let creds = AWSCredentials(creds).get_credential().await.unwrap();
-        // dbg!(creds);
     }
 }

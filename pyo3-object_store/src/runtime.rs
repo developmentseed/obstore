@@ -30,9 +30,9 @@ pub fn get_runtime(py: Python<'_>) -> PyResult<&'static Runtime> {
     }
 
     let runtime = RUNTIME.get_or_try_init(py, || {
-        Ok::<_, PyErr>(Runtime::new().map_err(|err| {
+        Runtime::new().map_err(|err| {
             PyValueError::new_err(format!("Could not create tokio runtime. {}", err))
-        })?)
+        })
     })?;
     Ok(runtime)
 }
