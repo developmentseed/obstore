@@ -39,6 +39,9 @@ def test_error_overlapping_config_kwargs():
 
 def test_overlapping_config_keys():
     with pytest.raises(BaseError, match="Duplicate key"):
+        S3Store("bucket", config={"aws_skip_signature": True, "skip_signature": True})
+
+    with pytest.raises(BaseError, match="Duplicate key"):
         S3Store("bucket", aws_skip_signature=True, skip_signature=True)
 
     with pytest.raises(BaseError, match="Duplicate key"):
