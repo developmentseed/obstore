@@ -113,7 +113,19 @@ impl PyLocalStore {
     }
 
     #[getter]
-    fn prefix(&self) -> Option<&std::path::PathBuf> {
-        self.config.prefix.as_ref()
+    fn prefix(&self, py: Python) -> PyResult<PyObject> {
+        // Note: returning a std::path::Path or std::path::PathBuf converts back to a Python _str_
+        // not a Python _pathlib.Path_.
+        // So we manually convert to a pathlib.Path
+        if let Some(prefix) = &self.config.prefix {
+            let pathlib_mod = py.import(intern!(py, "pathlib"))?;
+            let path_object = pathlib_mod.call_method1(
+                intern!(py, "Path"),
+                PyTuple::new(py, vec![prefix.into_pyobject(py)?])?,
+            )?;
+            path_object.into_py_any(py)
+        } else {
+            Ok(py.None())
+        }
     }
 }

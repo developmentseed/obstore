@@ -153,6 +153,9 @@ class LocalStore:
 
     def __getnewargs_ex__(self): ...
     def __repr__(self) -> str: ...
+    @property
+    def prefix(self) -> Path | None:
+        """Get the prefix applied to all operations in this store, if any."""
 
 class MemoryStore:
     """A fully in-memory implementation of ObjectStore.

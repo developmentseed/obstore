@@ -54,3 +54,12 @@ def test_create_prefix():
     # Assert that mkdir=True works even when the dir already exists
     LocalStore(tmpdir, mkdir=True)
     assert tmpdir.exists()
+
+
+def test_prefix_property():
+    tmpdir = Path(tempfile.gettempdir())
+    store = LocalStore(tmpdir)
+    assert store.prefix == tmpdir
+    assert isinstance(store.prefix, Path)
+    # Can pass it back to the store init
+    LocalStore(store.prefix)
