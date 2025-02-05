@@ -53,6 +53,7 @@ nav:
   - Advanced:
       - advanced/pickle.md
   - Developer Docs:
+      - dev/functional-api.md
       - dev/pickle.md
   - CHANGELOG.md
 
