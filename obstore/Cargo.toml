@@ -1,6 +1,6 @@
 [package]
 name = "obstore"
-version = "0.4.0-beta.1"
+version = "0.4.0-beta.2"
 authors = { workspace = true }
 edition = { workspace = true }
 description = "The simplest, highest-throughput interface to Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2."
