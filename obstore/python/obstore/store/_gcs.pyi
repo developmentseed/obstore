@@ -110,7 +110,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[GCSConfig],
+        **kwargs: Unpack[GCSConfigInput],
     ) -> None:
         """Construct a new GCSStore.
 
@@ -135,7 +135,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[GCSConfig],
+        **kwargs: Unpack[GCSConfigInput],
     ) -> GCSStore:
         """Construct a new GCSStore with values populated from a well-known storage URL.
 

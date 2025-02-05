@@ -343,13 +343,26 @@ pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
+//
+// We also manually impl this so that we can raise on duplicate keys.
 impl<'py> FromPyObject<'py> for PyAmazonS3Config {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract()?))
+        let mut slf = Self::new();
+        for (key, val) in ob.extract::<Bound<'py, PyDict>>()?.iter() {
+            slf.insert_raising_if_exists(
+                key.extract::<PyAmazonS3ConfigKey>()?,
+                val.extract::<PyConfigValue>()?,
+            )?;
+        }
+        Ok(slf)
     }
 }
 
 impl PyAmazonS3Config {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+
     fn apply_config(self, mut builder: AmazonS3Builder) -> AmazonS3Builder {
         for (key, value) in self.0.into_iter() {
             builder = builder.with_config(key.0, value.0);
@@ -374,7 +387,7 @@ impl PyAmazonS3Config {
         let old_value = self.0.insert(key.clone(), PyConfigValue::new(val.into()));
         if old_value.is_some() {
             return Err(GenericError::new_err(format!(
-                "Duplicate key {} between config and kwargs",
+                "Duplicate key {} provided",
                 key.0.as_ref()
             ))
             .into());

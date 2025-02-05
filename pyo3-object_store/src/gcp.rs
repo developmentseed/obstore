@@ -234,13 +234,26 @@ pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
+//
+// We also manually impl this so that we can raise on duplicate keys.
 impl<'py> FromPyObject<'py> for PyGoogleConfig {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract()?))
+        let mut slf = Self::new();
+        for (key, val) in ob.extract::<Bound<'py, PyDict>>()?.iter() {
+            slf.insert_raising_if_exists(
+                key.extract::<PyGoogleConfigKey>()?,
+                val.extract::<PyConfigValue>()?,
+            )?;
+        }
+        Ok(slf)
     }
 }
 
 impl PyGoogleConfig {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+
     fn apply_config(self, mut builder: GoogleCloudStorageBuilder) -> GoogleCloudStorageBuilder {
         for (key, value) in self.0.into_iter() {
             builder = builder.with_config(key.0, value.0);
@@ -265,7 +278,7 @@ impl PyGoogleConfig {
         let old_value = self.0.insert(key.clone(), PyConfigValue::new(val.into()));
         if old_value.is_some() {
             return Err(GenericError::new_err(format!(
-                "Duplicate key {} between config and kwargs",
+                "Duplicate key {} provided",
                 key.0.as_ref()
             ))
             .into());

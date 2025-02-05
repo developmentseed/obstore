@@ -236,13 +236,26 @@ pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
+//
+// We also manually impl this so that we can raise on duplicate keys.
 impl<'py> FromPyObject<'py> for PyAzureConfig {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract()?))
+        let mut slf = Self::new();
+        for (key, val) in ob.extract::<Bound<'py, PyDict>>()?.iter() {
+            slf.insert_raising_if_exists(
+                key.extract::<PyAzureConfigKey>()?,
+                val.extract::<PyConfigValue>()?,
+            )?;
+        }
+        Ok(slf)
     }
 }
 
 impl PyAzureConfig {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+
     fn apply_config(self, mut builder: MicrosoftAzureBuilder) -> MicrosoftAzureBuilder {
         for (key, value) in self.0.into_iter() {
             builder = builder.with_config(key.0, value.0);
@@ -267,7 +280,7 @@ impl PyAzureConfig {
         let old_value = self.0.insert(key.clone(), PyConfigValue::new(val.into()));
         if old_value.is_some() {
             return Err(GenericError::new_err(format!(
-                "Duplicate key {} between config and kwargs",
+                "Duplicate key {} provided",
                 key.0.as_ref()
             ))
             .into());
