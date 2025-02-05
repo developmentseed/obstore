@@ -140,7 +140,7 @@ impl PyS3Store {
     #[classmethod]
     #[pyo3(signature = ( bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
     #[allow(clippy::too_many_arguments)]
-    fn from_aws_defaults(
+    fn _from_native(
         _cls: &Bound<PyType>,
         py: Python,
         bucket: Option<String>,
