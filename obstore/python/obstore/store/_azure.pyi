@@ -355,7 +355,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        credential_provider: AzureCredentialProvider | None = None,
+        _credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> None:
         """Construct a new AzureStore.
@@ -381,7 +381,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        credential_provider: AzureCredentialProvider | None = None,
+        _credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> AzureStore:
         """Construct a new AzureStore with values populated from a well-known storage URL.

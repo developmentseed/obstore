@@ -121,14 +121,14 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
     fn new_py(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        credential_provider: Option<PyAWSCredentialProvider>,
+        _credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         Self::new(
@@ -138,7 +138,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
-            credential_provider,
+            _credential_provider,
             kwargs,
         )
     }

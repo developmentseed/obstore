@@ -10,6 +10,7 @@ use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 use url::Url;
 
+use crate::azure::credentials::PyAzureCredentialProvider;
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
@@ -77,13 +78,14 @@ impl PyAzureStore {
 impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
     fn new(
         container: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        _credential_provider: Option<PyAzureCredentialProvider>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
@@ -101,6 +103,9 @@ impl PyAzureStore {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
+        if let Some(credential_provider) = _credential_provider {
+            builder = builder.with_credentials(Arc::new(credential_provider));
+        }
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: AzureConfig {
@@ -113,13 +118,14 @@ impl PyAzureStore {
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: PyUrl,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        _credential_provider: Option<PyAzureCredentialProvider>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         // We manually parse the URL to find the prefix because `with_url` does not apply the
@@ -141,6 +147,9 @@ impl PyAzureStore {
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
+        }
+        if let Some(credential_provider) = _credential_provider {
+            builder = builder.with_credentials(Arc::new(credential_provider));
         }
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),

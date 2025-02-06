@@ -610,7 +610,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        credential_provider: S3CredentialProvider | None = None,
+        _credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> None:
         """Create a new S3Store.
