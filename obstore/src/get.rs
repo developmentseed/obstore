@@ -73,7 +73,7 @@ impl From<PyGetOptions> for GetOptions {
 #[derive(FromPyObject)]
 pub(crate) struct PyOffsetRange {
     #[pyo3(item)]
-    offset: usize,
+    offset: u64,
 }
 
 impl From<PyOffsetRange> for GetRange {
@@ -85,7 +85,7 @@ impl From<PyOffsetRange> for GetRange {
 #[derive(FromPyObject)]
 pub(crate) struct PySuffixRange {
     #[pyo3(item)]
-    suffix: usize,
+    suffix: u64,
 }
 
 impl From<PySuffixRange> for GetRange {
@@ -104,7 +104,7 @@ pub(crate) struct PyGetRange(GetRange);
 // - {"suffix": usize} to request the last `n` bytes
 impl<'py> FromPyObject<'py> for PyGetRange {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(bounded) = ob.extract::<[usize; 2]>() {
+        if let Ok(bounded) = ob.extract::<[u64; 2]>() {
             Ok(Self(GetRange::Bounded(bounded[0]..bounded[1])))
         } else if let Ok(offset_range) = ob.extract::<PyOffsetRange>() {
             Ok(Self(offset_range.into()))
@@ -176,7 +176,7 @@ impl PyGetResult {
     }
 
     #[getter]
-    fn range(&self) -> PyResult<(usize, usize)> {
+    fn range(&self) -> PyResult<(u64, u64)> {
         let inner = self.0.lock().unwrap();
         let range = &inner
             .as_ref()
@@ -361,9 +361,9 @@ pub(crate) fn get_range(
     py: Python,
     store: PyObjectStore,
     path: String,
-    start: usize,
-    end: Option<usize>,
-    length: Option<usize>,
+    start: u64,
+    end: Option<u64>,
+    length: Option<u64>,
 ) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
     let runtime = get_runtime(py)?;
     let range = params_to_range(start, end, length)?;
@@ -379,9 +379,9 @@ pub(crate) fn get_range_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    start: usize,
-    end: Option<usize>,
-    length: Option<usize>,
+    start: u64,
+    end: Option<u64>,
+    length: Option<u64>,
 ) -> PyResult<Bound<PyAny>> {
     let range = params_to_range(start, end, length)?;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -395,10 +395,10 @@ pub(crate) fn get_range_async(
 }
 
 fn params_to_range(
-    start: usize,
-    end: Option<usize>,
-    length: Option<usize>,
-) -> PyObjectStoreResult<Range<usize>> {
+    start: u64,
+    end: Option<u64>,
+    length: Option<u64>,
+) -> PyObjectStoreResult<Range<u64>> {
     match (end, length) {
         (Some(_), Some(_)) => {
             Err(PyValueError::new_err("end and length cannot both be non-None.").into())
@@ -415,9 +415,9 @@ pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
     path: String,
-    starts: Vec<usize>,
-    ends: Option<Vec<usize>>,
-    lengths: Option<Vec<usize>>,
+    starts: Vec<u64>,
+    ends: Option<Vec<u64>>,
+    lengths: Option<Vec<u64>>,
 ) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
     let runtime = get_runtime(py)?;
     let ranges = params_to_ranges(starts, ends, lengths)?;
@@ -433,9 +433,9 @@ pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    starts: Vec<usize>,
-    ends: Option<Vec<usize>>,
-    lengths: Option<Vec<usize>>,
+    starts: Vec<u64>,
+    ends: Option<Vec<u64>>,
+    lengths: Option<Vec<u64>>,
 ) -> PyResult<Bound<PyAny>> {
     let ranges = params_to_ranges(starts, ends, lengths)?;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -452,10 +452,10 @@ pub(crate) fn get_ranges_async(
 }
 
 fn params_to_ranges(
-    starts: Vec<usize>,
-    ends: Option<Vec<usize>>,
-    lengths: Option<Vec<usize>>,
-) -> PyObjectStoreResult<Vec<Range<usize>>> {
+    starts: Vec<u64>,
+    ends: Option<Vec<u64>>,
+    lengths: Option<Vec<u64>>,
+) -> PyObjectStoreResult<Vec<Range<u64>>> {
     match (ends, lengths) {
         (Some(_), Some(_)) => {
             Err(PyValueError::new_err("ends and lengths cannot both be non-None.").into())

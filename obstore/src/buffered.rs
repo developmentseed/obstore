@@ -173,7 +173,7 @@ impl PyReadableFile {
     }
 
     #[getter]
-    fn size(&self) -> usize {
+    fn size(&self) -> u64 {
         self.meta.size
     }
 

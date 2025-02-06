@@ -35,7 +35,7 @@ tokio = "1.40"
 url = "2"
 
 [patch.crates-io]
-object_store = { git = "https://github.com/apache/arrow-rs", rev = "74499c0e7846cfbc498bf9fd7a2c1a4c8731c897" }
+object_store = { git = "https://github.com/apache/arrow-rs", rev = "7a15e4b47ca97df2edef689c9f2ebd2f3888b79e" }
 
 [profile.release]
 lto = true
