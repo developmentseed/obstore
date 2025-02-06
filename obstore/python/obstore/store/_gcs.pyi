@@ -1,4 +1,4 @@
-from typing import TypedDict, Unpack
+from typing import Coroutine, Protocol, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -80,6 +80,13 @@ class GCSConfigInput(TypedDict, total=False):
     SERVICE_ACCOUNT: str
     """Path to the service account file."""
 
+class GCSCredential(TypedDict):
+    token: str
+
+class GCSCredentialProvider(Protocol):
+    @staticmethod
+    def __call__() -> GCSCredential | Coroutine[None, None, GCSCredential]: ...
+
 class GCSStore:
     """Interface to Google Cloud Storage.
 
@@ -110,6 +117,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
         **kwargs: Unpack[GCSConfigInput],
     ) -> None:
         """Construct a new GCSStore.
@@ -135,6 +143,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
         **kwargs: Unpack[GCSConfigInput],
     ) -> GCSStore:
         """Construct a new GCSStore with values populated from a well-known storage URL.

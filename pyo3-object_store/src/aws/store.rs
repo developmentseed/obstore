@@ -11,7 +11,7 @@ use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 use url::Url;
 
-use crate::aws::credentials::ExternalAWSCredentialProvider;
+use crate::aws::credentials::PyAWSCredentialProvider;
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
@@ -80,7 +80,7 @@ impl PyS3Store {
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        credential_provider: Option<ExternalAWSCredentialProvider>,
+        credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         let mut config = config.unwrap_or_default();
@@ -128,7 +128,7 @@ impl PyS3Store {
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        credential_provider: Option<ExternalAWSCredentialProvider>,
+        credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         Self::new(

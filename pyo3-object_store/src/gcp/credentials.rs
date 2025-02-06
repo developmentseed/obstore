@@ -1,46 +1,33 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use object_store::aws::AwsCredential;
+use object_store::gcp::GcpCredential;
 use object_store::CredentialProvider;
 use pyo3::intern;
 use pyo3::prelude::*;
 
-struct PyAwsCredential {
-    credential: AwsCredential,
-    // TODO: convert to timestamp
-    // expiration: (),
-}
+struct PyGcpCredential(GcpCredential);
 
-impl<'py> FromPyObject<'py> for PyAwsCredential {
+// Extract the dict {"token": str}
+impl<'py> FromPyObject<'py> for PyGcpCredential {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let py = ob.py();
-        let key_id = ob.get_item(intern!(py, "access_key_id"))?.extract()?;
-        let secret_key = ob.get_item(intern!(py, "secret_access_key"))?.extract()?;
-        // TODO: check this
-        let token = ob.get_item(intern!(py, "token"))?.extract()?;
-        let credential = AwsCredential {
-            key_id,
-            secret_key,
-            token,
-        };
-        Ok(Self {
-            credential,
-            // expiration: (),
-        })
+        let bearer = ob
+            .get_item(intern!(ob.py(), "token"))?
+            .extract::<String>()?;
+        Ok(Self(GcpCredential { bearer }))
     }
 }
 
 #[derive(Debug, FromPyObject)]
-pub struct PyAWSCredentialProvider(PyObject);
+pub struct PyGcpCredentialProvider(PyObject);
 
 enum PyCredentialProviderResult {
     Async(PyObject),
-    Sync(PyAwsCredential),
+    Sync(PyGcpCredential),
 }
 
 impl PyCredentialProviderResult {
-    async fn resolve(self) -> PyResult<PyAwsCredential> {
+    async fn resolve(self) -> PyResult<PyGcpCredential> {
         match self {
             Self::Sync(credentials) => Ok(credentials),
             Self::Async(coroutine) => {
@@ -64,8 +51,8 @@ impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
     }
 }
 
-impl PyAWSCredentialProvider {
-    async fn call(&self) -> PyResult<PyAwsCredential> {
+impl PyGcpCredentialProvider {
+    async fn call(&self) -> PyResult<PyGcpCredential> {
         let call_result =
             Python::with_gil(|py| self.0.call0(py)?.extract::<PyCredentialProviderResult>(py))?;
         let resolved = call_result.resolve().await?;
@@ -75,17 +62,17 @@ impl PyAWSCredentialProvider {
 
 // TODO: store expiration time and only call the external Python function as needed
 #[async_trait]
-impl CredentialProvider for PyAWSCredentialProvider {
-    type Credential = AwsCredential;
+impl CredentialProvider for PyGcpCredentialProvider {
+    type Credential = GcpCredential;
 
     async fn get_credential(&self) -> object_store::Result<Arc<Self::Credential>> {
         let credential = self
             .call()
             .await
             .map_err(|err| object_store::Error::Generic {
-                store: "External AWS credential provider",
+                store: "External GCP credential provider",
                 source: Box::new(err),
             })?;
-        Ok(Arc::new(credential.credential))
+        Ok(Arc::new(credential.0))
     }
 }
