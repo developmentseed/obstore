@@ -66,3 +66,8 @@ jobs:
       - name: Run python tests
         run: |
           uv run pytest tests
+
+      # Ensure docs build without warnings
+      - name: Check docs
+        if: "${{ matrix.python-version == 3.11 }}"
+        run: uv run mkdocs build --strict
