@@ -46,7 +46,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         store: obs.store.ObjectStore,
         *args,
         asynchronous: bool = False,
-        loop=None,
+        loop: Any = None,
         batch_size: int | None = None,
     ):
         """Construct a new AsyncFsspecStore
@@ -192,7 +192,7 @@ class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
 
         Args:
             length: if positive, returns up to this many bytes; if negative, return all
-            remaining byets.
+                remaining byets.
         """
         if length < 0:
             data = self.fs.cat_file(self.path, self.loc, self.size)
