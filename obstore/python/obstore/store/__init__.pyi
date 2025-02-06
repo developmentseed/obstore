@@ -4,6 +4,8 @@ from typing import Any, Unpack, overload
 
 from ._aws import S3Config as S3Config
 from ._aws import S3ConfigInput as S3ConfigInput
+from ._aws import S3Credential as S3Credential
+from ._aws import S3CredentialProvider as S3CredentialProvider
 from ._aws import S3Store as S3Store
 from ._azure import AzureConfig as AzureConfig
 from ._azure import AzureConfigInput as AzureConfigInput

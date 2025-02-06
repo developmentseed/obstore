@@ -11,6 +11,7 @@ use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 use url::Url;
 
+use crate::aws::credentials::ExternalAWSCredentialProvider;
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
@@ -79,6 +80,7 @@ impl PyS3Store {
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        credential_provider: Option<ExternalAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         let mut config = config.unwrap_or_default();
@@ -94,6 +96,9 @@ impl PyS3Store {
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
+        }
+        if let Some(credential_provider) = credential_provider {
+            builder = builder.with_credentials(Arc::new(credential_provider));
         }
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
@@ -116,13 +121,14 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new_py(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        credential_provider: Option<ExternalAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         Self::new(
@@ -132,6 +138,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
+            credential_provider,
             kwargs,
         )
     }
@@ -160,6 +167,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
+            None,
             kwargs,
         )
     }
@@ -226,6 +234,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
+            None,
             kwargs,
         )
     }
@@ -257,6 +266,7 @@ impl PyS3Store {
             Some(config),
             client_options,
             retry_config,
+            None,
             kwargs,
         )
     }

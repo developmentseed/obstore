@@ -37,7 +37,7 @@ impl<'py> FromPyObject<'py> for PyAwsCredential {
 // timeout: datetime | None
 
 #[derive(Debug, FromPyObject)]
-struct ExternalAWSCredentialProvider(PyObject);
+pub struct ExternalAWSCredentialProvider(PyObject);
 
 enum CredentialProviderResult {
     Async(PyObject),
