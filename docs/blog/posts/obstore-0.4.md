@@ -11,9 +11,7 @@ links:
 
 # Releasing obstore 0.4!
 
-Obstore is the simplest, highest-throughput Python interface to Amazon S3, Google Cloud Storage, and Azure Storage, powered by Rust.
-
-This post gives an overview of what's new in obstore version 0.4.
+Obstore is the simplest, highest-throughput Python interface to Amazon S3, Google Cloud Storage, and Azure Storage, powered by Rust. This post gives an overview of what's new in obstore version 0.4.
 
 <!-- more -->
 
@@ -56,13 +54,19 @@ Nevertheless, for best typing support, we still suggest using one of the store-s
 
 ## Pickle support
 
-One of the initial integration targets of obstore is zarr-python.
+One of obstore's initial integration targets is [zarr-python](https://github.com/zarr-developers/zarr-python), which needs to load large chunked N-dimensional arrays from object storage. In our [early benchmarking](https://github.com/maxrjones/zarr-obstore-performance), we've found that the [obstore-based backend](https://github.com/zarr-developers/zarr-python/pull/1661) can cut data loading times in half as compared to the standard fsspec-based backend.
 
-Zarr-python
+However, Zarr is commonly used in distributed execution environments like [Dask](https://www.dask.org/), which needs to be able to move store instances between workers. We've implemented [pickle](https://docs.python.org/3/library/pickle.html) support for store classes to unblock this use case. Read [our pickle documentation](../../advanced/pickle.md) for more info.
 
 ## Enhanced loading of AWS credentials (provisional)
 
-- (Provisional) **Enhanced loading of s3 credentials** using `aws-config` crate by @kylebarron in https://github.com/developmentseed/obstore/pull/203
+By default, each store class expects to find credential information either in environment variables or in passed-in arguments. In the case of AWS, that means the default constructors will not look in file-based credentials sources.
+
+The provisional [`S3Store._from_native`][obstore.store.S3Store._from_native] constructor uses the [official AWS Rust configuration crate](https://docs.rs/aws-config/latest/aws_config/) to find credentials on the file system. This integration is expected to also automatically refresh temporary credentials before expiration.
+
+This API is provisional and may change in the future. If you have any feedback, please [open an issue](https://github.com/developmentseed/obstore/issues/new/choose).
+
+Obstore version 0.5 is expected to improve on extensible credentials by enabling users to pass in arbitrary credentials in a sync or async function callback.
 
 ## Return Arrow data from `list_with_delimiter`
 
@@ -95,10 +99,6 @@ assert store.prefix == new_store.prefix
 assert store.client_options == new_store.client_options
 assert store.retry_config == new_store.retry_config
 ```
-
-- **Access config values out from stores** by @kylebarron in https://github.com/developmentseed/obstore/pull/210
-
-
 
 ## Open remote objects as file-like readers or writers
 
@@ -135,7 +135,7 @@ See [`obstore.open_reader`][] and [`obstore.open_writer`][] for more details. An
 
 ## Benchmarking
 
-Benchmarking is still ongoing, but we've added documentation about
+[Benchmarking is still ongoing](https://github.com/geospatial-jeff/pyasyncio-benchmark), but early results have been very promising and we've [added documentation about our progress so far](../../performance.md).
 
 ## New examples
 
