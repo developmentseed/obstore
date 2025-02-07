@@ -48,6 +48,7 @@ pub fn from_url(
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
+                None,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
@@ -59,6 +60,7 @@ pub fn from_url(
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
+                None,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_pyobject(py)?.into_py_any(py)?)
