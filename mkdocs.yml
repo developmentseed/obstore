@@ -59,7 +59,7 @@ nav:
       - api/exceptions.md
       - api/file.md
       - fsspec Integration: api/fsspec.md
-  - Advanced:
+  - Advanced Topics:
       - advanced/pickle.md
   - Developer Docs:
       - Contributing: dev/DEVELOP.md
