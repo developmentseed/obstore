@@ -229,14 +229,14 @@ def list_with_delimiter(
     """
 
 @overload
-def list_with_delimiter_async(
+async def list_with_delimiter_async(
     store: ObjectStore,
     prefix: str | None = None,
     *,
     return_arrow: Literal[True],
 ) -> ListResult[RecordBatch]: ...
 @overload
-def list_with_delimiter_async(
+async def list_with_delimiter_async(
     store: ObjectStore,
     prefix: str | None = None,
     *,
