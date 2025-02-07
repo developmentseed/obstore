@@ -674,6 +674,12 @@ class S3Store:
             `botocore`. If you're not already using `boto3` or `botocore`, use other
             constructors, which do not need `boto3` or `botocore` to be installed.
 
+        !!! note
+            This will retrieve "frozen" credentials from the boto3 config. That is, the
+            values of `"aws_access_key_id"`, `"aws_secret_access_key"`, and
+            `"aws_session_token"` are static and will not be updated. Consider using the
+            `from_native` constructor to automatically refresh credentials.
+
         Examples:
 
         ```py
