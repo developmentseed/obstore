@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import typing as t
+from typing import Iterable
 
 import pytest
 
@@ -68,7 +68,7 @@ class TestBytesSlice:
 
 def _bytes_slices(
     b: bytes, range_buffer: int = 3
-) -> t.Generator[tuple[int, int, int, bytes], None, None]:
+) -> Iterable[tuple[int, int, int, bytes]]:
     """yield tuples of (start, stop, step, sliced_result) for all possible slices of b."""
     b_len = len(b)
     indices_range = range(-b_len - (range_buffer - 1), b_len + range_buffer)
