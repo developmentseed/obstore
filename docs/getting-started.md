@@ -20,6 +20,8 @@ Alternatively, you can construct a store directly:
 
 Each store concept has a variety of constructors, and a host of configuration options.
 
+Note that each store is scoped to **one bucket**, so you'll have to create a separate store instance per bucket, even if they're in the same region.
+
 **Example:**
 
 For example, multiple ways to create an anonymous `S3Store` client (without any credentials, for use with fully public buckets):
