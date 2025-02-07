@@ -11,7 +11,9 @@ links:
 
 # Releasing obstore 0.4!
 
-Obstore is the simplest, highest-throughput Python interface to Amazon S3, Google Cloud Storage, and Azure Storage, powered by Rust. This post gives an overview of what's new in obstore version 0.4.
+Obstore is the simplest, highest-throughput Python interface to Amazon S3, Google Cloud Storage, and Azure Storage, powered by Rust.
+
+This post gives an overview of what's new in obstore version 0.4.
 
 <!-- more -->
 
