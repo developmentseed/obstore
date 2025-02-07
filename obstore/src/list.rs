@@ -4,7 +4,7 @@ use std::sync::Arc;
 use arrow::array::{
     ArrayRef, RecordBatch, StringBuilder, TimestampMicrosecondBuilder, UInt64Builder,
 };
-use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
@@ -14,7 +14,7 @@ use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{intern, IntoPyObjectExt};
-use pyo3_arrow::PyRecordBatch;
+use pyo3_arrow::{PyRecordBatch, PyTable};
 use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
@@ -218,9 +218,33 @@ impl PyRecordBatchWrapper {
     fn new(batch: RecordBatch) -> Self {
         Self(PyRecordBatch::new(batch))
     }
+
+    fn into_table(self) -> PyResult<PyTableWrapper> {
+        let batch = self.0.into_inner();
+        let schema = batch.schema();
+        PyTableWrapper::new(vec![batch], schema)
+    }
 }
 
 impl<'py> IntoPyObject<'py> for PyRecordBatchWrapper {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.0.to_arro3(py)?.bind(py).clone())
+    }
+}
+
+struct PyTableWrapper(PyTable);
+
+impl PyTableWrapper {
+    fn new(batches: Vec<RecordBatch>, schema: SchemaRef) -> PyResult<Self> {
+        Ok(Self(PyTable::try_new(batches, schema)?))
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyTableWrapper {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
     type Error = PyErr;
@@ -348,7 +372,9 @@ impl<'py> IntoPyObject<'py> for PyListResult {
             .map(PyObjectMeta)
             .collect::<Vec<_>>();
         let objects = if self.return_arrow {
-            object_meta_to_arrow(&objects).into_bound_py_any(py)
+            object_meta_to_arrow(&objects)
+                .into_table()?
+                .into_bound_py_any(py)
         } else {
             objects.into_bound_py_any(py)
         }?;

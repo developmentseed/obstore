@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
 
-from arro3.core import RecordBatch
+from arro3.core import RecordBatch, Table
 
 from .store import ObjectStore
 
@@ -39,7 +39,7 @@ class ListResult(TypedDict, Generic[ListChunkType]):
     objects: ListChunkType
     """Object metadata for the listing"""
 
-ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch)
+ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)
 """The data structure used for holding
 
 By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
@@ -200,7 +200,7 @@ def list_with_delimiter(
     prefix: str | None = None,
     *,
     return_arrow: Literal[True],
-) -> ListResult[RecordBatch]: ...
+) -> ListResult[Table]: ...
 @overload
 def list_with_delimiter(
     store: ObjectStore,
@@ -213,7 +213,7 @@ def list_with_delimiter(
     prefix: str | None = None,
     *,
     return_arrow: bool = False,
-) -> ListResult[RecordBatch] | ListResult[List[ObjectMeta]]:
+) -> ListResult[Table] | ListResult[List[ObjectMeta]]:
     """
     List objects with the given prefix and an implementation specific
     delimiter. Returns common prefixes (directories) in addition to object
@@ -240,7 +240,7 @@ async def list_with_delimiter_async(
     prefix: str | None = None,
     *,
     return_arrow: Literal[True],
-) -> ListResult[RecordBatch]: ...
+) -> ListResult[Table]: ...
 @overload
 async def list_with_delimiter_async(
     store: ObjectStore,
@@ -253,7 +253,7 @@ async def list_with_delimiter_async(
     prefix: str | None = None,
     *,
     return_arrow: bool = False,
-) -> ListResult[RecordBatch] | ListResult[List[ObjectMeta]]:
+) -> ListResult[Table] | ListResult[List[ObjectMeta]]:
     """Call `list_with_delimiter` asynchronously.
 
     Refer to the documentation for

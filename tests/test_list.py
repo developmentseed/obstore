@@ -1,5 +1,5 @@
 import pytest
-from arro3.core import RecordBatch
+from arro3.core import RecordBatch, Table
 
 import obstore as obs
 from obstore.store import MemoryStore
@@ -84,6 +84,7 @@ def test_list_with_delimiter():
     list_result1 = obs.list_with_delimiter(store, return_arrow=True)
     assert list_result1["common_prefixes"] == ["a", "b"]
     assert list_result1["objects"].num_rows == 0
+    assert isinstance(list_result1["objects"], Table)
 
     list_result2 = obs.list_with_delimiter(store, "a", return_arrow=True)
     assert list_result2["common_prefixes"] == []
@@ -117,6 +118,7 @@ async def test_list_with_delimiter_async():
     list_result1 = await obs.list_with_delimiter_async(store, return_arrow=True)
     assert list_result1["common_prefixes"] == ["a", "b"]
     assert list_result1["objects"].num_rows == 0
+    assert isinstance(list_result1["objects"], Table)
 
     list_result2 = await obs.list_with_delimiter_async(store, "a", return_arrow=True)
     assert list_result2["common_prefixes"] == []
