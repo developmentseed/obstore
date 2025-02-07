@@ -26,7 +26,7 @@ class ObjectMeta(TypedDict):
     version: str | None
     """A version indicator for this object"""
 
-class ListResult(TypedDict):
+class ListResult(TypedDict, Generic[ChunkType]):
     """
     Result of a list call that includes objects, prefixes (directories) and a token for
     the next set of results. Individual result sets may be limited to 1,000 objects
@@ -36,7 +36,7 @@ class ListResult(TypedDict):
     common_prefixes: List[str]
     """Prefixes that are common (like directories)"""
 
-    objects: List[ObjectMeta]
+    objects: ChunkType
     """Object metadata for the listing"""
 
 ChunkType = TypeVar("ChunkType", List[ObjectMeta], RecordBatch)
@@ -188,7 +188,26 @@ def list(
         A ListStream, which you can iterate through to access list results.
     """
 
-def list_with_delimiter(store: ObjectStore, prefix: str | None = None) -> ListResult:
+@overload
+def list_with_delimiter(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    return_arrow: Literal[True],
+) -> ListResult[RecordBatch]: ...
+@overload
+def list_with_delimiter(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    return_arrow: Literal[False] = False,
+) -> ListResult[List[ObjectMeta]]: ...
+def list_with_delimiter(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    return_arrow: bool = False,
+) -> ListResult[RecordBatch] | ListResult[List[ObjectMeta]]:
     """
     List objects with the given prefix and an implementation specific
     delimiter. Returns common prefixes (directories) in addition to object
@@ -209,9 +228,26 @@ def list_with_delimiter(store: ObjectStore, prefix: str | None = None) -> ListRe
         ListResult
     """
 
+@overload
+def list_with_delimiter_async(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    return_arrow: Literal[True],
+) -> ListResult[RecordBatch]: ...
+@overload
+def list_with_delimiter_async(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    return_arrow: Literal[False] = False,
+) -> ListResult[List[ObjectMeta]]: ...
 async def list_with_delimiter_async(
-    store: ObjectStore, prefix: str | None = None
-) -> ListResult:
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    return_arrow: bool = False,
+) -> ListResult[RecordBatch] | ListResult[List[ObjectMeta]]:
     """Call `list_with_delimiter` asynchronously.
 
     Refer to the documentation for
