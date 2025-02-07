@@ -25,6 +25,7 @@
 
 - `get_range`, `get_range_async`, `get_ranges`, and `get_ranges_async` now require named parameters for `start`, `end`, and `length` to make the semantics of the range request fully explicit. by @kylebarron in https://github.com/developmentseed/obstore/pull/156
 - Previously, individual stores did not manage a prefix path within the remote resource and [`PrefixStore`](https://developmentseed.org/obstore/v0.3.0/api/store/middleware/#obstore.store.PrefixStore) was used to enable this. As of 0.4.0, `PrefixStore` was removed and all stores manage an optional mount prefix natively.
+- `obstore.open` has been renamed to `obstore.open_reader`.
 - The `from_env` constructor has been removed from `S3Store`, `GCSStore`, and `AzureStore`. Now all constructors will read from environment variables. Use `__init__` or `from_url` instead. https://github.com/developmentseed/obstore/pull/189
 - `obstore.exceptions.ObstoreError` renamed to `obstore.exceptions.BaseError` https://github.com/developmentseed/obstore/pull/200
 

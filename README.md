@@ -11,7 +11,11 @@
 [pypi-img]: https://img.shields.io/pypi/dm/obstore
 [pypi-link]: https://pypi.org/project/obstore/
 
-The simplest, highest-throughput [^1] interface to Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
+The simplest, highest-throughput [^1] Python interface to [S3][s3], [GCS][gcs], [Azure Storage][azure_storage], & other S3-compliant APIs, powered by Rust.
+
+[s3]: https://aws.amazon.com/s3/
+[gcs]: https://cloud.google.com/storage
+[azure_storage]: https://learn.microsoft.com/en-us/azure/storage/common/storage-introduction
 
 - Sync and async API with **full type hinting**.
 - **Streaming downloads** with configurable chunking.
