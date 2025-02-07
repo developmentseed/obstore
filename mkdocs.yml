@@ -25,6 +25,7 @@ nav:
   - cookbook.md
   - Examples:
       - examples/fastapi.md
+      - examples/minio.md
       - examples/tqdm.md
   - API Reference:
       - obstore.store:
