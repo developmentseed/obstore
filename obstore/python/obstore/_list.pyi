@@ -26,7 +26,7 @@ class ObjectMeta(TypedDict):
     version: str | None
     """A version indicator for this object"""
 
-class ListResult(TypedDict, Generic[ChunkType]):
+class ListResult(TypedDict, Generic[ListChunkType]):
     """
     Result of a list call that includes objects, prefixes (directories) and a token for
     the next set of results. Individual result sets may be limited to 1,000 objects
@@ -36,12 +36,18 @@ class ListResult(TypedDict, Generic[ChunkType]):
     common_prefixes: List[str]
     """Prefixes that are common (like directories)"""
 
-    objects: ChunkType
+    objects: ListChunkType
     """Object metadata for the listing"""
 
-ChunkType = TypeVar("ChunkType", List[ObjectMeta], RecordBatch)
+ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch)
+"""The data structure used for holding
 
-class ListStream(Generic[ChunkType]):
+By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
+for improved performance when listing large buckets, you can pass `return_arrow=True`.
+Then an Arrow `RecordBatch` will be returned instead.
+"""
+
+class ListStream(Generic[ListChunkType]):
     """
     A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
     async fashion.
@@ -52,24 +58,24 @@ class ListStream(Generic[ChunkType]):
     def __iter__(self) -> Self:
         """Return `Self` as an async iterator."""
 
-    async def collect_async(self) -> ChunkType:
+    async def collect_async(self) -> ListChunkType:
         """Collect all remaining ObjectMeta objects in the stream.
 
         This ignores the `chunk_size` parameter from the `list` call and collects all
         remaining data into a single chunk.
         """
 
-    def collect(self) -> ChunkType:
+    def collect(self) -> ListChunkType:
         """Collect all remaining ObjectMeta objects in the stream.
 
         This ignores the `chunk_size` parameter from the `list` call and collects all
         remaining data into a single chunk.
         """
 
-    async def __anext__(self) -> ChunkType:
+    async def __anext__(self) -> ListChunkType:
         """Return the next chunk of ObjectMeta in the stream."""
 
-    def __next__(self) -> ChunkType:
+    def __next__(self) -> ListChunkType:
         """Return the next chunk of ObjectMeta in the stream."""
 
 @overload

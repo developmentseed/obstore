@@ -26,6 +26,7 @@ from ._get import get_ranges as get_ranges
 from ._get import get_ranges_async as get_ranges_async
 from ._head import head as head
 from ._head import head_async as head_async
+from ._list import ListChunkType as ListChunkType
 from ._list import ListResult as ListResult
 from ._list import ListStream as ListStream
 from ._list import ObjectMeta as ObjectMeta
