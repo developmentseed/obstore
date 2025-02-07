@@ -44,10 +44,17 @@ fn check_debug_build(_py: Python) -> PyResult<()> {
     Ok(())
 }
 
+#[pyfunction]
+pub(crate) fn return_none_async(py: Python) -> PyResult<Bound<PyAny>> {
+    pyo3_async_runtimes::tokio::future_into_py(py, async move { Ok(()) })
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     check_debug_build(py)?;
+
+    m.add_wrapped(wrap_pyfunction!(return_none_async))?;
 
     m.add_wrapped(wrap_pyfunction!(___version))?;
 
