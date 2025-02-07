@@ -6,11 +6,11 @@
 
 ### API Differences
 
-Like Obstore, fsspec presents an abstraction layer that allows you to write code once to interface to multiple cloud providers. However, the abstracted API each presents is different. Obstore tries to mirror native APIs of object stores while fsspec tries to mirror a file-like API.
+Like Obstore, fsspec presents an abstraction layer that allows you to write code once to interface to multiple cloud providers. However, the abstracted API each presents is different. Obstore tries to mirror **native object store** APIs while fsspec tries to mirror a **file-like** API.
 
 The upstream Rust library powering obstore, [`object_store`](https://docs.rs/object_store), documents why [it intentionally avoids](https://docs.rs/object_store/latest/object_store/index.html#why-not-a-filesystem-interface) a primary file-like API:
 
-> The `ObjectStore` interface is designed to mirror the APIs of object stores and not filesystems, and thus has stateless APIs instead of cursor based interfaces such as Read or Seek available in filesystems.
+> The `ObjectStore` interface is designed to mirror the APIs of object stores and not filesystems, and thus has stateless APIs instead of cursor based interfaces such as `Read` or `Seek` available in filesystems.
 >
 > This design provides the following advantages:
 >

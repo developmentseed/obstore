@@ -88,12 +88,12 @@
 - Add note that S3Store can be constructed without boto3 by @kylebarron in https://github.com/developmentseed/obstore/pull/108
 - HTTP Store usage example by @kylebarron in https://github.com/developmentseed/obstore/pull/142
 
-## What's Changed
+### What's Changed
 
 - Improved docs for from_url by @kylebarron in https://github.com/developmentseed/obstore/pull/138
 - Implement read_all for async iterable by @kylebarron in https://github.com/developmentseed/obstore/pull/140
 
-## New Contributors
+### New Contributors
 
 - @willemarcel made their first contribution in https://github.com/developmentseed/obstore/pull/64
 - @martindurant made their first contribution in https://github.com/developmentseed/obstore/pull/63
