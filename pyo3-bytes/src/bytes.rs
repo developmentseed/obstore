@@ -186,21 +186,27 @@ impl PyBytes {
         self.0.as_ref() == other.0.as_ref()
     }
 
-    fn __getitem__<'py>(&self, py: Python<'py>, key: BytesGetItemKey<'py>) -> PyResult<PyObject> {
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        key: BytesGetItemKey<'py>,
+    ) -> PyResult<Bound<'py, PyAny>> {
         match key {
             BytesGetItemKey::Int(mut index) => {
                 if index < 0 {
                     index += self.0.len() as isize;
                 }
-
+                if index < 0 {
+                    return Err(PyIndexError::new_err("Index out of range"));
+                }
                 self.0
                     .get(index as usize)
                     .ok_or(PyIndexError::new_err("Index out of range"))?
-                    .into_py_any(py)
+                    .into_bound_py_any(py)
             }
             BytesGetItemKey::Slice(slice) => {
                 let s = self.slice(&slice)?;
-                s.into_py_any(py)
+                s.into_bound_py_any(py)
             }
         }
     }
@@ -404,7 +410,7 @@ impl<'py> FromPyObject<'py> for PyBytes {
 ///
 /// This also implements AsRef<[u8]> because that is required for Bytes::from_owner
 #[derive(Debug)]
-pub struct PyBytesWrapper(Option<PyBuffer<u8>>);
+struct PyBytesWrapper(Option<PyBuffer<u8>>);
 
 impl Drop for PyBytesWrapper {
     #[allow(unsafe_code)]
@@ -490,7 +496,7 @@ impl std::fmt::Debug for PyBytes {
 
 /// A key for the `__getitem__` method of `PyBytes` - int/slice
 #[derive(FromPyObject)]
-pub enum BytesGetItemKey<'py> {
+enum BytesGetItemKey<'py> {
     /// An integer index
     Int(isize),
     /// A python slice
