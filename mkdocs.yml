@@ -17,16 +17,25 @@ extra:
     - icon: "fontawesome/brands/linkedin"
       link: "https://www.linkedin.com/company/development-seed"
   version:
+    alias: true
     provider: mike
 
 nav:
   - "index.md"
-  - getting-started.md
-  - cookbook.md
+  - User Guide:
+      - getting-started.md
+      - cookbook.md
+      - integrations.md
+      - performance.md
+      - Alternatives: alternatives.md
+      - Troubleshooting:
+          - AWS: troubleshooting/aws.md
   - Examples:
       - examples/fastapi.md
       - examples/minio.md
       - examples/tqdm.md
+  - Blog:
+      - blog/index.md
   - API Reference:
       - obstore.store:
           - api/store/index.md
@@ -50,15 +59,11 @@ nav:
       - api/exceptions.md
       - api/file.md
       - fsspec Integration: api/fsspec.md
-  - integrations.md
-  - performance.md
-  - Troubleshooting:
-      - AWS: troubleshooting/aws.md
   - Advanced:
       - advanced/pickle.md
   - Developer Docs:
-      - dev/DEVELOP.md
-      - dev/functional-api.md
+      - Contributing: dev/DEVELOP.md
+      - Functional API: dev/functional-api.md
       - dev/pickle.md
   - CHANGELOG.md
 
@@ -67,7 +72,9 @@ watch:
   - docs
 
 theme:
+  language: en
   name: material
+  custom_dir: docs/overrides
   logo: assets/logo_no_text.png
   palette:
     # Palette toggle for automatic mode
@@ -110,6 +117,7 @@ extra_css:
   - overrides/stylesheets/extra.css
 
 plugins:
+  - blog
   - search
   - social
   - mike:
