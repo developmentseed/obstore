@@ -3,8 +3,7 @@ import sys
 from typing import Tuple
 from urllib.parse import urlsplit
 
-import tqdm
-import tqdm.asyncio
+from tqdm import tqdm
 
 import obstore as obs
 from obstore.store import HTTPStore
@@ -17,7 +16,7 @@ def sync_download_progress_bar(url: str):
     store, path = parse_url(url)
     resp = obs.get(store, path)
     file_size = resp.meta["size"]
-    with tqdm.tqdm(total=file_size) as pbar:
+    with tqdm(total=file_size) as pbar:
         for bytes_chunk in resp:
             # Do something with buffer
             pbar.update(len(bytes_chunk))
@@ -25,9 +24,9 @@ def sync_download_progress_bar(url: str):
 
 async def async_download_progress_bar(url: str):
     store, path = parse_url(url)
-    resp = obs.get(store, path)
+    resp = await obs.get_async(store, path)
     file_size = resp.meta["size"]
-    with tqdm.tqdm(total=file_size) as pbar:
+    with tqdm(total=file_size) as pbar:
         async for bytes_chunk in resp:
             # Do something with buffer
             pbar.update(len(bytes_chunk))

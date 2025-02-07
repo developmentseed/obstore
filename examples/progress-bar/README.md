@@ -2,6 +2,8 @@
 
 Example displaying a progress bar from a streaming response using [`tqdm`](https://tqdm.github.io/).
 
+![](./example.gif)
+
 ```shell
 uv run python main.py
 ```
