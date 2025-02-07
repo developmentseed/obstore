@@ -20,6 +20,15 @@ def test_delete_one():
     assert len(obs.list(store).collect()) == 0
 
 
+@pytest.mark.asyncio
+async def test_delete_async():
+    store = MemoryStore()
+
+    await obs.put_async(store, "file1.txt", b"foo")
+    result = await obs.delete_async(store, "file1.txt")
+    assert result is None
+
+
 def test_delete_many():
     store = MemoryStore()
 

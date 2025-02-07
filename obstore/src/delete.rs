@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
 use crate::path::PyPaths;
+use crate::utils::PyNone;
 
 #[pyfunction]
 pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObjectStoreResult<()> {
@@ -49,6 +50,6 @@ pub(crate) fn delete_async(
                     .map_err(PyObjectStoreError::ObjectStoreError)?;
             }
         }
-        Ok(())
+        Ok(PyNone)
     })
 }
