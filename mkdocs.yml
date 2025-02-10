@@ -1,7 +1,7 @@
 site_name: obstore
 repo_name: developmentseed/obstore
 repo_url: https://github.com/developmentseed/obstore
-site_description: A Python interface and pyo3 integration to the Rust object-store crate.
+site_description: The simplest, highest-throughput Python interface to S3, GCS & Azure Storage, powered by Rust.
 site_author: Development Seed
 # Note: trailing slash recommended with mike:
 # https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/#publishing-a-new-version
