@@ -133,3 +133,37 @@ def test_get_ranges():
 
     for start, end, buffer in zip(starts, ends, buffers):
         assert memoryview(buffer) == data[start:end]
+
+
+def test_get_range_invalid_range():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+    obs.put(store, path, data)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_range(store, path, start=10, end=10)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_range(store, path, start=10, end=8)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_range(store, path, start=10, length=0)
+
+
+def test_get_ranges_invalid_range():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+    obs.put(store, path, data)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_ranges(store, path, starts=[10], ends=[10])
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_ranges(store, path, starts=[10, 20], ends=[18, 18])
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_ranges(store, path, starts=[10, 20], lengths=[10, 0])
