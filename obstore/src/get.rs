@@ -404,8 +404,8 @@ fn params_to_range(
             Err(PyValueError::new_err("end and length cannot both be non-None.").into())
         }
         (None, None) => Err(PyValueError::new_err("Either end or length must be non-None.").into()),
-        (Some(end), None) => Ok(start..end),
-        (None, Some(length)) => Ok(start..start + length),
+        (Some(end), None) => validate_range(start..end),
+        (None, Some(length)) => validate_range(start..start + length),
     }
 }
 
@@ -463,15 +463,38 @@ fn params_to_ranges(
         (None, None) => {
             Err(PyValueError::new_err("Either ends or lengths must be non-None.").into())
         }
-        (Some(ends), None) => Ok(starts
+        (Some(ends), None) => starts
             .into_iter()
             .zip(ends)
             .map(|(start, end)| start..end)
-            .collect()),
-        (None, Some(lengths)) => Ok(starts
+            .map(validate_range)
+            .collect(),
+        (None, Some(lengths)) => starts
             .into_iter()
             .zip(lengths)
             .map(|(start, length)| start..start + length)
-            .collect()),
+            .map(validate_range)
+            .collect(),
     }
+}
+
+fn validate_range(r: Range<u64>) -> PyObjectStoreResult<Range<u64>> {
+    if r.end <= r.start {
+        return Err(PyValueError::new_err(format!(
+            "Invalid range requested, start: {} end: {}",
+            r.start, r.end
+        ))
+        .into());
+    }
+
+    if (r.end - r.start) > usize::MAX as u64 {
+        return Err(PyValueError::new_err(format!(
+            "Range {} is larger than system memory limit {}",
+            r.start,
+            usize::MAX
+        ))
+        .into());
+    }
+
+    Ok(r)
 }
