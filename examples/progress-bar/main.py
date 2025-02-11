@@ -1,6 +1,6 @@
+# ruff: noqa
 import asyncio
 import sys
-from typing import Tuple
 from urllib.parse import urlsplit
 
 from tqdm import tqdm
@@ -32,7 +32,7 @@ async def async_download_progress_bar(url: str):
             pbar.update(len(bytes_chunk))
 
 
-def parse_url(url: str) -> Tuple[HTTPStore, str]:
+def parse_url(url: str) -> tuple[HTTPStore, str]:
     parsed = urlsplit(url)
     if parsed.query or parsed.fragment:
         raise ValueError("Invalid URL: query or fragment not supported in HTTPStore")
