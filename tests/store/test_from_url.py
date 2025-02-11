@@ -24,7 +24,7 @@ def test_s3_params():
     from_url(
         "s3://bucket/path",
         access_key_id="access_key_id",
-        secret_access_key="secret_access_key",
+        secret_access_key="secret_access_key",  # noqa: S106
     )
 
     with pytest.raises(UnknownConfigurationKeyError):

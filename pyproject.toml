@@ -31,7 +31,7 @@ dev-dependencies = [
 [tool.uv.workspace]
 members = ["examples/fastapi-example"]
 
-[tool.ruff]
+[tool.ruff.lint]
 select = [
     "ALL",
     # # Pyflakes
@@ -49,6 +49,7 @@ ignore = [
     "PYI021", # docstring-in-stub
     "PYI011", # typed-argument-default-in-stub
     "TD",     # Todo comments
+    "TRY003", # Avoid specifying long messages outside the exception class
 ]
 
 [tool.ruff.lint.per-file-ignores]

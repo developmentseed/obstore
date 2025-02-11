@@ -32,6 +32,8 @@ integration.
 
 # ruff: noqa: ANN401
 # Dynamically typed expressions (typing.Any) are disallowed
+# ruff: noqa: PTH123
+# `open()` should be replaced by `Path.open()`
 
 from __future__ import annotations
 
@@ -113,10 +115,10 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _pipe_file(
         self,
         path: str,
-        value,
-        mode: str = "overwrite",
+        value: Any,
+        mode: str = "overwrite",  # noqa: ARG002
         **_kwargs: Any,
-    ):
+    ) -> Any:
         return await obs.put_async(self.store, path, value)
 
     async def _cat_file(
@@ -138,7 +140,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         range_bytes = await obs.get_range_async(self.store, path, start=start, end=end)
         return range_bytes.to_bytes()
 
-    async def _cat_ranges(
+    async def _cat_ranges(  # noqa: PLR0913
         self,
         paths: list[str],
         starts: list[int] | int,
@@ -183,12 +185,22 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
         return output_buffers
 
-    async def _put_file(self, lpath: str, rpath: str, **_kwargs: Any):
-        with open(lpath, "rb") as f:
+    async def _put_file(
+        self,
+        lpath: str,
+        rpath: str,
+        mode: str = "overwrite",  # noqa: ARG002
+        **_kwargs: Any,
+    ) -> None:
+        # TODO: convert to use async file system methods using LocalStore
+        # Async functions should not open files with blocking methods like `open`
+        with open(lpath, "rb") as f:  # noqa: ASYNC230
             await obs.put_async(self.store, rpath, f)
 
-    async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any):
-        with open(lpath, "wb") as f:
+    async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
+        # TODO: convert to use async file system methods using LocalStore
+        # Async functions should not open files with blocking methods like `open`
+        with open(lpath, "wb") as f:  # noqa: ASYNC230
             resp = await obs.get_async(self.store, rpath)
             async for buffer in resp.stream():
                 f.write(buffer)
@@ -241,13 +253,30 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             ] + [{"name": obj, "size": 0, "type": "directory"} for obj in prefs]
         return sorted([obj["path"] for obj in objects] + prefs)
 
-    def _open(self, path: str, mode: str = "rb", **kwargs: Any):
+    def _open(
+        self,
+        path: str,
+        mode: str = "rb",
+        block_size: Any = None,  # noqa: ARG002
+        autocommit: Any = True,  # noqa: ARG002, FBT002
+        cache_options: Any = None,  # noqa: ARG002
+        **kwargs: Any,
+    ) -> BufferedFileSimple:
         """Return raw bytes-mode file-like from the file-system."""
         return BufferedFileSimple(self, path, mode, **kwargs)
 
 
 class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
-    def __init__(self, fs, path, mode="rb", **kwargs):
+    """Implementation of buffered file around `fsspec.spec.AbstractBufferedFile`."""
+
+    def __init__(
+        self,
+        fs: AsyncFsspecStore,
+        path: str,
+        mode: str = "rb",
+        **kwargs: Any,
+    ) -> None:
+        """Create new buffered file."""
         if mode != "rb":
             raise ValueError("Only 'rb' mode is currently supported")
         super().__init__(fs, path, mode, **kwargs)
