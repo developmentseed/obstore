@@ -44,10 +44,11 @@ select = [
 ]
 ignore = [
     "D104",   # Missing docstring in public package
-    "TD",     # Todo comments
+    "EM101",
     "FIX002", # Line contains TODO, consider resolving the issue
     "PYI021", # docstring-in-stub
     "PYI011", # typed-argument-default-in-stub
+    "TD",     # Todo comments
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -291,7 +291,7 @@ def get_range(
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
 
-    Other Args:
+    Keyword Args:
         start: The start of the byte range.
         end: The end of the byte range (exclusive). Either `end` or `length` must be non-None.
         length: The number of bytes of the byte range. Either `end` or `length` must be non-None.
