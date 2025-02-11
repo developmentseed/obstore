@@ -30,7 +30,7 @@ async def test_put_non_multipart_async_iterable():
     b = b"the quick brown fox jumps over the lazy dog,"
 
     async def it():
-        for i in range(5):
+        for _ in range(5):
             yield b"the quick brown fox jumps over the lazy dog,"
 
     await obs.put_async(store, "file1.txt", it(), use_multipart=False)
