@@ -1,7 +1,6 @@
-import os
 import sys
 from contextlib import AbstractAsyncContextManager, AbstractContextManager
-from typing import Dict, List, Self
+from typing import Self
 
 from ._attributes import Attributes
 from ._bytes import Bytes
@@ -14,7 +13,10 @@ else:
     from typing_extensions import Buffer
 
 def open_reader(
-    store: ObjectStore, path: str, *, buffer_size: int = 1024 * 1024
+    store: ObjectStore,
+    path: str,
+    *,
+    buffer_size: int = 1024 * 1024,
 ) -> ReadableFile:
     """Open a readable file object from the specified location.
 
@@ -27,10 +29,14 @@ def open_reader(
 
     Returns:
         ReadableFile
+
     """
 
 async def open_reader_async(
-    store: ObjectStore, path: str, *, buffer_size: int = 1024 * 1024
+    store: ObjectStore,
+    path: str,
+    *,
+    buffer_size: int = 1024 * 1024,
 ) -> AsyncReadableFile:
     """Call `open_reader` asynchronously, returning a readable file object with asynchronous operations.
 
@@ -58,7 +64,7 @@ class ReadableFile:
     [`get_ranges`][obstore.get_ranges], which will optimise the vectored IO.
 
     [high first-byte latencies]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html
-    """
+    """  # noqa: D205
 
     def close(self) -> None:
         """Close the current file.
@@ -68,31 +74,30 @@ class ReadableFile:
 
     @property
     def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file"""
+        """Access the metadata of the underlying file."""
 
     def read(self, size: int | None = None, /) -> Bytes:
-        """
-        Read up to `size` bytes from the object and return them. As a convenience, if
-        size is unspecified or `None`, all bytes until EOF are returned.
+        """Read up to `size` bytes from the object and return them.
+
+        As a convenience, if size is unspecified or `None`, all bytes until EOF are
+        returned.
         """
 
     def readall(self) -> Bytes:
-        """
-        Read and return all the bytes from the stream until EOF, using multiple calls to
-        the stream if necessary.
-        """
+        """Read and return all the bytes from the stream until EOF."""
 
     def readline(self) -> Bytes:
         """Read a single line of the file, up until the next newline character."""
 
-    def readlines(self, hint: int = -1, /) -> List[Bytes]:
-        """Read all remaining lines into a list of buffers"""
+    def readlines(self, hint: int = -1, /) -> list[Bytes]:
+        """Read all remaining lines into a list of buffers."""
 
-    def seek(self, offset: int, whence: int = os.SEEK_SET, /) -> int:
-        """
-        Change the stream position to the given byte _offset_, interpreted relative to
-        the position indicated by _whence_, and return the new absolute position. Values
-        for _whence_ are:
+    def seek(self, offset: int, whence: int = ..., /) -> int:
+        """Change the stream position.
+
+        Change the stream position to the given byte `offset`, interpreted relative to
+        the position indicated by `whence`, and return the new absolute position. Values
+        for `whence` are:
 
         - [`os.SEEK_SET`][] or 0: start of the stream (the default); `offset` should be zero or positive
         - [`os.SEEK_CUR`][] or 1: current stream position; `offset` may be negative
@@ -130,7 +135,7 @@ class AsyncReadableFile:
     [`get_ranges`][obstore.get_ranges], which will optimise the vectored IO.
 
     [high first-byte latencies]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html
-    """
+    """  # noqa: D205
 
     def close(self) -> None:
         """Close the current file.
@@ -140,31 +145,30 @@ class AsyncReadableFile:
 
     @property
     def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file"""
+        """Access the metadata of the underlying file."""
 
     async def read(self, size: int | None = None, /) -> Bytes:
-        """
-        Read up to `size` bytes from the object and return them. As a convenience, if
-        size is unspecified or `None`, all bytes until EOF are returned.
+        """Read up to `size` bytes from the object and return them.
+
+        As a convenience, if size is unspecified or `None`, all bytes until EOF are
+        returned.
         """
 
     async def readall(self) -> Bytes:
-        """
-        Read and return all the bytes from the stream until EOF, using multiple calls to
-        the stream if necessary.
-        """
+        """Read and return all the bytes from the stream until EOF."""
 
     async def readline(self) -> Bytes:
         """Read a single line of the file, up until the next newline character."""
 
-    async def readlines(self, hint: int = -1, /) -> List[Bytes]:
-        """Read all remaining lines into a list of buffers"""
+    async def readlines(self, hint: int = -1, /) -> list[Bytes]:
+        """Read all remaining lines into a list of buffers."""
 
-    async def seek(self, offset: int, whence: int = os.SEEK_SET, /) -> int:
-        """
-        Change the stream position to the given byte _offset_, interpreted relative to
-        the position indicated by _whence_, and return the new absolute position. Values
-        for _whence_ are:
+    async def seek(self, offset: int, whence: int = ..., /) -> int:
+        """Change the stream position.
+
+        Change the stream position to the given byte `offset`, interpreted relative to
+        the position indicated by `whence`, and return the new absolute position. Values
+        for `whence` are:
 
         - [`os.SEEK_SET`][] or 0: start of the stream (the default); `offset` should be zero or positive
         - [`os.SEEK_CUR`][] or 1: current stream position; `offset` may be negative
@@ -187,7 +191,7 @@ def open_writer(
     *,
     attributes: Attributes | None = None,
     buffer_size: int = 10 * 1024 * 1024,
-    tags: Dict[str, str] | None = None,
+    tags: dict[str, str] | None = None,
     max_concurrency: int = 12,
 ) -> WritableFile:
     """Open a writable file object at the specified location.
@@ -196,7 +200,7 @@ def open_writer(
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
 
-    Keyword args:
+    Keyword Args:
         attributes: Provide a set of `Attributes`. Defaults to `None`.
         buffer_size: The underlying buffer size to use. Up to `buffer_size` bytes will be buffered in memory. If `buffer_size` is exceeded, data will be uploaded as a multipart upload in chunks of `buffer_size`.
         tags: Provide tags for this object. Defaults to `None`.
@@ -204,6 +208,7 @@ def open_writer(
 
     Returns:
         ReadableFile
+
     """
 
 def open_writer_async(
@@ -212,7 +217,7 @@ def open_writer_async(
     *,
     attributes: Attributes | None = None,
     buffer_size: int = 10 * 1024 * 1024,
-    tags: Dict[str, str] | None = None,
+    tags: dict[str, str] | None = None,
     max_concurrency: int = 12,
 ) -> AsyncWritableFile:
     """Open an **asynchronous** writable file object at the specified location.
@@ -228,46 +233,38 @@ class WritableFile(AbstractContextManager):
     """
 
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_value, traceback) -> None: ...
+    def __exit__(self, exc_type, exc_value, traceback) -> None: ...  # noqa: ANN001
     def close(self) -> None:
         """Close the current file."""
 
     def closed(self) -> bool:
-        """Returns `True` if the current file has already been closed.
+        """Check whether this file has been closed.
 
         Note that this is a method, not an attribute.
         """
 
     def flush(self) -> None:
-        """
-        Flushes this output stream, ensuring that all intermediately buffered contents reach their destination.
-        """
+        """Flushes this output stream, ensuring that all intermediately buffered contents reach their destination."""
 
     def write(self, buffer: bytes | Buffer, /) -> int:
-        """
-        Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written.
-        """
+        """Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written."""
 
 class AsyncWritableFile(AbstractAsyncContextManager):
     """A buffered writable file object with **asynchronous** operations."""
 
     async def __aenter__(self) -> Self: ...
-    async def __aexit__(self, exc_type, exc_value, traceback) -> None: ...
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None: ...  # noqa: ANN001
     async def close(self) -> None:
         """Close the current file."""
 
     async def closed(self) -> bool:
-        """Returns `True` if the current file has already been closed.
+        """Check whether this file has been closed.
 
         Note that this is an async method, not an attribute.
         """
 
     async def flush(self) -> None:
-        """
-        Flushes this output stream, ensuring that all intermediately buffered contents reach their destination.
-        """
+        """Flushes this output stream, ensuring that all intermediately buffered contents reach their destination."""
 
     async def write(self, buffer: bytes | Buffer, /) -> int:
-        """
-        Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written.
-        """
+        """Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written."""
