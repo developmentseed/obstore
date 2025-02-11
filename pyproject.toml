@@ -32,16 +32,7 @@ dev-dependencies = [
 members = ["examples/fastapi-example"]
 
 [tool.ruff.lint]
-select = [
-    "ALL",
-    # # Pyflakes
-    # "F",
-    # # Pycodestyle
-    # # "E",
-    # "W",
-    # # isort
-    # "I",
-]
+select = ["ALL"]
 ignore = [
     "D104",   # Missing docstring in public package
     "EM101",
