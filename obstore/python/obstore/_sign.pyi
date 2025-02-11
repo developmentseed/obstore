@@ -1,19 +1,31 @@
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import List, Literal, Sequence, overload
+from typing import Literal, TypeAlias, overload
 
 from .store import AzureStore, GCSStore, S3Store
 
-HTTP_METHOD = Literal[
-    "GET", "PUT", "POST", "HEAD", "PATCH", "TRACE", "DELETE", "OPTIONS", "CONNECT"
+HTTP_METHOD: TypeAlias = Literal[
+    "GET",
+    "PUT",
+    "POST",
+    "HEAD",
+    "PATCH",
+    "TRACE",
+    "DELETE",
+    "OPTIONS",
+    "CONNECT",
 ]
 """Allowed HTTP Methods for signing."""
 
-SignCapableStore = AzureStore | GCSStore | S3Store
+SignCapableStore: TypeAlias = AzureStore | GCSStore | S3Store
 """ObjectStore instances that are capable of signing."""
 
 @overload
-def sign(  # type: ignore
-    store: SignCapableStore, method: HTTP_METHOD, paths: str, expires_in: timedelta
+def sign(  # type: ignore # noqa: PGH003
+    store: SignCapableStore,
+    method: HTTP_METHOD,
+    paths: str,
+    expires_in: timedelta,
 ) -> str: ...
 @overload
 def sign(
@@ -21,13 +33,13 @@ def sign(
     method: HTTP_METHOD,
     paths: Sequence[str],
     expires_in: timedelta,
-) -> List[str]: ...
+) -> list[str]: ...
 def sign(
     store: SignCapableStore,
     method: HTTP_METHOD,
     paths: str | Sequence[str],
     expires_in: timedelta,
-) -> str | List[str]:
+) -> str | list[str]:
     """Create a signed URL.
 
     Given the intended `method` and `paths` to use and the desired length of time for
@@ -44,6 +56,7 @@ def sign(
 
     Returns:
         _description_
+
     """
 
 @overload
@@ -59,13 +72,13 @@ async def sign_async(
     method: HTTP_METHOD,
     paths: Sequence[str],
     expires_in: timedelta,
-) -> List[str]: ...
+) -> list[str]: ...
 async def sign_async(
     store: SignCapableStore,
     method: HTTP_METHOD,
     paths: str | Sequence[str],
     expires_in: timedelta,
-) -> str | List[str]:
+) -> str | list[str]:
     """Call `sign` asynchronously.
 
     Refer to the documentation for [sign][obstore.sign].
