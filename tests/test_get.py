@@ -125,13 +125,13 @@ def test_get_ranges():
     ends = [15, 20, 25, 30]
     buffers = obs.get_ranges(store, path, starts=starts, ends=ends)
 
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
 
     lengths = [10, 10, 10, 10]
     buffers = obs.get_ranges(store, path, starts=starts, lengths=lengths)
 
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
 
 

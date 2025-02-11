@@ -3,7 +3,7 @@ from typing import TypedDict, Unpack
 from ._client import ClientConfig
 from ._retry import RetryConfig
 
-# TODO:
+# TODO: add these parameters to config
 # azure_storage_authority_host
 # azure_fabric_token_service_url
 # azure_fabric_workload_host
@@ -348,12 +348,15 @@ class AzureStore:
             container: the name of the container.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: Azure configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             AzureStore
+
         """
 
     @classmethod
@@ -389,16 +392,18 @@ class AzureStore:
             url: well-known storage URL.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: Azure configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             AzureStore
+
         """
 
     def __getnewargs_ex__(self): ...
-    def __repr__(self) -> str: ...
     @property
     def prefix(self) -> str | None:
         """Get the prefix applied to all operations in this store, if any."""

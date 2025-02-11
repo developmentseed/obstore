@@ -33,13 +33,37 @@ members = ["examples/fastapi-example"]
 
 [tool.ruff]
 select = [
-    # Pyflakes
-    "F",
-    # Pycodestyle
-    # "E",
-    "W",
-    # isort
-    "I",
+    "ALL",
+    # # Pyflakes
+    # "F",
+    # # Pycodestyle
+    # # "E",
+    # "W",
+    # # isort
+    # "I",
+]
+ignore = [
+    "D104",   # Missing docstring in public package
+    "TD",     # Todo comments
+    "FIX002", # Line contains TODO, consider resolving the issue
+    "PYI021", # docstring-in-stub
+    "PYI011", # typed-argument-default-in-stub
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*.pyi" = [
+    "ANN204", # Missing return type annotation for special method
+    "E501",   # Line too long
+]
+"tests/*" = [
+    "S101",    # assert
+    "ANN201",  # Missing return type annotation for public function
+    "ANN202",  # Missing return type annotation for private function `it`
+    "D100",    # Missing docstring in public module
+    "D103",    # Missing docstring in public function
+    "PLR2004", # Magic value used in comparison, consider replacing `100` with a constant variable
+    "S301",    # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "SLF001",  # Private member accessed
 ]
 
 [tool.ruff.extend-per-file-ignores]

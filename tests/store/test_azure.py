@@ -10,5 +10,5 @@ def test_overlapping_config_keys():
 
     with pytest.raises(BaseError, match="Duplicate key"):
         AzureStore(
-            config={"azure_container_name": "test", "AZURE_CONTAINER_NAME": "test"}
+            config={"azure_container_name": "test", "AZURE_CONTAINER_NAME": "test"},
         )

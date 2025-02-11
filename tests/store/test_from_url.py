@@ -7,7 +7,7 @@ from obstore.store import from_url
 
 
 def test_local():
-    cwd = Path(".").absolute()
+    cwd = Path().absolute()
     url = f"file://{cwd}"
     _store = from_url(url)
 

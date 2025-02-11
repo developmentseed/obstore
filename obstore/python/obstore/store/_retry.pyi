@@ -1,11 +1,8 @@
-from __future__ import annotations
-
 from datetime import timedelta
 from typing import TypedDict
 
 class BackoffConfig(TypedDict, total=False):
-    """
-    Exponential backoff with jitter
+    """Exponential backoff with jitter.
 
     See <https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/>
     """
@@ -29,8 +26,7 @@ class BackoffConfig(TypedDict, total=False):
     """
 
 class RetryConfig(TypedDict, total=False):
-    """
-    The configuration for how to respond to request errors
+    """The configuration for how to respond to request errors.
 
     The following categories of error will be retried:
 

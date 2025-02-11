@@ -1,6 +1,6 @@
 # TODO: move to reusable types package
 from pathlib import Path
-from typing import Any, Unpack, overload
+from typing import Any, TypeAlias, Unpack, overload
 
 from ._aws import S3Config as S3Config
 from ._aws import S3ConfigInput as S3ConfigInput
@@ -73,13 +73,15 @@ def from_url(
     - `memory:///` -> [`MemoryStore`][obstore.store.MemoryStore]
     - `s3://bucket/path` -> [`S3Store`][obstore.store.S3Store] (also supports `s3a`)
     - `gs://bucket/path` -> [`GCSStore`][obstore.store.GCSStore]
-    - `az://account/container/path` -> [`AzureStore`][obstore.store.AzureStore] (also supports `adl`, `azure`, `abfs`, `abfss`)
+    - `az://account/container/path` -> [`AzureStore`][obstore.store.AzureStore] (also
+      supports `adl`, `azure`, `abfs`, `abfss`)
     - `http://mydomain/path` -> [`HTTPStore`][obstore.store.HTTPStore]
     - `https://mydomain/path` -> [`HTTPStore`][obstore.store.HTTPStore]
 
     There are also special cases for AWS and Azure for `https://{host?}/path` paths:
 
-    - `dfs.core.windows.net`, `blob.core.windows.net`, `dfs.fabric.microsoft.com`, `blob.fabric.microsoft.com` -> [`AzureStore`][obstore.store.AzureStore]
+    - `dfs.core.windows.net`, `blob.core.windows.net`, `dfs.fabric.microsoft.com`,
+      `blob.fabric.microsoft.com` -> [`AzureStore`][obstore.store.AzureStore]
     - `amazonaws.com` -> [`S3Store`][obstore.store.S3Store]
     - `r2.cloudflarestorage.com` -> [`S3Store`][obstore.store.S3Store]
 
@@ -91,15 +93,17 @@ def from_url(
         url: well-known storage URL.
 
     Keyword Args:
-        config: per-store Configuration. Values in this config will override values inferred from the url. Defaults to None.
+        config: per-store Configuration. Values in this config will override values
+            inferred from the url. Defaults to None.
         client_options: HTTP Client options. Defaults to None.
         retry_config: Retry configuration. Defaults to None.
+        kwargs: per-store configuration passed down to store-specific builders.
 
     """
 
 class LocalStore:
-    """
-    Local filesystem storage providing an ObjectStore interface to files on local disk.
+    """An ObjectStore interface to local filesystem storage.
+
     Can optionally be created with a directory prefix.
 
     ```py
@@ -110,6 +114,7 @@ class LocalStore:
     store = LocalStore(prefix=Path("."))
     ```
     """
+
     def __init__(
         self,
         prefix: str | Path | None = None,
@@ -123,8 +128,12 @@ class LocalStore:
             prefix: Use the specified prefix applied to all paths. Defaults to `None`.
 
         Keyword Args:
-            automatic_cleanup: if `True`, enables automatic cleanup of empty directories when deleting files. Defaults to False.
-            mkdir: if `True` and `prefix` is not `None`, the directory at `prefix` will attempt to be created. Note that this root directory will not be cleaned up, even if `automatic_cleanup` is `True`.
+            automatic_cleanup: if `True`, enables automatic cleanup of empty directories
+                when deleting files. Defaults to False.
+            mkdir: if `True` and `prefix` is not `None`, the directory at `prefix` will
+                attempt to be created. Note that this root directory will not be cleaned
+                up, even if `automatic_cleanup` is `True`.
+
         """
     @classmethod
     def from_url(
@@ -152,7 +161,6 @@ class LocalStore:
         """
 
     def __getnewargs_ex__(self): ...
-    def __repr__(self) -> str: ...
     @property
     def prefix(self) -> Path | None:
         """Get the prefix applied to all operations in this store, if any."""
@@ -165,8 +173,10 @@ class MemoryStore:
     store = MemoryStore()
     ```
     """
-    def __init__(self) -> None: ...
-    def __repr__(self) -> str: ...
 
-ObjectStore = AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
+    def __init__(self) -> None: ...
+
+ObjectStore: TypeAlias = (
+    AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
+)
 """All supported ObjectStore implementations."""

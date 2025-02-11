@@ -118,12 +118,15 @@ class GCSStore:
             bucket: The GCS bucket to use.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: GCS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             GCSStore
+
         """
 
     @classmethod
@@ -147,16 +150,18 @@ class GCSStore:
             url: well-known storage URL.
 
         Keyword Args:
+            prefix: A prefix within the bucket to use for all operations.
             config: GCS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             GCSStore
+
         """
 
     def __getnewargs_ex__(self): ...
-    def __repr__(self) -> str: ...
     @property
     def prefix(self) -> str | None:
         """Get the prefix applied to all operations in this store, if any."""

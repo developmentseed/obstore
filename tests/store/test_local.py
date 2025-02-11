@@ -8,7 +8,7 @@ import obstore as obs
 from obstore.exceptions import GenericError
 from obstore.store import LocalStore
 
-HERE = Path(".")
+HERE = Path()
 
 
 def test_local_store():

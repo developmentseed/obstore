@@ -7,7 +7,7 @@ import obstore as obs
 from obstore.fsspec import AsyncFsspecStore
 
 
-@pytest.fixture()
+@pytest.fixture
 def fs(s3_store):
     return AsyncFsspecStore(s3_store)
 
