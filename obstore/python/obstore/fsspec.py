@@ -2,18 +2,28 @@
 
 [fsspec]: https://github.com/fsspec/filesystem_spec
 
-The fsspec integration is **best effort** and not the primary API of `obstore`. This integration may not be as stable and may not provide the same performance as the rest of the library. Changes may be made even in patch releases to align better with fsspec expectations. If you find any bugs, please [file an issue](https://github.com/developmentseed/obstore/issues/new/choose).
+The fsspec integration is **best effort** and not the primary API of `obstore`. This
+integration may not be as stable and may not provide the same performance as the rest of
+the library. Changes may be made even in patch releases to align better with fsspec
+expectations. If you find any bugs, please [file an
+issue](https://github.com/developmentseed/obstore/issues/new/choose).
 
-The underlying `object_store` Rust crate [cautions](https://docs.rs/object_store/latest/object_store/#why-not-a-filesystem-interface) against relying too strongly on stateful filesystem representations of object stores:
+The underlying `object_store` Rust crate
+[cautions](https://docs.rs/object_store/latest/object_store/#why-not-a-filesystem-interface)
+against relying too strongly on stateful filesystem representations of object stores:
 
-> The ObjectStore interface is designed to mirror the APIs of object stores and not filesystems, and thus has stateless APIs instead of cursor based interfaces such as Read or Seek available in filesystems.
+> The ObjectStore interface is designed to mirror the APIs of object stores and not
+> filesystems, and thus has stateless APIs instead of cursor based interfaces such as
+> Read or Seek available in filesystems.
 >
 > This design provides the following advantages:
 >
 > - All operations are atomic, and readers cannot observe partial and/or failed writes
-> - Methods map directly to object store APIs, providing both efficiency and predictability
+> - Methods map directly to object store APIs, providing both efficiency and
+>   predictability
 > - Abstracts away filesystem and operating system specific quirks, ensuring portability
-> - Allows for functionality not native to filesystems, such as operation preconditions and atomic multipart uploads
+> - Allows for functionality not native to filesystems, such as operation preconditions
+>   and atomic multipart uploads
 
 Where possible, implementations should use the underlying `obstore` APIs
 directly. Only where this is not possible should users fall back to this fsspec
@@ -24,12 +34,15 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from typing import Any, Coroutine, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any
 
 import fsspec.asyn
 import fsspec.spec
 
 import obstore as obs
+
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -63,7 +76,6 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
                 defaults, which are determined in `fsspec.asyn._get_batch_size`.
 
         Example:
-
         ```py
         from obstore.fsspec import AsyncFsspecStore
         from obstore.store import HTTPStore
@@ -73,11 +85,14 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         resp = fsspec_store.cat("/")
         assert resp.startswith(b"<!doctype html>")
         ```
-        """
 
+        """
         self.store = store
         super().__init__(
-            *args, asynchronous=asynchronous, loop=loop, batch_size=batch_size
+            *args,
+            asynchronous=asynchronous,
+            loop=loop,
+            batch_size=batch_size,
         )
 
     async def _rm_file(self, path, **kwargs):
@@ -99,9 +114,9 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
     async def _cat_ranges(
         self,
-        paths: List[str],
-        starts: List[int] | int,
-        ends: List[int] | int,
+        paths: list[str],
+        starts: list[int] | int,
+        ends: list[int] | int,
         max_gap=None,
         batch_size=None,
         on_error="return",
@@ -114,11 +129,13 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         if not len(paths) == len(starts) == len(ends):
             raise ValueError
 
-        per_file_requests: Dict[str, List[Tuple[int, int, int]]] = defaultdict(list)
-        for idx, (path, start, end) in enumerate(zip(paths, starts, ends)):
+        per_file_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
+        for idx, (path, start, end) in enumerate(
+            zip(paths, starts, ends, strict=False)
+        ):
             per_file_requests[path].append((start, end, idx))
 
-        futs: List[Coroutine[Any, Any, List[bytes]]] = []
+        futs: list[Coroutine[Any, Any, list[bytes]]] = []
         for path, ranges in per_file_requests.items():
             offsets = [r[0] for r in ranges]
             ends = [r[1] for r in ranges]
@@ -127,10 +144,12 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
         result = await asyncio.gather(*futs)
 
-        output_buffers: List[bytes] = [b""] * len(paths)
-        for per_file_request, buffers in zip(per_file_requests.items(), result):
+        output_buffers: list[bytes] = [b""] * len(paths)
+        for per_file_request, buffers in zip(
+            per_file_requests.items(), result, strict=False
+        ):
             path, ranges = per_file_request
-            for buffer, ranges_ in zip(buffers, ranges):
+            for buffer, ranges_ in zip(buffers, ranges, strict=False):
                 initial_index = ranges_[2]
                 output_buffers[initial_index] = buffer.to_bytes()
 
@@ -173,8 +192,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
                 }
                 for object in objects
             ] + [{"name": object, "size": 0, "type": "directory"} for object in prefs]
-        else:
-            return sorted([object["path"] for object in objects] + prefs)
+        return sorted([object["path"] for object in objects] + prefs)
 
     def _open(self, path, mode="rb", **kwargs):
         """Return raw bytes-mode file-like from the file-system"""
@@ -193,6 +211,7 @@ class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
         Args:
             length: if positive, returns up to this many bytes; if negative, return all
                 remaining byets.
+
         """
         if length < 0:
             data = self.fs.cat_file(self.path, self.loc, self.size)

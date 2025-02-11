@@ -30,7 +30,7 @@ from ._list import ListChunkType as ListChunkType
 from ._list import ListResult as ListResult
 from ._list import ListStream as ListStream
 from ._list import ObjectMeta as ObjectMeta
-from ._list import list as list
+from ._list import list as list  # noqa: A004
 from ._list import list_with_delimiter as list_with_delimiter
 from ._list import list_with_delimiter_async as list_with_delimiter_async
 from ._put import PutMode as PutMode
