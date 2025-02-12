@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 
 use object_store::{ClientConfigKey, ClientOptions};
 use pyo3::prelude::*;
@@ -16,7 +15,7 @@ pub struct PyClientConfigKey(ClientConfigKey);
 impl<'py> FromPyObject<'py> for PyClientConfigKey {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let s = ob.extract::<PyBackedStr>()?.to_lowercase();
-        let key = ClientConfigKey::from_str(&s).map_err(PyObjectStoreError::ObjectStoreError)?;
+        let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
 }
