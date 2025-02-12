@@ -74,54 +74,60 @@ impl PyBytes {
     ///
     /// This is a helper method used by `__getitem__` and is not directly exposed to Python
     fn slice(&self, slice: &Bound<'_, PySlice>) -> PyResult<PyBytes> {
-        let len_isize = self.0.len() as isize;
-        let psi = slice.indices(len_isize)?;
-        let (start, stop, step) = (psi.start, psi.stop, psi.step);
-        if step == 0 {
-            return Err(PyValueError::new_err("step is zero"));
-        }
+        let bytes_length = self.0.len() as isize;
+        let (start, stop, step) = {
+            let slice_indicies = slice.indices(bytes_length)?;
+            (
+                slice_indicies.start,
+                slice_indicies.stop,
+                slice_indicies.step,
+            )
+        };
 
-        // I think this is right!?
-        let new_cap_usize = if (step > 0 && stop > start) || (step < 0 && stop < start) {
+        let new_capacity = if (step > 0 && stop > start) || (step < 0 && stop < start) {
             (((stop - start).abs() + step.abs() - 1) / step.abs()) as usize
         } else {
             0
         };
 
-        if new_cap_usize == 0 {
+        if new_capacity == 0 {
             return Ok(PyBytes(Bytes::new()));
         }
+        if step == 1 {
+            // if start < 0  and stop > len and step == 1 just copy?
+            if start < 0 && stop >= bytes_length {
+                let out = self.0.slice(..);
+                let py_bytes = PyBytes(out);
+                return Ok(py_bytes);
+            }
 
-        // if start < 0  and stop > len and step == 1 just copy?
-        if step == 1 && start < 0 && stop >= len_isize {
-            let out = self.0.slice(..);
-            let py_bytes = PyBytes(out);
-            return Ok(py_bytes);
+            if start >= 0 && stop <= bytes_length && start < stop {
+                let out = self.0.slice(start as usize..stop as usize);
+                let py_bytes = PyBytes(out);
+                return Ok(py_bytes);
+            }
+            // fall through to the general case here...
         }
-
-        if step == 1 && start >= 0 && stop <= len_isize && start < stop {
-            let out = self.0.slice(start as usize..stop as usize);
-            let py_bytes = PyBytes(out);
-            return Ok(py_bytes);
-        }
-        let mut new_buf = BytesMut::with_capacity(new_cap_usize);
         if step > 0 {
             // forward
+            let mut new_buf = BytesMut::with_capacity(new_capacity);
             new_buf.extend(
                 (start..stop)
                     .step_by(step as usize)
                     .map(|i| self.0[i as usize]),
             );
+            Ok(PyBytes(new_buf.freeze()))
         } else {
             // backward
+            let mut new_buf = BytesMut::with_capacity(new_capacity);
             new_buf.extend(
                 (stop + 1..=start)
                     .rev()
                     .step_by((-step) as usize)
                     .map(|i| self.0[i as usize]),
             );
+            Ok(PyBytes(new_buf.freeze()))
         }
-        Ok(PyBytes(new_buf.freeze()))
     }
 }
 
