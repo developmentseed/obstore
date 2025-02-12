@@ -72,7 +72,7 @@ impl PyBytes {
     ///     - If start/stop are out of bounds, they are clipped to the bounds of the buffer
     ///     - If start > stop, the slice is empty
     ///
-    /// This is NOT exposed to Python under the `#[pymethods]` impl
+    /// This is a helper method used by `__getitem__` and is not directly exposed to Python
     fn slice(&self, slice: &Bound<'_, PySlice>) -> PyResult<PyBytes> {
         let len_isize = self.0.len() as isize;
         let psi = slice.indices(len_isize)?;
