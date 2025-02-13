@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use object_store::azure::{AzureConfigKey, MicrosoftAzure, MicrosoftAzureBuilder};
@@ -186,7 +185,7 @@ pub struct PyAzureConfigKey(AzureConfigKey);
 impl<'py> FromPyObject<'py> for PyAzureConfigKey {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let s = ob.extract::<PyBackedStr>()?.to_lowercase();
-        let key = AzureConfigKey::from_str(&s).map_err(PyObjectStoreError::ObjectStoreError)?;
+        let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
 }
