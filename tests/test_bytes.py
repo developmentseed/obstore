@@ -73,23 +73,23 @@ class TestBytesSlice:
     def test_slice_o_bytes(self, py_bytes: bytes) -> None:
         """Run slicing on both bytes and Bytes and assert they are equal."""
         rs_bytes = Bytes(py_bytes)
-        for start, stop, step, _sliced in _bytes_slices(py_bytes):
+        for start, stop, step, _sliced in self._bytes_slices(py_bytes):
             new_py = py_bytes[start:stop:step]
             new_rs = rs_bytes[start:stop:step]
             assert new_rs == new_py
 
-
-def _bytes_slices(
-    b: bytes,
-    range_buffer: int = 3,
-) -> Iterable[tuple[int, int, int, bytes]]:
-    """Yield tuples (start, stop, step, sliced_result) for all slices of b."""
-    b_len = len(b)
-    indices_range = range(-b_len - (range_buffer - 1), b_len + range_buffer)
-    steps = (i for i in range(-(b_len + 2), b_len + 3) if i != 0)
-    return (
-        (start, stop, step, b[start:stop:step])
-        for start in indices_range
-        for stop in indices_range
-        for step in steps
-    )
+    @staticmethod
+    def _bytes_slices(
+        b: bytes,
+        range_buffer: int = 3,
+    ) -> Iterable[tuple[int, int, int, bytes]]:
+        """Yield tuples (start, stop, step, sliced_result) for all slices of b."""
+        b_len = len(b)
+        indices_range = range(-b_len - (range_buffer - 1), b_len + range_buffer)
+        steps = (i for i in range(-(b_len + 2), b_len + 3) if i != 0)
+        return (
+            (start, stop, step, b[start:stop:step])
+            for start in indices_range
+            for stop in indices_range
+            for step in steps
+        )
