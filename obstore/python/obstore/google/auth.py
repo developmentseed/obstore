@@ -39,10 +39,10 @@ class GoogleAuthCredentialProvider:
                 default credentials.
 
         Keyword Args:
-            request: The Request instance to use for refreshing the token. Defaults to
-                `None`, in which case a new
-                [`Request`][google.auth.transport.requests.Request] will be
-                instantiated.
+            request: The Request instance to use for refreshing the token. This can be
+                set to reuse an existing [`requests.Session`][]. Defaults to `None`, in
+                which case a new [`Request`][google.auth.transport.requests.Request]
+                will be instantiated.
             refresh_threshold: The length of time before the token timeout when a new
                 token should be requested. Defaults to `timedelta(minutes=3,
                 seconds=45)`.
@@ -55,7 +55,8 @@ class GoogleAuthCredentialProvider:
         self.request = request or Request()
         self.refresh_threshold = refresh_threshold
 
-    def __call__(self) -> GCSCredential:  # noqa: D102
+    def __call__(self) -> GCSCredential:
+        """Fetch the credentials."""
         self.credentials.refresh(self.request)
         return {
             "token": self.credentials.token,
@@ -85,7 +86,8 @@ class GoogleAuthAsyncCredentialProvider:
                 find application default credentials.
 
         Keyword Args:
-            request: The Request instance to use for refreshing the token. Defaults to
+            request: The Request instance to use for refreshing the token. This can be
+                set to reuse an existing [`aiohttp.ClientSession`][]. Defaults to
                 `None`, in which case a new
                 `google.auth.transport._aiohttp_requests.Request` will be
                 instantiated.
@@ -101,7 +103,8 @@ class GoogleAuthAsyncCredentialProvider:
         self.async_request = request or AsyncRequest()
         self.refresh_threshold = refresh_threshold
 
-    async def __call__(self) -> GCSCredential:  # noqa: D102
+    async def __call__(self) -> GCSCredential:
+        """Fetch the credentials."""
         await self.credentials.refresh(self.async_request)
         return {
             "token": self.credentials.token,

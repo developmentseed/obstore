@@ -1,6 +1,6 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, Protocol, TypedDict, Unpack
+from typing import Any, NotRequired, Protocol, TypedDict, Unpack
 
 import boto3
 import boto3.session
@@ -564,7 +564,7 @@ class S3ConfigInput(TypedDict, total=False):
 class S3Credential(TypedDict):
     access_key_id: str
     secret_access_key: str
-    token: str | None
+    token: NotRequired[str | None]
     expires_at: datetime | None
 
 class S3CredentialProvider(Protocol):
