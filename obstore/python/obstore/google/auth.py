@@ -1,4 +1,4 @@
-"""Credential providers for Google Cloud Storage that use google.auth."""
+"""Credential providers for Google Cloud Storage that use [`google.auth`][]."""
 
 from __future__ import annotations
 

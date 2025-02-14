@@ -47,6 +47,7 @@ nav:
           - api/store/memory.md
           - api/store/config.md
           # - api/store/middleware.md
+          - api/google/auth.md
       - api/copy.md
       - api/delete.md
       - api/get.md
@@ -148,10 +149,11 @@ plugins:
             - https://arrow.apache.org/docs/objects.inv
             - https://boto3.amazonaws.com/v1/documentation/api/latest/objects.inv
             - https://botocore.amazonaws.com/v1/documentation/api/latest/objects.inv
+            - https://docs.pola.rs/api/python/stable/objects.inv
             - https://docs.python.org/3/objects.inv
             - https://filesystem-spec.readthedocs.io/en/latest/objects.inv
+            - https://google-auth.readthedocs.io/en/master/objects.inv
             - https://kylebarron.dev/arro3/latest/objects.inv
-            - https://docs.pola.rs/api/python/stable/objects.inv
 
 # https://github.com/developmentseed/titiler/blob/50934c929cca2fa8d3c408d239015f8da429c6a8/docs/mkdocs.yml#L115-L140
 markdown_extensions:
