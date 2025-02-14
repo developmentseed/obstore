@@ -1,4 +1,6 @@
-from typing import Coroutine, Protocol, TypedDict, Unpack
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Protocol, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -82,6 +84,7 @@ class GCSConfigInput(TypedDict, total=False):
 
 class GCSCredential(TypedDict):
     token: str
+    expires_at: datetime | None
 
 class GCSCredentialProvider(Protocol):
     @staticmethod

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use object_store::azure::{AzureAccessKey, AzureCredential};
 use object_store::CredentialProvider;
 use percent_encoding::percent_decode_str;
@@ -10,9 +11,13 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 
 use crate::azure::error::Error;
-use crate::PyObjectStoreResult;
+use crate::credentials::{TemporaryToken, TokenCache};
+use crate::PyObjectStoreError;
 
-struct PyAzureAccessKey(AzureAccessKey);
+struct PyAzureAccessKey {
+    access_key: AzureAccessKey,
+    expires_at: Option<DateTime<Utc>>,
+}
 
 // Extract the dict {"access_key": str}
 impl<'py> FromPyObject<'py> for PyAzureAccessKey {
@@ -20,28 +25,36 @@ impl<'py> FromPyObject<'py> for PyAzureAccessKey {
         let s = ob
             .get_item(intern!(ob.py(), "access_key"))?
             .extract::<PyBackedStr>()?;
-        let key =
+        let access_key =
             AzureAccessKey::try_new(&s).map_err(|err| PyValueError::new_err(err.to_string()))?;
-        Ok(Self(key))
+        let expires_at = ob.get_item(intern!(ob.py(), "expires_at"))?.extract()?;
+        Ok(Self {
+            access_key,
+            expires_at,
+        })
     }
 }
 
-struct PyAzureSASToken(Vec<(String, String)>);
-
-impl PyAzureSASToken {
-    fn from_str(sas: &str) -> PyObjectStoreResult<Self> {
-        Ok(Self(split_sas(sas)?))
-    }
+struct PyAzureSASToken {
+    sas_token: Vec<(String, String)>,
+    expires_at: Option<DateTime<Utc>>,
 }
 
 // Extract the dict {"sas_token": str | list[tuple[str, str]]}
 impl<'py> FromPyObject<'py> for PyAzureSASToken {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        let expires_at = ob.get_item(intern!(ob.py(), "expires_at"))?.extract()?;
         let py_sas_token = ob.get_item(intern!(ob.py(), "sas_token"))?;
         if let Ok(sas_token_str) = py_sas_token.extract::<PyBackedStr>() {
-            Ok(Self::from_str(&sas_token_str)?)
-        } else if let Ok(sas_token_list) = py_sas_token.extract::<Vec<(String, String)>>() {
-            Ok(Self(sas_token_list))
+            Ok(Self {
+                sas_token: split_sas(&sas_token_str).map_err(PyObjectStoreError::from)?,
+                expires_at,
+            })
+        } else if let Ok(sas_token_list) = py_sas_token.extract() {
+            Ok(Self {
+                sas_token: sas_token_list,
+                expires_at,
+            })
         } else {
             Err(PyTypeError::new_err(
                 "Expected a string or list[tuple[str, str]]",
@@ -50,15 +63,17 @@ impl<'py> FromPyObject<'py> for PyAzureSASToken {
     }
 }
 
-struct PyBearerToken(String);
+struct PyBearerToken {
+    token: String,
+    expires_at: Option<DateTime<Utc>>,
+}
 
 // Extract the dict {"token": str}
 impl<'py> FromPyObject<'py> for PyBearerToken {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob
-            .get_item(intern!(ob.py(), "token"))?
-            .extract::<String>()?;
-        Ok(Self(s))
+        let token = ob.get_item(intern!(ob.py(), "token"))?.extract()?;
+        let expires_at = ob.get_item(intern!(ob.py(), "expires_at"))?.extract()?;
+        Ok(Self { token, expires_at })
     }
 }
 
@@ -69,12 +84,29 @@ enum PyAzureCredential {
     BearerToken(PyBearerToken),
 }
 
+impl PyAzureCredential {
+    fn into_temporary_token(self) -> TemporaryToken<Arc<AzureCredential>> {
+        let (credential, expiry) = match self {
+            Self::AccessKey(key) => (AzureCredential::AccessKey(key.access_key), key.expires_at),
+            Self::SASToken(token) => (AzureCredential::SASToken(token.sas_token), token.expires_at),
+            Self::BearerToken(token) => {
+                (AzureCredential::BearerToken(token.token), token.expires_at)
+            }
+        };
+
+        TemporaryToken {
+            token: Arc::new(credential),
+            expiry,
+        }
+    }
+}
+
 impl From<PyAzureCredential> for AzureCredential {
     fn from(value: PyAzureCredential) -> Self {
         match value {
-            PyAzureCredential::AccessKey(key) => Self::AccessKey(key.0),
-            PyAzureCredential::SASToken(token) => Self::SASToken(token.0),
-            PyAzureCredential::BearerToken(token) => Self::BearerToken(token.0),
+            PyAzureCredential::AccessKey(key) => Self::AccessKey(key.access_key),
+            PyAzureCredential::SASToken(token) => Self::SASToken(token.sas_token),
+            PyAzureCredential::BearerToken(token) => Self::BearerToken(token.token),
         }
     }
 }
@@ -100,8 +132,25 @@ fn split_sas(sas: &str) -> Result<Vec<(String, String)>, object_store::Error> {
     Ok(pairs)
 }
 
-#[derive(Debug, FromPyObject)]
-pub struct PyAzureCredentialProvider(PyObject);
+#[derive(Debug)]
+pub struct PyAzureCredentialProvider {
+    /// The provided user callback to manage credential refresh
+    user_callback: PyObject,
+    cache: TokenCache<Arc<AzureCredential>>,
+}
+
+impl<'py> FromPyObject<'py> for PyAzureCredentialProvider {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if !ob.hasattr(intern!(ob.py(), "__call__"))? {
+            Err(PyTypeError::new_err("Expected callable object."))
+        } else {
+            Ok(Self {
+                user_callback: ob.clone().unbind(),
+                cache: Default::default(),
+            })
+        }
+    }
+}
 
 enum PyCredentialProviderResult {
     Async(PyObject),
@@ -135,10 +184,25 @@ impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
 
 impl PyAzureCredentialProvider {
     async fn call(&self) -> PyResult<PyAzureCredential> {
-        let call_result =
-            Python::with_gil(|py| self.0.call0(py)?.extract::<PyCredentialProviderResult>(py))?;
-        let resolved = call_result.resolve().await?;
-        Ok(resolved)
+        let call_result = Python::with_gil(|py| {
+            self.user_callback
+                .call0(py)?
+                .extract::<PyCredentialProviderResult>(py)
+        })?;
+        call_result.resolve().await
+    }
+
+    /// Call the user-provided callback
+    async fn fetch_token(&self) -> object_store::Result<TemporaryToken<Arc<AzureCredential>>> {
+        let credential = self
+            .call()
+            .await
+            .map_err(|err| object_store::Error::Generic {
+                store: "External Azure credential provider",
+                source: Box::new(err),
+            })?;
+
+        Ok(credential.into_temporary_token())
     }
 }
 
@@ -148,13 +212,6 @@ impl CredentialProvider for PyAzureCredentialProvider {
     type Credential = AzureCredential;
 
     async fn get_credential(&self) -> object_store::Result<Arc<Self::Credential>> {
-        let credential = self
-            .call()
-            .await
-            .map_err(|err| object_store::Error::Generic {
-                store: "External GCP credential provider",
-                source: Box::new(err),
-            })?;
-        Ok(Arc::new(credential.into()))
+        self.cache.get_or_insert_with(|| self.fetch_token()).await
     }
 }

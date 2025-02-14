@@ -1,4 +1,6 @@
-from typing import Coroutine, Protocol, TypedDict, Unpack
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Protocol, TypeAlias, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -316,14 +318,17 @@ class AzureConfigInput(TypedDict, total=False):
 
 class AzureAccessKey(TypedDict):
     access_key: str
+    expires_at: datetime | None
 
 class AzureSASToken(TypedDict):
     sas_token: str | list[tuple[str, str]]
+    expires_at: datetime | None
 
 class AzureBearerToken(TypedDict):
     token: str
+    expires_at: datetime | None
 
-AzureCredential = AzureAccessKey | AzureSASToken | AzureBearerToken
+AzureCredential: TypeAlias = AzureAccessKey | AzureSASToken | AzureBearerToken
 
 class AzureCredentialProvider(Protocol):
     @staticmethod

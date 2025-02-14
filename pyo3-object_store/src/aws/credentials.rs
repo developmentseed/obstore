@@ -55,7 +55,6 @@ impl<'py> FromPyObject<'py> for PyAwsCredential {
 pub struct PyAWSCredentialProvider {
     /// The provided user callback to manage credential refresh
     user_callback: PyObject,
-    /// The provided user callback to manage credential refresh
     cache: TokenCache<Arc<AwsCredential>>,
 }
 
@@ -72,6 +71,7 @@ impl<'py> FromPyObject<'py> for PyAWSCredentialProvider {
     }
 }
 
+/// Note: This is copied across providers at the moment
 enum PyCredentialProviderResult {
     Async(PyObject),
     Sync(PyAwsCredential),
@@ -137,6 +137,6 @@ impl CredentialProvider for PyAWSCredentialProvider {
     type Credential = AwsCredential;
 
     async fn get_credential(&self) -> object_store::Result<Arc<Self::Credential>> {
-        Ok(self.cache.get_or_insert_with(|| self.fetch_token()).await?)
+        self.cache.get_or_insert_with(|| self.fetch_token()).await
     }
 }
