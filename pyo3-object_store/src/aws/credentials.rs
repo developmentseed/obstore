@@ -1,38 +1,76 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use object_store::aws::AwsCredential;
 use object_store::CredentialProvider;
+use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 
+use crate::credentials::{TemporaryToken, TokenCache};
+
+/// A wrapper around an [AwsCredential] that includes an optional expiry timestamp.
 struct PyAwsCredential {
     credential: AwsCredential,
-    // TODO: convert to timestamp
-    // expiration: (),
+    expires_at: Option<DateTime<Utc>>,
 }
 
 impl<'py> FromPyObject<'py> for PyAwsCredential {
+    /// Converts from a Python dictionary of the form
+    ///
+    /// ```py
+    /// class S3Credential(TypedDict):
+    ///     access_key_id: str
+    ///     secret_access_key: str
+    ///     token: str | None
+    ///     expires_at: datetime | None
+    /// ```
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let py = ob.py();
         let key_id = ob.get_item(intern!(py, "access_key_id"))?.extract()?;
         let secret_key = ob.get_item(intern!(py, "secret_access_key"))?.extract()?;
-        // TODO: check this
-        let token = ob.get_item(intern!(py, "token"))?.extract()?;
+        let token = if let Ok(token) = ob.get_item(intern!(py, "token")) {
+            token.extract()?
+        } else {
+            // Allow the dictionary not having a `token` key (so `get_item` will `Err` above)
+            None
+        };
         let credential = AwsCredential {
             key_id,
             secret_key,
             token,
         };
+        let expires_at = ob.get_item(intern!(py, "expires_at"))?.extract()?;
         Ok(Self {
             credential,
-            // expiration: (),
+            expires_at,
         })
     }
 }
 
-#[derive(Debug, FromPyObject)]
-pub struct PyAWSCredentialProvider(PyObject);
+// TODO: don't use a cache for static credentials where `expires_at` is `None`
+// (so you don't need to access a mutex)
+#[derive(Debug)]
+pub struct PyAWSCredentialProvider {
+    /// The provided user callback to manage credential refresh
+    user_callback: PyObject,
+    /// The provided user callback to manage credential refresh
+    cache: TokenCache<Arc<AwsCredential>>,
+}
+
+impl<'py> FromPyObject<'py> for PyAWSCredentialProvider {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if !ob.hasattr(intern!(ob.py(), "__call__"))? {
+            Err(PyTypeError::new_err("Expected callable object."))
+        } else {
+            Ok(Self {
+                user_callback: ob.clone().unbind(),
+                cache: Default::default(),
+            })
+        }
+    }
+}
 
 enum PyCredentialProviderResult {
     Async(PyObject),
@@ -65,20 +103,20 @@ impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
 }
 
 impl PyAWSCredentialProvider {
+    /// Call the user-provided callback and extract to a token.
+    ///
+    /// This is separate from `fetch_token` below so that it can return a `PyResult`.
     async fn call(&self) -> PyResult<PyAwsCredential> {
-        let call_result =
-            Python::with_gil(|py| self.0.call0(py)?.extract::<PyCredentialProviderResult>(py))?;
-        let resolved = call_result.resolve().await?;
-        Ok(resolved)
+        let call_result = Python::with_gil(|py| {
+            self.user_callback
+                .call0(py)?
+                .extract::<PyCredentialProviderResult>(py)
+        })?;
+        call_result.resolve().await
     }
-}
 
-// TODO: store expiration time and only call the external Python function as needed
-#[async_trait]
-impl CredentialProvider for PyAWSCredentialProvider {
-    type Credential = AwsCredential;
-
-    async fn get_credential(&self) -> object_store::Result<Arc<Self::Credential>> {
+    /// Call the user-provided callback
+    async fn fetch_token(&self) -> object_store::Result<TemporaryToken<Arc<AwsCredential>>> {
         let credential = self
             .call()
             .await
@@ -86,6 +124,19 @@ impl CredentialProvider for PyAWSCredentialProvider {
                 store: "External AWS credential provider",
                 source: Box::new(err),
             })?;
-        Ok(Arc::new(credential.credential))
+
+        Ok(TemporaryToken {
+            token: Arc::new(credential.credential),
+            expiry: credential.expires_at,
+        })
+    }
+}
+
+#[async_trait]
+impl CredentialProvider for PyAWSCredentialProvider {
+    type Credential = AwsCredential;
+
+    async fn get_credential(&self) -> object_store::Result<Arc<Self::Credential>> {
+        Ok(self.cache.get_or_insert_with(|| self.fetch_token()).await?)
     }
 }

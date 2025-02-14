@@ -1,5 +1,6 @@
+from collections.abc import Coroutine
 from datetime import datetime
-from typing import Coroutine, Protocol, TypedDict, Unpack
+from typing import Protocol, TypedDict, Unpack
 
 import boto3
 import boto3.session
@@ -564,8 +565,7 @@ class S3Credential(TypedDict):
     access_key_id: str
     secret_access_key: str
     token: str | None
-    timeout: datetime | None
-    # TODO: should this be nullable?
+    expires_at: datetime | None
 
 class S3CredentialProvider(Protocol):
     @staticmethod
