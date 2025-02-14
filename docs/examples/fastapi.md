@@ -7,6 +7,7 @@ It's easy to integrate obstore with FastAPI routes, where you want to download a
 FastAPI has a [`StreamingResponse`](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse), which neatly integrates with [`BytesStream`][obstore.BytesStream] to stream the response to the user.
 
 !!! note
+
     This example is also [available on Github](https://github.com/developmentseed/obstore/blob/main/examples/fastapi-example/README.md) if you'd like to test it out locally.
 
 First, import `fastapi` and `obstore` and create the FastAPI application.
