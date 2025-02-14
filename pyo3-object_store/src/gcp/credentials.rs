@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use object_store::gcp::GcpCredential;
 use object_store::CredentialProvider;
 use pyo3::exceptions::PyTypeError;
@@ -9,6 +9,9 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::credentials::{TemporaryToken, TokenCache};
+
+/// Ref https://github.com/apache/arrow-rs/pull/6638
+const DEFAULT_GCP_MIN_TTL: TimeDelta = TimeDelta::minutes(4);
 
 /// A wrapper around a [GcpCredential] that includes an optional expiry timestamp.
 struct PyGcpCredential {
@@ -50,13 +53,21 @@ pub struct PyGcpCredentialProvider {
 impl<'py> FromPyObject<'py> for PyGcpCredentialProvider {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if !ob.hasattr(intern!(ob.py(), "__call__"))? {
-            Err(PyTypeError::new_err("Expected callable object."))
-        } else {
-            Ok(Self {
-                user_callback: ob.clone().unbind(),
-                cache: Default::default(),
-            })
+            return Err(PyTypeError::new_err(
+                "Expected callable object for _credential_provider.",
+            ));
         }
+        let min_ttl =
+            if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
+                refresh_threshold.extract()?
+            } else {
+                DEFAULT_GCP_MIN_TTL
+            };
+        let cache = TokenCache::default().with_min_ttl(min_ttl);
+        Ok(Self {
+            user_callback: ob.clone().unbind(),
+            cache,
+        })
     }
 }
 

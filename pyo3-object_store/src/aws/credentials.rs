@@ -61,13 +61,18 @@ pub struct PyAWSCredentialProvider {
 impl<'py> FromPyObject<'py> for PyAWSCredentialProvider {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if !ob.hasattr(intern!(ob.py(), "__call__"))? {
-            Err(PyTypeError::new_err("Expected callable object."))
-        } else {
-            Ok(Self {
-                user_callback: ob.clone().unbind(),
-                cache: Default::default(),
-            })
+            return Err(PyTypeError::new_err(
+                "Expected callable object for _credential_provider.",
+            ));
         }
+        let mut cache = TokenCache::default();
+        if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
+            cache = cache.with_min_ttl(refresh_threshold.extract()?);
+        }
+        Ok(Self {
+            user_callback: ob.clone().unbind(),
+            cache,
+        })
     }
 }
 
