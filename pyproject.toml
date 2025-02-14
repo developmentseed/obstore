@@ -15,7 +15,7 @@ dev-dependencies = [
     "ipykernel>=6.29.5",
     "maturin>=1.7.4",
     "mike>=2.1.3",
-    "mkdocs-material[imaging]>=9.5.40",
+    "mkdocs-material[imaging]>=9.6.3",
     "mkdocs>=1.6.1",
     "mkdocstrings>=0.27.0",
     "mkdocstrings-python>=1.13.0",
@@ -31,15 +31,32 @@ dev-dependencies = [
 [tool.uv.workspace]
 members = ["examples/fastapi-example"]
 
-[tool.ruff]
-select = [
-    # Pyflakes
-    "F",
-    # Pycodestyle
-    # "E",
-    "W",
-    # isort
-    "I",
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D104",   # Missing docstring in public package
+    "EM101",
+    "FIX002", # Line contains TODO, consider resolving the issue
+    "PYI021", # docstring-in-stub
+    "PYI011", # typed-argument-default-in-stub
+    "TD",     # Todo comments
+    "TRY003", # Avoid specifying long messages outside the exception class
+]
+
+[tool.ruff.lint.per-file-ignores]
+"*.pyi" = [
+    "ANN204", # Missing return type annotation for special method
+    "E501",   # Line too long
+]
+"tests/*" = [
+    "S101",    # assert
+    "ANN201",  # Missing return type annotation for public function
+    "ANN202",  # Missing return type annotation for private function `it`
+    "D100",    # Missing docstring in public module
+    "D103",    # Missing docstring in public function
+    "PLR2004", # Magic value used in comparison, consider replacing `100` with a constant variable
+    "S301",    # `pickle` and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue
+    "SLF001",  # Private member accessed
 ]
 
 [tool.ruff.extend-per-file-ignores]

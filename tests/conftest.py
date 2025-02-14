@@ -11,7 +11,7 @@ TEST_BUCKET_NAME = "test"
 
 
 # See docs here: https://docs.getmoto.org/en/latest/docs/server_mode.html
-@pytest.fixture()
+@pytest.fixture
 def moto_server_uri():
     """Fixture to run a mocked AWS server for testing."""
     # Note: pass `port=0` to get a random free port.
@@ -26,7 +26,7 @@ def moto_server_uri():
     server.stop()
 
 
-@pytest.fixture()
+@pytest.fixture
 def s3(moto_server_uri: str):
     client = boto3.client(
         "s3",
@@ -40,14 +40,12 @@ def s3(moto_server_uri: str):
     urllib3.request(method="post", url=f"{moto_server_uri}/moto-api/reset")
 
 
-@pytest.fixture()
-def s3_store(s3):
+@pytest.fixture
+def s3_store(s3: str):
     return S3Store.from_url(
         f"s3://{TEST_BUCKET_NAME}/",
-        config={
-            "AWS_ENDPOINT_URL": s3,
-            "AWS_REGION": "us-east-1",
-            "AWS_SKIP_SIGNATURE": "True",
-            "AWS_ALLOW_HTTP": "true",
-        },
+        aws_endpoint_url=s3,
+        aws_region="us-east-1",
+        aws_skip_signature=True,
+        client_options={"allow_http": True},
     )

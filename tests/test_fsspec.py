@@ -5,14 +5,15 @@ import pytest
 
 import obstore as obs
 from obstore.fsspec import AsyncFsspecStore
+from obstore.store import S3Store
 
 
-@pytest.fixture()
-def fs(s3_store):
+@pytest.fixture
+def fs(s3_store: S3Store):
     return AsyncFsspecStore(s3_store)
 
 
-def test_list(fs):
+def test_list(fs: AsyncFsspecStore):
     out = fs.ls("", detail=False)
     assert out == ["afile"]
     fs.pipe_file("dir/bfile", b"data")
@@ -24,7 +25,7 @@ def test_list(fs):
 
 
 @pytest.mark.asyncio
-async def test_list_async(s3_store):
+async def test_list_async(s3_store: S3Store):
     fs = AsyncFsspecStore(s3_store, asynchronous=True)
     out = await fs._ls("", detail=False)
     assert out == ["afile"]
@@ -44,7 +45,7 @@ def test_remote_parquet():
     pq.read_metadata(url, filesystem=fs)
 
 
-def test_multi_file_ops(fs):
+def test_multi_file_ops(fs: AsyncFsspecStore):
     data = {"dir/test1": b"test data1", "dir/test2": b"test data2"}
     fs.pipe(data)
     out = fs.cat(list(data))
@@ -59,7 +60,7 @@ def test_multi_file_ops(fs):
     assert out == ["afile"]
 
 
-def test_cat_ranges_one(fs):
+def test_cat_ranges_one(fs: AsyncFsspecStore):
     data1 = os.urandom(10000)
     fs.pipe_file("data1", data1)
 
@@ -88,7 +89,7 @@ def test_cat_ranges_one(fs):
     assert out == [data1[10:20], data1[0:60]]
 
 
-def test_cat_ranges_two(fs):
+def test_cat_ranges_two(fs: AsyncFsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
     fs.pipe({"data1": data1, "data2": data2})
@@ -99,7 +100,7 @@ def test_cat_ranges_two(fs):
 
 
 @pytest.mark.xfail(reason="negative and mixed ranges not implemented")
-def test_cat_ranges_mixed(fs):
+def test_cat_ranges_mixed(fs: AsyncFsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
     fs.pipe({"data1": data1, "data2": data2})
@@ -110,13 +111,13 @@ def test_cat_ranges_mixed(fs):
 
 
 @pytest.mark.xfail(reason="atomic writes not working on moto")
-def test_atomic_write(fs):
+def test_atomic_write(fs: AsyncFsspecStore):
     fs.pipe_file("data1", b"data1")
     fs.pipe_file("data1", b"data1", mode="overwrite")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         fs.pipe_file("data1", b"data1", mode="create")
 
 
-def test_cat_ranges_error(fs):
-    with pytest.raises(ValueError):
+def test_cat_ranges_error(fs: AsyncFsspecStore):
+    with pytest.raises(ValueError):  # noqa: PT011
         fs.cat_ranges(["path"], [], [])

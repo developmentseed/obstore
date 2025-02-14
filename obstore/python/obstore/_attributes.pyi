@@ -1,12 +1,12 @@
-from typing import Dict, Literal
+from typing import Literal, TypeAlias
 
-Attribute = (
+Attribute: TypeAlias = (
     Literal[
-        "Content-Disposition",
-        "Content-Encoding",
-        "Content-Language",
-        "Content-Type",
-        "Cache-Control",
+        "Content-Disposition",  # noqa: PYI051
+        "Content-Encoding",  # noqa: PYI051
+        "Content-Language",  # noqa: PYI051
+        "Content-Type",  # noqa: PYI051
+        "Cache-Control",  # noqa: PYI051
     ]
     | str
 )
@@ -37,7 +37,7 @@ Attribute = (
 Any other string key specifies a user-defined metadata field for the object.
 """
 
-Attributes = Dict[Attribute, str]
+Attributes: TypeAlias = dict[Attribute, str]
 """Additional attributes of an object
 
 Attributes can be specified in [`put`][obstore.put]/[`put_async`][obstore.put_async] and

@@ -620,12 +620,14 @@ class S3Store:
 
         Keyword Args:
             prefix: A prefix within the bucket to use for all operations.
-            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
+            config: AWS configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             S3Store
+
         """
 
     @classmethod
@@ -662,9 +664,11 @@ class S3Store:
             config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             S3Store
+
         """
     @classmethod
     def from_session(
@@ -687,8 +691,13 @@ class S3Store:
             `botocore`. If you're not already using `boto3` or `botocore`, use other
             constructors, which do not need `boto3` or `botocore` to be installed.
 
-        Examples:
+        !!! note
+            This will retrieve "frozen" credentials from the boto3 config. That is, the
+            values of `"aws_access_key_id"`, `"aws_secret_access_key"`, and
+            `"aws_session_token"` are static and will not be updated. Consider using the
+            `from_native` constructor to automatically refresh credentials.
 
+        Examples:
         ```py
         import boto3
 
@@ -705,9 +714,11 @@ class S3Store:
             config: AWS Configuration. Values in this config will override values inferred from the session. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             S3Store
+
         """
     @classmethod
     def from_url(
@@ -736,14 +747,15 @@ class S3Store:
             config: AWS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
 
         Returns:
             S3Store
+
         """
 
     def __getnewargs_ex__(self): ...
-    def __repr__(self) -> str: ...
     @property
     def prefix(self) -> str | None:
         """Get the prefix applied to all operations in this store, if any."""

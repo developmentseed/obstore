@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from datetime import datetime
-from typing import List, Sequence, Tuple, TypedDict
+from typing import TypedDict
 
 from ._attributes import Attributes
 from ._bytes import Bytes
@@ -7,13 +8,13 @@ from ._list import ObjectMeta
 from .store import ObjectStore
 
 class OffsetRange(TypedDict):
-    """Request all bytes starting from a given byte offset"""
+    """Request all bytes starting from a given byte offset."""
 
     offset: int
     """The byte offset for the offset range request."""
 
 class SuffixRange(TypedDict):
-    """Request up to the last `n` bytes"""
+    """Request up to the last `n` bytes."""
 
     suffix: int
     """The number of bytes from the suffix to request."""
@@ -74,7 +75,7 @@ class GetOptions(TypedDict, total=False):
     <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.4>
     """
 
-    range: Tuple[int, int] | List[int] | OffsetRange | SuffixRange
+    range: tuple[int, int] | list[int] | OffsetRange | SuffixRange
     """
     Request transfer of only the specified range of bytes
     otherwise returning [`NotModifiedError`][obstore.exceptions.NotModifiedError].
@@ -151,15 +152,17 @@ class GetResult:
         """
 
     def bytes(self) -> Bytes:
-        """
-        Collects the data into a `Bytes` object, which implements the Python buffer
-        protocol. You can copy the buffer to Python memory by passing to [`bytes`][].
+        """Collect the data into a `Bytes` object.
+
+        This implements the Python buffer protocol. You can copy the buffer to Python
+        memory by passing to [`bytes`][].
         """
 
     async def bytes_async(self) -> Bytes:
-        """
-        Collects the data into a `Bytes` object, which implements the Python buffer
-        protocol. You can copy the buffer to Python memory by passing to [`bytes`][].
+        """Collect the data into a `Bytes` object.
+
+        This implements the Python buffer protocol. You can copy the buffer to Python
+        memory by passing to [`bytes`][].
         """
 
     @property
@@ -170,7 +173,7 @@ class GetResult:
         """
 
     @property
-    def range(self) -> Tuple[int, int]:
+    def range(self) -> tuple[int, int]:
         """The range of bytes returned by this request.
 
         Note that this is `(start, stop)` **not** `(start, length)`.
@@ -179,27 +182,28 @@ class GetResult:
         """
 
     def stream(self, min_chunk_size: int = 10 * 1024 * 1024) -> BytesStream:
-        """Return a chunked stream over the result's bytes.
+        r"""Return a chunked stream over the result's bytes.
 
         Args:
             min_chunk_size: The minimum size in bytes for each chunk in the returned
                 `BytesStream`. All chunks except for the last chunk will be at least
-                this size. Defaults to 10\\*1024\\*1024 (10MB).
+                this size. Defaults to 10\*1024\*1024 (10MB).
 
         Returns:
             A chunked stream
+
         """
 
     def __aiter__(self) -> BytesStream:
-        """
-        Return a chunked stream over the result's bytes with the default (10MB) chunk
-        size.
+        """Return a chunked stream over the result's bytes.
+
+        Uses the default (10MB) chunk size.
         """
 
     def __iter__(self) -> BytesStream:
-        """
-        Return a chunked stream over the result's bytes with the default (10MB) chunk
-        size.
+        """Return a chunked stream over the result's bytes.
+
+        Uses the default (10MB) chunk size.
         """
 
 class BytesStream:
@@ -240,7 +244,10 @@ class BytesStream:
         """Return the next chunk of bytes in the stream."""
 
 def get(
-    store: ObjectStore, path: str, *, options: GetOptions | None = None
+    store: ObjectStore,
+    path: str,
+    *,
+    options: GetOptions | None = None,
 ) -> GetResult:
     """Return the bytes that are stored at the specified location.
 
@@ -251,10 +258,14 @@ def get(
 
     Returns:
         GetResult
+
     """
 
 async def get_async(
-    store: ObjectStore, path: str, *, options: GetOptions | None = None
+    store: ObjectStore,
+    path: str,
+    *,
+    options: GetOptions | None = None,
 ) -> GetResult:
     """Call `get` asynchronously.
 
@@ -269,8 +280,7 @@ def get_range(
     end: int | None = None,
     length: int | None = None,
 ) -> Bytes:
-    """
-    Return the bytes that are stored at the specified location in the given byte range.
+    """Return the bytes that are stored at the specified location in the given byte range.
 
     If the given range is zero-length or starts after the end of the object, an error
     will be returned. Additionally, if the range ends after the end of the object, the
@@ -281,7 +291,7 @@ def get_range(
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
 
-    Other Args:
+    Keyword Args:
         start: The start of the byte range.
         end: The end of the byte range (exclusive). Either `end` or `length` must be non-None.
         length: The number of bytes of the byte range. Either `end` or `length` must be non-None.
@@ -289,6 +299,7 @@ def get_range(
     Returns:
         A `Bytes` object implementing the Python buffer protocol, allowing
             zero-copy access to the underlying memory provided by Rust.
+
     """
 
 async def get_range_async(
@@ -311,9 +322,8 @@ def get_ranges(
     starts: Sequence[int],
     ends: Sequence[int] | None = None,
     lengths: Sequence[int] | None = None,
-) -> List[Bytes]:
-    """
-    Return the bytes that are stored at the specified location in the given byte ranges
+) -> list[Bytes]:
+    """Return the bytes stored at the specified location in the given byte ranges.
 
     To improve performance this will:
 
@@ -333,6 +343,7 @@ def get_ranges(
         A sequence of `Bytes`, one for each range. This `Bytes` object implements the
             Python buffer protocol, allowing zero-copy access to the underlying memory
             provided by Rust.
+
     """
 
 async def get_ranges_async(
@@ -342,7 +353,7 @@ async def get_ranges_async(
     starts: Sequence[int],
     ends: Sequence[int] | None = None,
     lengths: Sequence[int] | None = None,
-) -> List[Bytes]:
+) -> list[Bytes]:
     """Call `get_ranges` asynchronously.
 
     Refer to the documentation for [get_ranges][obstore.get_ranges].

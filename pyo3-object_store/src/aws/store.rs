@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use itertools::Itertools;
@@ -27,6 +26,9 @@ struct S3Config {
     config: PyAmazonS3Config,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
+    /// Whether or not this config can accurately be pickled.
+    /// This is false if a custom CredentialProvider is used.
+    pickle_safe: bool,
 }
 
 impl S3Config {
@@ -39,6 +41,10 @@ impl S3Config {
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+        if !self.pickle_safe {
+            return Err(GenericError::new_err("Instance not safe to pickle."));
+        }
+
         let args = PyTuple::empty(py).into_py_any(py)?;
         let kwargs = PyDict::new(py);
 
@@ -82,6 +88,7 @@ impl PyS3Store {
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
+        pickle_safe: bool,
     ) -> PyObjectStoreResult<Self> {
         let mut config = config.unwrap_or_default();
         if let Some(bucket) = bucket {
@@ -107,6 +114,7 @@ impl PyS3Store {
                 config: combined_config,
                 client_options,
                 retry_config,
+                pickle_safe,
             },
         })
     }
@@ -140,6 +148,7 @@ impl PyS3Store {
             retry_config,
             _credential_provider,
             kwargs,
+            true,
         )
     }
 
@@ -169,6 +178,7 @@ impl PyS3Store {
             retry_config,
             None,
             kwargs,
+            false,
         )
     }
 
@@ -236,6 +246,8 @@ impl PyS3Store {
             retry_config,
             None,
             kwargs,
+            // We use frozen credentials; boto3 isn't a direct credentials provider
+            true,
         )
     }
 
@@ -268,6 +280,7 @@ impl PyS3Store {
             retry_config,
             None,
             kwargs,
+            true,
         )
     }
 
@@ -315,7 +328,7 @@ pub struct PyAmazonS3ConfigKey(AmazonS3ConfigKey);
 impl<'py> FromPyObject<'py> for PyAmazonS3ConfigKey {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let s = ob.extract::<PyBackedStr>()?.to_lowercase();
-        let key = AmazonS3ConfigKey::from_str(&s).map_err(PyObjectStoreError::ObjectStoreError)?;
+        let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
 }

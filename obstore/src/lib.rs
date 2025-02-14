@@ -13,6 +13,7 @@ mod put;
 mod rename;
 mod signer;
 mod tags;
+mod utils;
 
 use pyo3::prelude::*;
 

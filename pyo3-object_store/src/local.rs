@@ -20,8 +20,7 @@ struct LocalConfig {
 
 impl LocalConfig {
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args =
-            PyTuple::new(py, vec![self.prefix.clone().into_pyobject(py)?])?.into_py_any(py)?;
+        let args = PyTuple::new(py, vec![self.prefix.clone()])?.into_py_any(py)?;
         let kwargs = PyDict::new(py);
         kwargs.set_item(intern!(py, "automatic_cleanup"), self.automatic_cleanup)?;
         kwargs.set_item(intern!(py, "mkdir"), self.mkdir)?;
@@ -119,10 +118,8 @@ impl PyLocalStore {
         // So we manually convert to a pathlib.Path
         if let Some(prefix) = &self.config.prefix {
             let pathlib_mod = py.import(intern!(py, "pathlib"))?;
-            let path_object = pathlib_mod.call_method1(
-                intern!(py, "Path"),
-                PyTuple::new(py, vec![prefix.into_pyobject(py)?])?,
-            )?;
+            let path_object =
+                pathlib_mod.call_method1(intern!(py, "Path"), PyTuple::new(py, vec![prefix])?)?;
             path_object.into_py_any(py)
         } else {
             Ok(py.None())

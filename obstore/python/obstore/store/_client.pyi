@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import TypedDict
 
 class ClientConfig(TypedDict, total=False):
-    """HTTP client configuration
+    """HTTP client configuration.
 
     For timeout values (`connect_timeout`, `http2_keep_alive_timeout`,
     `pool_idle_timeout`, and `timeout`), values can either be Python `timedelta`

@@ -46,3 +46,12 @@ For example, [preliminary results](https://github.com/geospatial-jeff/pyasyncio-
 
     Keep in mind, however, that what looks like a single request may actually be multiple requests under the hood. [`obstore.put`][obstore.put] will use multipart uploads by default, meaning that various parts of a file will be uploaded concurrently, and there may be efficiency gains here.
 - Latency: this is primarily driven by hardware and network conditions, and we expect Obstore to have similar latency as other Python request libraries.
+
+## Future research
+
+In the future, we'd like to benchmark:
+
+- Alternate Python event loops, e.g. [`uvloop`](https://github.com/MagicStack/uvloop)
+- The obstore synchronous API
+
+If you have any interest in collaborating on this, [open an issue](https://github.com/developmentseed/obstore/issues/new/choose).

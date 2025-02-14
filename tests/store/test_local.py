@@ -8,7 +8,7 @@ import obstore as obs
 from obstore.exceptions import GenericError
 from obstore.store import LocalStore
 
-HERE = Path(".")
+HERE = Path()
 
 
 def test_local_store():
@@ -23,7 +23,7 @@ def test_repr():
 
 
 def test_local_from_url():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="relative URL without a base"):
         LocalStore.from_url("")
 
     LocalStore.from_url("file://")

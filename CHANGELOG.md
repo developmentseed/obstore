@@ -1,10 +1,60 @@
 # Changelog
 
-## [0.4.0] -
+## [0.4.0] - 2025-02-10
+
+### New Features :magic_wand:
+
+- **Support for pickling** & always manage store prefix by @kylebarron in https://github.com/developmentseed/obstore/pull/185, https://github.com/developmentseed/obstore/pull/239, https://github.com/developmentseed/obstore/pull/223
+- **Add top-level `obstore.store.from_url` function**, which delegates to each store's `from_url` constructor by @kylebarron in https://github.com/developmentseed/obstore/pull/179, https://github.com/developmentseed/obstore/pull/201
+- Add option to return Arrow from `list_with_delimiter` by @kylebarron in https://github.com/developmentseed/obstore/pull/238, https://github.com/developmentseed/obstore/pull/244
+- (Provisional) **Enhanced loading of s3 credentials** using `aws-config` crate by @kylebarron in https://github.com/developmentseed/obstore/pull/203
+- **Access config values out from stores** by @kylebarron in https://github.com/developmentseed/obstore/pull/210
+- LocalStore updates:
+  - Enable automatic cleanup for local store, when deleting directories by @kylebarron in https://github.com/developmentseed/obstore/pull/175
+  - Optionally create root dir in LocalStore by @kylebarron in https://github.com/developmentseed/obstore/pull/177
+- **File-like object** updates:
+  - Add support for writable file-like objects by @kylebarron in https://github.com/developmentseed/obstore/pull/167
+  - Updates to readable file API:
+
+    - Support user-specified capacity in readable file-like objects by @kylebarron in https://github.com/developmentseed/obstore/pull/174
+    - Expose `ObjectMeta` from readable file API by @kylebarron in https://github.com/developmentseed/obstore/pull/176
+- Merge `config` and `kwargs` and validate that no configuration parameters have been passed multiple times. (https://github.com/developmentseed/obstore/pull/180, https://github.com/developmentseed/obstore/pull/182, https://github.com/developmentseed/obstore/pull/218)
+- Add `__repr__` to `Bytes` class by @jessekrubin in https://github.com/developmentseed/obstore/pull/173
 
 ### Breaking changes :wrench:
 
 - `get_range`, `get_range_async`, `get_ranges`, and `get_ranges_async` now require named parameters for `start`, `end`, and `length` to make the semantics of the range request fully explicit. by @kylebarron in https://github.com/developmentseed/obstore/pull/156
+- Previously, individual stores did not manage a prefix path within the remote resource and [`PrefixStore`](https://developmentseed.org/obstore/v0.3.0/api/store/middleware/#obstore.store.PrefixStore) was used to enable this. As of 0.4.0, `PrefixStore` was removed and all stores manage an optional mount prefix natively.
+- `obstore.open` has been renamed to `obstore.open_reader`.
+- The `from_env` constructor has been removed from `S3Store`, `GCSStore`, and `AzureStore`. Now all constructors will read from environment variables. Use `__init__` or `from_url` instead. https://github.com/developmentseed/obstore/pull/189
+- `obstore.exceptions.ObstoreError` renamed to `obstore.exceptions.BaseError` https://github.com/developmentseed/obstore/pull/200
+
+### Bug fixes :bug:
+
+- Fix pylance finding exceptions module by @kylebarron in https://github.com/developmentseed/obstore/pull/183
+- Allow passing in partial retry/backoff config by @kylebarron in https://github.com/developmentseed/obstore/pull/205
+- Fix returning None from async functions by @kylebarron in https://github.com/developmentseed/obstore/pull/245
+- Fix LocalStore range request past end of file, by @kylebarron in https://github.com/developmentseed/obstore/pull/230
+
+### Documentation :book:
+
+- Update wording for fsspec docstring by @kylebarron in https://github.com/developmentseed/obstore/pull/195
+- Add documentation about AWS region by @kylebarron in https://github.com/developmentseed/obstore/pull/213
+- Add developer documentation for functional API choice by @kylebarron in https://github.com/developmentseed/obstore/pull/215
+- Add `tqdm` progress bar example by @kylebarron in https://github.com/developmentseed/obstore/pull/237
+- Add contributor, performance, integrations docs by @kylebarron in https://github.com/developmentseed/obstore/pull/227
+- Add minio example by @kylebarron in https://github.com/developmentseed/obstore/pull/241
+
+### Other
+
+- Use manylinux 2_24 for aarch64 linux wheels by @kylebarron in https://github.com/developmentseed/obstore/pull/225
+
+### New Contributors
+
+- @vincentsarago made their first contribution in https://github.com/developmentseed/obstore/pull/168
+- @jessekrubin made their first contribution in https://github.com/developmentseed/obstore/pull/173
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.3.0...py-v0.4.0
 
 ## [0.3.0] - 2025-01-16
 
@@ -39,12 +89,12 @@
 - Add note that S3Store can be constructed without boto3 by @kylebarron in https://github.com/developmentseed/obstore/pull/108
 - HTTP Store usage example by @kylebarron in https://github.com/developmentseed/obstore/pull/142
 
-## What's Changed
+### What's Changed
 
 - Improved docs for from_url by @kylebarron in https://github.com/developmentseed/obstore/pull/138
 - Implement read_all for async iterable by @kylebarron in https://github.com/developmentseed/obstore/pull/140
 
-## New Contributors
+### New Contributors
 
 - @willemarcel made their first contribution in https://github.com/developmentseed/obstore/pull/64
 - @martindurant made their first contribution in https://github.com/developmentseed/obstore/pull/63

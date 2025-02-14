@@ -17,7 +17,7 @@ struct HTTPConfig {
 
 impl HTTPConfig {
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args = PyTuple::new(py, vec![self.url.clone().into_pyobject(py)?])?.into_py_any(py)?;
+        let args = PyTuple::new(py, vec![self.url.clone()])?.into_py_any(py)?;
         let kwargs = PyDict::new(py);
 
         if let Some(client_options) = &self.client_options {

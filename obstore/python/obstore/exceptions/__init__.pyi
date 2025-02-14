@@ -3,7 +3,7 @@
 # `__init__.pyi` to work around pylance's bug.
 
 class BaseError(Exception):
-    """The base exception class"""
+    """The base exception class."""
 
 class GenericError(BaseError):
     """A fallback error type when no variant matches."""
@@ -30,9 +30,10 @@ class NotModifiedError(BaseError):
     """Error when the object at the location isn't modified."""
 
 class PermissionDeniedError(BaseError):
-    """
-    Error when the used credentials don't have enough permission
-    to perform the requested operation
+    """Permission denied.
+
+    Error when the used credentials don't have enough permission to perform the
+    requested operation.
     """
 
 class UnauthenticatedError(BaseError):

@@ -84,3 +84,9 @@ def test_config_round_trip():
     assert store.prefix == new_store.prefix
     assert store.client_options == new_store.client_options
     assert store.retry_config == new_store.retry_config
+
+
+def test_native_credentials_fails_pickle():
+    store = S3Store._from_native("bucket")
+    with pytest.raises(BaseError, match="not safe to pickle"):
+        pickle.dumps(store)

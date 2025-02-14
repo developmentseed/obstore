@@ -12,10 +12,10 @@ use object_store::{
     WriteMultipart,
 };
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
+use pyo3::{intern, IntoPyObjectExt};
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreResult};
@@ -283,8 +283,8 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         let mut dict = IndexMap::with_capacity(2);
-        dict.insert("e_tag", self.0.e_tag.into_pyobject(py)?.into_any());
-        dict.insert("version", self.0.version.into_pyobject(py)?.into_any());
+        dict.insert("e_tag", self.0.e_tag.into_bound_py_any(py)?);
+        dict.insert("version", self.0.version.into_bound_py_any(py)?);
         dict.into_pyobject(py)
     }
 }

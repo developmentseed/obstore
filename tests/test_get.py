@@ -125,11 +125,45 @@ def test_get_ranges():
     ends = [15, 20, 25, 30]
     buffers = obs.get_ranges(store, path, starts=starts, ends=ends)
 
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
 
     lengths = [10, 10, 10, 10]
     buffers = obs.get_ranges(store, path, starts=starts, lengths=lengths)
 
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
+
+
+def test_get_range_invalid_range():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+    obs.put(store, path, data)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_range(store, path, start=10, end=10)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_range(store, path, start=10, end=8)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_range(store, path, start=10, length=0)
+
+
+def test_get_ranges_invalid_range():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+    obs.put(store, path, data)
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_ranges(store, path, starts=[10], ends=[10])
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_ranges(store, path, starts=[10, 20], ends=[18, 18])
+
+    with pytest.raises(ValueError, match="Invalid range"):
+        obs.get_ranges(store, path, starts=[10, 20], lengths=[10, 0])
