@@ -1,6 +1,6 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Protocol, TypedDict, Unpack
+from typing import Any, Protocol, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -88,7 +88,7 @@ class GCSCredential(TypedDict):
 
 class GCSCredentialProvider(Protocol):
     @staticmethod
-    def __call__() -> GCSCredential | Coroutine[None, None, GCSCredential]: ...
+    def __call__() -> GCSCredential | Coroutine[Any, Any, GCSCredential]: ...
 
 class GCSStore:
     """Interface to Google Cloud Storage.

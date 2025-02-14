@@ -1,6 +1,6 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Protocol, TypedDict, Unpack
+from typing import Any, Protocol, TypedDict, Unpack
 
 import boto3
 import boto3.session
@@ -569,7 +569,7 @@ class S3Credential(TypedDict):
 
 class S3CredentialProvider(Protocol):
     @staticmethod
-    def __call__() -> S3Credential | Coroutine[None, None, S3Credential]: ...
+    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]: ...
 
 class S3Store:
     """Interface to an Amazon S3 bucket.

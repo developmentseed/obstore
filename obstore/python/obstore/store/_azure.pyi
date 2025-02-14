@@ -1,6 +1,6 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Protocol, TypeAlias, TypedDict, Unpack
+from typing import Any, Protocol, TypeAlias, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -332,7 +332,7 @@ AzureCredential: TypeAlias = AzureAccessKey | AzureSASToken | AzureBearerToken
 
 class AzureCredentialProvider(Protocol):
     @staticmethod
-    def __call__() -> AzureCredential | Coroutine[None, None, AzureCredential]: ...
+    def __call__() -> AzureCredential | Coroutine[Any, Any, AzureCredential]: ...
 
 class AzureStore:
     """Interface to a Microsoft Azure Blob Storage container.
