@@ -111,7 +111,7 @@ impl From<PyObjectStoreError> for PyErr {
                 object_store::Error::Generic {
                     store: _,
                     source: _,
-                } => GenericError::new_err(format!("{err:#?}")),
+                } => GenericError::new_err(err.to_string()),
                 object_store::Error::NotFound { path: _, source: _ } => {
                     PyFileNotFoundError::new_err(format!("{err:#?}"))
                 }
@@ -145,7 +145,7 @@ impl From<PyObjectStoreError> for PyErr {
                 object_store::Error::UnknownConfigurationKey { store: _, key: _ } => {
                     UnknownConfigurationKeyError::new_err(format!("{err:#?}"))
                 }
-                _ => GenericError::new_err(format!("{err:#?}")),
+                _ => GenericError::new_err(err.to_string()),
             },
             PyObjectStoreError::IOError(err) => PyIOError::new_err(format!("{err:#?}")),
         }
