@@ -33,6 +33,12 @@ Refer to `obstore.google.auth`.
 
 There's a long tail of possible authentication mechanisms. Obstore allows you to provide your own custom authentication callback.
 
+You can provide **either a synchronous or asynchronous callback** for your custom authentication function.
+
+!!! note
+
+    Provide an asynchronous credential provider for optimal performance.
+
 ### Custom AWS Auth
 
 Must return an [`S3Credential`][obstore.store.S3Credential].
@@ -63,7 +69,6 @@ Note that you must be in the same AWS region (`us-west-2`) to use this provider.
 ```py
 from __future__ import annotations
 
-import base64
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -84,7 +89,8 @@ class NasaEarthdataCredentialProvider:
 
     !!! note
 
-        Note that you must be in the same AWS region (`us-west-2`) to use this provider.
+        Note that you must be in the same AWS region (`us-west-2`) to use the
+        credentials returned from this provider.
 
     [NASA Earthdata]: https://www.earthdata.nasa.gov/
     """
@@ -101,37 +107,89 @@ class NasaEarthdataCredentialProvider:
             password: Password to NASA Earthdata.
 
         """
-        self.username = username
-        self.password = password
+        self.session = requests.Session()
+        self.session.auth = (username, password)
 
     def __call__(self) -> S3Credential:
-        login_resp = requests.get(CREDENTIALS_API, allow_redirects=False)
-        login_resp.raise_for_status()
-
-        encoded_auth = base64.b64encode(
-            f"{self.username}:{self.password}".encode("ascii"),
-        )
-        auth_redirect = requests.post(
-            login_resp.headers["location"],
-            data={"credentials": encoded_auth},
-            headers={"Origin": CREDENTIALS_API},
-            allow_redirects=False,
-        )
-        auth_redirect.raise_for_status()
-
-        final = requests.get(auth_redirect.headers["location"], allow_redirects=False)
-        results = requests.get(
-            CREDENTIALS_API, cookies={"accessToken": final.cookies["accessToken"]}
-        )
-        results.raise_for_status()
-
-        creds = results.json()
+        """Request updated credentials."""
+        resp = self.session.get(CREDENTIALS_API, allow_redirects=True, timeout=15)
+        auth_resp = self.session.get(resp.url, allow_redirects=True, timeout=15)
+        creds = auth_resp.json()
         return {
             "access_key_id": creds["accessKeyId"],
             "secret_access_key": creds["secretAccessKey"],
             "token": creds["sessionToken"],
             "expires_at": datetime.fromisoformat(creds["expiration"]),
         }
+```
+
+Or asynchronously:
+
+```py
+from __future__ import annotations
+
+import json
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from aiohttp import BasicAuth, ClientSession
+
+if TYPE_CHECKING:
+    from obstore.store import S3Credential
+
+CREDENTIALS_API = "https://archive.podaac.earthdata.nasa.gov/s3credentials"
+
+
+class NasaEarthdataAsyncCredentialProvider:
+    """A credential provider for accessing [NASA Earthdata].
+
+    NASA Earthdata supports public [in-region direct S3
+    access](https://archive.podaac.earthdata.nasa.gov/s3credentialsREADME). This
+    credential provider automatically manages the S3 credentials.
+
+    !!! note
+
+        Note that you must be in the same AWS region (`us-west-2`) to use the
+        credentials returned from this provider.
+
+    [NASA Earthdata]: https://www.earthdata.nasa.gov/
+    """
+
+    def __init__(
+        self,
+        username: str,
+        password: str,
+    ) -> None:
+        """Create a new NasaEarthdataAsyncCredentialProvider.
+
+        Args:
+            username: Username to NASA Earthdata.
+            password: Password to NASA Earthdata.
+
+        """
+        self.session = ClientSession(auth=BasicAuth(username, password))
+
+    async def __call__(self) -> S3Credential:
+        """Request updated credentials."""
+        async with self.session.get(CREDENTIALS_API, allow_redirects=True) as resp:
+            auth_url = resp.url
+        async with self.session.get(auth_url, allow_redirects=True) as auth_resp:
+            # Note: We parse the JSON manually instead of using `resp.json()` because
+            # the response mimetype is incorrectly set to text/html.
+            creds = json.loads(await auth_resp.text())
+        return {
+            "access_key_id": creds["accessKeyId"],
+            "secret_access_key": creds["secretAccessKey"],
+            "token": creds["sessionToken"],
+            "expires_at": datetime.fromisoformat(creds["expiration"]),
+        }
+
+    async def close(self):
+        """Close the underlying session.
+
+        You should call this method after you've finished all obstore calls.
+        """
+        await self.session.close()
 ```
 
 ### Custom GCP Auth
