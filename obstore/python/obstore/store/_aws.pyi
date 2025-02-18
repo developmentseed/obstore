@@ -728,6 +728,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        _credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> S3Store:
         """Parse available connection info from a well-known storage URL.

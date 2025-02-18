@@ -19,13 +19,14 @@ use crate::{
 // AWS/Azure/Google config keys could overlap. And so we don't want to accidentally parse a config
 // as an AWS config before knowing that the URL scheme is AWS.
 #[pyfunction]
-#[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
+#[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
 pub fn from_url(
     py: Python,
     url: PyUrl,
     config: Option<Bound<PyAny>>,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
+    _credential_provider: Option<Bound<PyAny>>,
     kwargs: Option<Bound<PyAny>>,
 ) -> PyObjectStoreResult<PyObject> {
     let (scheme, _) = ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
@@ -37,6 +38,7 @@ pub fn from_url(
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
+                _credential_provider.map(|x| x.extract()).transpose()?,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_py_any(py)?)
@@ -48,7 +50,7 @@ pub fn from_url(
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
-                None,
+                _credential_provider.map(|x| x.extract()).transpose()?,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_py_any(py)?)
@@ -60,7 +62,7 @@ pub fn from_url(
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
                 retry_config,
-                None,
+                _credential_provider.map(|x| x.extract()).transpose()?,
                 kwargs.map(|x| x.extract()).transpose()?,
             )?;
             Ok(store.into_py_any(py)?)
