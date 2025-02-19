@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import google.auth
 import google.auth.credentials
@@ -59,7 +59,8 @@ class GoogleAuthCredentialProvider:
         """Fetch the credentials."""
         self.credentials.refresh(self.request)
         return {
-            "token": self.credentials.token,
+            # self.credentials.token is a str
+            "token": cast(str, self.credentials.token),
             "expires_at": _replace_expiry_timezone_utc(self.credentials.expiry),
         }
 
@@ -107,7 +108,8 @@ class GoogleAuthAsyncCredentialProvider:
         """Fetch the credentials."""
         await self.credentials.refresh(self.async_request)
         return {
-            "token": self.credentials.token,
+            # self.credentials.token is a str
+            "token": cast(str, self.credentials.token),
             "expires_at": _replace_expiry_timezone_utc(self.credentials.expiry),
         }
 

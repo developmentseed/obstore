@@ -48,7 +48,9 @@ nav:
           - api/store/memory.md
           - api/store/config.md
           # - api/store/middleware.md
-          - api/google/auth.md
+      - obstore.auth:
+          - api/auth/boto3.md
+          - api/auth/google.md
       - api/copy.md
       - api/delete.md
       - api/get.md
