@@ -1,4 +1,6 @@
-from typing import TypedDict, Unpack
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Any, NotRequired, Protocol, TypedDict, Unpack
 
 import boto3
 import boto3.session
@@ -559,6 +561,16 @@ class S3ConfigInput(TypedDict, total=False):
     VIRTUAL_HOSTED_STYLE_REQUEST: bool
     """If virtual hosted style request has to be used."""
 
+class S3Credential(TypedDict):
+    access_key_id: str
+    secret_access_key: str
+    token: NotRequired[str | None]
+    expires_at: datetime | None
+
+class S3CredentialProvider(Protocol):
+    @staticmethod
+    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]: ...
+
 class S3Store:
     """Interface to an Amazon S3 bucket.
 
@@ -598,6 +610,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        _credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> None:
         """Create a new S3Store.
@@ -715,6 +728,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        _credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> S3Store:
         """Parse available connection info from a well-known storage URL.

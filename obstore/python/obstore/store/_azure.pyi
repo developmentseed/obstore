@@ -1,4 +1,6 @@
-from typing import TypedDict, Unpack
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Any, Protocol, TypeAlias, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -314,6 +316,24 @@ class AzureConfigInput(TypedDict, total=False):
     USE_FABRIC_ENDPOINT: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
 
+class AzureAccessKey(TypedDict):
+    access_key: str
+    expires_at: datetime | None
+
+class AzureSASToken(TypedDict):
+    sas_token: str | list[tuple[str, str]]
+    expires_at: datetime | None
+
+class AzureBearerToken(TypedDict):
+    token: str
+    expires_at: datetime | None
+
+AzureCredential: TypeAlias = AzureAccessKey | AzureSASToken | AzureBearerToken
+
+class AzureCredentialProvider(Protocol):
+    @staticmethod
+    def __call__() -> AzureCredential | Coroutine[Any, Any, AzureCredential]: ...
+
 class AzureStore:
     """Interface to a Microsoft Azure Blob Storage container.
 
@@ -340,6 +360,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        _credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> None:
         """Construct a new AzureStore.
@@ -368,6 +389,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        _credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> AzureStore:
         """Construct a new AzureStore with values populated from a well-known storage URL.
