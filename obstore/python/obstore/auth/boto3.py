@@ -56,6 +56,9 @@ class Boto3CredentialProvider:
     def __init__(
         self,
         session: boto3.session.Session | botocore.session.Session | None = None,
+        *,
+        ttl: ...,
+        # https://github.com/boto/botocore/blob/8d851f1ed7e7b73b1c56dd6ea18d17eeb0331277/botocore/credentials.py#L619-L631
     ) -> None:
         """Create a new Boto3CredentialProvider."""
         if session is None:
@@ -78,6 +81,7 @@ class Boto3CredentialProvider:
             "access_key_id": frozen_credentials.access_key,
             "secret_access_key": frozen_credentials.secret_key,
             "token": frozen_credentials.token,
+            # TODO: pass a ttl here
             "expires_at": None,
         }
 
