@@ -1,7 +1,10 @@
 [package]
 name = "pyo3-bytes"
 version = "0.1.2"
-authors = ["Kyle Barron <kyle@developmentseed.org>", "jesse rubin <jesse@dgi.com>"]
+authors = [
+    "Kyle Barron <kyle@developmentseed.org>",
+    "jesse rubin <jesse@dgi.com>",
+]
 edition = "2021"
 description = "bytes integration for pyo3."
 readme = "README.md"
@@ -13,7 +16,7 @@ rust-version = "1.75"
 
 [dependencies]
 bytes = "1.9"
-pyo3 = "0.23"
+pyo3 = "0.23.4"
 
 [lib]
 crate-type = ["rlib"]

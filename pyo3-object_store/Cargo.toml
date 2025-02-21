@@ -34,7 +34,7 @@ object_store = { version = "0.11.2", features = [
     "gcp",
     "http",
 ] }
-pyo3 = { version = "0.23", features = ["chrono", "indexmap"] }
+pyo3 = { version = "0.23.4", features = ["chrono", "indexmap"] }
 pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
 serde = "1"
 thiserror = "1"
