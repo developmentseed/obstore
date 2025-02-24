@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Coroutine
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, overload
@@ -50,7 +49,7 @@ from obstore import Bytes
 from obstore.store import from_url
 
 if TYPE_CHECKING:
-    from collections.abc import Coroutine
+    from collections.abc import Coroutine, Iterable
 
     from obstore import Bytes
     from obstore.store import (
@@ -470,7 +469,7 @@ class BufferedFileSimple(fsspec.spec.AbstractBufferedFile):
         return data
 
 
-def register(protocol: str | list[str], asynchronous: bool = False) -> None:
+def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> None:
     """Dynamically register a subclass of AsyncFsspecStore for the given protocol(s).
 
     This function creates a new subclass of AsyncFsspecStore with the specified
@@ -494,31 +493,15 @@ def register(protocol: str | list[str], asynchronous: bool = False) -> None:
         - This avoids modifying the original AsyncFsspecStore class.
 
     """
-    # Ensure protocol is of type str or list
-    if not isinstance(protocol, str | list):
-        err_msg = (
-            f"Protocol must be a string or a list of strings, got {type(protocol)}"
-        )
-        raise TypeError(err_msg)
-
-    # Ensure protocol is not None or empty
-    if not protocol:
-        raise ValueError(
-            "Protocol must be a non-empty string or a list of non-empty strings.",
-        )
-
-    if isinstance(protocol, list):
-        # Ensure all elements are strings
-        if not all(isinstance(p, str) for p in protocol):
-            raise TypeError("All protocols in the list must be strings.")
-        # Ensure no empty strings in the list
-        if not all(p for p in protocol):
-            raise ValueError("Protocol names in the list must be non-empty strings.")
-
-        for p in protocol:
-            register(p)
+    if isinstance(protocol, str):
+        _register(protocol, asynchronous=asynchronous)
         return
 
+    for p in protocol:
+        _register(p, asynchronous=asynchronous)
+
+
+def _register(protocol: str, *, asynchronous: bool) -> None:
     fsspec.register_implementation(
         protocol,
         type(
