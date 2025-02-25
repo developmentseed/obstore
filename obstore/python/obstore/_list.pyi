@@ -48,7 +48,7 @@ class ListResult(TypedDict, Generic[ListChunkType]):
     """Object metadata for the listing"""
 
 ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  # noqa: PYI001
-"""The data structure used for holding
+"""The data structure used for holding list results.
 
 By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
 for improved performance when listing large buckets, you can pass `return_arrow=True`.
