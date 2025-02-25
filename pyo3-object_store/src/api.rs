@@ -54,11 +54,36 @@ pub fn register_store_module(
     child_module.add_class::<PyMemoryStore>()?;
     child_module.add_class::<PyS3Store>()?;
 
+    // Set the value of `__module__` correctly on each publicly exposed function or class
+    let __module__ = intern!(py, "__module__");
+    child_module
+        .getattr("from_url")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("AzureStore")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("GCSStore")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("HTTPStore")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("LocalStore")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("MemoryStore")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("S3Store")?
+        .setattr(__module__, &full_module_string)?;
+
+    // Add the child module to the parent module
     parent_module.add_submodule(&child_module)?;
 
     py.import(intern!(py, "sys"))?
         .getattr(intern!(py, "modules"))?
-        .set_item(full_module_string.as_str(), &child_module)?;
+        .set_item(&full_module_string, &child_module)?;
 
     // needs to be set *after* `add_submodule()`
     child_module.setattr("__name__", full_module_string)?;
@@ -100,6 +125,46 @@ pub fn register_exceptions_module(
         py.get_type::<UnknownConfigurationKeyError>(),
     )?;
 
+    // Set the value of `__module__` correctly on each publicly exposed function or class
+    let __module__ = intern!(py, "__module__");
+    child_module
+        .getattr("BaseError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("GenericError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("NotFoundError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("InvalidPathError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("JoinError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("NotSupportedError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("AlreadyExistsError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("PreconditionError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("NotModifiedError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("PermissionDeniedError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("UnauthenticatedError")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("UnknownConfigurationKeyError")?
+        .setattr(__module__, &full_module_string)?;
+
+    // Add the child module to the parent module
     parent_module.add_submodule(&child_module)?;
 
     py.import(intern!(py, "sys"))?

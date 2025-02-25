@@ -29,7 +29,7 @@ impl LocalConfig {
 }
 
 /// A Python-facing wrapper around a [`LocalFileSystem`].
-#[pyclass(name = "LocalStore", module = "obstore.store", frozen)]
+#[pyclass(name = "LocalStore", frozen)]
 pub struct PyLocalStore {
     store: Arc<LocalFileSystem>,
     config: LocalConfig,
