@@ -69,28 +69,28 @@ def test_register_invalid_types():
     """Test that register rejects invalid input types."""
     with pytest.raises(
         TypeError,
-        match="Protocol must be a string or a list of strings",
+        match="'int' object is not iterable",
     ):
-        register(123)  # Not a string or list
+        register(123)
 
-    with pytest.raises(TypeError, match="All protocols in the list must be strings"):
+    with pytest.raises(TypeError, match="Protocol must be a string, got int"):
         register(["test", 42])  # List contains a non-string
 
     with pytest.raises(
         ValueError,
-        match="Protocol names in the list must be non-empty strings",
+        match="Protocol must be a non-empty string",
     ):
         register(["test1", ""])  # List contains a non-string
 
     with pytest.raises(
-        TypeError,
-        match="Protocol must be a string or a list of strings",
+        ValueError,
+        match="Protocol must be a non-empty string or list",
     ):
         register(None)  # None is invalid
 
     with pytest.raises(
         ValueError,
-        match="Protocol must be a non-empty string or a list of non-empty strings",
+        match="Protocol must be a non-empty string or list",
     ):
         register([])  # Empty list is invalid
 

@@ -493,6 +493,10 @@ def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> No
         - This avoids modifying the original AsyncFsspecStore class.
 
     """
+    if not protocol:
+        raise ValueError(
+            "Protocol must be a non-empty string or list",
+        )
     if isinstance(protocol, str):
         _register(protocol, asynchronous=asynchronous)
         return
@@ -502,6 +506,14 @@ def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> No
 
 
 def _register(protocol: str, *, asynchronous: bool) -> None:
+    if not protocol:
+        raise ValueError(
+            "Protocol must be a non-empty string",
+        )
+    if not isinstance(protocol, str):
+        err_msg = f"Protocol must be a string, got {type(protocol).__name__}"
+        raise TypeError(err_msg)
+
     fsspec.register_implementation(
         protocol,
         type(
