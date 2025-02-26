@@ -562,14 +562,93 @@ class S3ConfigInput(TypedDict, total=False):
     """If virtual hosted style request has to be used."""
 
 class S3Credential(TypedDict):
+    """An S3 credential."""
+
     access_key_id: str
+    """AWS access key ID."""
+
     secret_access_key: str
+    """AWS secret access key"""
+
     token: NotRequired[str | None]
+    """AWS token."""
+
     expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
 
 class S3CredentialProvider(Protocol):
+    """A type hint for a synchronous or asynchronous callback to provide custom S3 credentials.
+
+    This should be passed into the `credential_provider` parameter of `S3Store`.
+
+    **Examples:**
+
+    Return static credentials that don't expire:
+    ```py
+    def get_credentials() -> S3Credential:
+        return {
+            "access_key_id": "...",
+            "secret_access_key": "...",
+            "token": None,
+            "expires_at": None,
+        }
+    ```
+
+    Return static credentials that are valid for 5 minutes:
+    ```py
+    from datetime import datetime, timedelta, UTC
+
+    async def get_credentials() -> S3Credential:
+        return {
+            "access_key_id": "...",
+            "secret_access_key": "...",
+            "token": None,
+            "expires_at": datetime.now(UTC) + timedelta(minutes=5),
+        }
+    ```
+
+    A class-based credential provider with state:
+
+    ```py
+    from __future__ import annotations
+
+    from typing import TYPE_CHECKING
+
+    import boto3
+    import botocore.credentials
+
+    if TYPE_CHECKING:
+        from obstore.store import S3Credential
+
+
+    class Boto3CredentialProvider:
+        credentials: botocore.credentials.Credentials
+
+        def __init__(self, session: boto3.session.Session) -> None:
+            credentials = session.get_credentials()
+            if credentials is None:
+                raise ValueError("Received None from session.get_credentials")
+
+            self.credentials = credentials
+
+        def __call__(self) -> S3Credential:
+            frozen_credentials = self.credentials.get_frozen_credentials()
+            return {
+                "access_key_id": frozen_credentials.access_key,
+                "secret_access_key": frozen_credentials.secret_key,
+                "token": frozen_credentials.token,
+                "expires_at": None,
+            }
+    ```
+
+    """
+
     @staticmethod
-    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]: ...
+    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]:
+        """Return an `S3Credential`."""
 
 class S3Store:
     """Interface to an Amazon S3 bucket.

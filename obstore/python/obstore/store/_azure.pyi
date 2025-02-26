@@ -317,22 +317,62 @@ class AzureConfigInput(TypedDict, total=False):
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
 
 class AzureAccessKey(TypedDict):
+    """A shared Azure Storage Account Key.
+
+    <https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key>
+    """
+
     access_key: str
+    """Access key value."""
+
     expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
 
 class AzureSASToken(TypedDict):
+    """A shared access signature.
+
+    <https://learn.microsoft.com/en-us/rest/api/storageservices/delegate-access-with-shared-access-signature>
+    """
+
     sas_token: str | list[tuple[str, str]]
+    """SAS token."""
+
     expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
 
 class AzureBearerToken(TypedDict):
+    """An authorization token.
+
+    <https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-azure-active-directory>
+    """
+
     token: str
+    """Bearer token."""
+
     expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
 
 AzureCredential: TypeAlias = AzureAccessKey | AzureSASToken | AzureBearerToken
+"""A type alias for supported azure credentials to be returned from `AzureCredentialProvider`."""
 
 class AzureCredentialProvider(Protocol):
+    """A type hint for a synchronous or asynchronous callback to provide custom Azure credentials.
+
+    This should be passed into the `credential_provider` parameter of `AzureStore`.
+    """
+
     @staticmethod
-    def __call__() -> AzureCredential | Coroutine[Any, Any, AzureCredential]: ...
+    def __call__() -> AzureCredential | Coroutine[Any, Any, AzureCredential]:
+        """Return an `AzureCredential`."""
 
 class AzureStore:
     """Interface to a Microsoft Azure Blob Storage container.

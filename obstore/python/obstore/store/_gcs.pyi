@@ -83,12 +83,26 @@ class GCSConfigInput(TypedDict, total=False):
     """Path to the service account file."""
 
 class GCSCredential(TypedDict):
+    """A Google Cloud Storage Credential."""
+
     token: str
+    """An HTTP bearer token."""
+
     expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
 
 class GCSCredentialProvider(Protocol):
+    """A type hint for a synchronous or asynchronous callback to provide custom Google Cloud Storage credentials.
+
+    This should be passed into the `credential_provider` parameter of `GCSStore`.
+    """
+
     @staticmethod
-    def __call__() -> GCSCredential | Coroutine[Any, Any, GCSCredential]: ...
+    def __call__() -> GCSCredential | Coroutine[Any, Any, GCSCredential]:
+        """Return a `GCSCredential`."""
 
 class GCSStore:
     """Interface to Google Cloud Storage.
