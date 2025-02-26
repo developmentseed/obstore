@@ -49,7 +49,7 @@ class AssumeRoleRequestRequestTypeDef(TypedDict):  # noqa: D101
 
 # TODO: should these two classes be merged?
 class Boto3CredentialProvider:
-    """A CredentialProvider for S3Store that uses [`boto3.Session`][]."""
+    """A CredentialProvider for S3Store that uses [`boto3.session.Session`][]."""
 
     credentials: botocore.credentials.Credentials
     config: S3ConfigInput

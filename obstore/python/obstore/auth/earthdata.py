@@ -1,9 +1,5 @@
 """Credential providers for accessing [NASA Earthdata].
 
-NASA Earthdata supports public [in-region direct S3
-access](https://archive.podaac.earthdata.nasa.gov/s3credentialsREADME). This
-credential provider automatically manages the S3 credentials.
-
 [NASA Earthdata]: https://www.earthdata.nasa.gov/
 """
 
