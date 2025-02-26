@@ -327,7 +327,7 @@ def get_ranges(
 
     To improve performance this will:
 
-    - Combine ranges less than 10MB apart into a single call to `fetch`
+    - Transparently combine ranges less than 1MB apart into a single underlying request
     - Make multiple `fetch` requests in parallel (up to maximum of 10)
 
     Args:
