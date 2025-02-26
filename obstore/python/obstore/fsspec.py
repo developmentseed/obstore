@@ -78,6 +78,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     def __init__(  # noqa: PLR0913
         self,
         *args: Any,
+        protocol: str | None = None,
         config: (
             S3Config
             | S3ConfigInput
@@ -97,6 +98,9 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         """Construct a new AsyncFsspecStore.
 
         Args:
+            protocol: The storage protocol to use, such as "s3",
+                "gcs", or "abfs". If `None`, the default class-level protocol
+                is used. Default to None.
             config: Configuration for the cloud storage provider, which can be one of
                 S3Config, S3ConfigInput, GCSConfig, GCSConfigInput, AzureConfig,
                 or AzureConfigInput. Any of these values will be applied after checking
@@ -132,6 +136,10 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         ```
 
         """
+        if protocol is None:
+            self._protocol = self.protocol
+        else:
+            self._protocol = protocol
         self.config = config
         self.client_options = client_options
         self.retry_config = retry_config
@@ -162,15 +170,15 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         """
         protocol_with_bucket = ["s3", "s3a", "gcs", "gs", "abfs", "https", "http"]
 
-        if self.protocol not in protocol_with_bucket:
+        if self._protocol not in protocol_with_bucket:
             # no bucket name in path
             return "", path
 
         res = urlparse(path)
         if res.scheme:
             # path is in url format
-            if res.scheme != self.protocol:
-                err_msg = f"Expect protocol to be {self.protocol}. Got {res.scheme}"
+            if res.scheme != self._protocol:
+                err_msg = f"Expect protocol to be {self._protocol}. Got {res.scheme}"
                 raise ValueError(err_msg)
             return (res.netloc, res.path)
 
@@ -184,7 +192,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
     def _construct_store(self, bucket: str) -> ObjectStore:
         return from_url(
-            url=f"{self.protocol}://{bucket}",
+            url=f"{self._protocol}://{bucket}",
             config=self.config,
             client_options=self.client_options,
             retry_config=self.retry_config or None,
