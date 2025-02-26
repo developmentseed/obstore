@@ -1,3 +1,4 @@
 # NASA Earthdata
 
-::: obstore.auth.earthdata
+::: obstore.auth.earthdata.NasaEarthdataCredentialProvider
+::: obstore.auth.earthdata.NasaEarthdataAsyncCredentialProvider

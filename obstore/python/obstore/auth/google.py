@@ -18,11 +18,21 @@ if TYPE_CHECKING:
 
 
 class GoogleAuthCredentialProvider:
-    """A CredentialProvider for Google Cloud Storage that uses [`google.auth`][].
+    """A CredentialProvider for [GCSStore][obstore.store.GCSStore] that uses [`google.auth`][].
 
     This credential provider uses `google-auth` and `requests`, and will error if those
     cannot be imported.
-    """
+
+    **Example:**
+
+    ```py
+    from obstore.auth.google import GoogleAuthCredentialProvider
+    from obstore.store import GCSStore
+
+    credential_provider = GoogleAuthCredentialProvider(credentials=...)
+    store = GCSStore("bucket_name", credential_provider=credential_provider)
+    ```
+    """  # noqa: E501
 
     request: Request
     credentials: Credentials
@@ -49,7 +59,7 @@ class GoogleAuthCredentialProvider:
                 will be instantiated.
             refresh_threshold: The length of time before the token timeout when a new
                 token should be requested. Defaults to `timedelta(minutes=3,
-                seconds=45)`.
+                seconds=45)` ([suggested here](https://github.com/googleapis/google-auth-library-python/blob/446c8e79b20b7c063d6aa142857a126a7efa1fc3/google/auth/_helpers.py#L26-L28)).
 
         """
         from google.auth.transport.requests import Request
@@ -72,11 +82,26 @@ class GoogleAuthCredentialProvider:
 
 
 class GoogleAuthAsyncCredentialProvider:
-    """An async CredentialProvider for Google Cloud Storage that uses [`google.auth`][].
+    """An async CredentialProvider for [GCSStore][obstore.store.GCSStore] that uses [`google.auth`][].
+
+    This credential provider should be preferred over the synchronous
+    [GoogleAuthCredentialProvider][obstore.auth.google.GoogleAuthCredentialProvider]
+    whenever you're using async obstore methods.
 
     This credential provider uses `google-auth` and `aiohttp`, and will error if those
     cannot be imported.
-    """
+
+    **Example:**
+
+    ```py
+    from obstore.auth.google import GoogleAuthAsyncCredentialProvider
+    from obstore.store import GCSStore
+
+    credential_provider = GoogleAuthAsyncCredentialProvider(credentials=...)
+    store = GCSStore("bucket_name", credential_provider=credential_provider)
+    ```
+
+    """  # noqa: E501
 
     async_request: AsyncRequest
     credentials: Credentials
@@ -104,7 +129,7 @@ class GoogleAuthAsyncCredentialProvider:
                 instantiated.
             refresh_threshold: The length of time before the token timeout when a new
                 token should be requested. Defaults to `timedelta(minutes=3,
-                seconds=45)`.
+                seconds=45)` ([suggested here](https://github.com/googleapis/google-auth-library-python/blob/446c8e79b20b7c063d6aa142857a126a7efa1fc3/google/auth/_helpers.py#L26-L28)).
 
         """
         from google.auth.transport._aiohttp_requests import Request as AsyncRequest

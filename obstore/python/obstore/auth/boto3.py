@@ -49,11 +49,11 @@ class AssumeRoleRequestRequestTypeDef(TypedDict):  # noqa: D101
 
 # TODO: should these two classes be merged?
 class Boto3CredentialProvider:
-    """A CredentialProvider for S3Store that uses [`boto3.session.Session`][].
+    """A CredentialProvider for [S3Store][obstore.store.S3Store] that uses [`boto3.session.Session`][].
 
     If the provided session has a `region_name` set, that will be passed down to the
     store.
-    """
+    """  # noqa: E501
 
     credentials: botocore.credentials.Credentials
     config: S3ConfigInput
@@ -108,11 +108,11 @@ class Boto3CredentialProvider:
 
 
 class StsCredentialProvider:
-    """A CredentialProvider for S3Store that uses [`STS.Client.assume_role`][].
+    """A CredentialProvider for [S3Store][obstore.store.S3Store] that uses [`STS.Client.assume_role`][].
 
     If the provided session has a `region_name` set, that will be passed down to the
     store.
-    """
+    """  # noqa: E501
 
     config: S3ConfigInput
     session: boto3.session.Session
