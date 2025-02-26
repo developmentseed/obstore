@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.0] - unreleased
+
+### Breaking changes :wrench:
+
+- Removed `S3Store.from_session`. Use credential providers instead.
+
 ## [0.4.0] - 2025-02-10
 
 ### New Features :magic_wand:

@@ -2,11 +2,6 @@ from collections.abc import Coroutine
 from datetime import datetime
 from typing import Any, NotRequired, Protocol, TypedDict, Unpack
 
-import boto3
-import boto3.session
-import botocore
-import botocore.session
-
 from ._client import ClientConfig
 from ._retry import RetryConfig
 
@@ -742,56 +737,6 @@ class S3Store:
         Keyword Args:
             prefix: A prefix within the bucket to use for all operations.
             config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
-
-        Returns:
-            S3Store
-
-        """
-    @classmethod
-    def from_session(
-        cls,
-        session: boto3.session.Session | botocore.session.Session,
-        bucket: str | None = None,
-        *,
-        prefix: str | None = None,
-        config: S3Config | S3ConfigInput | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3ConfigInput],
-    ) -> S3Store:
-        """Construct a new S3Store with credentials inferred from a boto3 Session.
-
-        This can be useful to read S3 credentials from [disk-based credentials sources](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html).
-
-        !!! note
-            This is a convenience function for users who are already using `boto3` or
-            `botocore`. If you're not already using `boto3` or `botocore`, use other
-            constructors, which do not need `boto3` or `botocore` to be installed.
-
-        !!! note
-            This will retrieve "frozen" credentials from the boto3 config. That is, the
-            values of `"aws_access_key_id"`, `"aws_secret_access_key"`, and
-            `"aws_session_token"` are static and will not be updated. Consider using the
-            `from_native` constructor to automatically refresh credentials.
-
-        Examples:
-        ```py
-        import boto3
-
-        session = boto3.Session()
-        store = S3Store.from_session(session, "bucket-name", region="us-east-1")
-        ```
-
-        Args:
-            session: The boto3.Session or botocore.session.Session to infer credentials from.
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            prefix: A prefix within the bucket to use for all operations.
-            config: AWS Configuration. Values in this config will override values inferred from the session. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
             kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
