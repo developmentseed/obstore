@@ -14,7 +14,6 @@ use crate::aws::credentials::PyAWSCredentialProvider;
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
-use crate::get_runtime;
 use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
@@ -27,9 +26,6 @@ struct S3Config {
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
     credential_provider: Option<PyAWSCredentialProvider>,
-    /// Whether or not this config can accurately be pickled.
-    /// This is false if a custom CredentialProvider is used.
-    pickle_safe: bool,
 }
 
 impl S3Config {
@@ -42,10 +38,6 @@ impl S3Config {
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        if !self.pickle_safe {
-            return Err(GenericError::new_err("Instance not safe to pickle."));
-        }
-
         let args = PyTuple::empty(py).into_py_any(py)?;
         let kwargs = PyDict::new(py);
 
@@ -92,7 +84,6 @@ impl PyS3Store {
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
-        pickle_safe: bool,
     ) -> PyObjectStoreResult<Self> {
         let mut config = config.unwrap_or_default();
         if let Some(credential_provider) = credential_provider.clone() {
@@ -122,7 +113,6 @@ impl PyS3Store {
                 config: combined_config,
                 client_options,
                 retry_config,
-                pickle_safe,
                 credential_provider,
             },
         })
@@ -157,37 +147,6 @@ impl PyS3Store {
             retry_config,
             credential_provider,
             kwargs,
-            true,
-        )
-    }
-
-    #[cfg(feature = "aws-config")]
-    #[classmethod]
-    #[pyo3(signature = ( bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
-    #[allow(clippy::too_many_arguments)]
-    fn _from_native(
-        _cls: &Bound<PyType>,
-        py: Python,
-        bucket: Option<String>,
-        prefix: Option<PyPath>,
-        config: Option<PyAmazonS3Config>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
-        let runtime = get_runtime(py)?;
-        let shared_config = py.allow_threads(|| runtime.block_on(aws_config::load_from_env()));
-        let builder = super::shared_config::from_sdk_config(shared_config);
-        Self::new(
-            builder,
-            bucket,
-            prefix,
-            config,
-            client_options,
-            retry_config,
-            None,
-            kwargs,
-            false,
         )
     }
 
@@ -221,7 +180,6 @@ impl PyS3Store {
             retry_config,
             credential_provider,
             kwargs,
-            true,
         )
     }
 
