@@ -8,6 +8,7 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 
+use crate::aws::store::PyAmazonS3Config;
 use crate::credentials::{TemporaryToken, TokenCache};
 
 /// A wrapper around an [AwsCredential] that includes an optional expiry timestamp.
@@ -56,6 +57,15 @@ pub struct PyAWSCredentialProvider {
     /// The provided user callback to manage credential refresh
     user_callback: PyObject,
     cache: TokenCache<Arc<AwsCredential>>,
+    /// An optional config passed down from the credential provider class
+    config: Option<PyAmazonS3Config>,
+}
+
+impl PyAWSCredentialProvider {
+    /// Access the S3 config passed down from the credential provider
+    pub(crate) fn config(&self) -> Option<&PyAmazonS3Config> {
+        self.config.as_ref()
+    }
 }
 
 impl Clone for PyAWSCredentialProvider {
@@ -64,6 +74,7 @@ impl Clone for PyAWSCredentialProvider {
         Self {
             user_callback: cloned_callback,
             cache: self.cache.clone(),
+            config: self.config.clone(),
         }
     }
 }
@@ -79,9 +90,17 @@ impl<'py> FromPyObject<'py> for PyAWSCredentialProvider {
         if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
             cache = cache.with_min_ttl(refresh_threshold.extract()?);
         }
+        let config = if let Ok(token) = ob.getattr(intern!(ob.py(), "config")) {
+            token.extract()?
+        } else {
+            // Allow not having a `config` attribute
+            None
+        };
+
         Ok(Self {
             user_callback: ob.clone().unbind(),
             cache,
+            config,
         })
     }
 }

@@ -95,6 +95,13 @@ impl PyS3Store {
         pickle_safe: bool,
     ) -> PyObjectStoreResult<Self> {
         let mut config = config.unwrap_or_default();
+        if let Some(credential_provider) = credential_provider.clone() {
+            // Apply config from credential provider onto builder
+            if let Some(config) = credential_provider.config() {
+                builder = config.clone().apply_config(builder);
+            }
+            builder = builder.with_credentials(Arc::new(credential_provider));
+        }
         if let Some(bucket) = bucket {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
             // in sync.
@@ -107,9 +114,6 @@ impl PyS3Store {
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
-        }
-        if let Some(credential_provider) = credential_provider.clone() {
-            builder = builder.with_credentials(Arc::new(credential_provider));
         }
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
