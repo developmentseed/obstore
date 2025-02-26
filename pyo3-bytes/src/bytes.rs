@@ -76,12 +76,8 @@ impl PyBytes {
     fn slice(&self, slice: &Bound<'_, PySlice>) -> PyResult<PyBytes> {
         let bytes_length = self.0.len() as isize;
         let (start, stop, step) = {
-            let slice_indicies = slice.indices(bytes_length)?;
-            (
-                slice_indicies.start,
-                slice_indicies.stop,
-                slice_indicies.step,
-            )
+            let slice_indices = slice.indices(bytes_length)?;
+            (slice_indices.start, slice_indices.stop, slice_indices.step)
         };
 
         let new_capacity = if (step > 0 && stop > start) || (step < 0 && stop < start) {
