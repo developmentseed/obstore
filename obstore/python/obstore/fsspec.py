@@ -129,9 +129,10 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         from obstore.fsspec import AsyncFsspecStore
         from obstore.store import HTTPStore
 
-        store = HTTPStore.from_url("https://example.com")
-        fsspec_store = AsyncFsspecStore(store)
-        resp = fsspec_store.cat("/")
+        store = AsyncFsspecStore(
+            protocol="https",
+        )
+        resp = store.cat("https://example.com")
         assert resp.startswith(b"<!doctype html>")
         ```
 
