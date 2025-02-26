@@ -21,10 +21,13 @@ h6 {
   font-weight: bold;
 }
 .md-typeset h1,
-.md-typeset h2,
+.md-typeset h2 {
+  font-weight: normal;
+  color: var(--md-default-fg-color);
+}
 .md-typeset h3,
 .md-typeset h4 {
-  font-weight: normal;
+  font-weight: bold;
   color: var(--md-default-fg-color);
 }
 .md-button,

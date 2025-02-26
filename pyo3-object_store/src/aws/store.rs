@@ -10,6 +10,7 @@ use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 use url::Url;
 
+use crate::aws::credentials::PyAWSCredentialProvider;
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
@@ -25,6 +26,7 @@ struct S3Config {
     config: PyAmazonS3Config,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
+    credential_provider: Option<PyAWSCredentialProvider>,
     /// Whether or not this config can accurately be pickled.
     /// This is false if a custom CredentialProvider is used.
     pickle_safe: bool,
@@ -57,6 +59,9 @@ impl S3Config {
         if let Some(retry_config) = &self.retry_config {
             kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
         }
+        if let Some(credential_provider) = &self.credential_provider {
+            kwargs.set_item("credential_provider", credential_provider.clone())?;
+        }
 
         PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
     }
@@ -85,10 +90,18 @@ impl PyS3Store {
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
         pickle_safe: bool,
     ) -> PyObjectStoreResult<Self> {
         let mut config = config.unwrap_or_default();
+        if let Some(credential_provider) = credential_provider.clone() {
+            // Apply config from credential provider onto builder
+            if let Some(config) = credential_provider.config() {
+                builder = config.clone().apply_config(builder);
+            }
+            builder = builder.with_credentials(Arc::new(credential_provider));
+        }
         if let Some(bucket) = bucket {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
             // in sync.
@@ -110,6 +123,7 @@ impl PyS3Store {
                 client_options,
                 retry_config,
                 pickle_safe,
+                credential_provider,
             },
         })
     }
@@ -124,13 +138,14 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new_py(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         Self::new(
@@ -140,6 +155,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
+            credential_provider,
             kwargs,
             true,
         )
@@ -169,6 +185,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
+            None,
             kwargs,
             false,
         )
@@ -236,6 +253,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
+            None,
             kwargs,
             // We use frozen credentials; boto3 isn't a direct credentials provider
             true,
@@ -243,13 +261,14 @@ impl PyS3Store {
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: PyUrl,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         // We manually parse the URL to find the prefix because `with_url` does not apply the
@@ -269,6 +288,7 @@ impl PyS3Store {
             Some(config),
             client_options,
             retry_config,
+            credential_provider,
             kwargs,
             true,
         )
