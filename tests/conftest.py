@@ -1,6 +1,7 @@
+from typing import TYPE_CHECKING
+
 import boto3
 import pytest
-from typing import TYPE_CHECKING
 import urllib3
 from botocore import UNSIGNED
 from botocore.client import Config
@@ -9,7 +10,7 @@ from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 from obstore.store import S3Store
 
 if TYPE_CHECKING:
-    from obstore.store import S3ConfigInput, ClientConfig
+    from obstore.store import S3ConfigInput
 
 TEST_BUCKET_NAME = "test"
 

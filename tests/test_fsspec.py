@@ -20,7 +20,11 @@ if TYPE_CHECKING:
 @pytest.fixture
 def fs(s3_store_config: S3Config):
     register("s3")
-    return fsspec.filesystem("s3", config=s3_store_config, client_options={"allow_http": True})
+    return fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -165,8 +169,16 @@ def test_fsspec_filesystem_cache(s3_store_config: S3Config):
     register("s3")
 
     # call fsspec.filesystem() multiple times with the same parameters
-    fs1 = fsspec.filesystem("s3", config=s3_store_config, client_options={"allow_http": True})
-    fs2 = fsspec.filesystem("s3", config=s3_store_config, client_options={"allow_http": True})
+    fs1 = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+    )
+    fs2 = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+    )
 
     # Same parameters should return the same instance
     assert fs1 is fs2, (
@@ -174,7 +186,12 @@ def test_fsspec_filesystem_cache(s3_store_config: S3Config):
     )
 
     # Changing parameters should create a new instance
-    fs3 = fsspec.filesystem("s3", config=s3_store_config, client_options={"allow_http": True}, asynchronous=True)
+    fs3 = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+        asynchronous=True,
+    )
     assert fs1 is not fs3, (
         "fsspec.filesystem() with different parameters should return a new instance"
     )
@@ -194,7 +211,12 @@ def test_list(fs: AsyncFsspecStore):
 @pytest.mark.asyncio
 async def test_list_async(s3_store_config: S3Config):
     register("s3")
-    fs = fsspec.filesystem("s3", config=s3_store_config, client_options={"allow_http": True}, asynchronous=True)
+    fs = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+        asynchronous=True,
+    )
 
     out = await fs._ls(f"{TEST_BUCKET_NAME}", detail=False)
     assert out == [f"{TEST_BUCKET_NAME}/afile"]
