@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, NotRequired, TypedDict, Unpack
 
 import boto3
@@ -48,19 +49,34 @@ class AssumeRoleRequestRequestTypeDef(TypedDict):  # noqa: D101
 
 # TODO: should these two classes be merged?
 class Boto3CredentialProvider:
-    """A CredentialProvider for S3Store that uses [`boto3`][]."""
+    """A CredentialProvider for S3Store that uses [`boto3.Session`][]."""
 
     credentials: botocore.credentials.Credentials
     config: S3ConfigInput
+    ttl: timedelta
 
     def __init__(
         self,
         session: boto3.session.Session | botocore.session.Session | None = None,
         *,
-        ttl: ...,
         # https://github.com/boto/botocore/blob/8d851f1ed7e7b73b1c56dd6ea18d17eeb0331277/botocore/credentials.py#L619-L631
+        ttl: timedelta = timedelta(minutes=30),
     ) -> None:
-        """Create a new Boto3CredentialProvider."""
+        """Create a new Boto3CredentialProvider.
+
+        This will call `session.get_credentials` to get a
+        `botocore.credentials.Credentials` object. Each token refresh will call
+        `credentials.get_frozen_credentials`.
+
+        Args:
+            session: A boto3 session to use for providing credentials. Defaults to None,
+                in which case a new `boto3.Session` will be used.
+
+        Keyword Args:
+            ttl: The length of time each result from `get_frozen_credentials` should
+                live. Defaults to timedelta(minutes=30).
+
+        """
         if session is None:
             session = boto3.Session()
 
@@ -73,16 +89,17 @@ class Boto3CredentialProvider:
             raise ValueError("Received None from session.get_credentials")
 
         self.credentials = credentials
+        self.ttl = ttl
 
     def __call__(self) -> S3Credential:
         """Fetch credentials."""
+        expires_at = datetime.now(UTC) + self.ttl
         frozen_credentials = self.credentials.get_frozen_credentials()
         return {
             "access_key_id": frozen_credentials.access_key,
             "secret_access_key": frozen_credentials.secret_key,
             "token": frozen_credentials.token,
-            # TODO: pass a ttl here
-            "expires_at": None,
+            "expires_at": expires_at,
         }
 
 
@@ -94,7 +111,16 @@ class StsCredentialProvider:
         session: boto3.session.Session | None = None,
         **kwargs: Unpack[AssumeRoleRequestRequestTypeDef],
     ) -> None:
-        """Create a new Boto3CredentialProvider."""
+        """Create a new StsCredentialProvider.
+
+        Args:
+            session: A boto3 session to use for providing credentials. Defaults to None,
+                in which case a new `boto3.Session` will be used.
+
+        Keyword Args:
+            kwargs: arguments passed on to [`STS.Client.assume_role`][].
+
+        """
         if session is None:
             session = boto3.Session()
 
@@ -122,5 +148,5 @@ class StsCredentialProvider:
             "access_key_id": creds["AccessKeyId"],
             "secret_access_key": creds["SecretAccessKey"],
             "token": creds["SessionToken"],
-            "expires_at": creds["Expiration"],
+            "expires_at": expiry,
         }
