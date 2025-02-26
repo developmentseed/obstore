@@ -232,7 +232,7 @@ impl<'py> IntoPyObject<'py> for PyRecordBatchWrapper {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.0.to_arro3(py)?.bind(py).clone())
+        self.0.into_arro3(py)
     }
 }
 
@@ -250,7 +250,7 @@ impl<'py> IntoPyObject<'py> for PyTableWrapper {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.0.to_arro3(py)?.bind(py).clone())
+        self.0.into_arro3(py)
     }
 }
 

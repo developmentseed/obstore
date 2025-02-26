@@ -18,7 +18,7 @@ name = "_obstore"
 crate-type = ["cdylib"]
 
 [dependencies]
-arrow = "53"
+arrow = "54"
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
@@ -26,7 +26,7 @@ http = { workspace = true }
 indexmap = { workspace = true }
 object_store = { workspace = true }
 pyo3 = { workspace = true, features = ["chrono"] }
-pyo3-arrow = "0.6"
+pyo3-arrow = "0.7.2"
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
 pyo3-bytes = { path = "../pyo3-bytes" }
 pyo3-file = { workspace = true }

@@ -53,7 +53,7 @@ impl GCSConfig {
 }
 
 /// A Python-facing wrapper around a [`GoogleCloudStorage`].
-#[pyclass(name = "GCSStore", module = "obstore.store", frozen)]
+#[pyclass(name = "GCSStore", frozen)]
 pub struct PyGCSStore {
     store: Arc<MaybePrefixedStore<GoogleCloudStorage>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
