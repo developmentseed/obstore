@@ -1,3 +1,3 @@
-# Boto3 Credential Providers
+# Boto3
 
 ::: obstore.auth.boto3

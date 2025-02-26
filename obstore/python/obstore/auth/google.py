@@ -8,17 +8,21 @@ from typing import TYPE_CHECKING, cast
 import google.auth
 import google.auth.credentials
 from google.auth._default_async import default_async
-from google.auth.transport._aiohttp_requests import Request as AsyncRequest
-from google.auth.transport.requests import Request
 
 if TYPE_CHECKING:
     from google.auth.credentials import Credentials
+    from google.auth.transport._aiohttp_requests import Request as AsyncRequest
+    from google.auth.transport.requests import Request
 
     from obstore.store import GCSCredential
 
 
 class GoogleAuthCredentialProvider:
-    """A CredentialProvider for Google Cloud Storage that uses [`google.auth`][]."""
+    """A CredentialProvider for Google Cloud Storage that uses [`google.auth`][].
+
+    This credential provider uses `google-auth` and `requests`, and will error if those
+    cannot be imported.
+    """
 
     request: Request
     credentials: Credentials
@@ -48,6 +52,8 @@ class GoogleAuthCredentialProvider:
                 seconds=45)`.
 
         """
+        from google.auth.transport.requests import Request
+
         if credentials is not None:
             self.credentials = credentials
         else:
@@ -66,7 +72,11 @@ class GoogleAuthCredentialProvider:
 
 
 class GoogleAuthAsyncCredentialProvider:
-    """An async CredentialProvider for Google Cloud Storage that uses [`google.auth`][]."""  # noqa: E501
+    """An async CredentialProvider for Google Cloud Storage that uses [`google.auth`][].
+
+    This credential provider uses `google-auth` and `aiohttp`, and will error if those
+    cannot be imported.
+    """
 
     async_request: AsyncRequest
     credentials: Credentials
@@ -97,6 +107,8 @@ class GoogleAuthAsyncCredentialProvider:
                 seconds=45)`.
 
         """
+        from google.auth.transport._aiohttp_requests import Request as AsyncRequest
+
         if credentials is not None:
             self.credentials = credentials
         else:

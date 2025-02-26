@@ -50,6 +50,7 @@ nav:
           # - api/store/middleware.md
       - obstore.auth:
           - api/auth/boto3.md
+          - api/auth/earthdata.md
           - api/auth/google.md
       - api/copy.md
       - api/delete.md

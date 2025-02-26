@@ -1,3 +1,3 @@
-# GCS Credential Providers
+# Google Auth
 
 ::: obstore.auth.google
