@@ -26,6 +26,7 @@ struct S3Config {
     config: PyAmazonS3Config,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
+    credential_provider: Option<PyAWSCredentialProvider>,
     /// Whether or not this config can accurately be pickled.
     /// This is false if a custom CredentialProvider is used.
     pickle_safe: bool,
@@ -57,6 +58,9 @@ impl S3Config {
         }
         if let Some(retry_config) = &self.retry_config {
             kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
+        }
+        if let Some(credential_provider) = &self.credential_provider {
+            kwargs.set_item("credential_provider", credential_provider.clone())?;
         }
 
         PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
@@ -104,7 +108,7 @@ impl PyS3Store {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        if let Some(credential_provider) = credential_provider {
+        if let Some(credential_provider) = credential_provider.clone() {
             builder = builder.with_credentials(Arc::new(credential_provider));
         }
         Ok(Self {
@@ -115,6 +119,7 @@ impl PyS3Store {
                 client_options,
                 retry_config,
                 pickle_safe,
+                credential_provider,
             },
         })
     }

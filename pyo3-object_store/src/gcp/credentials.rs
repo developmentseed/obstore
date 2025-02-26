@@ -50,6 +50,16 @@ pub struct PyGcpCredentialProvider {
     cache: TokenCache<Arc<GcpCredential>>,
 }
 
+impl Clone for PyGcpCredentialProvider {
+    fn clone(&self) -> Self {
+        let cloned_callback = Python::with_gil(|py| self.user_callback.clone_ref(py));
+        Self {
+            user_callback: cloned_callback,
+            cache: self.cache.clone(),
+        }
+    }
+}
+
 impl<'py> FromPyObject<'py> for PyGcpCredentialProvider {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if !ob.hasattr(intern!(ob.py(), "__call__"))? {
@@ -68,6 +78,16 @@ impl<'py> FromPyObject<'py> for PyGcpCredentialProvider {
             user_callback: ob.clone().unbind(),
             cache,
         })
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyGcpCredentialProvider {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.user_callback.bind(py).clone())
     }
 }
 

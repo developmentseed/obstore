@@ -35,6 +35,17 @@ impl<T> Default for TokenCache<T> {
     }
 }
 
+impl<T: Clone> Clone for TokenCache<T> {
+    /// Cloning the token cache invalidates the cache.
+    fn clone(&self) -> Self {
+        Self {
+            cache: Default::default(),
+            min_ttl: self.min_ttl,
+            fetch_backoff: self.fetch_backoff,
+        }
+    }
+}
+
 impl<T: Clone + Send> TokenCache<T> {
     /// Override the minimum remaining TTL for a cached token to be used
     pub(crate) fn with_min_ttl(self, min_ttl: TimeDelta) -> Self {
