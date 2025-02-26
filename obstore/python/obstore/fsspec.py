@@ -184,12 +184,10 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             return (res.netloc, res.path)
 
         # path not in url format
-        if "/" not in path:
+        path_li = path.split("/", 1)
+        if len(path_li) == 1:
             return path, ""
-        path_li = path.split("/")
-        bucket = path_li[0]
-        file_path = "/".join(path_li[1:])
-        return (bucket, file_path)
+        return (path_li[0], path_li[1])
 
     def _construct_store(self, bucket: str) -> ObjectStore:
         return from_url(
