@@ -120,7 +120,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        _credential_provider: GCSCredentialProvider | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
         **kwargs: Unpack[GCSConfigInput],
     ) -> None:
         """Construct a new GCSStore.
@@ -133,6 +133,7 @@ class GCSStore:
             config: GCS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Google credentials.
             kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
@@ -149,7 +150,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        _credential_provider: GCSCredentialProvider | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
         **kwargs: Unpack[GCSConfigInput],
     ) -> GCSStore:
         """Construct a new GCSStore with values populated from a well-known storage URL.
@@ -166,6 +167,7 @@ class GCSStore:
             config: GCS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Google credentials.
             kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:

@@ -610,7 +610,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        _credential_provider: S3CredentialProvider | None = None,
+        credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> None:
         """Create a new S3Store.
@@ -623,6 +623,7 @@ class S3Store:
             config: AWS configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom S3 credentials.
             kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
@@ -728,7 +729,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        _credential_provider: S3CredentialProvider | None = None,
+        credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> S3Store:
         """Parse available connection info from a well-known storage URL.
@@ -748,6 +749,7 @@ class S3Store:
             config: AWS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom S3 credentials.
             kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
 

@@ -143,7 +143,7 @@ impl<'py> FromPyObject<'py> for PyAzureCredentialProvider {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if !ob.hasattr(intern!(ob.py(), "__call__"))? {
             return Err(PyTypeError::new_err(
-                "Expected callable object for _credential_provider.",
+                "Expected callable object for credential_provider.",
             ));
         }
 

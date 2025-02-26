@@ -129,14 +129,14 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new_py(
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        _credential_provider: Option<PyAWSCredentialProvider>,
+        credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         Self::new(
@@ -146,7 +146,7 @@ impl PyS3Store {
             config,
             client_options,
             retry_config,
-            _credential_provider,
+            credential_provider,
             kwargs,
             true,
         )
@@ -252,14 +252,14 @@ impl PyS3Store {
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: PyUrl,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        _credential_provider: Option<PyAWSCredentialProvider>,
+        credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         // We manually parse the URL to find the prefix because `with_url` does not apply the
@@ -279,7 +279,7 @@ impl PyS3Store {
             Some(config),
             client_options,
             retry_config,
-            _credential_provider,
+            credential_provider,
             kwargs,
             true,
         )

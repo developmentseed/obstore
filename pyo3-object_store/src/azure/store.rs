@@ -77,14 +77,14 @@ impl PyAzureStore {
 impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
+    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
         container: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        _credential_provider: Option<PyAzureCredentialProvider>,
+        credential_provider: Option<PyAzureCredentialProvider>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
@@ -102,7 +102,7 @@ impl PyAzureStore {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
-        if let Some(credential_provider) = _credential_provider {
+        if let Some(credential_provider) = credential_provider {
             builder = builder.with_credentials(Arc::new(credential_provider));
         }
         Ok(Self {
@@ -117,14 +117,14 @@ impl PyAzureStore {
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, _credential_provider=None, **kwargs))]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: PyUrl,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        _credential_provider: Option<PyAzureCredentialProvider>,
+        credential_provider: Option<PyAzureCredentialProvider>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         // We manually parse the URL to find the prefix because `parse_url` does not apply the
@@ -143,7 +143,7 @@ impl PyAzureStore {
             Some(config),
             client_options,
             retry_config,
-            _credential_provider,
+            credential_provider,
             kwargs,
         )
     }

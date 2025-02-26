@@ -33,7 +33,7 @@ def from_url(
     config: S3Config | S3ConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    _credential_provider: S3CredentialProvider | None = None,
+    credential_provider: S3CredentialProvider | None = None,
     **kwargs: Unpack[S3ConfigInput],
 ) -> ObjectStore: ...
 @overload
@@ -43,7 +43,7 @@ def from_url(
     config: GCSConfig | GCSConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    _credential_provider: GCSCredentialProvider | None = None,
+    credential_provider: GCSCredentialProvider | None = None,
     **kwargs: Unpack[GCSConfigInput],
 ) -> ObjectStore: ...
 @overload
@@ -53,7 +53,7 @@ def from_url(
     config: AzureConfig | AzureConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    _credential_provider: AzureCredentialProvider | None = None,
+    credential_provider: AzureCredentialProvider | None = None,
     **kwargs: Unpack[AzureConfigInput],
 ) -> ObjectStore: ...
 @overload
@@ -72,7 +72,7 @@ def from_url(
     config: S3ConfigInput | GCSConfigInput | AzureConfigInput | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    _credential_provider: Callable | None = None,
+    credential_provider: Callable | None = None,
     **kwargs: Any,
 ) -> ObjectStore:
     """Easy construction of store by URL, identifying the relevant store.
@@ -111,6 +111,7 @@ def from_url(
             inferred from the url. Defaults to None.
         client_options: HTTP Client options. Defaults to None.
         retry_config: Retry configuration. Defaults to None.
+        credential_provider: A callback to provide custom credentials to the underlying store classes.
         kwargs: per-store configuration passed down to store-specific builders.
 
     """

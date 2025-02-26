@@ -360,7 +360,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        _credential_provider: AzureCredentialProvider | None = None,
+        credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> None:
         """Construct a new AzureStore.
@@ -373,6 +373,7 @@ class AzureStore:
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Azure credentials.
             kwargs: Azure configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
@@ -389,7 +390,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        _credential_provider: AzureCredentialProvider | None = None,
+        credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> AzureStore:
         """Construct a new AzureStore with values populated from a well-known storage URL.
@@ -418,6 +419,7 @@ class AzureStore:
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Azure credentials.
             kwargs: Azure configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
