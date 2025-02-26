@@ -72,6 +72,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     fsspec-style object.
     """
 
+    # https://github.com/fsspec/filesystem_spec/blob/56054c0a30ceedab4c0e6a0f7e429666773baf6d/docs/source/features.rst#instance-caching
     cachable = True
 
     def __init__(  # noqa: PLR0913
@@ -98,7 +99,9 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         Args:
             config: Configuration for the cloud storage provider, which can be one of
                 S3Config, S3ConfigInput, GCSConfig, GCSConfigInput, AzureConfig,
-                or AzureConfigInput. If None, no cloud storage configuration is applied.
+                or AzureConfigInput. Any of these values will be applied after checking
+                for environment variables. If `None`, no cloud storage configuration is
+                applied beyond what is found in environment variables.
             client_options: Additional options for configuring the client.
             retry_config: Configuration for handling request errors.
             args: positional arguments passed on to the `fsspec.asyn.AsyncFileSystem`
@@ -108,8 +111,9 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             asynchronous: Set to `True` if this instance is meant to be be called using
                 the fsspec async API. This should only be set to true when running
                 within a coroutine.
-            max_cache_size (int, optional): The maximum number of items the cache should
-                store. Defaults to 10.
+            max_cache_size (int, optional): The maximum number of stores the cache
+                should keep. A cached store is kept internally for each bucket name.
+                Defaults to 10.
             loop: since both fsspec/python and tokio/rust may be using loops, this
                 should be kept `None` for now, and will not be used.
             batch_size: some operations on many files will batch their requests; if you
@@ -132,6 +136,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         self.client_options = client_options
         self.retry_config = retry_config
 
+        # https://stackoverflow.com/a/68550238
         self._construct_store = lru_cache(maxsize=max_cache_size)(self._construct_store)
 
         super().__init__(
@@ -145,11 +150,10 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         """Split bucket and file path.
 
         Args:
-            path  (str): Input path, like `s3://mybucket/path/to/file`
+            path: Input path, like `s3://mybucket/path/to/file`
 
         Returns:
-            tuple[str, str]: with the first element as bucket name and second be
-                the file path inside the bucket
+            (bucket name, file path inside the bucket)
 
         Examples:
             >>> split_path("s3://mybucket/path/to/file")
@@ -484,7 +488,7 @@ def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> No
 
     Example:
         >>> register("s3")
-        >>> register("s3", asynchronous=True)  # Registers an async-store for "s3"
+        >>> register("s3", asynchronous=True)  # Registers an async store for "s3"
         >>> register(["gcs", "abfs"])  # Registers both "gcs" and "abfs"
 
     Notes:
