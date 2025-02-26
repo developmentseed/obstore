@@ -78,7 +78,7 @@ Refer to [`obstore.auth.boto3`](api/auth/boto3.md).
 
 #### google.auth
 
-You can use the [`GoogleAuthCredentialProvider`][obstore.auth.boto3.GoogleAuthCredentialProvider] to use [`google.auth`][] to handle credentials.
+You can use the [`GoogleAuthCredentialProvider`][obstore.auth.google.GoogleAuthCredentialProvider] to use [`google.auth`][] to handle credentials.
 
 ```py
 from obstore.auth.google import GoogleAuthCredentialProvider
