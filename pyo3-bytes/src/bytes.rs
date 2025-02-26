@@ -77,11 +77,7 @@ impl PyBytes {
         let bytes_length = self.0.len() as isize;
         let (start, stop, step) = {
             let slice_indices = slice.indices(bytes_length)?;
-            (
-                slice_indices.start,
-                slice_indices.stop,
-                slice_indices.step,
-            )
+            (slice_indices.start, slice_indices.stop, slice_indices.step)
         };
 
         let new_capacity = if (step > 0 && stop > start) || (step < 0 && stop < start) {
