@@ -388,10 +388,6 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, super().info, path, **_kwargs)
 
-    @staticmethod
-    def _fill_bucket_name(path: str, bucket: str) -> str:
-        return f"{bucket}/{path}"
-
     @overload
     async def _ls(
         self,
@@ -420,7 +416,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         prefs = result["common_prefixes"]
         files = [
             {
-                "name": self._fill_bucket_name(obj["path"], bucket),
+                "name": f"{bucket}/{obj['path']}",
                 "size": obj["size"],
                 "type": "file",
                 "e_tag": obj["e_tag"],
@@ -428,7 +424,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             for obj in objects
         ] + [
             {
-                "name": self._fill_bucket_name(pref, bucket),
+                "name": f"{bucket}/{pref}",
                 "size": 0,
                 "type": "directory",
             }
