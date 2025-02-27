@@ -197,6 +197,32 @@ def test_fsspec_filesystem_cache(s3_store_config: S3Config):
     )
 
 
+def test_split_path(fs: AsyncFsspecStore):
+    # in url format, with bucket
+    assert fs._split_path("s3://mybucket/path/to/file") == ("mybucket", "path/to/file")
+    assert fs._split_path("s3://data-bucket/") == ("data-bucket", "")
+
+    # path format, with bucket
+    assert fs._split_path("mybucket/path/to/file") == ("mybucket", "path/to/file")
+    assert fs._split_path("data-bucket/") == ("data-bucket", "")
+
+    # url format, wrong porotocol
+    with pytest.raises(ValueError, match="Expect protocol to be s3. Got gs"):
+        fs._split_path("gs://data-bucket/")
+
+    # in url format, without bucket
+    fs._protocol = "file"
+    assert fs._split_path("file:///mybucket/path/to/file") == (
+        "",
+        "/mybucket/path/to/file",
+    )
+    assert fs._split_path("file:///data-bucket/") == ("", "/data-bucket/")
+
+    # path format, without bucket
+    assert fs._split_path("/mybucket/path/to/file") == ("", "/mybucket/path/to/file")
+    assert fs._split_path("/data-bucket/") == ("", "/data-bucket/")
+
+
 def test_list(fs: AsyncFsspecStore):
     out = fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
     assert out == [f"{TEST_BUCKET_NAME}/afile"]
