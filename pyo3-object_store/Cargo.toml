@@ -13,14 +13,7 @@ rust-version = "1.75"
 # Include the Python type hints as part of the cargo distribution
 include = ["src", "type-hints", "README.md", "LICENSE"]
 
-[features]
-aws-config = ["dep:aws-config", "dep:aws-credential-types"]
-
 [dependencies]
-aws-config = { version = "1.5.15", features = [
-    "behavior-version-latest",
-], optional = true }
-aws-credential-types = { version = "1.2.1", optional = true }
 async-trait = "0.1.85"
 bytes = "1"
 chrono = "0.4"
