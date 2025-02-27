@@ -704,47 +704,6 @@ class S3Store:
             S3Store
 
         """
-
-    @classmethod
-    def _from_native(
-        cls,
-        bucket: str | None = None,
-        *,
-        prefix: str | None = None,
-        config: S3Config | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
-    ) -> S3Store:
-        """Create a new S3Store, using the native AWS SDK to find credentials.
-
-        This supports deeper integration with AWS credentials, including but not limited to:
-
-        - Reading from disk-based authentication such as `~/.aws/profile`, `~/.aws/credentials`.
-        - Respecting AWS profiles.
-        - Refreshing temporary credentials before expiration.
-
-        !!! warning "Provisional API"
-            This is a provisional API and may change in the future.
-            If you have any feedback, please [open an issue](https://github.com/developmentseed/obstore/issues/new/choose).
-
-        !!! warning "Pickling class instance not supported"
-            For any `S3Store` created via this `_from_native` constructor, any credentials found from the environment are expected to be lost when pickling.
-
-        Args:
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            prefix: A prefix within the bucket to use for all operations.
-            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
-
-        Returns:
-            S3Store
-
-        """
     @classmethod
     def from_url(
         cls,
