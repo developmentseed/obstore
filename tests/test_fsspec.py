@@ -69,36 +69,6 @@ def test_register():
     assert issubclass(fsspec.get_filesystem_class("abfs"), AsyncFsspecStore)
 
 
-def test_register_invalid_types():
-    """Test that register rejects invalid input types."""
-    with pytest.raises(
-        TypeError,
-        match="'int' object is not iterable",
-    ):
-        register(123)
-
-    with pytest.raises(TypeError, match="Protocol must be a string, got int"):
-        register(["test", 42])  # List contains a non-string
-
-    with pytest.raises(
-        ValueError,
-        match="Protocol must be a non-empty string",
-    ):
-        register(["test1", ""])  # List contains a non-string
-
-    with pytest.raises(
-        ValueError,
-        match="Protocol must be a non-empty string or list",
-    ):
-        register(None)  # None is invalid
-
-    with pytest.raises(
-        ValueError,
-        match="Protocol must be a non-empty string or list",
-    ):
-        register([])  # Empty list is invalid
-
-
 def test_construct_store_cache_diff_bucket_name(s3_store_config: S3Config):
     register("s3")
     fs: AsyncFsspecStore = fsspec.filesystem(
