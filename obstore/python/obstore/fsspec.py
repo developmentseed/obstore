@@ -171,17 +171,21 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         """
         protocol_with_bucket = ["s3", "s3a", "gcs", "gs", "abfs", "https", "http"]
 
-        if self._protocol not in protocol_with_bucket:
-            # no bucket name in path
-            return "", path
+        # Parse the path as a URL
+        parsed = urlparse(path)
 
-        res = urlparse(path)
-        if res.scheme:
-            # path is in url format
-            if res.scheme != self._protocol:
-                err_msg = f"Expect protocol to be {self._protocol}. Got {res.scheme}"
+        # If the protocol doesn't support buckets, return empty bucket and full path
+        if self._protocol not in protocol_with_bucket:
+            return (
+                "",
+                f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path,
+            )
+
+        if parsed.scheme:
+            if parsed.scheme != self._protocol:
+                err_msg = f"Expect protocol to be {self._protocol}. Got {parsed.scheme}"
                 raise ValueError(err_msg)
-            return (res.netloc, res.path)
+            return (parsed.netloc, parsed.path.lstrip("/"))
 
         # path not in url format
         path_li = path.split("/", 1)
