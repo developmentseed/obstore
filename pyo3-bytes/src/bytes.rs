@@ -8,7 +8,7 @@ use bytes::{Bytes, BytesMut};
 use pyo3::buffer::PyBuffer;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::types::PySlice;
+use pyo3::types::{PyDict, PySlice, PyTuple};
 use pyo3::{ffi, IntoPyObjectExt};
 
 /// A wrapper around a [`bytes::Bytes`][].
@@ -159,6 +159,13 @@ impl PyBytes {
     #[pyo3(signature = (buf = PyBytes(Bytes::new())), text_signature = "(buf = b'')")]
     fn py_new(buf: PyBytes) -> Self {
         buf
+    }
+
+    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+        let py_bytes = self.to_bytes(py);
+        let args = PyTuple::new(py, vec![py_bytes])?.into_py_any(py)?;
+        let kwargs = PyDict::new(py);
+        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
     }
 
     /// The number of bytes in this Bytes
