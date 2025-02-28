@@ -138,7 +138,10 @@ class AzureConfigInput(TypedDict, total=False):
     azure_tenant_id: str
     """Tenant id used in oauth flows"""
     azure_use_azure_cli: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     azure_use_fabric_endpoint: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
     bearer_token: str
@@ -186,7 +189,10 @@ class AzureConfigInput(TypedDict, total=False):
     token: str
     """Bearer token"""
     use_azure_cli: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     use_emulator: bool
     """Use object store with azurite storage emulator"""
     use_fabric_endpoint: bool
@@ -262,7 +268,10 @@ class AzureConfigInput(TypedDict, total=False):
     AZURE_TENANT_ID: str
     """Tenant id used in oauth flows"""
     AZURE_USE_AZURE_CLI: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     AZURE_USE_FABRIC_ENDPOINT: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
     BEARER_TOKEN: str
@@ -310,7 +319,10 @@ class AzureConfigInput(TypedDict, total=False):
     TOKEN: str
     """Bearer token"""
     USE_AZURE_CLI: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     USE_EMULATOR: bool
     """Use object store with azurite storage emulator"""
     USE_FABRIC_ENDPOINT: bool

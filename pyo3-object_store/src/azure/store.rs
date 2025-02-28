@@ -92,6 +92,7 @@ impl PyAzureStore {
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
+        builder = PyAzureConfig::OVERRIDDEN_DEFAULTS().apply_config(builder);
         let mut config = config.unwrap_or_default();
         if let Some(container) = container.clone() {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
@@ -253,6 +254,14 @@ impl<'py> FromPyObject<'py> for PyAzureConfig {
 impl PyAzureConfig {
     fn new() -> Self {
         Self(HashMap::new())
+    }
+
+    /// Default values that we opt into that differ from the upstream object_store defaults
+    #[allow(non_snake_case)]
+    fn OVERRIDDEN_DEFAULTS() -> Self {
+        let mut map = HashMap::with_capacity(1);
+        map.insert(AzureConfigKey::UseAzureCli.into(), true.into());
+        Self(map)
     }
 
     fn apply_config(self, mut builder: MicrosoftAzureBuilder) -> MicrosoftAzureBuilder {
