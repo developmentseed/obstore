@@ -28,9 +28,9 @@ impl AsRef<str> for PyConfigValue {
 impl<'py> FromPyObject<'py> for PyConfigValue {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(val) = ob.extract::<bool>() {
-            Ok(Self(val.to_string()))
+            Ok(val.into())
         } else if let Ok(duration) = ob.extract::<Duration>() {
-            Ok(Self(format_duration(duration).to_string()))
+            Ok(duration.into())
         } else {
             Ok(Self(ob.extract()?))
         }
@@ -40,5 +40,17 @@ impl<'py> FromPyObject<'py> for PyConfigValue {
 impl From<PyConfigValue> for String {
     fn from(value: PyConfigValue) -> Self {
         value.0
+    }
+}
+
+impl From<bool> for PyConfigValue {
+    fn from(value: bool) -> Self {
+        Self(value.to_string())
+    }
+}
+
+impl From<Duration> for PyConfigValue {
+    fn from(value: Duration) -> Self {
+        Self(format_duration(value).to_string())
     }
 }

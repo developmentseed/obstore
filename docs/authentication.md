@@ -44,7 +44,7 @@ Note that many authentication variants are already supported natively.
 - Workload identity OAuth2, using a `client_id`, `tenant_id`, and `federated_token_file` passed in by the user
 - OAuth2, using a `client_id`, `client_secret`, and `tenant_id` passed in by the user
 - A SAS key passed in by the user.
-- Azure CLI
+- Azure CLI. (If you want to ensure the IMDS authentication is used below, pass [`use_azure_cli=False`][obstore.store.AzureConfigInput.use_azure_cli] to `AzureStore`.)
 - IMDS Managed Identity Provider.
 
 (A transcription of [this underlying code](https://github.com/apache/arrow-rs/blob/a00f9f43a0530b9255e4f9940e43121deedb0cc7/object_store/src/azure/builder.rs#L942-L1019)).

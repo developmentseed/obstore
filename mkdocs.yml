@@ -69,6 +69,7 @@ nav:
   - Developer Docs:
       - Contributing: dev/DEVELOP.md
       - Functional API: dev/functional-api.md
+      - Overridden Defaults: dev/overridden-defaults.md
       - dev/pickle.md
   - CHANGELOG.md
 
