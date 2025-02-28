@@ -1,9 +1,6 @@
-from typing import TypedDict, Unpack
-
-import boto3
-import boto3.session
-import botocore
-import botocore.session
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Any, NotRequired, Protocol, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -559,6 +556,95 @@ class S3ConfigInput(TypedDict, total=False):
     VIRTUAL_HOSTED_STYLE_REQUEST: bool
     """If virtual hosted style request has to be used."""
 
+class S3Credential(TypedDict):
+    """An S3 credential."""
+
+    access_key_id: str
+    """AWS access key ID."""
+
+    secret_access_key: str
+    """AWS secret access key"""
+
+    token: NotRequired[str | None]
+    """AWS token."""
+
+    expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
+
+class S3CredentialProvider(Protocol):
+    """A type hint for a synchronous or asynchronous callback to provide custom S3 credentials.
+
+    This should be passed into the `credential_provider` parameter of `S3Store`.
+
+    **Examples:**
+
+    Return static credentials that don't expire:
+    ```py
+    def get_credentials() -> S3Credential:
+        return {
+            "access_key_id": "...",
+            "secret_access_key": "...",
+            "token": None,
+            "expires_at": None,
+        }
+    ```
+
+    Return static credentials that are valid for 5 minutes:
+    ```py
+    from datetime import datetime, timedelta, UTC
+
+    async def get_credentials() -> S3Credential:
+        return {
+            "access_key_id": "...",
+            "secret_access_key": "...",
+            "token": None,
+            "expires_at": datetime.now(UTC) + timedelta(minutes=5),
+        }
+    ```
+
+    A class-based credential provider with state:
+
+    ```py
+    from __future__ import annotations
+
+    from typing import TYPE_CHECKING
+
+    import boto3
+    import botocore.credentials
+
+    if TYPE_CHECKING:
+        from obstore.store import S3Credential
+
+
+    class Boto3CredentialProvider:
+        credentials: botocore.credentials.Credentials
+
+        def __init__(self, session: boto3.session.Session) -> None:
+            credentials = session.get_credentials()
+            if credentials is None:
+                raise ValueError("Received None from session.get_credentials")
+
+            self.credentials = credentials
+
+        def __call__(self) -> S3Credential:
+            frozen_credentials = self.credentials.get_frozen_credentials()
+            return {
+                "access_key_id": frozen_credentials.access_key,
+                "secret_access_key": frozen_credentials.secret_key,
+                "token": frozen_credentials.token,
+                "expires_at": None,
+            }
+    ```
+
+    """
+
+    @staticmethod
+    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]:
+        """Return an `S3Credential`."""
+
 class S3Store:
     """Interface to an Amazon S3 bucket.
 
@@ -598,6 +684,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> None:
         """Create a new S3Store.
@@ -610,97 +697,7 @@ class S3Store:
             config: AWS configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
-            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
-
-        Returns:
-            S3Store
-
-        """
-
-    @classmethod
-    def _from_native(
-        cls,
-        bucket: str | None = None,
-        *,
-        prefix: str | None = None,
-        config: S3Config | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
-    ) -> S3Store:
-        """Create a new S3Store, using the native AWS SDK to find credentials.
-
-        This supports deeper integration with AWS credentials, including but not limited to:
-
-        - Reading from disk-based authentication such as `~/.aws/profile`, `~/.aws/credentials`.
-        - Respecting AWS profiles.
-        - Refreshing temporary credentials before expiration.
-
-        !!! warning "Provisional API"
-            This is a provisional API and may change in the future.
-            If you have any feedback, please [open an issue](https://github.com/developmentseed/obstore/issues/new/choose).
-
-        !!! warning "Pickling class instance not supported"
-            For any `S3Store` created via this `_from_native` constructor, any credentials found from the environment are expected to be lost when pickling.
-
-        Args:
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            prefix: A prefix within the bucket to use for all operations.
-            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
-
-        Returns:
-            S3Store
-
-        """
-    @classmethod
-    def from_session(
-        cls,
-        session: boto3.session.Session | botocore.session.Session,
-        bucket: str | None = None,
-        *,
-        prefix: str | None = None,
-        config: S3Config | S3ConfigInput | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3ConfigInput],
-    ) -> S3Store:
-        """Construct a new S3Store with credentials inferred from a boto3 Session.
-
-        This can be useful to read S3 credentials from [disk-based credentials sources](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html).
-
-        !!! note
-            This is a convenience function for users who are already using `boto3` or
-            `botocore`. If you're not already using `boto3` or `botocore`, use other
-            constructors, which do not need `boto3` or `botocore` to be installed.
-
-        !!! note
-            This will retrieve "frozen" credentials from the boto3 config. That is, the
-            values of `"aws_access_key_id"`, `"aws_secret_access_key"`, and
-            `"aws_session_token"` are static and will not be updated. Consider using the
-            `from_native` constructor to automatically refresh credentials.
-
-        Examples:
-        ```py
-        import boto3
-
-        session = boto3.Session()
-        store = S3Store.from_session(session, "bucket-name", region="us-east-1")
-        ```
-
-        Args:
-            session: The boto3.Session or botocore.session.Session to infer credentials from.
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            prefix: A prefix within the bucket to use for all operations.
-            config: AWS Configuration. Values in this config will override values inferred from the session. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom S3 credentials.
             kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
@@ -715,6 +712,7 @@ class S3Store:
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3ConfigInput],
     ) -> S3Store:
         """Parse available connection info from a well-known storage URL.
@@ -734,6 +732,7 @@ class S3Store:
             config: AWS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom S3 credentials.
             kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
 

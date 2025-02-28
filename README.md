@@ -19,7 +19,7 @@ The simplest, highest-throughput [^1] Python interface to [S3][s3], [GCS][gcs], 
 
 - Sync and async API with **full type hinting**.
 - **Streaming downloads** with configurable chunking.
-- **Streaming uploads** from async or sync iterators.
+- **Streaming uploads** from files or async or sync iterators.
 - **Streaming list**, with no need to paginate.
 - Automatic [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
 - Support for **conditional put** ("put if not exists"), as well as custom tags and attributes.

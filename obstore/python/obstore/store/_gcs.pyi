@@ -1,4 +1,6 @@
-from typing import TypedDict, Unpack
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Any, Protocol, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -80,6 +82,28 @@ class GCSConfigInput(TypedDict, total=False):
     SERVICE_ACCOUNT: str
     """Path to the service account file."""
 
+class GCSCredential(TypedDict):
+    """A Google Cloud Storage Credential."""
+
+    token: str
+    """An HTTP bearer token."""
+
+    expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
+
+class GCSCredentialProvider(Protocol):
+    """A type hint for a synchronous or asynchronous callback to provide custom Google Cloud Storage credentials.
+
+    This should be passed into the `credential_provider` parameter of `GCSStore`.
+    """
+
+    @staticmethod
+    def __call__() -> GCSCredential | Coroutine[Any, Any, GCSCredential]:
+        """Return a `GCSCredential`."""
+
 class GCSStore:
     """Interface to Google Cloud Storage.
 
@@ -110,6 +134,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
         **kwargs: Unpack[GCSConfigInput],
     ) -> None:
         """Construct a new GCSStore.
@@ -122,6 +147,7 @@ class GCSStore:
             config: GCS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Google credentials.
             kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
@@ -138,6 +164,7 @@ class GCSStore:
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
         **kwargs: Unpack[GCSConfigInput],
     ) -> GCSStore:
         """Construct a new GCSStore with values populated from a well-known storage URL.
@@ -154,6 +181,7 @@ class GCSStore:
             config: GCS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Google credentials.
             kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:

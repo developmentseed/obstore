@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use object_store::gcp::{GoogleCloudStorage, GoogleCloudStorageBuilder, GoogleConfigKey};
+use object_store::azure::{AzureConfigKey, MicrosoftAzure, MicrosoftAzureBuilder};
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -9,6 +9,7 @@ use pyo3::types::{PyDict, PyString, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 use url::Url;
 
+use crate::azure::credentials::PyAzureCredentialProvider;
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
@@ -16,19 +17,20 @@ use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
 
-struct GCSConfig {
+struct AzureConfig {
     prefix: Option<PyPath>,
-    config: PyGoogleConfig,
+    config: PyAzureConfig,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
+    credential_provider: Option<PyAzureCredentialProvider>,
 }
 
-impl GCSConfig {
-    fn bucket(&self) -> &str {
+impl AzureConfig {
+    fn container_name(&self) -> &str {
         self.config
             .0
-            .get(&PyGoogleConfigKey(GoogleConfigKey::Bucket))
-            .expect("Bucket should always exist in the config")
+            .get(&PyAzureConfigKey(AzureConfigKey::ContainerName))
+            .expect("Container should always exist in the config")
             .as_ref()
     }
 
@@ -46,51 +48,56 @@ impl GCSConfig {
         if let Some(retry_config) = &self.retry_config {
             kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
         }
+        if let Some(credential_provider) = &self.credential_provider {
+            kwargs.set_item("credential_provider", credential_provider.clone())?;
+        }
 
         PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
     }
 }
 
-/// A Python-facing wrapper around a [`GoogleCloudStorage`].
-#[pyclass(name = "GCSStore", module = "obstore.store", frozen)]
-pub struct PyGCSStore {
-    store: Arc<MaybePrefixedStore<GoogleCloudStorage>>,
+/// A Python-facing wrapper around a [`MicrosoftAzure`].
+#[pyclass(name = "AzureStore", frozen)]
+pub struct PyAzureStore {
+    store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
-    config: GCSConfig,
+    config: AzureConfig,
 }
 
-impl AsRef<Arc<MaybePrefixedStore<GoogleCloudStorage>>> for PyGCSStore {
-    fn as_ref(&self) -> &Arc<MaybePrefixedStore<GoogleCloudStorage>> {
+impl AsRef<Arc<MaybePrefixedStore<MicrosoftAzure>>> for PyAzureStore {
+    fn as_ref(&self) -> &Arc<MaybePrefixedStore<MicrosoftAzure>> {
         &self.store
     }
 }
 
-impl PyGCSStore {
-    /// Consume self and return the underlying [`GoogleCloudStorage`].
-    pub fn into_inner(self) -> Arc<MaybePrefixedStore<GoogleCloudStorage>> {
+impl PyAzureStore {
+    /// Consume self and return the underlying [`MicrosoftAzure`].
+    pub fn into_inner(self) -> Arc<MaybePrefixedStore<MicrosoftAzure>> {
         self.store
     }
 }
 
 #[pymethods]
-impl PyGCSStore {
+impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
-        bucket: Option<String>,
+        container: Option<String>,
         prefix: Option<PyPath>,
-        config: Option<PyGoogleConfig>,
+        config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyGoogleConfig>,
+        credential_provider: Option<PyAzureCredentialProvider>,
+        kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
-        let mut builder = GoogleCloudStorageBuilder::from_env();
+        let mut builder = MicrosoftAzureBuilder::from_env();
+        builder = PyAzureConfig::OVERRIDDEN_DEFAULTS().apply_config(builder);
         let mut config = config.unwrap_or_default();
-        if let Some(bucket) = bucket.clone() {
+        if let Some(container) = container.clone() {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
             // in sync.
-            config.insert_raising_if_exists(GoogleConfigKey::Bucket, bucket)?;
+            config.insert_raising_if_exists(AzureConfigKey::ContainerName, container)?;
         }
         let combined_config = combine_config_kwargs(Some(config), kwargs)?;
         builder = combined_config.clone().apply_config(builder);
@@ -100,26 +107,31 @@ impl PyGCSStore {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
+        if let Some(credential_provider) = credential_provider.clone() {
+            builder = builder.with_credentials(Arc::new(credential_provider));
+        }
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
-            config: GCSConfig {
+            config: AzureConfig {
                 prefix,
                 config: combined_config,
                 client_options,
                 retry_config,
+                credential_provider,
             },
         })
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, **kwargs))]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
         _cls: &Bound<PyType>,
         url: PyUrl,
-        config: Option<PyGoogleConfig>,
+        config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-        kwargs: Option<PyGoogleConfig>,
+        credential_provider: Option<PyAzureCredentialProvider>,
+        kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
         // We manually parse the URL to find the prefix because `parse_url` does not apply the
         // prefix.
@@ -137,6 +149,7 @@ impl PyGCSStore {
             Some(config),
             client_options,
             retry_config,
+            credential_provider,
             kwargs,
         )
     }
@@ -146,15 +159,15 @@ impl PyGCSStore {
     }
 
     fn __repr__(&self) -> String {
-        let bucket = self.config.bucket();
+        let container_name = self.config.container_name();
         if let Some(prefix) = &self.config.prefix {
             format!(
-                "GCSStore(bucket=\"{}\", prefix=\"{}\")",
-                bucket,
+                "AzureStore(container=\"{}\", prefix=\"{}\")",
+                container_name,
                 prefix.as_ref()
             )
         } else {
-            format!("GCSStore(bucket=\"{}\")", bucket)
+            format!("AzureStore(container=\"{}\")", container_name)
         }
     }
 
@@ -164,7 +177,7 @@ impl PyGCSStore {
     }
 
     #[getter]
-    fn config(&self) -> PyGoogleConfig {
+    fn config(&self) -> PyAzureConfig {
         self.config.config.clone()
     }
 
@@ -180,9 +193,9 @@ impl PyGCSStore {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct PyGoogleConfigKey(GoogleConfigKey);
+pub struct PyAzureConfigKey(AzureConfigKey);
 
-impl<'py> FromPyObject<'py> for PyGoogleConfigKey {
+impl<'py> FromPyObject<'py> for PyAzureConfigKey {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let s = ob.extract::<PyBackedStr>()?.to_lowercase();
         let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
@@ -190,13 +203,13 @@ impl<'py> FromPyObject<'py> for PyGoogleConfigKey {
     }
 }
 
-impl AsRef<str> for PyGoogleConfigKey {
+impl AsRef<str> for PyAzureConfigKey {
     fn as_ref(&self) -> &str {
         self.0.as_ref()
     }
 }
 
-impl<'py> IntoPyObject<'py> for PyGoogleConfigKey {
+impl<'py> IntoPyObject<'py> for PyAzureConfigKey {
     type Target = PyString;
     type Output = Bound<'py, PyString>;
     type Error = PyErr;
@@ -206,31 +219,31 @@ impl<'py> IntoPyObject<'py> for PyGoogleConfigKey {
     }
 }
 
-impl From<GoogleConfigKey> for PyGoogleConfigKey {
-    fn from(value: GoogleConfigKey) -> Self {
+impl From<AzureConfigKey> for PyAzureConfigKey {
+    fn from(value: AzureConfigKey) -> Self {
         Self(value)
     }
 }
 
-impl From<PyGoogleConfigKey> for GoogleConfigKey {
-    fn from(value: PyGoogleConfigKey) -> Self {
+impl From<PyAzureConfigKey> for AzureConfigKey {
+    fn from(value: PyAzureConfigKey) -> Self {
         value.0
     }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject)]
-pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
+pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
 //
 // We also manually impl this so that we can raise on duplicate keys.
-impl<'py> FromPyObject<'py> for PyGoogleConfig {
+impl<'py> FromPyObject<'py> for PyAzureConfig {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let mut slf = Self::new();
         for (key, val) in ob.extract::<Bound<'py, PyDict>>()?.iter() {
             slf.insert_raising_if_exists(
-                key.extract::<PyGoogleConfigKey>()?,
+                key.extract::<PyAzureConfigKey>()?,
                 val.extract::<PyConfigValue>()?,
             )?;
         }
@@ -238,19 +251,27 @@ impl<'py> FromPyObject<'py> for PyGoogleConfig {
     }
 }
 
-impl PyGoogleConfig {
+impl PyAzureConfig {
     fn new() -> Self {
         Self(HashMap::new())
     }
 
-    fn apply_config(self, mut builder: GoogleCloudStorageBuilder) -> GoogleCloudStorageBuilder {
+    /// Default values that we opt into that differ from the upstream object_store defaults
+    #[allow(non_snake_case)]
+    fn OVERRIDDEN_DEFAULTS() -> Self {
+        let mut map = HashMap::with_capacity(1);
+        map.insert(AzureConfigKey::UseAzureCli.into(), true.into());
+        Self(map)
+    }
+
+    fn apply_config(self, mut builder: MicrosoftAzureBuilder) -> MicrosoftAzureBuilder {
         for (key, value) in self.0.into_iter() {
             builder = builder.with_config(key.0, value.0);
         }
         builder
     }
 
-    fn merge(mut self, other: PyGoogleConfig) -> PyObjectStoreResult<PyGoogleConfig> {
+    fn merge(mut self, other: PyAzureConfig) -> PyObjectStoreResult<PyAzureConfig> {
         for (key, val) in other.0.into_iter() {
             self.insert_raising_if_exists(key, val)?;
         }
@@ -260,7 +281,7 @@ impl PyGoogleConfig {
 
     fn insert_raising_if_exists(
         &mut self,
-        key: impl Into<PyGoogleConfigKey>,
+        key: impl Into<PyAzureConfigKey>,
         val: impl Into<String>,
     ) -> PyObjectStoreResult<()> {
         let key = key.into();
@@ -280,15 +301,15 @@ impl PyGoogleConfig {
     ///
     /// This is used for URL parsing, where any parts of the URL **do not** override any
     /// configuration keys passed manually.
-    fn insert_if_not_exists(&mut self, key: impl Into<PyGoogleConfigKey>, val: impl Into<String>) {
+    fn insert_if_not_exists(&mut self, key: impl Into<PyAzureConfigKey>, val: impl Into<String>) {
         self.0.entry(key.into()).or_insert(PyConfigValue::new(val));
     }
 }
 
 fn combine_config_kwargs(
-    config: Option<PyGoogleConfig>,
-    kwargs: Option<PyGoogleConfig>,
-) -> PyObjectStoreResult<PyGoogleConfig> {
+    config: Option<PyAzureConfig>,
+    kwargs: Option<PyAzureConfig>,
+) -> PyObjectStoreResult<PyAzureConfig> {
     match (config, kwargs) {
         (None, None) => Ok(Default::default()),
         (Some(x), None) | (None, Some(x)) => Ok(x),
@@ -299,13 +320,13 @@ fn combine_config_kwargs(
 /// Sets properties on this builder based on a URL
 ///
 /// This is vendored from
-/// https://github.com/apache/arrow-rs/blob/f7263e253655b2ee613be97f9d00e063444d3df5/object_store/src/gcp/builder.rs#L316-L338
+/// https://github.com/apache/arrow-rs/blob/f7263e253655b2ee613be97f9d00e063444d3df5/object_store/src/azure/builder.rs#L639-L705
 ///
 /// We do our own URL parsing so that we can keep our own config in sync with what is passed to the
 /// underlying ObjectStore builder. Passing the URL on verbatim makes it hard because the URL
 /// parsing only happens in `build()`. Then the config parameters we have don't include any config
 /// applied from the URL.
-fn parse_url(config: Option<PyGoogleConfig>, parsed: &Url) -> object_store::Result<PyGoogleConfig> {
+fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Result<PyAzureConfig> {
     let host = parsed
         .host_str()
         .ok_or_else(|| ParseUrlError::UrlNotRecognised {
@@ -313,12 +334,73 @@ fn parse_url(config: Option<PyGoogleConfig>, parsed: &Url) -> object_store::Resu
         })?;
     let mut config = config.unwrap_or_default();
 
+    let validate = |s: &str| match s.contains('.') {
+        true => Err(ParseUrlError::UrlNotRecognised {
+            url: parsed.as_str().to_string(),
+        }),
+        false => Ok(s.to_string()),
+    };
+
     match parsed.scheme() {
-        "gs" => {
-            config.insert_if_not_exists(GoogleConfigKey::Bucket, host);
+        "az" | "adl" | "azure" => {
+            config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
         }
+        "abfs" | "abfss" => {
+            // abfs(s) might refer to the fsspec convention abfs://<container>/<path>
+            // or the convention for the hadoop driver abfs[s]://<file_system>@<account_name>.dfs.core.windows.net/<path>
+            if parsed.username().is_empty() {
+                config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
+            } else if let Some(a) = host.strip_suffix(".dfs.core.windows.net") {
+                config.insert_if_not_exists(
+                    AzureConfigKey::ContainerName,
+                    validate(parsed.username())?,
+                );
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+            } else if let Some(a) = host.strip_suffix(".dfs.fabric.microsoft.com") {
+                config.insert_if_not_exists(
+                    AzureConfigKey::ContainerName,
+                    validate(parsed.username())?,
+                );
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+            } else {
+                return Err(ParseUrlError::UrlNotRecognised {
+                    url: parsed.as_str().to_string(),
+                }
+                .into());
+            }
+        }
+        "https" => match host.split_once('.') {
+            Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                if let Some(container) = parsed.path_segments().unwrap().next() {
+                    config
+                        .insert_if_not_exists(AzureConfigKey::ContainerName, validate(container)?);
+                }
+            }
+            Some((a, "dfs.fabric.microsoft.com")) | Some((a, "blob.fabric.microsoft.com")) => {
+                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                // Attempt to infer the container name from the URL
+                // - https://onelake.dfs.fabric.microsoft.com/<workspaceGUID>/<itemGUID>/Files/test.csv
+                // - https://onelake.dfs.fabric.microsoft.com/<workspace>/<item>.<itemtype>/<path>/<fileName>
+                //
+                // See <https://learn.microsoft.com/en-us/fabric/onelake/onelake-access-api>
+                if let Some(workspace) = parsed.path_segments().unwrap().next() {
+                    if !workspace.is_empty() {
+                        config.insert_if_not_exists(AzureConfigKey::ContainerName, workspace);
+                    }
+                }
+                config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+            }
+            _ => {
+                return Err(ParseUrlError::UrlNotRecognised {
+                    url: parsed.as_str().to_string(),
+                }
+                .into())
+            }
+        },
         scheme => {
-            let scheme = scheme.to_string();
+            let scheme = scheme.into();
             return Err(ParseUrlError::UnknownUrlScheme { scheme }.into());
         }
     }

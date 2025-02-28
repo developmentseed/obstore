@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pickle
 from typing import TYPE_CHECKING
 
 import pytest
@@ -93,3 +94,8 @@ class TestBytesSlice:
             for stop in indices_range
             for step in steps
         )
+
+
+def test_pickle():
+    b = Bytes(b"hello_world")
+    assert b == pickle.loads(pickle.dumps(b))

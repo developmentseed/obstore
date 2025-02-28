@@ -25,7 +25,7 @@ def open_reader(
         path: The path within ObjectStore to retrieve.
 
     Keyword Args:
-        buffer_size: The number of bytes to read in a single request. Up to `buffer_size` bytes will be buffered in memory. If `buffer_size` is exceeded, data will be uploaded as a multipart upload in chunks of `buffer_size`.
+        buffer_size: The minimum number of bytes to read in a single request. Up to `buffer_size` bytes will be buffered in memory.
 
     Returns:
         ReadableFile

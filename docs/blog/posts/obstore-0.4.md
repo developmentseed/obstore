@@ -64,7 +64,7 @@ However, Zarr is commonly used in distributed execution environments like [Dask]
 
 By default, each store class expects to find credential information either in environment variables or in passed-in arguments. In the case of AWS, that means the default constructors will not look in file-based credentials sources.
 
-The provisional [`S3Store._from_native`][obstore.store.S3Store._from_native] constructor uses the [official AWS Rust configuration crate](https://docs.rs/aws-config/latest/aws_config/) to find credentials on the file system. This integration is expected to also automatically refresh temporary credentials before expiration.
+The provisional [`S3Store._from_native`](https://developmentseed.org/obstore/v0.4.0/api/store/aws/#obstore.store.S3Store._from_native) constructor uses the [official AWS Rust configuration crate](https://docs.rs/aws-config/latest/aws_config/) to find credentials on the file system. This integration is expected to also automatically refresh temporary credentials before expiration.
 
 This API is provisional and may change in the future. If you have any feedback, please [open an issue](https://github.com/developmentseed/obstore/issues/new/choose).
 

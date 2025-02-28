@@ -1,4 +1,6 @@
-from typing import TypedDict, Unpack
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Any, Protocol, TypeAlias, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -136,7 +138,10 @@ class AzureConfigInput(TypedDict, total=False):
     azure_tenant_id: str
     """Tenant id used in oauth flows"""
     azure_use_azure_cli: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     azure_use_fabric_endpoint: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
     bearer_token: str
@@ -184,7 +189,10 @@ class AzureConfigInput(TypedDict, total=False):
     token: str
     """Bearer token"""
     use_azure_cli: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     use_emulator: bool
     """Use object store with azurite storage emulator"""
     use_fabric_endpoint: bool
@@ -260,7 +268,10 @@ class AzureConfigInput(TypedDict, total=False):
     AZURE_TENANT_ID: str
     """Tenant id used in oauth flows"""
     AZURE_USE_AZURE_CLI: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     AZURE_USE_FABRIC_ENDPOINT: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
     BEARER_TOKEN: str
@@ -308,11 +319,72 @@ class AzureConfigInput(TypedDict, total=False):
     TOKEN: str
     """Bearer token"""
     USE_AZURE_CLI: bool
-    """Use azure cli for acquiring access token"""
+    """Use azure cli for acquiring access token.
+
+    Defaults to `True`.
+    """
     USE_EMULATOR: bool
     """Use object store with azurite storage emulator"""
     USE_FABRIC_ENDPOINT: bool
     """Use object store with url scheme account.dfs.fabric.microsoft.com"""
+
+class AzureAccessKey(TypedDict):
+    """A shared Azure Storage Account Key.
+
+    <https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key>
+    """
+
+    access_key: str
+    """Access key value."""
+
+    expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
+
+class AzureSASToken(TypedDict):
+    """A shared access signature.
+
+    <https://learn.microsoft.com/en-us/rest/api/storageservices/delegate-access-with-shared-access-signature>
+    """
+
+    sas_token: str | list[tuple[str, str]]
+    """SAS token."""
+
+    expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
+
+class AzureBearerToken(TypedDict):
+    """An authorization token.
+
+    <https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-azure-active-directory>
+    """
+
+    token: str
+    """Bearer token."""
+
+    expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
+    """
+
+AzureCredential: TypeAlias = AzureAccessKey | AzureSASToken | AzureBearerToken
+"""A type alias for supported azure credentials to be returned from `AzureCredentialProvider`."""
+
+class AzureCredentialProvider(Protocol):
+    """A type hint for a synchronous or asynchronous callback to provide custom Azure credentials.
+
+    This should be passed into the `credential_provider` parameter of `AzureStore`.
+    """
+
+    @staticmethod
+    def __call__() -> AzureCredential | Coroutine[Any, Any, AzureCredential]:
+        """Return an `AzureCredential`."""
 
 class AzureStore:
     """Interface to a Microsoft Azure Blob Storage container.
@@ -340,6 +412,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> None:
         """Construct a new AzureStore.
@@ -352,6 +425,7 @@ class AzureStore:
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Azure credentials.
             kwargs: Azure configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
@@ -368,6 +442,7 @@ class AzureStore:
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfigInput],
     ) -> AzureStore:
         """Construct a new AzureStore with values populated from a well-known storage URL.
@@ -396,6 +471,7 @@ class AzureStore:
             config: Azure Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom Azure credentials.
             kwargs: Azure configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
