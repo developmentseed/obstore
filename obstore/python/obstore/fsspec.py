@@ -169,13 +169,13 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             ['mybucket', 'path/to/file']
 
         """
-        protocol_with_bucket = ["s3", "s3a", "gcs", "gs", "abfs", "https", "http"]
+        protocol_without_bucket = {"file", "memory"}
 
         # Parse the path as a URL
         parsed = urlparse(path)
 
-        # If the protocol doesn't support buckets, return empty bucket and full path
-        if self._protocol not in protocol_with_bucket:
+        # If the protocol doesn't require buckets, return empty bucket and full path
+        if self._protocol in protocol_without_bucket:
             return (
                 "",
                 f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path,
@@ -191,6 +191,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         path_li = path.split("/", 1)
         if len(path_li) == 1:
             return path, ""
+
         return (path_li[0], path_li[1])
 
     def _construct_store(self, bucket: str) -> ObjectStore:
@@ -198,7 +199,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             url=f"{self._protocol}://{bucket}",
             config=self.config,
             client_options=self.client_options,
-            retry_config=self.retry_config or None,
+            retry_config=self.retry_config,
         )
 
     async def _rm_file(self, path: str, **_kwargs: Any) -> None:

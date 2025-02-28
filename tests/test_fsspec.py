@@ -97,7 +97,7 @@ def test_construct_store_cache_diff_bucket_name(s3_store_config: S3Config):
         assert mock_construct.cache_info().misses == 20, "Cache should miss 20 times"
 
     # test garbage collector
-    fs = None
+    del fs
     assert gc.collect() > 0
 
 
@@ -130,7 +130,7 @@ def test_construct_store_cache_same_bucket_name(s3_store_config: S3Config):
         assert mock_construct.cache_info().misses == 1, "Cache should only miss once"
 
     # test garbage collector
-    fs = None
+    del fs
     assert gc.collect() > 0
 
 
