@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import boto3
 import pytest
 import urllib3
@@ -6,6 +8,9 @@ from botocore.client import Config
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
 from obstore.store import S3Store
+
+if TYPE_CHECKING:
+    from obstore.store import S3ConfigInput
 
 TEST_BUCKET_NAME = "test"
 
@@ -49,3 +54,12 @@ def s3_store(s3: str):
         aws_skip_signature=True,
         client_options={"allow_http": True},
     )
+
+
+@pytest.fixture
+def s3_store_config(s3: str) -> "S3ConfigInput":
+    return {
+        "AWS_ENDPOINT_URL": s3,
+        "AWS_REGION": "us-east-1",
+        "AWS_SKIP_SIGNATURE": True,
+    }

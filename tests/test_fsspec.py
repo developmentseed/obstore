@@ -1,101 +1,321 @@
-import os
+from __future__ import annotations
 
+import gc
+import os
+from typing import TYPE_CHECKING
+from unittest.mock import patch
+
+import fsspec
 import pyarrow.parquet as pq
 import pytest
+from fsspec.registry import _registry
 
-import obstore as obs
-from obstore.fsspec import AsyncFsspecStore
-from obstore.store import S3Store
+from obstore.fsspec import AsyncFsspecStore, register
+from tests.conftest import TEST_BUCKET_NAME
+
+if TYPE_CHECKING:
+    from obstore.store import S3Config
 
 
 @pytest.fixture
-def fs(s3_store: S3Store):
-    return AsyncFsspecStore(s3_store)
+def fs(s3_store_config: S3Config):
+    register("s3")
+    return fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+    )
+
+
+@pytest.fixture(autouse=True)
+def cleanup_after_test():
+    """Cleanup function to run after each test."""
+    yield  # Runs the test first
+
+    # clear the registered implementations after each test
+    _registry.clear()
+
+    gc.collect()
+
+
+def test_register():
+    """Test if register() creates and registers a subclass for a given protocol."""
+    register("s3")  # Register the "s3" protocol dynamically
+    fs_class = fsspec.get_filesystem_class("s3")
+
+    assert issubclass(
+        fs_class,
+        AsyncFsspecStore,
+    ), "Registered class should be a subclass of AsyncFsspecStore"
+    assert fs_class.protocol == "s3", (
+        "Registered class should have the correct protocol"
+    )
+
+    # Ensure a new instance of the registered store can be created
+    fs_instance = fs_class()
+    assert isinstance(
+        fs_instance,
+        AsyncFsspecStore,
+    ), "Registered class should be instantiable"
+
+    # test register asynchronous
+    register("gcs", asynchronous=True)  # Register the "s3" protocol dynamically
+    fs_class = fsspec.get_filesystem_class("gcs")
+    assert fs_class.asynchronous, "Registered class should be asynchronous"
+
+    # test multiple registrations
+    register(["file", "abfs"])
+    assert issubclass(fsspec.get_filesystem_class("file"), AsyncFsspecStore)
+    assert issubclass(fsspec.get_filesystem_class("abfs"), AsyncFsspecStore)
+
+
+def test_construct_store_cache_diff_bucket_name(s3_store_config: S3Config):
+    register("s3")
+    fs: AsyncFsspecStore = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+        asynchronous=True,
+        max_cache_size=5,
+    )
+
+    bucket_names = [f"bucket{i}" for i in range(20)]  # 20 unique buckets
+
+    with patch.object(
+        fs,
+        "_construct_store",
+        wraps=fs._construct_store,
+    ) as mock_construct:
+        for bucket in bucket_names:
+            fs._construct_store(bucket)
+
+        # Since the cache is set to 16, only the first 16 unique calls should be cached
+        assert mock_construct.cache_info().currsize == 5, (
+            "Cache should only store 5 cache"
+        )
+        assert mock_construct.cache_info().hits == 0, "Cache should hits 0 times"
+        assert mock_construct.cache_info().misses == 20, "Cache should miss 20 times"
+
+    # test garbage collector
+    del fs
+    assert gc.collect() > 0
+
+
+def test_construct_store_cache_same_bucket_name(s3_store_config: S3Config):
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+        asynchronous=True,
+        max_cache_size=5,
+    )
+
+    bucket_names = ["bucket" for _ in range(20)]
+
+    with patch.object(
+        fs,
+        "_construct_store",
+        wraps=fs._construct_store,
+    ) as mock_construct:
+        for bucket in bucket_names:
+            fs._construct_store(bucket)
+
+        assert mock_construct.cache_info().currsize == 1, (
+            "Cache should only store 1 cache"
+        )
+        assert mock_construct.cache_info().hits == 20 - 1, (
+            "Cache should hits 20-1 times"
+        )
+        assert mock_construct.cache_info().misses == 1, "Cache should only miss once"
+
+    # test garbage collector
+    del fs
+    assert gc.collect() > 0
+
+
+def test_fsspec_filesystem_cache(s3_store_config: S3Config):
+    """Test caching behavior of fsspec.filesystem with the _Cached metaclass."""
+    register("s3")
+
+    # call fsspec.filesystem() multiple times with the same parameters
+    fs1 = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+    )
+    fs2 = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+    )
+
+    # Same parameters should return the same instance
+    assert fs1 is fs2, (
+        "fsspec.filesystem() with the same parameters should return the cached instance"
+    )
+
+    # Changing parameters should create a new instance
+    fs3 = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+        asynchronous=True,
+    )
+    assert fs1 is not fs3, (
+        "fsspec.filesystem() with different parameters should return a new instance"
+    )
+
+
+def test_split_path(fs: AsyncFsspecStore):
+    # in url format, with bucket
+    assert fs._split_path("s3://mybucket/path/to/file") == ("mybucket", "path/to/file")
+    assert fs._split_path("s3://data-bucket/") == ("data-bucket", "")
+
+    # path format, with bucket
+    assert fs._split_path("mybucket/path/to/file") == ("mybucket", "path/to/file")
+    assert fs._split_path("data-bucket/") == ("data-bucket", "")
+
+    # url format, wrong porotocol
+    with pytest.raises(ValueError, match="Expect protocol to be s3. Got gs"):
+        fs._split_path("gs://data-bucket/")
+
+    # in url format, without bucket
+    fs._protocol = "file"
+    assert fs._split_path("file:///mybucket/path/to/file") == (
+        "",
+        "/mybucket/path/to/file",
+    )
+    assert fs._split_path("file:///data-bucket/") == ("", "/data-bucket/")
+
+    # path format, without bucket
+    assert fs._split_path("/mybucket/path/to/file") == ("", "/mybucket/path/to/file")
+    assert fs._split_path("/data-bucket/") == ("", "/data-bucket/")
 
 
 def test_list(fs: AsyncFsspecStore):
-    out = fs.ls("", detail=False)
-    assert out == ["afile"]
-    fs.pipe_file("dir/bfile", b"data")
-    out = fs.ls("", detail=False)
-    assert out == ["afile", "dir"]
-    out = fs.ls("", detail=True)
+    out = fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert out == [f"{TEST_BUCKET_NAME}/afile"]
+    fs.pipe_file(f"{TEST_BUCKET_NAME}/dir/bfile", b"data")
+    out = fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert out == [f"{TEST_BUCKET_NAME}/afile", f"{TEST_BUCKET_NAME}/dir"]
+    out = fs.ls(f"{TEST_BUCKET_NAME}", detail=True)
     assert out[0]["type"] == "file"
     assert out[1]["type"] == "directory"
 
 
 @pytest.mark.asyncio
-async def test_list_async(s3_store: S3Store):
-    fs = AsyncFsspecStore(s3_store, asynchronous=True)
-    out = await fs._ls("", detail=False)
-    assert out == ["afile"]
-    await fs._pipe_file("dir/bfile", b"data")
-    out = await fs._ls("", detail=False)
-    assert out == ["afile", "dir"]
-    out = await fs._ls("", detail=True)
+async def test_list_async(s3_store_config: S3Config):
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+        asynchronous=True,
+    )
+
+    out = await fs._ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert out == [f"{TEST_BUCKET_NAME}/afile"]
+    await fs._pipe_file(f"{TEST_BUCKET_NAME}/dir/bfile", b"data")
+    out = await fs._ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert out == [f"{TEST_BUCKET_NAME}/afile", f"{TEST_BUCKET_NAME}/dir"]
+    out = await fs._ls(f"{TEST_BUCKET_NAME}", detail=True)
     assert out[0]["type"] == "file"
     assert out[1]["type"] == "directory"
 
 
 @pytest.mark.network
 def test_remote_parquet():
-    store = obs.store.HTTPStore.from_url("https://github.com")
-    fs = AsyncFsspecStore(store)
-    url = "opengeospatial/geoparquet/raw/refs/heads/main/examples/example.parquet"
+    register("https")
+    fs = fsspec.filesystem("https")
+    url = "github.com/opengeospatial/geoparquet/raw/refs/heads/main/examples/example.parquet"  # noqa: E501
+    pq.read_metadata(url, filesystem=fs)
+
+    # also test with full url
+    url = "https://github.com/opengeospatial/geoparquet/raw/refs/heads/main/examples/example.parquet"
     pq.read_metadata(url, filesystem=fs)
 
 
 def test_multi_file_ops(fs: AsyncFsspecStore):
-    data = {"dir/test1": b"test data1", "dir/test2": b"test data2"}
+    data = {
+        f"{TEST_BUCKET_NAME}/dir/test1": b"test data1",
+        f"{TEST_BUCKET_NAME}/dir/test2": b"test data2",
+    }
     fs.pipe(data)
     out = fs.cat(list(data))
     assert out == data
-    out = fs.cat("dir", recursive=True)
+    out = fs.cat(f"{TEST_BUCKET_NAME}/dir", recursive=True)
     assert out == data
-    fs.cp("dir", "dir2", recursive=True)
-    out = fs.find("", detail=False)
-    assert out == ["afile", "dir/test1", "dir/test2", "dir2/test1", "dir2/test2"]
-    fs.rm(["dir", "dir2"], recursive=True)
-    out = fs.find("", detail=False)
-    assert out == ["afile"]
+    fs.cp(f"{TEST_BUCKET_NAME}/dir", f"{TEST_BUCKET_NAME}/dir2", recursive=True)
+    out = fs.find(f"{TEST_BUCKET_NAME}", detail=False)
+    assert out == [
+        f"{TEST_BUCKET_NAME}/afile",
+        f"{TEST_BUCKET_NAME}/dir/test1",
+        f"{TEST_BUCKET_NAME}/dir/test2",
+        f"{TEST_BUCKET_NAME}/dir2/test1",
+        f"{TEST_BUCKET_NAME}/dir2/test2",
+    ]
+    fs.rm([f"{TEST_BUCKET_NAME}/dir", f"{TEST_BUCKET_NAME}/dir2"], recursive=True)
+    out = fs.find(f"{TEST_BUCKET_NAME}", detail=False)
+    assert out == [f"{TEST_BUCKET_NAME}/afile"]
 
 
 def test_cat_ranges_one(fs: AsyncFsspecStore):
     data1 = os.urandom(10000)
-    fs.pipe_file("data1", data1)
+    fs.pipe_file(f"{TEST_BUCKET_NAME}/data1", data1)
 
     # single range
-    out = fs.cat_ranges(["data1"], [10], [20])
+    out = fs.cat_ranges([f"{TEST_BUCKET_NAME}/data1"], [10], [20])
     assert out == [data1[10:20]]
 
     # range oob
-    out = fs.cat_ranges(["data1"], [0], [11000])
+    out = fs.cat_ranges([f"{TEST_BUCKET_NAME}/data1"], [0], [11000])
     assert out == [data1]
 
     # two disjoint ranges, one file
-    out = fs.cat_ranges(["data1", "data1"], [10, 40], [20, 60])
+    out = fs.cat_ranges(
+        [f"{TEST_BUCKET_NAME}/data1", f"{TEST_BUCKET_NAME}/data1"],
+        [10, 40],
+        [20, 60],
+    )
     assert out == [data1[10:20], data1[40:60]]
 
     # two adjoining ranges, one file
-    out = fs.cat_ranges(["data1", "data1"], [10, 30], [20, 60])
+    out = fs.cat_ranges(
+        [f"{TEST_BUCKET_NAME}/data1", f"{TEST_BUCKET_NAME}/data1"],
+        [10, 30],
+        [20, 60],
+    )
     assert out == [data1[10:20], data1[30:60]]
 
     # two overlapping ranges, one file
-    out = fs.cat_ranges(["data1", "data1"], [10, 15], [20, 60])
+    out = fs.cat_ranges(
+        [f"{TEST_BUCKET_NAME}/data1", f"{TEST_BUCKET_NAME}/data1"],
+        [10, 15],
+        [20, 60],
+    )
     assert out == [data1[10:20], data1[15:60]]
 
     # completely overlapping ranges, one file
-    out = fs.cat_ranges(["data1", "data1"], [10, 0], [20, 60])
+    out = fs.cat_ranges(
+        [f"{TEST_BUCKET_NAME}/data1", f"{TEST_BUCKET_NAME}/data1"],
+        [10, 0],
+        [20, 60],
+    )
     assert out == [data1[10:20], data1[0:60]]
 
 
 def test_cat_ranges_two(fs: AsyncFsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
-    fs.pipe({"data1": data1, "data2": data2})
+    fs.pipe({f"{TEST_BUCKET_NAME}/data1": data1, f"{TEST_BUCKET_NAME}/data2": data2})
 
     # single range in each file
-    out = fs.cat_ranges(["data1", "data2"], [10, 10], [20, 20])
+    out = fs.cat_ranges(
+        [f"{TEST_BUCKET_NAME}/data1", f"{TEST_BUCKET_NAME}/data2"],
+        [10, 10],
+        [20, 20],
+    )
     assert out == [data1[10:20], data2[10:20]]
 
 
@@ -120,4 +340,4 @@ def test_atomic_write(fs: AsyncFsspecStore):
 
 def test_cat_ranges_error(fs: AsyncFsspecStore):
     with pytest.raises(ValueError):  # noqa: PT011
-        fs.cat_ranges(["path"], [], [])
+        fs.cat_ranges([f"{TEST_BUCKET_NAME}/path"], [], [])
