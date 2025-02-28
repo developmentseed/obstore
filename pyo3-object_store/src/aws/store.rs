@@ -74,9 +74,18 @@ impl AsRef<Arc<MaybePrefixedStore<AmazonS3>>> for PyS3Store {
 }
 
 impl PyS3Store {
-    #[allow(clippy::too_many_arguments)]
+    /// Consume self and return the underlying [`AmazonS3`].
+    pub fn into_inner(self) -> Arc<MaybePrefixedStore<AmazonS3>> {
+        self.store
+    }
+}
+
+#[pymethods]
+impl PyS3Store {
+    // Create from parameters
+    #[new]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
-        mut builder: AmazonS3Builder,
         bucket: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAmazonS3Config>,
@@ -85,6 +94,7 @@ impl PyS3Store {
         credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
+        let mut builder = AmazonS3Builder::from_env();
         let mut config = config.unwrap_or_default();
         if let Some(credential_provider) = credential_provider.clone() {
             // Apply config from credential provider onto builder
@@ -118,38 +128,6 @@ impl PyS3Store {
         })
     }
 
-    /// Consume self and return the underlying [`AmazonS3`].
-    pub fn into_inner(self) -> Arc<MaybePrefixedStore<AmazonS3>> {
-        self.store
-    }
-}
-
-#[pymethods]
-impl PyS3Store {
-    // Create from parameters
-    #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
-    fn new_py(
-        bucket: Option<String>,
-        prefix: Option<PyPath>,
-        config: Option<PyAmazonS3Config>,
-        client_options: Option<PyClientOptions>,
-        retry_config: Option<PyRetryConfig>,
-        credential_provider: Option<PyAWSCredentialProvider>,
-        kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<Self> {
-        Self::new(
-            AmazonS3Builder::from_env(),
-            bucket,
-            prefix,
-            config,
-            client_options,
-            retry_config,
-            credential_provider,
-            kwargs,
-        )
-    }
-
     #[classmethod]
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
@@ -172,7 +150,6 @@ impl PyS3Store {
         };
         let config = parse_url(config, url.as_ref())?;
         Self::new(
-            AmazonS3Builder::from_env(),
             None,
             prefix,
             Some(config),
