@@ -35,6 +35,7 @@ integration.
 from __future__ import annotations
 
 import asyncio
+import warnings
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
@@ -63,6 +64,18 @@ if TYPE_CHECKING:
         S3Config,
         S3ConfigInput,
     )
+
+SUPPORTED_PROTOCOLS = {
+    "s3",
+    "s3a",
+    "gcs",
+    "gs",
+    "abfs",
+    "https",
+    "http",
+    "file",
+    "memory",
+}
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -124,14 +137,12 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
                 are seeing timeouts, you may want to set this number smaller than the
                 defaults, which are determined in `fsspec.asyn._get_batch_size`.
 
-        Example:
+        **Examples:**
+
         ```py
         from obstore.fsspec import AsyncFsspecStore
-        from obstore.store import HTTPStore
 
-        store = AsyncFsspecStore(
-            protocol="https",
-        )
+        store = AsyncFsspecStore(protocol="https")
         resp = store.cat("https://example.com")
         assert resp.startswith(b"<!doctype html>")
         ```
@@ -141,6 +152,13 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             self._protocol = self.protocol
         else:
             self._protocol = protocol
+
+        if self._protocol not in SUPPORTED_PROTOCOLS:
+            warnings.warn(
+                f"Unknown protocol: {self._protocol}; requests may fail.",
+                stacklevel=2,
+            )
+
         self.config = config
         self.client_options = client_options
         self.retry_config = retry_config
