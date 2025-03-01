@@ -7,7 +7,9 @@ There are two parts to `obstore`:
 
 ## Constructing a store
 
-Classes to construct a store are exported from the `obstore.store` submodule:
+You can use the top-level [`from_url`][obstore.store.from_url] function to construct a store from a top-level URL. Among others this supports `s3://bucket/path`, `gs://bucket/path`, `az://account/container/path`, and `https://mydomain/path`.
+
+Alternatively, you can construct a store directly:
 
 - [`S3Store`][obstore.store.S3Store]: Configure a connection to Amazon S3.
 - [`GCSStore`][obstore.store.GCSStore]: Configure a connection to Google Cloud Storage.
@@ -16,21 +18,23 @@ Classes to construct a store are exported from the `obstore.store` submodule:
 - [`LocalStore`][obstore.store.LocalStore]: Local filesystem storage providing the same object store interface.
 - [`MemoryStore`][obstore.store.MemoryStore]: A fully in-memory implementation of ObjectStore.
 
-Additionally, some middlewares exist:
-
-- [`PrefixStore`][obstore.store.PrefixStore]: Store wrapper that applies a constant prefix to all paths handled by the store.
-
 Each store concept has a variety of constructors, and a host of configuration options.
+
+Note that each store is scoped to **one bucket**, so you'll have to create a separate store instance per bucket, even if they're in the same region.
 
 **Example:**
 
-For example, creating an anonymous `S3Store` (without any credentials, for use with fully public buckets):
+For example, multiple ways to create an anonymous `S3Store` client (without any credentials, for use with fully public buckets):
 
 ```py
-from obstore.store import S3Store
+from obstore.store import S3Store, from_url
 
+from_url("s3://bucket-name", region="us-east-1", skip_signature=True)
+from_url("https://bucket-name.s3.us-east-1.amazonaws.com", skip_signature=True)
 store = S3Store("bucket-name", region="us-east-1", skip_signature=True)
 ```
+
+The process is similar for `GCSStore` and `AzureStore`.
 
 ### Configuration
 

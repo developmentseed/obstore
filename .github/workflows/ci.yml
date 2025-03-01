@@ -30,10 +30,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Cargo fmt
-        run: cargo fmt --all -- --check
+        run: |
+          cargo fmt --all -- --check
+          cd pyo3-object_store && cargo fmt --all -- --check && cd ..
+          cd pyo3-bytes && cargo fmt --all -- --check && cd ..
 
       - name: "clippy --all"
-        run: cargo clippy --all --all-features --tests -- -D warnings
+        run: |
+          cargo clippy --all --all-features --tests -- -D warnings
+          cd pyo3-object_store && cargo clippy --all --all-features --tests -- -D warnings && cd ..
+          cd pyo3-bytes && cargo clippy --all --all-features --tests -- -D warnings && cd ..
 
       - name: "cargo check"
         run: cargo check --all --all-features

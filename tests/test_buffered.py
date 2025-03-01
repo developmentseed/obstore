@@ -57,7 +57,7 @@ def test_writable_file_sync():
     line = b"the quick brown fox jumps over the lazy dog\n"
     path = "big-data.txt"
     with obs.open_writer(store, path) as writer:
-        for i in range(50):
+        for _ in range(50):
             writer.write(line)
 
     retour = obs.get(store, path).bytes()
@@ -71,7 +71,7 @@ async def test_writable_file_async():
     line = b"the quick brown fox jumps over the lazy dog\n"
     path = "big-data.txt"
     async with obs.open_writer_async(store, path) as writer:
-        for i in range(50):
+        for _ in range(50):
             await writer.write(line)
 
     resp = await obs.get_async(store, path)

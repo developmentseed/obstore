@@ -1,8 +1,7 @@
 use pyo3::prelude::*;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 
 #[pyfunction]
 pub fn head(py: Python, store: PyObjectStore, path: String) -> PyObjectStoreResult<PyObjectMeta> {

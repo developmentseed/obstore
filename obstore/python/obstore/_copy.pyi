@@ -15,10 +15,15 @@ def copy(store: ObjectStore, from_: str, to: str, *, overwrite: bool = True) -> 
             If `False`: will copy only if destination is empty. Performs an atomic operation if the underlying object storage supports it. If atomic operations are not supported by the underlying object storage (like S3) it will return an error.
 
             Will return an error if the destination already has an object.
+
     """
 
 async def copy_async(
-    store: ObjectStore, from_: str, to: str, *, overwrite: bool = True
+    store: ObjectStore,
+    from_: str,
+    to: str,
+    *,
+    overwrite: bool = True,
 ) -> None:
     """Call `copy` asynchronously.
 

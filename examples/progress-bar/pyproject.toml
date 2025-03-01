@@ -1,0 +1,14 @@
+[project]
+name = "progress-bar"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["obstore", "tqdm"]
+
+# TODO: remove this; use published obstore
+[tool.uv.sources]
+obstore = { path = "../../obstore" }
+
+[dependency-groups]
+dev = ["ipykernel>=6.29.5"]

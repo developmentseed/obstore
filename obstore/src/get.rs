@@ -10,12 +10,11 @@ use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 
 /// 10MB default chunk size
 const DEFAULT_BYTES_CHUNK_SIZE: usize = 10 * 1024 * 1024;
@@ -74,7 +73,7 @@ impl From<PyGetOptions> for GetOptions {
 #[derive(FromPyObject)]
 pub(crate) struct PyOffsetRange {
     #[pyo3(item)]
-    offset: usize,
+    offset: u64,
 }
 
 impl From<PyOffsetRange> for GetRange {
@@ -86,7 +85,7 @@ impl From<PyOffsetRange> for GetRange {
 #[derive(FromPyObject)]
 pub(crate) struct PySuffixRange {
     #[pyo3(item)]
-    suffix: usize,
+    suffix: u64,
 }
 
 impl From<PySuffixRange> for GetRange {
@@ -105,7 +104,7 @@ pub(crate) struct PyGetRange(GetRange);
 // - {"suffix": usize} to request the last `n` bytes
 impl<'py> FromPyObject<'py> for PyGetRange {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(bounded) = ob.extract::<[usize; 2]>() {
+        if let Ok(bounded) = ob.extract::<[u64; 2]>() {
             Ok(Self(GetRange::Bounded(bounded[0]..bounded[1])))
         } else if let Ok(offset_range) = ob.extract::<PyOffsetRange>() {
             Ok(Self(offset_range.into()))
@@ -177,7 +176,7 @@ impl PyGetResult {
     }
 
     #[getter]
-    fn range(&self) -> PyResult<(usize, usize)> {
+    fn range(&self) -> PyResult<(u64, u64)> {
         let inner = self.0.lock().unwrap();
         let range = &inner
             .as_ref()
@@ -362,9 +361,9 @@ pub(crate) fn get_range(
     py: Python,
     store: PyObjectStore,
     path: String,
-    start: usize,
-    end: Option<usize>,
-    length: Option<usize>,
+    start: u64,
+    end: Option<u64>,
+    length: Option<u64>,
 ) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
     let runtime = get_runtime(py)?;
     let range = params_to_range(start, end, length)?;
@@ -380,9 +379,9 @@ pub(crate) fn get_range_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    start: usize,
-    end: Option<usize>,
-    length: Option<usize>,
+    start: u64,
+    end: Option<u64>,
+    length: Option<u64>,
 ) -> PyResult<Bound<PyAny>> {
     let range = params_to_range(start, end, length)?;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -396,17 +395,17 @@ pub(crate) fn get_range_async(
 }
 
 fn params_to_range(
-    start: usize,
-    end: Option<usize>,
-    length: Option<usize>,
-) -> PyObjectStoreResult<Range<usize>> {
+    start: u64,
+    end: Option<u64>,
+    length: Option<u64>,
+) -> PyObjectStoreResult<Range<u64>> {
     match (end, length) {
         (Some(_), Some(_)) => {
             Err(PyValueError::new_err("end and length cannot both be non-None.").into())
         }
         (None, None) => Err(PyValueError::new_err("Either end or length must be non-None.").into()),
-        (Some(end), None) => Ok(start..end),
-        (None, Some(length)) => Ok(start..start + length),
+        (Some(end), None) => validate_range(start..end),
+        (None, Some(length)) => validate_range(start..start + length),
     }
 }
 
@@ -416,9 +415,9 @@ pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
     path: String,
-    starts: Vec<usize>,
-    ends: Option<Vec<usize>>,
-    lengths: Option<Vec<usize>>,
+    starts: Vec<u64>,
+    ends: Option<Vec<u64>>,
+    lengths: Option<Vec<u64>>,
 ) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
     let runtime = get_runtime(py)?;
     let ranges = params_to_ranges(starts, ends, lengths)?;
@@ -434,9 +433,9 @@ pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
     path: String,
-    starts: Vec<usize>,
-    ends: Option<Vec<usize>>,
-    lengths: Option<Vec<usize>>,
+    starts: Vec<u64>,
+    ends: Option<Vec<u64>>,
+    lengths: Option<Vec<u64>>,
 ) -> PyResult<Bound<PyAny>> {
     let ranges = params_to_ranges(starts, ends, lengths)?;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -453,10 +452,10 @@ pub(crate) fn get_ranges_async(
 }
 
 fn params_to_ranges(
-    starts: Vec<usize>,
-    ends: Option<Vec<usize>>,
-    lengths: Option<Vec<usize>>,
-) -> PyObjectStoreResult<Vec<Range<usize>>> {
+    starts: Vec<u64>,
+    ends: Option<Vec<u64>>,
+    lengths: Option<Vec<u64>>,
+) -> PyObjectStoreResult<Vec<Range<u64>>> {
     match (ends, lengths) {
         (Some(_), Some(_)) => {
             Err(PyValueError::new_err("ends and lengths cannot both be non-None.").into())
@@ -464,15 +463,38 @@ fn params_to_ranges(
         (None, None) => {
             Err(PyValueError::new_err("Either ends or lengths must be non-None.").into())
         }
-        (Some(ends), None) => Ok(starts
+        (Some(ends), None) => starts
             .into_iter()
             .zip(ends)
             .map(|(start, end)| start..end)
-            .collect()),
-        (None, Some(lengths)) => Ok(starts
+            .map(validate_range)
+            .collect(),
+        (None, Some(lengths)) => starts
             .into_iter()
             .zip(lengths)
             .map(|(start, length)| start..start + length)
-            .collect()),
+            .map(validate_range)
+            .collect(),
     }
+}
+
+fn validate_range(r: Range<u64>) -> PyObjectStoreResult<Range<u64>> {
+    if r.end <= r.start {
+        return Err(PyValueError::new_err(format!(
+            "Invalid range requested, start: {} end: {}",
+            r.start, r.end
+        ))
+        .into());
+    }
+
+    if (r.end - r.start) > usize::MAX as u64 {
+        return Err(PyValueError::new_err(format!(
+            "Range {} is larger than system memory limit {}",
+            r.start,
+            usize::MAX
+        ))
+        .into());
+    }
+
+    Ok(r)
 }

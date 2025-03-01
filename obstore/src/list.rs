@@ -4,21 +4,19 @@ use std::sync::Arc;
 use arrow::array::{
     ArrayRef, RecordBatch, StringBuilder, TimestampMicrosecondBuilder, UInt64Builder,
 };
-use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
+use arrow::datatypes::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
-use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
-use pyo3_arrow::PyRecordBatch;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3::{intern, IntoPyObjectExt};
+use pyo3_arrow::{PyRecordBatch, PyTable};
+use pyo3_object_store::{get_runtime, PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
-
-use crate::runtime::get_runtime;
 
 pub(crate) struct PyObjectMeta(ObjectMeta);
 
@@ -49,17 +47,11 @@ impl<'py> IntoPyObject<'py> for PyObjectMeta {
         let mut dict = IndexMap::with_capacity(5);
         // Note, this uses "path" instead of "location" because we standardize the API to accept
         // the keyword "path" everywhere.
-        dict.insert(
-            "path",
-            self.0.location.as_ref().into_pyobject(py)?.into_any(),
-        );
-        dict.insert(
-            "last_modified",
-            self.0.last_modified.into_pyobject(py)?.into_any(),
-        );
-        dict.insert("size", self.0.size.into_pyobject(py)?.into_any());
-        dict.insert("e_tag", self.0.e_tag.into_pyobject(py)?.into_any());
-        dict.insert("version", self.0.version.into_pyobject(py)?);
+        dict.insert("path", self.0.location.as_ref().into_bound_py_any(py)?);
+        dict.insert("last_modified", self.0.last_modified.into_bound_py_any(py)?);
+        dict.insert("size", self.0.size.into_bound_py_any(py)?);
+        dict.insert("e_tag", self.0.e_tag.into_bound_py_any(py)?);
+        dict.insert("version", self.0.version.into_bound_py_any(py)?);
         dict.into_pyobject(py)
     }
 }
@@ -226,6 +218,12 @@ impl PyRecordBatchWrapper {
     fn new(batch: RecordBatch) -> Self {
         Self(PyRecordBatch::new(batch))
     }
+
+    fn into_table(self) -> PyResult<PyTableWrapper> {
+        let batch = self.0.into_inner();
+        let schema = batch.schema();
+        PyTableWrapper::new(vec![batch], schema)
+    }
 }
 
 impl<'py> IntoPyObject<'py> for PyRecordBatchWrapper {
@@ -234,7 +232,25 @@ impl<'py> IntoPyObject<'py> for PyRecordBatchWrapper {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(self.0.to_arro3(py)?.bind(py).clone())
+        self.0.into_arro3(py)
+    }
+}
+
+struct PyTableWrapper(PyTable);
+
+impl PyTableWrapper {
+    fn new(batches: Vec<RecordBatch>, schema: SchemaRef) -> PyResult<Self> {
+        Ok(Self(PyTable::try_new(batches, schema)?))
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyTableWrapper {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        self.0.into_arro3(py)
     }
 }
 
@@ -319,7 +335,19 @@ fn object_meta_to_arrow(metas: &[PyObjectMeta]) -> PyRecordBatchWrapper {
     PyRecordBatchWrapper::new(batch)
 }
 
-pub(crate) struct PyListResult(ListResult);
+pub(crate) struct PyListResult {
+    result: ListResult,
+    return_arrow: bool,
+}
+
+impl PyListResult {
+    fn new(result: ListResult, return_arrow: bool) -> Self {
+        Self {
+            result,
+            return_arrow,
+        }
+    }
+}
 
 impl<'py> IntoPyObject<'py> for PyListResult {
     type Target = PyDict;
@@ -330,24 +358,27 @@ impl<'py> IntoPyObject<'py> for PyListResult {
         let mut dict = IndexMap::with_capacity(2);
         dict.insert(
             "common_prefixes",
-            self.0
+            self.result
                 .common_prefixes
                 .into_iter()
                 .map(String::from)
                 .collect::<Vec<_>>()
-                .into_pyobject(py)?
-                .into_any(),
+                .into_bound_py_any(py)?,
         );
-        dict.insert(
-            "objects",
-            self.0
-                .objects
-                .into_iter()
-                .map(PyObjectMeta)
-                .collect::<Vec<_>>()
-                .into_pyobject(py)?
-                .into_any(),
-        );
+        let objects = self
+            .result
+            .objects
+            .into_iter()
+            .map(PyObjectMeta)
+            .collect::<Vec<_>>();
+        let objects = if self.return_arrow {
+            object_meta_to_arrow(&objects)
+                .into_table()?
+                .into_bound_py_any(py)
+        } else {
+            objects.into_bound_py_any(py)
+        }?;
+        dict.insert("objects", objects);
         dict.into_pyobject(py)
     }
 }
@@ -385,33 +416,39 @@ pub(crate) fn list(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix=None))]
+#[pyo3(signature = (store, prefix=None, *, return_arrow=false))]
 pub(crate) fn list_with_delimiter(
     py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
+    return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
         let out = runtime.block_on(list_with_delimiter_materialize(
             store.into_inner(),
             prefix.map(|s| s.into()).as_ref(),
+            return_arrow,
         ))?;
         Ok::<_, PyObjectStoreError>(out)
     })
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, prefix=None))]
+#[pyo3(signature = (store, prefix=None, *, return_arrow=false))]
 pub(crate) fn list_with_delimiter_async(
     py: Python,
     store: PyObjectStore,
     prefix: Option<String>,
+    return_arrow: bool,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let out =
-            list_with_delimiter_materialize(store.into_inner(), prefix.map(|s| s.into()).as_ref())
-                .await?;
+        let out = list_with_delimiter_materialize(
+            store.into_inner(),
+            prefix.map(|s| s.into()).as_ref(),
+            return_arrow,
+        )
+        .await?;
         Ok(out)
     })
 }
@@ -419,7 +456,8 @@ pub(crate) fn list_with_delimiter_async(
 async fn list_with_delimiter_materialize(
     store: Arc<dyn ObjectStore>,
     prefix: Option<&Path>,
+    return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
     let list_result = store.list_with_delimiter(prefix).await?;
-    Ok(PyListResult(list_result))
+    Ok(PyListResult::new(list_result, return_arrow))
 }

@@ -2,7 +2,7 @@ from ._client import ClientConfig
 from ._retry import RetryConfig
 
 class HTTPStore:
-    """Configure a connection to a generic HTTP server
+    """Configure a connection to a generic HTTP server.
 
     **Example**
 
@@ -21,19 +21,14 @@ class HTTPStore:
     ```
     """
 
-    @classmethod
-    def from_url(
-        cls,
+    def __init__(
+        self,
         url: str,
         *,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-    ) -> HTTPStore:
-        """Construct a new HTTPStore from a URL
-
-        !!! note
-            Note that in contrast to the other stores, `from_url` **will** use the full
-            URL provided here as a prefix for further operations.
+    ) -> None:
+        """Construct a new HTTPStore from a URL.
 
         Args:
             url: The base URL to use for the store.
@@ -44,6 +39,29 @@ class HTTPStore:
 
         Returns:
             HTTPStore
+
         """
 
-    def __repr__(self) -> str: ...
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+    ) -> HTTPStore:
+        """Construct a new HTTPStore from a URL.
+
+        This is an alias of [`HTTPStore.__init__`][obstore.store.HTTPStore.__init__].
+        """
+
+    def __getnewargs_ex__(self): ...
+    @property
+    def url(self) -> str:
+        """Get the base url of this store."""
+    @property
+    def client_options(self) -> ClientConfig | None:
+        """Get the store's client configuration."""
+    @property
+    def retry_config(self) -> RetryConfig | None:
+        """Get the store's retry configuration."""

@@ -8,6 +8,7 @@ use bytes::{Bytes, BytesMut};
 use pyo3::buffer::PyBuffer;
 use pyo3::exceptions::{PyIndexError, PyValueError};
 use pyo3::prelude::*;
+use pyo3::types::{PyDict, PySlice, PyTuple};
 use pyo3::{ffi, IntoPyObjectExt};
 
 /// A wrapper around a [`bytes::Bytes`][].
@@ -62,6 +63,68 @@ impl PyBytes {
     pub fn as_slice(&self) -> &[u8] {
         self.as_ref()
     }
+
+    /// Slice the underlying buffer using a Python slice object
+    ///
+    /// This should behave the same as Python's byte slicing:
+    ///     - `ValueError` if step is zero
+    ///     - Negative indices a-ok
+    ///     - If start/stop are out of bounds, they are clipped to the bounds of the buffer
+    ///     - If start > stop, the slice is empty
+    ///
+    /// This is NOT exposed to Python under the `#[pymethods]` impl
+    fn slice(&self, slice: &Bound<'_, PySlice>) -> PyResult<PyBytes> {
+        let bytes_length = self.0.len() as isize;
+        let (start, stop, step) = {
+            let slice_indices = slice.indices(bytes_length)?;
+            (slice_indices.start, slice_indices.stop, slice_indices.step)
+        };
+
+        let new_capacity = if (step > 0 && stop > start) || (step < 0 && stop < start) {
+            (((stop - start).abs() + step.abs() - 1) / step.abs()) as usize
+        } else {
+            0
+        };
+
+        if new_capacity == 0 {
+            return Ok(PyBytes(Bytes::new()));
+        }
+        if step == 1 {
+            // if start < 0  and stop > len and step == 1 just copy?
+            if start < 0 && stop >= bytes_length {
+                let out = self.0.slice(..);
+                let py_bytes = PyBytes(out);
+                return Ok(py_bytes);
+            }
+
+            if start >= 0 && stop <= bytes_length && start < stop {
+                let out = self.0.slice(start as usize..stop as usize);
+                let py_bytes = PyBytes(out);
+                return Ok(py_bytes);
+            }
+            // fall through to the general case here...
+        }
+        if step > 0 {
+            // forward
+            let mut new_buf = BytesMut::with_capacity(new_capacity);
+            new_buf.extend(
+                (start..stop)
+                    .step_by(step as usize)
+                    .map(|i| self.0[i as usize]),
+            );
+            Ok(PyBytes(new_buf.freeze()))
+        } else {
+            // backward
+            let mut new_buf = BytesMut::with_capacity(new_capacity);
+            new_buf.extend(
+                (stop + 1..=start)
+                    .rev()
+                    .step_by((-step) as usize)
+                    .map(|i| self.0[i as usize]),
+            );
+            Ok(PyBytes(new_buf.freeze()))
+        }
+    }
 }
 
 impl From<PyBytes> for Bytes {
@@ -98,6 +161,13 @@ impl PyBytes {
         buf
     }
 
+    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+        let py_bytes = self.to_bytes(py);
+        let args = PyTuple::new(py, vec![py_bytes])?.into_py_any(py)?;
+        let kwargs = PyDict::new(py);
+        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
+    }
+
     /// The number of bytes in this Bytes
     fn __len__(&self) -> usize {
         self.0.len()
@@ -125,20 +195,28 @@ impl PyBytes {
         self.0.as_ref() == other.0.as_ref()
     }
 
-    fn __getitem__(&self, py: Python, key: Bound<PyAny>) -> PyResult<PyObject> {
-        if let Ok(mut index) = key.extract::<isize>() {
-            if index < 0 {
-                index += self.0.len() as isize;
+    fn __getitem__<'py>(
+        &self,
+        py: Python<'py>,
+        key: BytesGetItemKey<'py>,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        match key {
+            BytesGetItemKey::Int(mut index) => {
+                if index < 0 {
+                    index += self.0.len() as isize;
+                }
+                if index < 0 {
+                    return Err(PyIndexError::new_err("Index out of range"));
+                }
+                self.0
+                    .get(index as usize)
+                    .ok_or(PyIndexError::new_err("Index out of range"))?
+                    .into_bound_py_any(py)
             }
-
-            self.0
-                .get(index as usize)
-                .ok_or(PyIndexError::new_err("Index out of range"))?
-                .into_py_any(py)
-        } else {
-            Err(PyValueError::new_err(
-                "Currently, only integer keys are allowed in __getitem__.",
-            ))
+            BytesGetItemKey::Slice(slice) => {
+                let s = self.slice(&slice)?;
+                s.into_bound_py_any(py)
+            }
         }
     }
 
@@ -423,4 +501,13 @@ impl std::fmt::Debug for PyBytes {
         f.write_str("\")")?;
         Ok(())
     }
+}
+
+/// A key for the `__getitem__` method of `PyBytes` - int/slice
+#[derive(FromPyObject)]
+enum BytesGetItemKey<'py> {
+    /// An integer index
+    Int(isize),
+    /// A python slice
+    Slice(Bound<'py, PySlice>),
 }

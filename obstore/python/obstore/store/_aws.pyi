@@ -1,9 +1,6 @@
-from typing import TypedDict, Unpack
-
-import boto3
-import boto3.session
-import botocore
-import botocore.session
+from collections.abc import Coroutine
+from datetime import datetime
+from typing import Any, NotRequired, Protocol, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -11,12 +8,84 @@ from ._retry import RetryConfig
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
 # constructors
 class S3Config(TypedDict, total=False):
-    """Configuration parameters for S3Store.
+    """Configuration parameters returned from [S3Store.config][obstore.store.S3Store.config].
 
-    There are duplicates of many parameters, and parameters can be either upper or lower
-    case. Not all parameters are required.
+    Note that this is a strict subset of the keys allowed for _input_ into the store,
+    see [S3ConfigInput][obstore.store.S3ConfigInput].
     """
 
+    aws_access_key_id: str
+    """AWS Access Key"""
+    aws_bucket: str
+    """Bucket name"""
+    aws_checksum_algorithm: str
+    """
+    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+
+    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    """
+    aws_conditional_put: str
+    """
+    See [`S3ConfigInput.aws_conditional_put`][obstore.store.S3ConfigInput.aws_conditional_put].
+    """
+    aws_container_credentials_relative_uri: str
+    """
+    See [`S3ConfigInput.aws_container_credentials_relative_uri`][obstore.store.S3ConfigInput.aws_container_credentials_relative_uri].
+    """
+    aws_copy_if_not_exists: str
+    """
+    See [`S3ConfigInput.aws_copy_if_not_exists`][obstore.store.S3ConfigInput.aws_copy_if_not_exists].
+    """
+    aws_default_region: str
+    """Default region"""
+    aws_disable_tagging: bool
+    """Disable tagging objects. This can be desirable if not supported by the backing store."""
+    aws_endpoint: str
+    """Sets custom endpoint for communicating with AWS S3."""
+    aws_imdsv1_fallback: str
+    """Fall back to ImdsV1"""
+    aws_metadata_endpoint: str
+    """Set the instance metadata endpoint"""
+    aws_region: str
+    """Region"""
+    aws_request_payer: bool
+    """If `True`, enable operations on requester-pays buckets."""
+    aws_s3_express: bool
+    """Enable Support for S3 Express One Zone"""
+    aws_secret_access_key: str
+    """Secret Access Key"""
+    aws_server_side_encryption: str
+    """
+    See [`S3ConfigInput.aws_server_side_encryption`][obstore.store.S3ConfigInput.aws_server_side_encryption].
+    """
+    aws_session_token: str
+    """Token to use for requests (passed to underlying provider)"""
+    aws_skip_signature: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests."""
+    aws_sse_bucket_key_enabled: bool
+    """
+    If set to `True`, will use the bucket's default KMS key for server-side encryption.
+    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
+    """
+    aws_sse_customer_key_base64: str
+    """
+    The base64 encoded, 256-bit customer encryption key to use for server-side
+    encryption. If set, the server side encryption config value must be `"sse-c"`.
+    """
+    aws_sse_kms_key_id: str
+    """
+    The KMS key ID to use for server-side encryption.
+
+    If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
+    """
+    aws_token: str
+    """Token to use for requests (passed to underlying provider)"""
+    aws_unsigned_payload: bool
+    """Avoid computing payload checksum when calculating signature."""
+    aws_virtual_hosted_style_request: bool
+    """If virtual hosted style request has to be used."""
+
+class S3ConfigInput(TypedDict, total=False):
     access_key_id: str
     """AWS Access Key"""
     aws_access_key_id: str
@@ -152,6 +221,7 @@ class S3Config(TypedDict, total=False):
     """Avoid computing payload checksum when calculating signature."""
     aws_virtual_hosted_style_request: bool
     """If virtual hosted style request has to be used."""
+
     bucket_name: str
     """Bucket name"""
     checksum_algorithm: str
@@ -486,138 +556,166 @@ class S3Config(TypedDict, total=False):
     VIRTUAL_HOSTED_STYLE_REQUEST: bool
     """If virtual hosted style request has to be used."""
 
-class S3Store:
+class S3Credential(TypedDict):
+    """An S3 credential."""
+
+    access_key_id: str
+    """AWS access key ID."""
+
+    secret_access_key: str
+    """AWS secret access key"""
+
+    token: NotRequired[str | None]
+    """AWS token."""
+
+    expires_at: datetime | None
+    """Expiry datetime of credential. The datetime should have time zone set.
+
+    If None, the credential will never expire.
     """
-    Configure a connection to Amazon S3 using the specified credentials in the specified
-    Amazon region and bucket.
+
+class S3CredentialProvider(Protocol):
+    """A type hint for a synchronous or asynchronous callback to provide custom S3 credentials.
+
+    This should be passed into the `credential_provider` parameter of `S3Store`.
+
+    **Examples:**
+
+    Return static credentials that don't expire:
+    ```py
+    def get_credentials() -> S3Credential:
+        return {
+            "access_key_id": "...",
+            "secret_access_key": "...",
+            "token": None,
+            "expires_at": None,
+        }
+    ```
+
+    Return static credentials that are valid for 5 minutes:
+    ```py
+    from datetime import datetime, timedelta, UTC
+
+    async def get_credentials() -> S3Credential:
+        return {
+            "access_key_id": "...",
+            "secret_access_key": "...",
+            "token": None,
+            "expires_at": datetime.now(UTC) + timedelta(minutes=5),
+        }
+    ```
+
+    A class-based credential provider with state:
+
+    ```py
+    from __future__ import annotations
+
+    from typing import TYPE_CHECKING
+
+    import boto3
+    import botocore.credentials
+
+    if TYPE_CHECKING:
+        from obstore.store import S3Credential
+
+
+    class Boto3CredentialProvider:
+        credentials: botocore.credentials.Credentials
+
+        def __init__(self, session: boto3.session.Session) -> None:
+            credentials = session.get_credentials()
+            if credentials is None:
+                raise ValueError("Received None from session.get_credentials")
+
+            self.credentials = credentials
+
+        def __call__(self) -> S3Credential:
+            frozen_credentials = self.credentials.get_frozen_credentials()
+            return {
+                "access_key_id": frozen_credentials.access_key,
+                "secret_access_key": frozen_credentials.secret_key,
+                "token": frozen_credentials.token,
+                "expires_at": None,
+            }
+    ```
+
+    """
+
+    @staticmethod
+    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]:
+        """Return an `S3Credential`."""
+
+class S3Store:
+    """Interface to an Amazon S3 bucket.
+
+    All constructors will check for environment variables. All environment variables
+    starting with `AWS_` will be evaluated. Names must match keys from
+    [`S3ConfigInput`][obstore.store.S3ConfigInput]. Only upper-case environment
+    variables are accepted.
+
+    Some examples of variables extracted from environment:
+
+    - `AWS_ACCESS_KEY_ID` -> access_key_id
+    - `AWS_SECRET_ACCESS_KEY` -> secret_access_key
+    - `AWS_DEFAULT_REGION` -> region
+    - `AWS_ENDPOINT` -> endpoint
+    - `AWS_SESSION_TOKEN` -> token
+    - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
+    - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
 
     **Examples**:
 
     **Using requester-pays buckets**:
 
-    Pass `request_payer=True` as a keyword argument. Or, if you're using
-    `S3Store.from_env`, have `AWS_REQUESTER_PAYS=True` set in the environment.
+    Pass `request_payer=True` as a keyword argument or have `AWS_REQUESTER_PAYS=True`
+    set in the environment.
 
     **Anonymous requests**:
 
-    Pass `skip_signature=True` as a keyword argument. Or, if you're using
-    `S3Store.from_env`, have `AWS_SKIP_SIGNATURE=True` set in the environment.
+    Pass `skip_signature=True` as a keyword argument or have `AWS_SKIP_SIGNATURE=True`
+    set in the environment.
     """
 
     def __init__(
         self,
-        bucket: str,
-        *,
-        config: S3Config | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
-    ) -> None:
-        """Create a new S3Store
-
-        Args:
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-
-        Returns:
-            S3Store
-        """
-
-    @classmethod
-    def from_env(
-        cls,
         bucket: str | None = None,
         *,
-        config: S3Config | None = None,
+        prefix: str | None = None,
+        config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
-    ) -> S3Store:
-        """Construct a new S3Store with regular AWS environment variables
-
-        All environment variables starting with `AWS_` will be evaluated. Names must
-        match items from `S3ConfigKey`. Only upper-case environment variables are
-        accepted.
-
-        Some examples of variables extracted from environment:
-
-        - `AWS_ACCESS_KEY_ID` -> access_key_id
-        - `AWS_SECRET_ACCESS_KEY` -> secret_access_key
-        - `AWS_DEFAULT_REGION` -> region
-        - `AWS_ENDPOINT` -> endpoint
-        - `AWS_SESSION_TOKEN` -> token
-        - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
-        - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
+        credential_provider: S3CredentialProvider | None = None,
+        **kwargs: Unpack[S3ConfigInput],
+    ) -> None:
+        """Create a new S3Store.
 
         Args:
             bucket: The AWS bucket to use.
 
         Keyword Args:
-            config: AWS Configuration. Values in this config will override values inferred from the environment. Defaults to None.
+            prefix: A prefix within the bucket to use for all operations.
+            config: AWS configuration. Values in this config will override values inferred from the environment. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom S3 credentials.
+            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
             S3Store
-        """
 
-    @classmethod
-    def from_session(
-        cls,
-        session: boto3.session.Session | botocore.session.Session,
-        bucket: str,
-        *,
-        config: S3Config | None = None,
-        client_options: ClientConfig | None = None,
-        retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
-    ) -> S3Store:
-        """Construct a new S3Store with credentials inferred from a boto3 Session
-
-        This can be useful to read S3 credentials from [disk-based credentials sources](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html).
-
-        !!! note
-            This is a convenience function for users who are already using `boto3` or
-            `botocore`. If you're not already using `boto3` or `botocore`, use other
-            constructors, which do not need `boto3` or `botocore` to be installed.
-
-        Examples:
-
-        ```py
-        import boto3
-
-        session = boto3.Session()
-        store = S3Store.from_session(session, "bucket-name", region="us-east-1")
-        ```
-
-        Args:
-            session: The boto3.Session or botocore.session.Session to infer credentials from.
-            bucket: The AWS bucket to use.
-
-        Keyword Args:
-            config: AWS Configuration. Values in this config will override values inferred from the session. Defaults to None.
-            client_options: HTTP Client options. Defaults to None.
-            retry_config: Retry configuration. Defaults to None.
-
-        Returns:
-            S3Store
         """
     @classmethod
     def from_url(
         cls,
         url: str,
         *,
-        config: S3Config | None = None,
+        config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: Unpack[S3Config],
+        credential_provider: S3CredentialProvider | None = None,
+        **kwargs: Unpack[S3ConfigInput],
     ) -> S3Store:
-        """
-        Parse available connection info from a well-known storage URL.
+        """Parse available connection info from a well-known storage URL.
 
         The supported url schemes are:
 
@@ -627,11 +725,6 @@ class S3Store:
         - `https://<bucket>.s3.<region>.amazonaws.com`
         - `https://ACCOUNT_ID.r2.cloudflarestorage.com/bucket`
 
-        !!! note
-            Note that `from_url` will not use any additional parts of the path as a
-            bucket prefix. It will only extract the bucket, region, and endpoint. If you
-            wish to use a path prefix, consider wrapping this with `PrefixStore`.
-
         Args:
             url: well-known storage URL.
 
@@ -639,10 +732,25 @@ class S3Store:
             config: AWS Configuration. Values in this config will override values inferred from the url. Defaults to None.
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            credential_provider: A callback to provide custom S3 credentials.
+            kwargs: AWS configuration values. Supports the same values as `config`, but as named keyword args.
 
 
         Returns:
             S3Store
+
         """
 
-    def __repr__(self) -> str: ...
+    def __getnewargs_ex__(self): ...
+    @property
+    def prefix(self) -> str | None:
+        """Get the prefix applied to all operations in this store, if any."""
+    @property
+    def config(self) -> S3Config:
+        """Get the underlying S3 config parameters."""
+    @property
+    def client_options(self) -> ClientConfig | None:
+        """Get the store's client configuration."""
+    @property
+    def retry_config(self) -> RetryConfig | None:
+        """Get the store's retry configuration."""

@@ -7,9 +7,11 @@ use pyo3::{create_exception, DowncastError};
 use thiserror::Error;
 
 // Base exception
+// Note that this is named `BaseError` instead of `ObstoreError` to not leak the name "obstore" to
+// other Rust-Python libraries using pyo3-object_store.
 create_exception!(
     pyo3_object_store,
-    ObstoreError,
+    BaseError,
     pyo3::exceptions::PyException,
     "The base Python-facing exception from which all other errors subclass."
 );
@@ -18,67 +20,67 @@ create_exception!(
 create_exception!(
     pyo3_object_store,
     GenericError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::Generic]."
 );
 create_exception!(
     pyo3_object_store,
     NotFoundError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::NotFound]."
 );
 create_exception!(
     pyo3_object_store,
     InvalidPathError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::InvalidPath]."
 );
 create_exception!(
     pyo3_object_store,
     JoinError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::JoinError]."
 );
 create_exception!(
     pyo3_object_store,
     NotSupportedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::NotSupported]."
 );
 create_exception!(
     pyo3_object_store,
     AlreadyExistsError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::AlreadyExists]."
 );
 create_exception!(
     pyo3_object_store,
     PreconditionError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::Precondition]."
 );
 create_exception!(
     pyo3_object_store,
     NotModifiedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::NotModified]."
 );
 create_exception!(
     pyo3_object_store,
     PermissionDeniedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::PermissionDenied]."
 );
 create_exception!(
     pyo3_object_store,
     UnauthenticatedError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::Unauthenticated]."
 );
 create_exception!(
     pyo3_object_store,
     UnknownConfigurationKeyError,
-    ObstoreError,
+    BaseError,
     "A Python-facing exception wrapping [object_store::Error::UnknownConfigurationKey]."
 );
 
@@ -109,7 +111,7 @@ impl From<PyObjectStoreError> for PyErr {
                 object_store::Error::Generic {
                     store: _,
                     source: _,
-                } => GenericError::new_err(format!("{err:#?}")),
+                } => GenericError::new_err(err.to_string()),
                 object_store::Error::NotFound { path: _, source: _ } => {
                     PyFileNotFoundError::new_err(format!("{err:#?}"))
                 }
@@ -143,7 +145,7 @@ impl From<PyObjectStoreError> for PyErr {
                 object_store::Error::UnknownConfigurationKey { store: _, key: _ } => {
                     UnknownConfigurationKeyError::new_err(format!("{err:#?}"))
                 }
-                _ => GenericError::new_err(format!("{err:#?}")),
+                _ => GenericError::new_err(err.to_string()),
             },
             PyObjectStoreError::IOError(err) => PyIOError::new_err(format!("{err:#?}")),
         }
@@ -161,3 +163,27 @@ impl<'a, 'py> From<DowncastError<'a, 'py>> for PyObjectStoreError {
 
 /// A type wrapper around `Result<T, PyObjectStoreError>`.
 pub type PyObjectStoreResult<T> = Result<T, PyObjectStoreError>;
+
+/// A specialized `Error` for object store-related errors
+///
+/// Vendored from upstream to handle our vendored URL parsing
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum ParseUrlError {
+    #[error(
+        "Unknown url scheme cannot be parsed into storage location: {}",
+        scheme
+    )]
+    UnknownUrlScheme { scheme: String },
+
+    #[error("URL did not match any known pattern for scheme: {}", url)]
+    UrlNotRecognised { url: String },
+}
+
+impl From<ParseUrlError> for object_store::Error {
+    fn from(source: ParseUrlError) -> Self {
+        Self::Generic {
+            store: "S3",
+            source: Box::new(source),
+        }
+    }
+}

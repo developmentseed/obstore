@@ -1,7 +1,7 @@
 site_name: obstore
 repo_name: developmentseed/obstore
 repo_url: https://github.com/developmentseed/obstore
-site_description: A Python interface and pyo3 integration to the Rust object-store crate.
+site_description: The simplest, highest-throughput Python interface to S3, GCS & Azure Storage, powered by Rust.
 site_author: Development Seed
 # Note: trailing slash recommended with mike:
 # https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/#publishing-a-new-version
@@ -17,14 +17,26 @@ extra:
     - icon: "fontawesome/brands/linkedin"
       link: "https://www.linkedin.com/company/development-seed"
   version:
+    alias: true
     provider: mike
 
 nav:
   - "index.md"
-  - getting-started.md
-  - cookbook.md
+  - User Guide:
+      - getting-started.md
+      - cookbook.md
+      - authentication.md
+      - integrations.md
+      - performance.md
+      - Alternatives: alternatives.md
+      - Troubleshooting:
+          - AWS: troubleshooting/aws.md
   - Examples:
       - examples/fastapi.md
+      - examples/minio.md
+      - examples/tqdm.md
+  - Blog:
+      - blog/index.md
   - API Reference:
       - obstore.store:
           - api/store/index.md
@@ -35,7 +47,11 @@ nav:
           - api/store/local.md
           - api/store/memory.md
           - api/store/config.md
-          - api/store/middleware.md
+          # - api/store/middleware.md
+      - obstore.auth:
+          - api/auth/boto3.md
+          - api/auth/earthdata.md
+          - api/auth/google.md
       - api/copy.md
       - api/delete.md
       - api/get.md
@@ -48,6 +64,13 @@ nav:
       - api/exceptions.md
       - api/file.md
       - fsspec Integration: api/fsspec.md
+  - Advanced Topics:
+      - advanced/pickle.md
+  - Developer Docs:
+      - Contributing: dev/DEVELOP.md
+      - Functional API: dev/functional-api.md
+      - Overridden Defaults: dev/overridden-defaults.md
+      - dev/pickle.md
   - CHANGELOG.md
 
 watch:
@@ -55,7 +78,9 @@ watch:
   - docs
 
 theme:
+  language: en
   name: material
+  custom_dir: docs/overrides
   logo: assets/logo_no_text.png
   palette:
     # Palette toggle for automatic mode
@@ -98,6 +123,7 @@ extra_css:
   - overrides/stylesheets/extra.css
 
 plugins:
+  - blog
   - search
   - social
   - mike:
@@ -128,10 +154,13 @@ plugins:
             - https://arrow.apache.org/docs/objects.inv
             - https://boto3.amazonaws.com/v1/documentation/api/latest/objects.inv
             - https://botocore.amazonaws.com/v1/documentation/api/latest/objects.inv
+            - https://docs.aiohttp.org/en/stable/objects.inv
+            - https://docs.pola.rs/api/python/stable/objects.inv
             - https://docs.python.org/3/objects.inv
             - https://filesystem-spec.readthedocs.io/en/latest/objects.inv
+            - https://google-auth.readthedocs.io/en/master/objects.inv
             - https://kylebarron.dev/arro3/latest/objects.inv
-            - https://docs.pola.rs/api/python/stable/objects.inv
+            - https://requests.readthedocs.io/en/latest/objects.inv
 
 # https://github.com/developmentseed/titiler/blob/50934c929cca2fa8d3c408d239015f8da429c6a8/docs/mkdocs.yml#L115-L140
 markdown_extensions:

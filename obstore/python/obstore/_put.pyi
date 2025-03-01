@@ -1,13 +1,10 @@
 import sys
+from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
 from pathlib import Path
 from typing import (
     IO,
-    AsyncIterable,
-    AsyncIterator,
-    Dict,
-    Iterable,
-    Iterator,
     Literal,
+    TypeAlias,
     TypedDict,
 )
 
@@ -20,8 +17,7 @@ else:
     from typing_extensions import Buffer
 
 class UpdateVersion(TypedDict, total=False):
-    """
-    Uniquely identifies a version of an object to update
+    """Uniquely identifies a version of an object to update.
 
     Stores will use differing combinations of `e_tag` and `version` to provide
     conditional updates, and it is therefore recommended applications preserve both
@@ -36,7 +32,7 @@ class UpdateVersion(TypedDict, total=False):
     version: str | None
     """A version indicator for the newly created object."""
 
-PutMode = Literal["create", "overwrite"] | UpdateVersion
+PutMode: TypeAlias = Literal["create", "overwrite"] | UpdateVersion
 """Configure preconditions for the put operation
 
 There are three modes:
@@ -55,9 +51,7 @@ If a `dict` is provided, it must meet the criteria of
 """
 
 class PutResult(TypedDict):
-    """
-    Result for a put request.
-    """
+    """Result for a put request."""
 
     e_tag: str | None
     """
@@ -75,13 +69,13 @@ def put(
     file: IO[bytes] | Path | bytes | Buffer | Iterator[Buffer] | Iterable[Buffer],
     *,
     attributes: Attributes | None = None,
-    tags: Dict[str, str] | None = None,
+    tags: dict[str, str] | None = None,
     mode: PutMode | None = None,
     use_multipart: bool | None = None,
-    chunk_size: int = 5 * 1024 * 1024,
+    chunk_size: int = ...,
     max_concurrency: int = 12,
 ) -> PutResult:
-    """Save the provided bytes to the specified location
+    """Save the provided bytes to the specified location.
 
     The operation is guaranteed to be atomic, it will either successfully write the
     entirety of `file` to `location`, or fail. No clients should be able to observe a
@@ -119,7 +113,7 @@ def put(
             - An iterator or iterable of objects implementing the Python buffer
               protocol.
 
-    Keyword args:
+    Keyword Args:
         mode: Configure the [`PutMode`][obstore.PutMode] for this operation. Refer to the [`PutMode`][obstore.PutMode] docstring for more information.
 
             If this provided and is not `"overwrite"`, a non-multipart upload will be performed. Defaults to `"overwrite"`.
@@ -128,6 +122,7 @@ def put(
         use_multipart: Whether to use a multipart upload under the hood. Defaults using a multipart upload if the length of the file is greater than `chunk_size`. When `use_multipart` is `False`, the entire input will be materialized in memory as part of the upload.
         chunk_size: The size of chunks to use within each part of the multipart upload. Defaults to 5 MB.
         max_concurrency: The maximum number of chunks to upload concurrently. Defaults to 12.
+
     """
 
 async def put_async(
@@ -143,10 +138,10 @@ async def put_async(
     | Iterable[Buffer],
     *,
     attributes: Attributes | None = None,
-    tags: Dict[str, str] | None = None,
+    tags: dict[str, str] | None = None,
     mode: PutMode | None = None,
     use_multipart: bool | None = None,
-    chunk_size: int = 5 * 1024 * 1024,
+    chunk_size: int = ...,
     max_concurrency: int = 12,
 ) -> PutResult:
     """Call `put` asynchronously.

@@ -13,30 +13,29 @@ use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::PyString;
 use pyo3_object_store::{
-    PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult, PyS3Store,
+    get_runtime, MaybePrefixedStore, PyAzureStore, PyGCSStore, PyObjectStoreError,
+    PyObjectStoreResult, PyS3Store, PyUrl,
 };
 use url::Url;
 
 use crate::path::PyPaths;
-use crate::runtime::get_runtime;
 
 #[derive(Debug)]
 pub(crate) enum SignCapableStore {
-    S3(Arc<AmazonS3>),
-    Gcs(Arc<GoogleCloudStorage>),
-    Azure(Arc<MicrosoftAzure>),
+    S3(Arc<MaybePrefixedStore<AmazonS3>>),
+    Gcs(Arc<MaybePrefixedStore<GoogleCloudStorage>>),
+    Azure(Arc<MaybePrefixedStore<MicrosoftAzure>>),
 }
 
 impl<'py> FromPyObject<'py> for SignCapableStore {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         if let Ok(store) = ob.downcast::<PyS3Store>() {
-            Ok(Self::S3(store.borrow().as_ref().clone()))
+            Ok(Self::S3(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyGCSStore>() {
-            Ok(Self::Gcs(store.borrow().as_ref().clone()))
+            Ok(Self::Gcs(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyAzureStore>() {
-            Ok(Self::Azure(store.borrow().as_ref().clone()))
+            Ok(Self::Azure(store.get().as_ref().clone()))
         } else {
             let py = ob.py();
             // Check for object-store instance from other library
@@ -78,9 +77,9 @@ impl Signer for SignCapableStore {
         Self: 'async_trait,
     {
         match self {
-            Self::S3(inner) => inner.signed_url(method, path, expires_in),
-            Self::Gcs(inner) => inner.signed_url(method, path, expires_in),
-            Self::Azure(inner) => inner.signed_url(method, path, expires_in),
+            Self::S3(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
+            Self::Gcs(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
+            Self::Azure(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
         }
     }
 
@@ -96,9 +95,18 @@ impl Signer for SignCapableStore {
         Self: 'async_trait,
     {
         match self {
-            Self::S3(inner) => inner.signed_urls(method, paths, expires_in),
-            Self::Gcs(inner) => inner.signed_urls(method, paths, expires_in),
-            Self::Azure(inner) => inner.signed_urls(method, paths, expires_in),
+            Self::S3(inner) => inner
+                .as_ref()
+                .inner()
+                .signed_urls(method, paths, expires_in),
+            Self::Gcs(inner) => inner
+                .as_ref()
+                .inner()
+                .signed_urls(method, paths, expires_in),
+            Self::Azure(inner) => inner
+                .as_ref()
+                .inner()
+                .signed_urls(method, paths, expires_in),
         }
     }
 }
@@ -129,18 +137,6 @@ impl<'py> FromPyObject<'py> for PyMethod {
     }
 }
 
-pub(crate) struct PyUrl(url::Url);
-
-impl<'py> IntoPyObject<'py> for PyUrl {
-    type Target = PyString;
-    type Output = Bound<'py, PyString>;
-    type Error = std::convert::Infallible;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        String::from(self.0).into_pyobject(py)
-    }
-}
-
 #[derive(IntoPyObject)]
 pub(crate) struct PyUrls(Vec<PyUrl>);
 
@@ -164,12 +160,12 @@ pub(crate) fn sign(
     py.allow_threads(|| match paths {
         PyPaths::One(path) => {
             let url = runtime.block_on(store.signed_url(method, &path, expires_in))?;
-            Ok(PySignResult::One(PyUrl(url)))
+            Ok(PySignResult::One(PyUrl::new(url)))
         }
         PyPaths::Many(paths) => {
             let urls = runtime.block_on(store.signed_urls(method, &paths, expires_in))?;
             Ok(PySignResult::Many(PyUrls(
-                urls.into_iter().map(PyUrl).collect(),
+                urls.into_iter().map(PyUrl::new).collect(),
             )))
         }
     })
@@ -191,7 +187,7 @@ pub(crate) fn sign_async(
                     .signed_url(method, &path, expires_in)
                     .await
                     .map_err(PyObjectStoreError::ObjectStoreError)?;
-                Ok(PySignResult::One(PyUrl(url)))
+                Ok(PySignResult::One(PyUrl::new(url)))
             }
             PyPaths::Many(paths) => {
                 let urls = store
@@ -199,7 +195,7 @@ pub(crate) fn sign_async(
                     .await
                     .map_err(PyObjectStoreError::ObjectStoreError)?;
                 Ok(PySignResult::Many(PyUrls(
-                    urls.into_iter().map(PyUrl).collect(),
+                    urls.into_iter().map(PyUrl::new).collect(),
                 )))
             }
         }

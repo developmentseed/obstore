@@ -1,36 +1,81 @@
 """Integration with the [fsspec] library.
 
-This integration is designed for compatibility and may not provide the same performance
-as other obstore APIs.
-
 [fsspec]: https://github.com/fsspec/filesystem_spec
 
-The underlying `object_store` Rust crate [cautions](https://docs.rs/object_store/latest/object_store/#why-not-a-filesystem-interface) against relying too strongly on stateful filesystem representations of object stores:
+The fsspec integration is **best effort** and not the primary API of `obstore`. This
+integration may not be as stable and may not provide the same performance as the rest of
+the library. Changes may be made even in patch releases to align better with fsspec
+expectations. If you find any bugs, please [file an
+issue](https://github.com/developmentseed/obstore/issues/new/choose).
 
-> The ObjectStore interface is designed to mirror the APIs of object stores and not filesystems, and thus has stateless APIs instead of cursor based interfaces such as Read or Seek available in filesystems.
+The underlying `object_store` Rust crate
+[cautions](https://docs.rs/object_store/latest/object_store/#why-not-a-filesystem-interface)
+against relying too strongly on stateful filesystem representations of object stores:
+
+> The ObjectStore interface is designed to mirror the APIs of object stores and not
+> filesystems, and thus has stateless APIs instead of cursor based interfaces such as
+> Read or Seek available in filesystems.
 >
 > This design provides the following advantages:
 >
 > - All operations are atomic, and readers cannot observe partial and/or failed writes
-> - Methods map directly to object store APIs, providing both efficiency and predictability
+> - Methods map directly to object store APIs, providing both efficiency and
+>   predictability
 > - Abstracts away filesystem and operating system specific quirks, ensuring portability
-> - Allows for functionality not native to filesystems, such as operation preconditions and atomic multipart uploads
+> - Allows for functionality not native to filesystems, such as operation preconditions
+>   and atomic multipart uploads
 
 Where possible, implementations should use the underlying `obstore` APIs
 directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
+# ruff: noqa: ANN401, PTH123, FBT001, FBT002
+
 from __future__ import annotations
 
 import asyncio
+import warnings
 from collections import defaultdict
-from typing import Any, Coroutine, Dict, List, Tuple
+from functools import lru_cache
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Literal, overload
+from urllib.parse import urlparse
 
 import fsspec.asyn
 import fsspec.spec
 
 import obstore as obs
+from obstore import open_writer
+from obstore.store import from_url
+
+if TYPE_CHECKING:
+    from collections.abc import Coroutine, Iterable
+
+    from obstore import Bytes
+    from obstore.store import (
+        AzureConfig,
+        AzureConfigInput,
+        ClientConfig,
+        GCSConfig,
+        GCSConfigInput,
+        ObjectStore,
+        RetryConfig,
+        S3Config,
+        S3ConfigInput,
+    )
+
+SUPPORTED_PROTOCOLS = {
+    "s3",
+    "s3a",
+    "gcs",
+    "gs",
+    "abfs",
+    "https",
+    "http",
+    "file",
+    "memory",
+}
 from obstore import open_writer
 from obstore.store import AzureStore, GCSStore, S3Store
 
@@ -42,100 +87,230 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     fsspec-style object.
     """
 
-    cachable = False
+    # https://github.com/fsspec/filesystem_spec/blob/56054c0a30ceedab4c0e6a0f7e429666773baf6d/docs/source/features.rst#instance-caching
+    cachable = True
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        store: obs.store.ObjectStore,
-        *args,
+        *args: Any,
+        protocol: str | None = None,
+        config: (
+            S3Config
+            | S3ConfigInput
+            | GCSConfig
+            | GCSConfigInput
+            | AzureConfig
+            | AzureConfigInput
+            | None
+        ) = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
         asynchronous: bool = False,
-        loop=None,
+        max_cache_size: int = 10,
+        loop: Any = None,
         batch_size: int | None = None,
-    ):
-        """Construct a new AsyncFsspecStore
+    ) -> None:
+        """Construct a new AsyncFsspecStore.
 
         Args:
-            store: a configured instance of one of the store classes in `obstore.store`.
+            protocol: The storage protocol to use, such as "s3",
+                "gcs", or "abfs". If `None`, the default class-level protocol
+                is used. Default to None.
+            config: Configuration for the cloud storage provider, which can be one of
+                S3Config, S3ConfigInput, GCSConfig, GCSConfigInput, AzureConfig,
+                or AzureConfigInput. Any of these values will be applied after checking
+                for environment variables. If `None`, no cloud storage configuration is
+                applied beyond what is found in environment variables.
+            client_options: Additional options for configuring the client.
+            retry_config: Configuration for handling request errors.
+            args: positional arguments passed on to the `fsspec.asyn.AsyncFileSystem`
+                constructor.
+
+        Keyword Args:
             asynchronous: Set to `True` if this instance is meant to be be called using
                 the fsspec async API. This should only be set to true when running
                 within a coroutine.
-            loop: since both fsspec/python and tokio/rust may be using loops, this should
-                be kept `None` for now, and will not be used.
+            max_cache_size (int, optional): The maximum number of stores the cache
+                should keep. A cached store is kept internally for each bucket name.
+                Defaults to 10.
+            loop: since both fsspec/python and tokio/rust may be using loops, this
+                should be kept `None` for now, and will not be used.
             batch_size: some operations on many files will batch their requests; if you
                 are seeing timeouts, you may want to set this number smaller than the
                 defaults, which are determined in `fsspec.asyn._get_batch_size`.
 
-        Example:
+        **Examples:**
 
         ```py
         from obstore.fsspec import AsyncFsspecStore
-        from obstore.store import HTTPStore
 
-        store = HTTPStore.from_url("https://example.com")
-        fsspec_store = AsyncFsspecStore(store)
-        resp = fsspec_store.cat("/")
+        store = AsyncFsspecStore(protocol="https")
+        resp = store.cat("https://example.com")
         assert resp.startswith(b"<!doctype html>")
         ```
-        """
 
-        self.store = store
+        """
+        if protocol is None:
+            self._protocol = self.protocol
+        else:
+            self._protocol = protocol
+
+        if self._protocol not in SUPPORTED_PROTOCOLS:
+            warnings.warn(
+                f"Unknown protocol: {self._protocol}; requests may fail.",
+                stacklevel=2,
+            )
+
+        self.config = config
+        self.client_options = client_options
+        self.retry_config = retry_config
+
+        # https://stackoverflow.com/a/68550238
+        self._construct_store = lru_cache(maxsize=max_cache_size)(self._construct_store)
+
         super().__init__(
-            *args, asynchronous=asynchronous, loop=loop, batch_size=batch_size
+            *args,
+            asynchronous=asynchronous,
+            loop=loop,
+            batch_size=batch_size,
         )
 
-    def _split_path(self, path: str) -> Tuple[str, str]:
-        """
-        Split bucket and file path
+    def _split_path(self, path: str) -> tuple[str, str]:
+        """Split bucket and file path.
 
         Args:
-            path  (str): Input path, like `s3://mybucket/path/to/file`
+            path: Input path, like `s3://mybucket/path/to/file`
+
+        Returns:
+            (bucket name, file path inside the bucket)
 
         Examples:
             >>> split_path("s3://mybucket/path/to/file")
             ['mybucket', 'path/to/file']
+
         """
+        protocol_without_bucket = {"file", "memory"}
 
-        store_with_bucket = (S3Store, GCSStore, AzureStore)
+        # Parse the path as a URL
+        parsed = urlparse(path)
 
-        if not isinstance(self.store, store_with_bucket):
-            # no bucket name in path
-            return "", path
+        # If the protocol doesn't require buckets, return empty bucket and full path
+        if self._protocol in protocol_without_bucket:
+            return (
+                "",
+                f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path,
+            )
 
-        if "/" not in path:
+        if parsed.scheme:
+            if parsed.scheme != self._protocol:
+                err_msg = f"Expect protocol to be {self._protocol}. Got {parsed.scheme}"
+                raise ValueError(err_msg)
+            return (parsed.netloc, parsed.path.lstrip("/"))
+
+        # path not in url format
+        path_li = path.split("/", 1)
+        if len(path_li) == 1:
             return path, ""
-        else:
-            path_li = path.split("/")
-            bucket = path_li[0]
-            file_path = "/".join(path_li[1:])
-            return (bucket, file_path)
 
-    async def _rm_file(self, path, **kwargs):
-        return await obs.delete_async(self.store, path)
+        return (path_li[0], path_li[1])
 
-    async def _cp_file(self, path1, path2, **kwargs):
-        return await obs.copy_async(self.store, path1, path2)
+    def _construct_store(self, bucket: str) -> ObjectStore:
+        return from_url(
+            url=f"{self._protocol}://{bucket}",
+            config=self.config,
+            client_options=self.client_options,
+            retry_config=self.retry_config,
+        )
 
-    async def _pipe_file(self, path, value, **kwargs):
-        return await obs.put_async(self.store, path, value)
+    async def _rm_file(self, path: str, **_kwargs: Any) -> None:
+        bucket, path = self._split_path(path)
+        store = self._construct_store(bucket)
+        return await obs.delete_async(store, path)
 
-    async def _cat_file(self, path, start=None, end=None, **kwargs):
+    async def _cp_file(self, path1: str, path2: str, **_kwargs: Any) -> None:
+        bucket1, path1_no_bucket = self._split_path(path1)
+        bucket2, path2_no_bucket = self._split_path(path2)
+
+        if bucket1 != bucket2:
+            err_msg = (
+                f"Bucket mismatch: Source bucket '{bucket1}' and "
+                f"destination bucket '{bucket2}' must be the same."
+            )
+            raise ValueError(err_msg)
+
+        store = self._construct_store(bucket1)
+
+        return await obs.copy_async(store, path1_no_bucket, path2_no_bucket)
+
+    async def _pipe_file(
+        self,
+        path: str,
+        value: Any,
+        mode: str = "overwrite",  # noqa: ARG002
+        **_kwargs: Any,
+    ) -> Any:
+        bucket, path = self._split_path(path)
+        store = self._construct_store(bucket)
+        return await obs.put_async(store, path, value)
+
+    async def _cat_file(
+        self,
+        path: str,
+        start: int | None = None,
+        end: int | None = None,
+        **_kwargs: Any,
+    ) -> bytes:
+        bucket, path = self._split_path(path)
+        store = self._construct_store(bucket)
+
         if start is None and end is None:
-            resp = await obs.get_async(self.store, path)
-            return await resp.bytes_async()
+            resp = await obs.get_async(store, path)
+            return (await resp.bytes_async()).to_bytes()
 
-        range_bytes = await obs.get_range_async(self.store, path, start=start, end=end)
+        if start is None or end is None:
+            raise NotImplementedError(
+                "cat_file not implemented for start=None xor end=None",
+            )
+
+        range_bytes = await obs.get_range_async(store, path, start=start, end=end)
         return range_bytes.to_bytes()
 
-    async def _cat_ranges(
+    async def _cat(
         self,
-        paths: List[str],
-        starts: List[int] | int,
-        ends: List[int] | int,
-        max_gap=None,
-        batch_size=None,
-        on_error="return",
-        **kwargs,
-    ):
+        path: str,
+        recursive: bool = False,
+        on_error: str = "raise",
+        batch_size: int | None = None,
+        **_kwargs: Any,
+    ) -> bytes | dict[str, bytes]:
+        paths = await self._expand_path(path, recursive=recursive)
+
+        # Filter out directories
+        files = [p for p in paths if not await self._isdir(p)]
+
+        if not files:
+            err_msg = f"No valid files found in {path}"
+            raise FileNotFoundError(err_msg)
+
+        # Call the original _cat only on files
+        return await super()._cat(
+            files,
+            recursive=False,
+            on_error=on_error,
+            batch_size=batch_size,
+            **_kwargs,
+        )
+
+    async def _cat_ranges(  # noqa: PLR0913
+        self,
+        paths: list[str],
+        starts: list[int] | int,
+        ends: list[int] | int,
+        max_gap=None,  # noqa: ANN001, ARG002
+        batch_size=None,  # noqa: ANN001, ARG002
+        on_error="return",  # noqa: ANN001, ARG002
+        **_kwargs: Any,
+    ) -> list[bytes]:
         if isinstance(starts, int):
             starts = [starts] * len(paths)
         if isinstance(ends, int):
@@ -143,41 +318,82 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         if not len(paths) == len(starts) == len(ends):
             raise ValueError
 
-        per_file_requests: Dict[str, List[Tuple[int, int, int]]] = defaultdict(list)
-        for idx, (path, start, end) in enumerate(zip(paths, starts, ends)):
+        per_file_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
+        for idx, (path, start, end) in enumerate(
+            zip(paths, starts, ends, strict=False),
+        ):
             per_file_requests[path].append((start, end, idx))
 
-        futs: List[Coroutine[Any, Any, List[bytes]]] = []
+        futs: list[Coroutine[Any, Any, list[Bytes]]] = []
         for path, ranges in per_file_requests.items():
+            bucket, path_no_bucket = self._split_path(path)
+            store = self._construct_store(bucket)
+
             offsets = [r[0] for r in ranges]
             ends = [r[1] for r in ranges]
-            fut = obs.get_ranges_async(self.store, path, starts=offsets, ends=ends)
+            fut = obs.get_ranges_async(store, path_no_bucket, starts=offsets, ends=ends)
             futs.append(fut)
 
         result = await asyncio.gather(*futs)
 
-        output_buffers: List[bytes] = [b""] * len(paths)
-        for per_file_request, buffers in zip(per_file_requests.items(), result):
+        output_buffers: list[bytes] = [b""] * len(paths)
+        for per_file_request, buffers in zip(
+            per_file_requests.items(),
+            result,
+            strict=True,
+        ):
             path, ranges = per_file_request
-            for buffer, ranges_ in zip(buffers, ranges):
+            for buffer, ranges_ in zip(buffers, ranges, strict=True):
                 initial_index = ranges_[2]
                 output_buffers[initial_index] = buffer.to_bytes()
 
         return output_buffers
 
-    async def _put_file(self, lpath, rpath, **kwargs):
-        with open(lpath, "rb") as f:
-            await obs.put_async(self.store, rpath, f)
+    async def _put_file(
+        self,
+        lpath: str,
+        rpath: str,
+        mode: str = "overwrite",  # noqa: ARG002
+        **_kwargs: Any,
+    ) -> None:
+        if not Path(lpath).is_file():
+            err_msg = f"File {lpath} not found in local"
+            raise FileNotFoundError(err_msg)
 
-    async def _get_file(self, rpath, lpath, **kwargs):
-        with open(lpath, "wb") as f:
-            resp = await obs.get_async(self.store, rpath)
+        # TODO: convert to use async file system methods using LocalStore
+        # Async functions should not open files with blocking methods like `open`
+        rbucket, rpath = self._split_path(rpath)
+
+        # Should construct the store instance by rbucket, which is the target path
+        store = self._construct_store(rbucket)
+
+        with open(lpath, "rb") as f:  # noqa: ASYNC230
+            await obs.put_async(store, rpath, f)
+
+    async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
+        res = urlparse(lpath)
+        if res.scheme or Path(lpath).is_dir():
+            # lpath need to be local file and cannot contain scheme
+            return
+
+        # TODO: convert to use async file system methods using LocalStore
+        # Async functions should not open files with blocking methods like `open`
+        rbucket, rpath = self._split_path(rpath)
+
+        # Should construct the store instance by rbucket, which is the target path
+        store = self._construct_store(rbucket)
+
+        with open(lpath, "wb") as f:  # noqa: ASYNC230
+            resp = await obs.get_async(store, rpath)
             async for buffer in resp.stream():
                 f.write(buffer)
 
-    async def _info(self, path, **kwargs):
+    async def _info(self, path: str, **_kwargs: Any) -> dict[str, Any]:
+        bucket, path_no_bucket = self._split_path(path)
+        store = self._construct_store(bucket)
+
         try:
-            head = await obs.head_async(self.store, path)
+            head = await obs.head_async(store, path_no_bucket)
             return {
                 # Required of `info`: (?)
                 "name": head["path"],
@@ -191,27 +407,65 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         except FileNotFoundError:
             # use info in fsspec.AbstractFileSystem
             loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(None, super().info, path, **kwargs)
+            return await loop.run_in_executor(None, super().info, path, **_kwargs)
 
-    async def _ls(self, path, detail=True, **kwargs):
-        result = await obs.list_with_delimiter_async(self.store, path)
+    @overload
+    async def _ls(
+        self,
+        path: str,
+        detail: Literal[False],
+        **_kwargs: Any,
+    ) -> list[str]: ...
+    @overload
+    async def _ls(
+        self,
+        path: str,
+        detail: Literal[True] = True,
+        **_kwargs: Any,
+    ) -> list[dict[str, Any]]: ...
+    async def _ls(
+        self,
+        path: str,
+        detail: bool = True,
+        **_kwargs: Any,
+    ) -> list[dict[str, Any]] | list[str]:
+        bucket, path = self._split_path(path)
+        store = self._construct_store(bucket)
+
+        result = await obs.list_with_delimiter_async(store, path)
         objects = result["objects"]
         prefs = result["common_prefixes"]
-        if detail:
-            return [
-                {
-                    "name": object["path"],
-                    "size": object["size"],
-                    "type": "file",
-                    "e_tag": object["e_tag"],
-                }
-                for object in objects
-            ] + [{"name": object, "size": 0, "type": "directory"} for object in prefs]
-        else:
-            return sorted([object["path"] for object in objects] + prefs)
+        files = [
+            {
+                "name": f"{bucket}/{obj['path']}",
+                "size": obj["size"],
+                "type": "file",
+                "e_tag": obj["e_tag"],
+            }
+            for obj in objects
+        ] + [
+            {
+                "name": f"{bucket}/{pref}",
+                "size": 0,
+                "type": "directory",
+            }
+            for pref in prefs
+        ]
+        if not files:
+            raise FileNotFoundError(path)
 
-    def _open(self, path: str, mode="rb", **kwargs):
-        """Return raw bytes-mode file-like from the file-system"""
+        return files if detail else sorted(o["name"] for o in files)
+
+    def _open(
+        self,
+        path: str,
+        mode: str = "rb",
+        block_size: Any = None,  # noqa: ARG002
+        autocommit: Any = True,  # noqa: ARG002
+        cache_options: Any = None,  # noqa: ARG002
+        **kwargs: Any,
+    ) -> BufferedFileSimple:
+        """Return raw bytes-mode file-like from the file-system."""
 
         _, path = self._split_path(path)
 
@@ -259,15 +513,25 @@ class BufferedFileWrite(fsspec.spec.AbstractBufferedFile):
 
 
 class BufferedFileRead(fsspec.spec.AbstractBufferedFile):
-    def __init__(self, fs, path, mode="rb", **kwargs):
+    """Implementation of buffered file around `fsspec.spec.AbstractBufferedFile`."""
+
+    def __init__(
+        self,
+        fs: AsyncFsspecStore,
+        path: str,
+        mode: str = "rb",
+        **kwargs: Any,
+    ) -> None:
+        """Create new buffered file."""
         super().__init__(fs, path, mode, **kwargs)
 
-    def read(self, length: int = -1):
-        """Return bytes from the remote file
+    def read(self, length: int = -1) -> Any:
+        """Return bytes from the remote file.
 
         Args:
             length: if positive, returns up to this many bytes; if negative, return all
-            remaining byets.
+                remaining bytes.
+
         """
         if length < 0:
             data = self.fs.cat_file(self.path, self.loc, self.size)
@@ -276,3 +540,50 @@ class BufferedFileRead(fsspec.spec.AbstractBufferedFile):
             data = self.fs.cat_file(self.path, self.loc, self.loc + length)
             self.loc += length
         return data
+
+
+def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> None:
+    """Dynamically register a subclass of AsyncFsspecStore for the given protocol(s).
+
+    This function creates a new subclass of AsyncFsspecStore with the specified
+    protocol and registers it with fsspec. If multiple protocols are provided,
+    the function registers each one individually.
+
+    Args:
+        protocol (str | list[str]): A single protocol (e.g., "s3", "gcs", "abfs") or
+            a list of protocols to register AsyncFsspecStore for.
+        asynchronous (bool, optional): If True, the registered store will support
+            asynchronous operations. Defaults to False.
+
+    Example:
+        >>> register("s3")
+        >>> register("s3", asynchronous=True)  # Registers an async store for "s3"
+        >>> register(["gcs", "abfs"])  # Registers both "gcs" and "abfs"
+
+    Notes:
+        - Each protocol gets a dynamically generated subclass named
+          `AsyncFsspecStore_<protocol>`.
+        - This avoids modifying the original AsyncFsspecStore class.
+
+    """
+    if isinstance(protocol, str):
+        _register(protocol, asynchronous=asynchronous)
+        return
+
+    for p in protocol:
+        _register(p, asynchronous=asynchronous)
+
+
+def _register(protocol: str, *, asynchronous: bool) -> None:
+    fsspec.register_implementation(
+        protocol,
+        type(
+            f"AsyncFsspecStore_{protocol}",  # Unique class name
+            (AsyncFsspecStore,),  # Base class
+            {
+                "protocol": protocol,
+                "asynchronous": asynchronous,
+            },  # Assign protocol dynamically
+        ),
+        clobber=False,
+    )

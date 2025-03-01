@@ -1,3 +1,4 @@
+import pickle
 import tempfile
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import obstore as obs
 from obstore.exceptions import GenericError
 from obstore.store import LocalStore
 
-HERE = Path(".")
+HERE = Path()
 
 
 def test_local_store():
@@ -22,7 +23,7 @@ def test_repr():
 
 
 def test_local_from_url():
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="relative URL without a base"):
         LocalStore.from_url("")
 
     LocalStore.from_url("file://")
@@ -54,3 +55,20 @@ def test_create_prefix():
     # Assert that mkdir=True works even when the dir already exists
     LocalStore(tmpdir, mkdir=True)
     assert tmpdir.exists()
+
+
+def test_prefix_property():
+    tmpdir = Path(tempfile.gettempdir())
+    store = LocalStore(tmpdir)
+    assert store.prefix == tmpdir
+    assert isinstance(store.prefix, Path)
+    # Can pass it back to the store init
+    LocalStore(store.prefix)
+
+
+def test_pickle():
+    tmpdir = Path(tempfile.gettempdir())
+    store = LocalStore(tmpdir)
+    obs.put(store, "path.txt", b"foo")
+    new_store: LocalStore = pickle.loads(pickle.dumps(store))
+    assert obs.get(new_store, "path.txt").bytes() == b"foo"

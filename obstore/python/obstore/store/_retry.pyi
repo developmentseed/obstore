@@ -1,27 +1,32 @@
-from __future__ import annotations
-
 from datetime import timedelta
 from typing import TypedDict
 
-class BackoffConfig(TypedDict):
-    """
-    Exponential backoff with jitter
+class BackoffConfig(TypedDict, total=False):
+    """Exponential backoff with jitter.
 
     See <https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/>
     """
 
     init_backoff: timedelta
-    """The initial backoff duration"""
+    """The initial backoff duration.
+
+    Defaults to 100 milliseconds.
+    """
 
     max_backoff: timedelta
-    """The maximum backoff duration"""
+    """The maximum backoff duration.
+
+    Defaults to 15 seconds.
+    """
 
     base: int | float
-    """The base of the exponential to use"""
+    """The base of the exponential to use.
 
-class RetryConfig(TypedDict):
+    Defaults to `2`.
     """
-    The configuration for how to respond to request errors
+
+class RetryConfig(TypedDict, total=False):
+    """The configuration for how to respond to request errors.
 
     The following categories of error will be retried:
 
@@ -38,13 +43,18 @@ class RetryConfig(TypedDict):
     """
 
     backoff: BackoffConfig
-    """The backoff configuration"""
+    """The backoff configuration.
+
+    Defaults to the values listed above if not provided.
+    """
 
     max_retries: int
     """
     The maximum number of times to retry a request
 
-    Set to 0 to disable retries
+    Set to 0 to disable retries.
+
+    Defaults to 10.
     """
 
     retry_timeout: timedelta
@@ -59,5 +69,7 @@ class RetryConfig(TypedDict):
     As requests are retried without renewing credentials or
     regenerating request payloads, this number should be kept
     below 5 minutes to avoid errors due to expired credentials
-    and/or request payloads
+    and/or request payloads.
+
+    Defaults to 3 minutes.
     """

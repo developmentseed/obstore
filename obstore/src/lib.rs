@@ -11,9 +11,9 @@ mod list;
 mod path;
 mod put;
 mod rename;
-mod runtime;
 mod signer;
 mod tags;
+mod utils;
 
 use pyo3::prelude::*;
 
@@ -55,6 +55,9 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     pyo3_object_store::register_exceptions_module(py, m, "obstore")?;
 
     m.add_class::<pyo3_bytes::PyBytes>()?;
+    // Set the value of `__module__` correctly on PyBytes
+    m.getattr("Bytes")?.setattr("__module__", "obstore")?;
+
     m.add_wrapped(wrap_pyfunction!(buffered::open_reader))?;
     m.add_wrapped(wrap_pyfunction!(buffered::open_reader_async))?;
     m.add_wrapped(wrap_pyfunction!(buffered::open_writer))?;

@@ -6,3 +6,4 @@
 ::: obstore.ObjectMeta
 ::: obstore.ListResult
 ::: obstore.ListStream
+::: obstore.ListChunkType

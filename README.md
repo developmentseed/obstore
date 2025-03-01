@@ -11,13 +11,17 @@
 [pypi-img]: https://img.shields.io/pypi/dm/obstore
 [pypi-link]: https://pypi.org/project/obstore/
 
-Simple, fast integration with object storage services like Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2.
+The simplest, highest-throughput [^1] Python interface to [S3][s3], [GCS][gcs], [Azure Storage][azure_storage], & other S3-compliant APIs, powered by Rust.
+
+[s3]: https://aws.amazon.com/s3/
+[gcs]: https://cloud.google.com/storage
+[azure_storage]: https://learn.microsoft.com/en-us/azure/storage/common/storage-introduction
 
 - Sync and async API with **full type hinting**.
 - **Streaming downloads** with configurable chunking.
-- **Streaming uploads** from async or sync iterators.
+- **Streaming uploads** from files or async or sync iterators.
 - **Streaming list**, with no need to paginate.
-- Automatically uses [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
+- Automatic [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
 - Support for **conditional put** ("put if not exists"), as well as custom tags and attributes.
 - Optionally return list results in [Apache Arrow](https://arrow.apache.org/) format, which is faster and more memory-efficient than materializing Python `dict`s.
 - File-like object API and [fsspec](https://github.com/fsspec/filesystem_spec) integration.
@@ -26,6 +30,8 @@ Simple, fast integration with object storage services like Amazon S3, Google Clo
 - Zero-copy data exchange between Rust and Python via the [buffer protocol](https://jakevdp.github.io/blog/2014/05/05/introduction-to-the-python-buffer-protocol/).
 
 <!-- For Rust developers looking to add object_store support to their Python packages, refer to pyo3-object_store. -->
+
+[^1]: Benchmarking is currently ongoing, but [early results](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/2d8ee4df8c2d93463323394f09fd094ad0381122/test_results/cog_header_results.csv) indicate 9x higher throughput than aioboto3 and fsspec.
 
 ## Installation
 

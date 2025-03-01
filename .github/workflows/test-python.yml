@@ -24,6 +24,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Use ruff-action so we get annotations in the Github UI
+      - uses: astral-sh/ruff-action@v3
+
       - name: Cache pre-commit virtualenvs
         uses: actions/cache@v4
         with:
@@ -66,3 +69,8 @@ jobs:
       - name: Run python tests
         run: |
           uv run pytest tests
+
+      # Ensure docs build without warnings
+      - name: Check docs
+        if: "${{ matrix.python-version == 3.11 }}"
+        run: uv run mkdocs build --strict

@@ -6,14 +6,10 @@ use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 
-use crate::{
-    PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyPrefixStore, PyS3Store,
-};
+use crate::{PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyS3Store};
 
 /// A wrapper around a Rust ObjectStore instance that allows any rust-native implementation of
 /// ObjectStore.
-// (In the future we'll have a separate AnyObjectStore that allows either an fsspec-based
-// implementation or a rust-based implementation.)
 pub struct PyObjectStore(Arc<dyn ObjectStore>);
 
 impl<'py> FromPyObject<'py> for PyObjectStore {
@@ -30,8 +26,6 @@ impl<'py> FromPyObject<'py> for PyObjectStore {
             Ok(Self(store.get().as_ref().clone()))
         } else if let Ok(store) = ob.downcast::<PyMemoryStore>() {
             Ok(Self(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyPrefixStore>() {
-            Ok(Self(store.get().as_ref().clone()))
         } else {
             let py = ob.py();
             // Check for object-store instance from other library
@@ -46,14 +40,12 @@ impl<'py> FromPyObject<'py> for PyObjectStore {
                 "LocalStore",
                 "MemoryStore",
                 "S3Store",
-                "PrefixStore",
             ]
             .contains(&cls_name.as_ref())
             {
                 return Err(PyValueError::new_err("You must use an object store instance exported from **the same library** as this function. They cannot be used across libraries.\nThis is because object store instances are compiled with a specific version of Rust and Python." ));
             }
 
-            // TODO: Check for fsspec
             Err(PyValueError::new_err(format!(
                 "Expected an object store instance, got {}",
                 ob.repr()?
