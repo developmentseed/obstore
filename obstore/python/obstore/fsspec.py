@@ -76,8 +76,6 @@ SUPPORTED_PROTOCOLS = {
     "file",
     "memory",
 }
-from obstore import open_writer
-from obstore.store import AzureStore, GCSStore, S3Store
 
 
 class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -464,32 +462,45 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         autocommit: Any = True,  # noqa: ARG002
         cache_options: Any = None,  # noqa: ARG002
         **kwargs: Any,
-    ) -> BufferedFileSimple:
+    ) -> BufferedFileWrite | BufferedFileRead:
         """Return raw bytes-mode file-like from the file-system."""
-
         _, path = self._split_path(path)
 
         if mode == "wb":
             return BufferedFileWrite(self, path, mode, **kwargs)
         if mode == "rb":
             return BufferedFileRead(self, path, mode, **kwargs)
-        else:
-            raise ValueError(f"Only 'rb' and 'wb' mode is currently supported, got: {mode}")
+
+        err_msg = f"Only 'rb' and 'wb' mode is currently supported, got: {mode}"
+        raise ValueError(err_msg)
 
 
 class BufferedFileWrite(fsspec.spec.AbstractBufferedFile):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    """Write buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
 
-    def _initiate_upload(self):
+    def __init__(self, *args: Any, **_kwargs: Any) -> None:
+        """Construct a new AsyncFsspecStore.
+
+        Args:
+            args: positional arguments passed on to the `BufferedFileWrite`
+                constructor.
+
+        Keyword Args:
+            _kwargs: keyword arguments passed on to the `BufferedFileWrite` constructor
+
         """
-        Called by AbstractBufferedFile flusH() on the first flush
-        """
+        super().__init__(*args, **_kwargs)
+
+    def _initiate_upload(self) -> None:
+        """Call by AbstractBufferedFile flusH() on the first flush."""
         self._writer = open_writer(self.fs.store, self.path)
 
-    def _upload_chunk(self, final=False):
-        """
-        Called every time fsspec flushes the write buffer
+    def _upload_chunk(self, final: bool = False) -> bool:
+        """Call every time fsspec flushes the write buffer.
+
+        Returns:
+            Bool showing if chunk is updated
+
         """
         if self.buffer and len(self.buffer.getbuffer()) > 0:
             self.buffer.seek(0)
@@ -498,13 +509,11 @@ class BufferedFileWrite(fsspec.spec.AbstractBufferedFile):
             if final:
                 self._writer.flush()
             return True
-        else:
-            return False
 
-    def close(self):
-        """Close file
-        Ensure flushing the buffer
-        """
+        return False
+
+    def close(self) -> None:
+        """Close file. Ensure flushing the buffer."""
         if self.closed:
             return
         self.flush(force=True)
@@ -513,7 +522,7 @@ class BufferedFileWrite(fsspec.spec.AbstractBufferedFile):
 
 
 class BufferedFileRead(fsspec.spec.AbstractBufferedFile):
-    """Implementation of buffered file around `fsspec.spec.AbstractBufferedFile`."""
+    """Read buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
 
     def __init__(
         self,
@@ -525,12 +534,15 @@ class BufferedFileRead(fsspec.spec.AbstractBufferedFile):
         """Create new buffered file."""
         super().__init__(fs, path, mode, **kwargs)
 
-    def read(self, length: int = -1) -> Any:
+    def read(self, length: int = -1) -> bytes:
         """Return bytes from the remote file.
 
         Args:
             length: if positive, returns up to this many bytes; if negative, return all
                 remaining bytes.
+
+        Returns:
+            Data in bytes
 
         """
         if length < 0:
