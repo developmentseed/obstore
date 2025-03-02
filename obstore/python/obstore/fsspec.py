@@ -480,7 +480,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
 
 class BufferedFile(fsspec.spec.AbstractBufferedFile):
-    """Write buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
+    """Read/Write buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
 
     def __init__(
         self,
