@@ -225,15 +225,37 @@ async def test_list_async(s3_store_config: S3Config):
 
 
 @pytest.mark.network
-def test_remote_parquet():
-    register("https")
+def test_remote_parquet(s3_store_config: S3Config):
+    register(["https", "s3"])
     fs = fsspec.filesystem("https")
+    fs_s3 = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+    )
+
     url = "github.com/opengeospatial/geoparquet/raw/refs/heads/main/examples/example.parquet"  # noqa: E501
     pq.read_metadata(url, filesystem=fs)
 
     # also test with full url
     url = "https://github.com/opengeospatial/geoparquet/raw/refs/heads/main/examples/example.parquet"
     pq.read_metadata(url, filesystem=fs)
+
+    # Read the remote Parquet file into a PyArrow table
+    table = pq.read_table(url, filesystem=fs)
+    write_parquet_path = f"{TEST_BUCKET_NAME}/test.parquet"
+
+    # Write the table to s3
+    pq.write_table(table, write_parquet_path, filesystem=fs_s3)
+
+    out = fs_s3.ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert f"{TEST_BUCKET_NAME}/test.parquet" in out
+
+    # Read Parquet file from s3 and verify its contents
+    parquet_table = pq.read_table(write_parquet_path, filesystem=fs_s3)
+    assert parquet_table.equals(table), (
+        "Parquet file contents from s3 do not match the original file"
+    )
 
 
 def test_multi_file_ops(fs: AsyncFsspecStore):
