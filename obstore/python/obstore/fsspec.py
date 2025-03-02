@@ -46,7 +46,7 @@ import fsspec.asyn
 import fsspec.spec
 
 import obstore as obs
-from obstore import open_writer
+from obstore import open_reader, open_writer
 from obstore.store import from_url
 
 if TYPE_CHECKING:
@@ -219,6 +219,14 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             client_options=self.client_options,
             retry_config=self.retry_config,
         )
+
+    def split_path(self, path: str) -> tuple[str, str]:
+        """Public method to split a path into bucket and path components."""
+        return self._split_path(path)
+
+    def construct_store(self, bucket: str) -> ObjectStore:
+        """Public method to construct a store for the given bucket."""
+        return self._construct_store(bucket)
 
     async def _rm_file(self, path: str, **_kwargs: Any) -> None:
         bucket, path = self._split_path(path)
@@ -462,38 +470,60 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         autocommit: Any = True,  # noqa: ARG002
         cache_options: Any = None,  # noqa: ARG002
         **kwargs: Any,
-    ) -> BufferedFileWrite | BufferedFileRead:
+    ) -> BufferedFile:
         """Return raw bytes-mode file-like from the file-system."""
-        _, path = self._split_path(path)
-
-        if mode == "wb":
-            return BufferedFileWrite(self, path, mode, **kwargs)
-        if mode == "rb":
-            return BufferedFileRead(self, path, mode, **kwargs)
+        if mode in ("wb", "rb"):
+            return BufferedFile(self, path, mode, **kwargs)
 
         err_msg = f"Only 'rb' and 'wb' mode is currently supported, got: {mode}"
         raise ValueError(err_msg)
 
 
-class BufferedFileWrite(fsspec.spec.AbstractBufferedFile):
+class BufferedFile(fsspec.spec.AbstractBufferedFile):
     """Write buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
 
-    def __init__(self, *args: Any, **_kwargs: Any) -> None:
-        """Construct a new AsyncFsspecStore.
+    def __init__(
+        self,
+        fs: AsyncFsspecStore,
+        path: str,
+        mode: str = "rb",
+        **kwargs: Any,
+    ) -> None:
+        """Create new buffered file."""
+        super().__init__(fs, path, mode, **kwargs)
+
+        bucket, self.path = self.fs.split_path(path)
+        self.store = self.fs.construct_store(bucket)
+
+        self.mode = mode
+
+        if self.mode == "rb":
+            self._reader = open_reader(self.store, self.path)
+
+    def read(self, length: int = -1) -> Bytes:
+        """Return bytes from the remote file.
 
         Args:
-            args: positional arguments passed on to the `BufferedFileWrite`
-                constructor.
+            length: if positive, returns up to this many bytes; if negative, return all
+                remaining bytes.
 
-        Keyword Args:
-            _kwargs: keyword arguments passed on to the `BufferedFileWrite` constructor
+        Returns:
+            Data in bytes
 
         """
-        super().__init__(*args, **_kwargs)
+        if length < 0:
+            length = self.size - self.loc
+
+        self._reader.seek(self.loc)
+        out = self._reader.read(length)
+
+        self.loc += length
+
+        return out
 
     def _initiate_upload(self) -> None:
         """Call by AbstractBufferedFile flusH() on the first flush."""
-        self._writer = open_writer(self.fs.store, self.path)
+        self._writer = open_writer(self.store, self.path)
 
     def _upload_chunk(self, final: bool = False) -> bool:
         """Call every time fsspec flushes the write buffer.
@@ -516,42 +546,15 @@ class BufferedFileWrite(fsspec.spec.AbstractBufferedFile):
         """Close file. Ensure flushing the buffer."""
         if self.closed:
             return
-        self.flush(force=True)
-        self._writer.close()
-        self.closed = True
 
-
-class BufferedFileRead(fsspec.spec.AbstractBufferedFile):
-    """Read buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
-
-    def __init__(
-        self,
-        fs: AsyncFsspecStore,
-        path: str,
-        mode: str = "rb",
-        **kwargs: Any,
-    ) -> None:
-        """Create new buffered file."""
-        super().__init__(fs, path, mode, **kwargs)
-
-    def read(self, length: int = -1) -> bytes:
-        """Return bytes from the remote file.
-
-        Args:
-            length: if positive, returns up to this many bytes; if negative, return all
-                remaining bytes.
-
-        Returns:
-            Data in bytes
-
-        """
-        if length < 0:
-            data = self.fs.cat_file(self.path, self.loc, self.size)
-            self.loc = self.size
-        else:
-            data = self.fs.cat_file(self.path, self.loc, self.loc + length)
-            self.loc += length
-        return data
+        try:
+            if self.mode == "rb":
+                self._reader.close()
+            else:
+                self.flush(force=True)
+                self._writer.close()
+        finally:
+            self.closed = True
 
 
 def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> None:
