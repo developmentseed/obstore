@@ -10,7 +10,7 @@ import pyarrow.parquet as pq
 import pytest
 from fsspec.registry import _registry
 
-from obstore.fsspec import AsyncFsspecStore, register
+from obstore.fsspec import FsspecStore, register
 from tests.conftest import TEST_BUCKET_NAME
 
 if TYPE_CHECKING:
@@ -45,8 +45,8 @@ def test_register():
 
     assert issubclass(
         fs_class,
-        AsyncFsspecStore,
-    ), "Registered class should be a subclass of AsyncFsspecStore"
+        FsspecStore,
+    ), "Registered class should be a subclass of FsspecStore"
     assert fs_class.protocol == "s3", (
         "Registered class should have the correct protocol"
     )
@@ -55,7 +55,7 @@ def test_register():
     fs_instance = fs_class()
     assert isinstance(
         fs_instance,
-        AsyncFsspecStore,
+        FsspecStore,
     ), "Registered class should be instantiable"
 
     # test register asynchronous
@@ -65,13 +65,13 @@ def test_register():
 
     # test multiple registrations
     register(["file", "abfs"])
-    assert issubclass(fsspec.get_filesystem_class("file"), AsyncFsspecStore)
-    assert issubclass(fsspec.get_filesystem_class("abfs"), AsyncFsspecStore)
+    assert issubclass(fsspec.get_filesystem_class("file"), FsspecStore)
+    assert issubclass(fsspec.get_filesystem_class("abfs"), FsspecStore)
 
 
 def test_construct_store_cache_diff_bucket_name(s3_store_config: S3Config):
     register("s3")
-    fs: AsyncFsspecStore = fsspec.filesystem(
+    fs: FsspecStore = fsspec.filesystem(
         "s3",
         config=s3_store_config,
         client_options={"allow_http": True},
@@ -167,7 +167,7 @@ def test_fsspec_filesystem_cache(s3_store_config: S3Config):
     )
 
 
-def test_split_path(fs: AsyncFsspecStore):
+def test_split_path(fs: FsspecStore):
     # in url format, with bucket
     assert fs._split_path("s3://mybucket/path/to/file") == ("mybucket", "path/to/file")
     assert fs._split_path("s3://data-bucket/") == ("data-bucket", "")
@@ -193,7 +193,7 @@ def test_split_path(fs: AsyncFsspecStore):
     assert fs._split_path("/data-bucket/") == ("", "/data-bucket/")
 
 
-def test_list(fs: AsyncFsspecStore):
+def test_list(fs: FsspecStore):
     out = fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
     assert out == [f"{TEST_BUCKET_NAME}/afile"]
     fs.pipe_file(f"{TEST_BUCKET_NAME}/dir/bfile", b"data")
@@ -258,7 +258,7 @@ def test_remote_parquet(s3_store_config: S3Config):
     )
 
 
-def test_multi_file_ops(fs: AsyncFsspecStore):
+def test_multi_file_ops(fs: FsspecStore):
     data = {
         f"{TEST_BUCKET_NAME}/dir/test1": b"test data1",
         f"{TEST_BUCKET_NAME}/dir/test2": b"test data2",
@@ -282,7 +282,7 @@ def test_multi_file_ops(fs: AsyncFsspecStore):
     assert out == [f"{TEST_BUCKET_NAME}/afile"]
 
 
-def test_cat_ranges_one(fs: AsyncFsspecStore):
+def test_cat_ranges_one(fs: FsspecStore):
     data1 = os.urandom(10000)
     fs.pipe_file(f"{TEST_BUCKET_NAME}/data1", data1)
 
@@ -327,7 +327,7 @@ def test_cat_ranges_one(fs: AsyncFsspecStore):
     assert out == [data1[10:20], data1[0:60]]
 
 
-def test_cat_ranges_two(fs: AsyncFsspecStore):
+def test_cat_ranges_two(fs: FsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
     fs.pipe({f"{TEST_BUCKET_NAME}/data1": data1, f"{TEST_BUCKET_NAME}/data2": data2})
@@ -342,7 +342,7 @@ def test_cat_ranges_two(fs: AsyncFsspecStore):
 
 
 @pytest.mark.xfail(reason="negative and mixed ranges not implemented")
-def test_cat_ranges_mixed(fs: AsyncFsspecStore):
+def test_cat_ranges_mixed(fs: FsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
     fs.pipe({"data1": data1, "data2": data2})
@@ -353,13 +353,13 @@ def test_cat_ranges_mixed(fs: AsyncFsspecStore):
 
 
 @pytest.mark.xfail(reason="atomic writes not working on moto")
-def test_atomic_write(fs: AsyncFsspecStore):
+def test_atomic_write(fs: FsspecStore):
     fs.pipe_file("data1", b"data1")
     fs.pipe_file("data1", b"data1", mode="overwrite")
     with pytest.raises(ValueError):  # noqa: PT011
         fs.pipe_file("data1", b"data1", mode="create")
 
 
-def test_cat_ranges_error(fs: AsyncFsspecStore):
+def test_cat_ranges_error(fs: FsspecStore):
     with pytest.raises(ValueError):  # noqa: PT011
         fs.cat_ranges([f"{TEST_BUCKET_NAME}/path"], [], [])
