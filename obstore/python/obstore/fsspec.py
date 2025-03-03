@@ -30,7 +30,7 @@ directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
-# ruff: noqa: ANN401, PTH123, FBT001, FBT002
+# ruff: noqa: ANN401, EM102, PTH123, FBT001, FBT002, S101
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ from obstore.store import from_url
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Iterable
 
-    from obstore import Bytes
+    from obstore import Bytes, ReadableFile, WritableFile
     from obstore.store import (
         AzureConfig,
         AzureConfigInput,
@@ -219,14 +219,6 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
             client_options=self.client_options,
             retry_config=self.retry_config,
         )
-
-    def split_path(self, path: str) -> tuple[str, str]:
-        """Public method to split a path into bucket and path components."""
-        return self._split_path(path)
-
-    def construct_store(self, bucket: str) -> ObjectStore:
-        """Public method to construct a store for the given bucket."""
-        return self._construct_store(bucket)
 
     async def _rm_file(self, path: str, **_kwargs: Any) -> None:
         bucket, path = self._split_path(path)
@@ -472,35 +464,50 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         **kwargs: Any,
     ) -> BufferedFile:
         """Return raw bytes-mode file-like from the file-system."""
-        if mode in ("wb", "rb"):
-            return BufferedFile(self, path, mode, **kwargs)
+        if mode not in ("wb", "rb"):
+            err_msg = f"Only 'rb' and 'wb' modes supported, got: {mode}"
+            raise ValueError(err_msg)
 
-        err_msg = f"Only 'rb' and 'wb' mode is currently supported, got: {mode}"
-        raise ValueError(err_msg)
+        return BufferedFile(self, path, mode, **kwargs)
 
 
 class BufferedFile(fsspec.spec.AbstractBufferedFile):
     """Read/Write buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
 
+    mode: Literal["rb", "wb"]
+    fs: AsyncFsspecStore
+    _reader: ReadableFile
+    _writer: WritableFile
+    _writer_loc: int
+    """Stream position.
+
+    Only defined for writers. We use the underlying rust stream position for reading.
+    """
+
     def __init__(
         self,
         fs: AsyncFsspecStore,
         path: str,
-        mode: str = "rb",
+        mode: Literal["rb", "wb"] = "rb",
         **kwargs: Any,
     ) -> None:
         """Create new buffered file."""
         super().__init__(fs, path, mode, **kwargs)
 
-        bucket, self.path = self.fs.split_path(path)
-        self.store = self.fs.construct_store(bucket)
+        bucket, self.path = self.fs._split_path(path)  # noqa: SLF001
+        self.store = self.fs._construct_store(bucket)  # noqa: SLF001
 
         self.mode = mode
 
         if self.mode == "rb":
             self._reader = open_reader(self.store, self.path)
+        elif self.mode == "wb":
+            self._writer = open_writer(self.store, self.path)
+            self._writer_loc = 0
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
 
-    def read(self, length: int = -1) -> Bytes:
+    def read(self, length: int = -1) -> bytes:
         """Return bytes from the remote file.
 
         Args:
@@ -511,36 +518,105 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
             Data in bytes
 
         """
+        if self.mode != "rb":
+            raise ValueError("File not in read mode")
         if length < 0:
-            length = self.size - self.loc
+            length = self.size - self.tell()
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
+        if length == 0:
+            # don't even bother calling fetch
+            return b""
 
-        self._reader.seek(self.loc)
         out = self._reader.read(length)
+        return out.to_bytes()
 
-        self.loc += length
+    def readline(self) -> bytes:
+        """Read until first occurrence of newline character."""
+        if self.mode != "rb":
+            raise ValueError("File not in read mode")
 
-        return out
+        out = self._reader.readline()
+        return out.to_bytes()
 
-    def _initiate_upload(self) -> None:
-        """Call by AbstractBufferedFile flusH() on the first flush."""
-        self._writer = open_writer(self.store, self.path)
+    def readlines(self) -> list[bytes]:
+        """Return all data, split by the newline character."""
+        if self.mode != "rb":
+            raise ValueError("File not in read mode")
 
-    def _upload_chunk(self, final: bool = False) -> bool:
-        """Call every time fsspec flushes the write buffer.
+        out = self._reader.readlines()
+        return [b.to_bytes() for b in out]
 
-        Returns:
-            Bool showing if chunk is updated
+    def tell(self) -> int:
+        """Get current file location."""
+        if self.mode == "rb":
+            return self._reader.tell()
+
+        if self.mode == "wb":
+            # There's no way to get the stream position from the underlying writer
+            # because it's async. Here we happen to be using the async writer in a
+            # synchronous way, so we keep our own stream position.
+            assert self._writer_loc is not None
+            return self._writer_loc
+
+        raise ValueError(f"Unexpected mode {self.mode}")
+
+    def seek(self, loc: int, whence: int = 0) -> int:
+        """Set current file location.
+
+        Args:
+            loc: byte location
+            whence: Either
+                - `0`: from start of file
+                - `1`: current location
+                - `2`: end of file
 
         """
-        if self.buffer and len(self.buffer.getbuffer()) > 0:
-            self.buffer.seek(0)
-            self._writer.write(self.buffer.read())
-            # flush all the data in buffer when closing
-            if final:
-                self._writer.flush()
-            return True
+        if self.mode != "rb":
+            raise ValueError("Seek only available in read mode.")
 
-        return False
+        return self._reader.seek(loc, whence)
+
+    def write(self, data: bytes) -> int:
+        """Write data to buffer.
+
+        Args:
+            data: Set of bytes to be written.
+
+        """
+        if not self.writable():
+            raise ValueError("File not in write mode")
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
+        if self.forced:
+            raise ValueError("This file has been force-flushed, can only close")
+
+        num_written = self._writer.write(data)
+        self._writer_loc += num_written
+
+        return num_written
+
+    def flush(
+        self,
+        force: bool = False,  # noqa: ARG002
+    ) -> None:
+        """Write buffered data to backend store.
+
+        Writes the current buffer, if it is larger than the block-size, or if
+        the file is being closed.
+
+        Args:
+            force: Unused.
+
+        """
+        if self.closed:
+            raise ValueError("Flush on closed file")
+
+        if self.readable():
+            # no-op to flush on read-mode
+            return
+
+        self._writer.flush()
 
     def close(self) -> None:
         """Close file. Ensure flushing the buffer."""
@@ -600,5 +676,6 @@ def _register(protocol: str, *, asynchronous: bool) -> None:
                 "asynchronous": asynchronous,
             },  # Assign protocol dynamically
         ),
-        clobber=False,
+        # Override any existing implementations of the same protocol
+        clobber=True,
     )
