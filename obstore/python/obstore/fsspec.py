@@ -82,6 +82,23 @@ SUPPORTED_PROTOCOLS: set[str] = {
 }
 """All supported protocols."""
 
+SUPPORTED_PROTOCOLS_T = Literal[
+    "abfs",
+    "abfss",
+    "adl",
+    "az",
+    "azure",
+    "file",
+    "gcs",
+    "gs",
+    "http",
+    "https",
+    "memory",
+    "s3",
+    "s3a",
+]
+"""A type hint for all supported protocols."""
+
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
     """An fsspec implementation based on a obstore Store.
@@ -749,7 +766,11 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
 
 def register(
-    protocol: str | Iterable[str] | None = None,
+    protocol: SUPPORTED_PROTOCOLS_T
+    | str
+    | Iterable[SUPPORTED_PROTOCOLS_T]
+    | Iterable[str]
+    | None = None,
     *,
     asynchronous: bool = False,
 ) -> None:
@@ -763,16 +784,25 @@ def register(
         protocol: A single protocol (e.g., "s3", "gcs", "abfs") or
             a list of protocols to register FsspecStore for. Defaults to `None`, which
             will register `obstore` as the provider for all [supported
-            protocols][obstore.fsspec.SUPPORTED_PROTOCOLS].
+            protocols][obstore.fsspec.SUPPORTED_PROTOCOLS] **except** for `file://` and
+            `memory://`. If you wish to use `obstore` via fsspec for `file://` or
+            `memory://` URLs, list them explicitly.
         asynchronous: If `True`, the registered store will support
             asynchronous operations. Defaults to `False`.
 
     Example:
     ```py
-    register() # Register all supported protocols
+    # Register obstore as the default handler for all supported protocols except for
+    # `memory://` and `file://`
+    register()
+
     register("s3")
-    register("s3", asynchronous=True)  # Registers an async store for "s3"
-    register(["gcs", "abfs"])  # Registers both "gcs" and "abfs"
+
+    # Registers an async store for "s3"
+    register("s3", asynchronous=True)
+
+    # Registers both "gcs" and "abfs"
+    register(["gcs", "abfs"])
     ```
 
     Notes:
@@ -782,7 +812,7 @@ def register(
 
     """
     if protocol is None:
-        protocol = SUPPORTED_PROTOCOLS
+        protocol = SUPPORTED_PROTOCOLS - {"file", "memory"}
 
     if isinstance(protocol, str):
         _register(protocol, asynchronous=asynchronous)
