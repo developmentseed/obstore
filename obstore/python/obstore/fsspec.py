@@ -82,7 +82,7 @@ SUPPORTED_PROTOCOLS = {
 }
 
 
-class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
+class FsspecStore(fsspec.asyn.AsyncFileSystem):
     """An fsspec implementation based on a obstore Store.
 
     You should be able to pass an instance of this class into any API that expects an
@@ -151,7 +151,7 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         loop: Any = None,
         batch_size: int | None = None,
     ) -> None:
-        """Construct a new AsyncFsspecStore.
+        """Construct a new FsspecStore.
 
         Args:
             protocol: The storage protocol to use, such as "s3",
@@ -183,9 +183,9 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
         **Examples:**
 
         ```py
-        from obstore.fsspec import AsyncFsspecStore
+        from obstore.fsspec import FsspecStore
 
-        store = AsyncFsspecStore(protocol="https")
+        store = FsspecStore(protocol="https")
         resp = store.cat("https://example.com")
         assert resp.startswith(b"<!doctype html>")
         ```
@@ -535,7 +535,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
     @overload
     def __init__(
         self,
-        fs: AsyncFsspecStore,
+        fs: FsspecStore,
         path: str,
         mode: Literal["rb"] = "rb",
         *,
@@ -545,7 +545,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
     @overload
     def __init__(
         self,
-        fs: AsyncFsspecStore,
+        fs: FsspecStore,
         path: str,
         mode: Literal["wb"],
         *,
@@ -556,7 +556,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
     ) -> None: ...
     def __init__(  # noqa: PLR0913
         self,
-        fs: AsyncFsspecStore,
+        fs: FsspecStore,
         path: str,
         mode: Literal["rb", "wb"] = "rb",
         *,
@@ -748,15 +748,15 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
 
 def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> None:
-    """Dynamically register a subclass of AsyncFsspecStore for the given protocol(s).
+    """Dynamically register a subclass of FsspecStore for the given protocol(s).
 
-    This function creates a new subclass of AsyncFsspecStore with the specified
+    This function creates a new subclass of FsspecStore with the specified
     protocol and registers it with fsspec. If multiple protocols are provided,
     the function registers each one individually.
 
     Args:
         protocol (str | list[str]): A single protocol (e.g., "s3", "gcs", "abfs") or
-            a list of protocols to register AsyncFsspecStore for.
+            a list of protocols to register FsspecStore for.
         asynchronous (bool, optional): If True, the registered store will support
             asynchronous operations. Defaults to False.
 
@@ -769,8 +769,8 @@ def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> No
 
     Notes:
         - Each protocol gets a dynamically generated subclass named
-          `AsyncFsspecStore_<protocol>`. This avoids modifying the original
-          AsyncFsspecStore class.
+          `FsspecStore_<protocol>`. This avoids modifying the original
+          FsspecStore class.
 
     """
     if isinstance(protocol, str):
@@ -785,8 +785,8 @@ def _register(protocol: str, *, asynchronous: bool) -> None:
     fsspec.register_implementation(
         protocol,
         type(
-            f"AsyncFsspecStore_{protocol}",  # Unique class name
-            (AsyncFsspecStore,),  # Base class
+            f"FsspecStore_{protocol}",  # Unique class name
+            (FsspecStore,),  # Base class
             {
                 "protocol": protocol,
                 "asynchronous": asynchronous,

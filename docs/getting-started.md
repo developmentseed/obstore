@@ -69,7 +69,7 @@ File-like object support is also provided:
 
 - [`open_reader`][obstore.open_reader]: Open a remote object as a readable file-like object, similar to a Python [`BufferedReader`](https://docs.python.org/3/library/io.html#io.BufferedReader).
 - [`open_writer`][obstore.open_writer]: Open a remote object as a writable file-like object, similar to a Python [`BufferedWriter`](https://docs.python.org/3/library/io.html#io.BufferedWriter)
-- [`AsyncFsspecStore`][obstore.fsspec.AsyncFsspecStore] adapter for use with [`fsspec`](https://github.com/fsspec/filesystem_spec).
+- [`FsspecStore`][obstore.fsspec.FsspecStore] adapter for use with [`fsspec`](https://github.com/fsspec/filesystem_spec).
 
 **All operations have a comparable async method** with the same name plus an `_async` suffix.
 
