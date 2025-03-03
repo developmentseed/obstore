@@ -698,6 +698,11 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
         # state in Rust.
         return self.tell()
 
+    @loc.setter
+    def loc(self, value: int) -> None:
+        if value != 0:
+            raise ValueError("Cannot set `.loc`. Use `seek` instead.")
+
 
 def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> None:
     """Dynamically register a subclass of AsyncFsspecStore for the given protocol(s).
