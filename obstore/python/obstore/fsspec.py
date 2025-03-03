@@ -65,7 +65,7 @@ if TYPE_CHECKING:
         S3ConfigInput,
     )
 
-SUPPORTED_PROTOCOLS = {
+SUPPORTED_PROTOCOLS: set[str] = {
     "abfs",
     "abfss",
     "adl",
@@ -80,6 +80,24 @@ SUPPORTED_PROTOCOLS = {
     "s3",
     "s3a",
 }
+"""All supported protocols."""
+
+SUPPORTED_PROTOCOLS_T = Literal[
+    "abfs",
+    "abfss",
+    "adl",
+    "az",
+    "azure",
+    "file",
+    "gcs",
+    "gs",
+    "http",
+    "https",
+    "memory",
+    "s3",
+    "s3a",
+]
+"""A type hint for all supported protocols."""
 
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -747,7 +765,15 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
             raise ValueError("Cannot set `.loc`. Use `seek` instead.")
 
 
-def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> None:
+def register(
+    protocol: SUPPORTED_PROTOCOLS_T
+    | str
+    | Iterable[SUPPORTED_PROTOCOLS_T]
+    | Iterable[str]
+    | None = None,
+    *,
+    asynchronous: bool = False,
+) -> None:
     """Dynamically register a subclass of FsspecStore for the given protocol(s).
 
     This function creates a new subclass of FsspecStore with the specified
@@ -755,16 +781,28 @@ def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> No
     the function registers each one individually.
 
     Args:
-        protocol (str | list[str]): A single protocol (e.g., "s3", "gcs", "abfs") or
-            a list of protocols to register FsspecStore for.
-        asynchronous (bool, optional): If True, the registered store will support
-            asynchronous operations. Defaults to False.
+        protocol: A single protocol (e.g., "s3", "gcs", "abfs") or
+            a list of protocols to register FsspecStore for. Defaults to `None`, which
+            will register `obstore` as the provider for all [supported
+            protocols][obstore.fsspec.SUPPORTED_PROTOCOLS] **except** for `file://` and
+            `memory://`. If you wish to use `obstore` via fsspec for `file://` or
+            `memory://` URLs, list them explicitly.
+        asynchronous: If `True`, the registered store will support
+            asynchronous operations. Defaults to `False`.
 
     Example:
     ```py
+    # Register obstore as the default handler for all supported protocols except for
+    # `memory://` and `file://`
+    register()
+
     register("s3")
-    register("s3", asynchronous=True)  # Registers an async store for "s3"
-    register(["gcs", "abfs"])  # Registers both "gcs" and "abfs"
+
+    # Registers an async store for "s3"
+    register("s3", asynchronous=True)
+
+    # Registers both "gcs" and "abfs"
+    register(["gcs", "abfs"])
     ```
 
     Notes:
@@ -773,6 +811,9 @@ def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> No
           FsspecStore class.
 
     """
+    if protocol is None:
+        protocol = SUPPORTED_PROTOCOLS - {"file", "memory"}
+
     if isinstance(protocol, str):
         _register(protocol, asynchronous=asynchronous)
         return
