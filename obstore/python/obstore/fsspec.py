@@ -66,15 +66,19 @@ if TYPE_CHECKING:
     )
 
 SUPPORTED_PROTOCOLS = {
-    "s3",
-    "s3a",
+    "abfs",
+    "abfss",
+    "adl",
+    "az",
+    "azure",
+    "file",
     "gcs",
     "gs",
-    "abfs",
-    "https",
     "http",
-    "file",
+    "https",
     "memory",
+    "s3",
+    "s3a",
 }
 
 
@@ -88,6 +92,45 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
     # https://github.com/fsspec/filesystem_spec/blob/56054c0a30ceedab4c0e6a0f7e429666773baf6d/docs/source/features.rst#instance-caching
     cachable = True
 
+    @overload
+    def __init__(
+        self,
+        *args: Any,
+        protocol: Literal["s3", "s3a"],
+        config: S3Config | S3ConfigInput | None = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+        asynchronous: bool = False,
+        max_cache_size: int = 10,
+        loop: Any = None,
+        batch_size: int | None = None,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        *args: Any,
+        protocol: Literal["gs"],
+        config: GCSConfig | GCSConfigInput | None = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+        asynchronous: bool = False,
+        max_cache_size: int = 10,
+        loop: Any = None,
+        batch_size: int | None = None,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        *args: Any,
+        protocol: Literal["az", "adl", "azure", "abfs", "abfss"],
+        config: AzureConfig | AzureConfigInput | None = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+        asynchronous: bool = False,
+        max_cache_size: int = 10,
+        loop: Any = None,
+        batch_size: int | None = None,
+    ) -> None: ...
     def __init__(  # noqa: PLR0913
         self,
         *args: Any,
