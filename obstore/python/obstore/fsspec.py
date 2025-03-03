@@ -2,10 +2,8 @@
 
 [fsspec]: https://github.com/fsspec/filesystem_spec
 
-The fsspec integration is **best effort** and not the primary API of `obstore`. This
-integration may not be as stable and may not provide the same performance as the rest of
-the library. Changes may be made even in patch releases to align better with fsspec
-expectations. If you find any bugs, please [file an
+The fsspec integration is best effort and may not provide the same performance as
+the rest of obstore. If you find any bugs with this integration, please [file an
 issue](https://github.com/developmentseed/obstore/issues/new/choose).
 
 The underlying `object_store` Rust crate
@@ -39,7 +37,7 @@ import warnings
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, Unpack, overload
 from urllib.parse import urlparse
 
 import fsspec.asyn
@@ -64,6 +62,12 @@ if TYPE_CHECKING:
         S3Config,
         S3ConfigInput,
     )
+
+__all__ = [
+    "BufferedFile",
+    "FsspecStore",
+    "register",
+]
 
 SUPPORTED_PROTOCOLS: set[str] = {
     "abfs",
@@ -113,8 +117,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
     @overload
     def __init__(
         self,
-        *args: Any,
         protocol: Literal["s3", "s3a"],
+        *args: Any,
         config: S3Config | S3ConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -122,12 +126,13 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         max_cache_size: int = 10,
         loop: Any = None,
         batch_size: int | None = None,
+        **kwargs: Unpack[S3ConfigInput],
     ) -> None: ...
     @overload
     def __init__(
         self,
-        *args: Any,
         protocol: Literal["gs"],
+        *args: Any,
         config: GCSConfig | GCSConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -135,12 +140,13 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         max_cache_size: int = 10,
         loop: Any = None,
         batch_size: int | None = None,
+        **kwargs: Unpack[GCSConfigInput],
     ) -> None: ...
     @overload
     def __init__(
         self,
-        *args: Any,
         protocol: Literal["az", "adl", "azure", "abfs", "abfss"],
+        *args: Any,
         config: AzureConfig | AzureConfigInput | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -148,11 +154,12 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         max_cache_size: int = 10,
         loop: Any = None,
         batch_size: int | None = None,
+        **kwargs: Unpack[AzureConfigInput],
     ) -> None: ...
     def __init__(  # noqa: PLR0913
         self,
+        protocol: SUPPORTED_PROTOCOLS_T | str | None = None,
         *args: Any,
-        protocol: str | None = None,
         config: (
             S3Config
             | S3ConfigInput
@@ -168,6 +175,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         max_cache_size: int = 10,
         loop: Any = None,
         batch_size: int | None = None,
+        **kwargs: Any,
     ) -> None:
         """Construct a new FsspecStore.
 
@@ -197,15 +205,16 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             batch_size: some operations on many files will batch their requests; if you
                 are seeing timeouts, you may want to set this number smaller than the
                 defaults, which are determined in `fsspec.asyn._get_batch_size`.
+            kwargs: per-store configuration passed down to store-specific builders.
 
         **Examples:**
 
         ```py
         from obstore.fsspec import FsspecStore
 
-        store = FsspecStore(protocol="https")
-        resp = store.cat("https://example.com")
-        assert resp.startswith(b"<!doctype html>")
+        store = FsspecStore("https")
+        resp = store.cat_file("https://raw.githubusercontent.com/developmentseed/obstore/refs/heads/main/README.md")
+        assert resp.startswith(b"# obstore")
         ```
 
         """
@@ -223,6 +232,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         self.config = config
         self.client_options = client_options
         self.retry_config = retry_config
+        self.config_kwargs = kwargs
 
         # https://stackoverflow.com/a/68550238
         self._construct_store = lru_cache(maxsize=max_cache_size)(self._construct_store)
@@ -279,6 +289,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             config=self.config,
             client_options=self.client_options,
             retry_config=self.retry_config,
+            **self.config_kwargs,
         )
 
     async def _rm_file(self, path: str, **_kwargs: Any) -> None:
@@ -782,11 +793,12 @@ def register(
 
     Args:
         protocol: A single protocol (e.g., "s3", "gcs", "abfs") or
-            a list of protocols to register FsspecStore for. Defaults to `None`, which
-            will register `obstore` as the provider for all [supported
-            protocols][obstore.fsspec.SUPPORTED_PROTOCOLS] **except** for `file://` and
-            `memory://`. If you wish to use `obstore` via fsspec for `file://` or
-            `memory://` URLs, list them explicitly.
+            a list of protocols to register FsspecStore for.
+
+            Defaults to `None`, which will register `obstore` as the provider for all
+            [supported protocols][obstore.fsspec.SUPPORTED_PROTOCOLS] **except** for
+            `file://` and `memory://`. If you wish to use `obstore` via fsspec for
+            `file://` or `memory://` URLs, list them explicitly.
         asynchronous: If `True`, the registered store will support
             asynchronous operations. Defaults to `False`.
 

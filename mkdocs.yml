@@ -28,6 +28,7 @@ nav:
       - authentication.md
       - integrations.md
       - performance.md
+      - fsspec.md
       - Alternatives: alternatives.md
       - Troubleshooting:
           - AWS: troubleshooting/aws.md
