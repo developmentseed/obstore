@@ -52,7 +52,7 @@ from obstore.store import from_url
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Iterable
 
-    from obstore import Bytes, ReadableFile, WritableFile
+    from obstore import Attributes, Bytes, ReadableFile, WritableFile
     from obstore.store import (
         AzureConfig,
         AzureConfigInput,
@@ -472,10 +472,15 @@ class AsyncFsspecStore(fsspec.asyn.AsyncFileSystem):
 
 
 class BufferedFile(fsspec.spec.AbstractBufferedFile):
-    """Read/Write buffered file wrapped around `fsspec.spec.AbstractBufferedFile`."""
+    """A buffered readable or writable file.
+
+    This is a wrapper around [`obstore.ReadableFile`][] and [`obstore.WritableFile`][].
+    If you don't have a need to use the fsspec integration, you may be better served by
+    using [`open_reader`][obstore.open_reader] or [`open_writer`][obstore.open_writer]
+    directly.
+    """
 
     mode: Literal["rb", "wb"]
-    fs: AsyncFsspecStore
     _reader: ReadableFile
     _writer: WritableFile
     _writer_loc: int
@@ -484,25 +489,79 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
     Only defined for writers. We use the underlying rust stream position for reading.
     """
 
+    @overload
     def __init__(
         self,
         fs: AsyncFsspecStore,
         path: str,
+        mode: Literal["rb"] = "rb",
+        *,
+        buffer_size: int = 1024 * 1024,
+        **kwargs: Any,
+    ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        fs: AsyncFsspecStore,
+        path: str,
+        mode: Literal["wb"],
+        *,
+        buffer_size: int = 10 * 1024 * 1024,
+        attributes: Attributes | None = None,
+        tags: dict[str, str] | None = None,
+        **kwargs: Any,
+    ) -> None: ...
+    def __init__(  # noqa: PLR0913
+        self,
+        fs: AsyncFsspecStore,
+        path: str,
         mode: Literal["rb", "wb"] = "rb",
+        *,
+        buffer_size: int | None = None,
+        attributes: Attributes | None = None,
+        tags: dict[str, str] | None = None,
         **kwargs: Any,
     ) -> None:
-        """Create new buffered file."""
+        """Create new buffered file.
+
+        Args:
+            fs: The underlying fsspec store to read from.
+            path: The path within the store to use.
+            mode: `"rb"` for a readable binary file or `"wb"` for a writable binary
+                file. Defaults to "rb".
+
+        Keyword Args:
+            attributes: Provide a set of `Attributes`. Only used when writing. Defaults
+                to `None`.
+            buffer_size: Up to `buffer_size` bytes will be buffered in memory. **When
+                reading:** The minimum number of bytes to read in a single request.
+                **When writing:**  If `buffer_size` is exceeded, data will be uploaded
+                as a multipart upload in chunks of `buffer_size`. Defaults to None.
+            tags: Provide tags for this object. Only used when writing. Defaults to
+                `None`.
+            kwargs: Keyword arguments passed on to [`fsspec.spec.AbstractBufferedFile`][].
+
+        """  # noqa: E501
         super().__init__(fs, path, mode, **kwargs)
 
-        bucket, self.path = self.fs._split_path(path)  # noqa: SLF001
-        self.store = self.fs._construct_store(bucket)  # noqa: SLF001
+        bucket, path = fs._split_path(path)  # noqa: SLF001
+        store = fs._construct_store(bucket)  # noqa: SLF001
 
         self.mode = mode
 
         if self.mode == "rb":
-            self._reader = open_reader(self.store, self.path)
+            buffer_size = 1024 * 1024 if buffer_size is None else buffer_size
+            self._reader = open_reader(store, path, buffer_size=buffer_size)
         elif self.mode == "wb":
-            self._writer = open_writer(self.store, self.path)
+            buffer_size = 10 * 1024 * 1024 if buffer_size is None else buffer_size
+            self._writer = open_writer(
+                store,
+                path,
+                attributes=attributes,
+                buffer_size=buffer_size,
+                tags=tags,
+            )
+
             self._writer_loc = 0
         else:
             raise ValueError(f"Invalid mode: {mode}")
@@ -647,14 +706,16 @@ def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> No
             asynchronous operations. Defaults to False.
 
     Example:
-        >>> register("s3")
-        >>> register("s3", asynchronous=True)  # Registers an async store for "s3"
-        >>> register(["gcs", "abfs"])  # Registers both "gcs" and "abfs"
+    ```py
+    register("s3")
+    register("s3", asynchronous=True)  # Registers an async store for "s3"
+    register(["gcs", "abfs"])  # Registers both "gcs" and "abfs"
+    ```
 
     Notes:
         - Each protocol gets a dynamically generated subclass named
-          `AsyncFsspecStore_<protocol>`.
-        - This avoids modifying the original AsyncFsspecStore class.
+          `AsyncFsspecStore_<protocol>`. This avoids modifying the original
+          AsyncFsspecStore class.
 
     """
     if isinstance(protocol, str):
