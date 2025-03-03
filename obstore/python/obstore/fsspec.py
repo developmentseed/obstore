@@ -691,6 +691,13 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
         finally:
             self.closed = True
 
+    @property
+    def loc(self) -> int:
+        """Get current file location."""
+        # Note, we override the `loc` attribute, because for the reader we manage that
+        # state in Rust.
+        return self.tell()
+
 
 def register(protocol: str | Iterable[str], *, asynchronous: bool = False) -> None:
     """Dynamically register a subclass of AsyncFsspecStore for the given protocol(s).
