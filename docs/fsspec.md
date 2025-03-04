@@ -69,7 +69,6 @@ fs = fsspec.filesystem("https")
 content = fs.cat_file("https://example.com/")
 
 # Or, open the file directly
-```py
 url = "https://github.com/opengeospatial/geoparquet/raw/refs/heads/main/examples/example.parquet"
 with fsspec.open(url) as file:
     content = file.read()
