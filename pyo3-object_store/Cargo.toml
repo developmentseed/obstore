@@ -38,7 +38,7 @@ tokio = { version = "1.40", features = ["rt-multi-thread"] }
 url = "2"
 
 [patch.crates-io]
-object_store = { git = "https://github.com/apache/arrow-rs", rev = "7a15e4b47ca97df2edef689c9f2ebd2f3888b79e" }
+object_store = { git = "https://github.com/apache/arrow-rs", rev = "3674073bba31e082b337cee63726cfeb186a3a0c" }
 
 [lib]
 crate-type = ["rlib"]

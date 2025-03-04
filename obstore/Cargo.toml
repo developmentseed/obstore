@@ -18,7 +18,7 @@ name = "_obstore"
 crate-type = ["cdylib"]
 
 [dependencies]
-arrow = "54"
+arrow = "54.2.1"
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
