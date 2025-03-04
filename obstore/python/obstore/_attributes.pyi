@@ -2,11 +2,11 @@ from typing import Literal, TypeAlias
 
 Attribute: TypeAlias = (
     Literal[
-        "Content-Disposition",  # noqa: PYI051
-        "Content-Encoding",  # noqa: PYI051
-        "Content-Language",  # noqa: PYI051
-        "Content-Type",  # noqa: PYI051
-        "Cache-Control",  # noqa: PYI051
+        "Content-Disposition",
+        "Content-Encoding",
+        "Content-Language",
+        "Content-Type",
+        "Cache-Control",
     ]
     | str
 )
