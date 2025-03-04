@@ -24,7 +24,7 @@ rust-version = "1.75"
 bytes = "1.7.0"
 chrono = "0.4.38"
 futures = "0.3.31"
-http = "1.1"
+http = "1.2"
 indexmap = "2"
 object_store = "0.11"
 pyo3 = { version = "0.23.4", features = ["macros", "indexmap"] }
@@ -35,7 +35,7 @@ tokio = "1.40"
 url = "2"
 
 [patch.crates-io]
-object_store = { git = "https://github.com/apache/arrow-rs", rev = "7a15e4b47ca97df2edef689c9f2ebd2f3888b79e" }
+object_store = { git = "https://github.com/apache/arrow-rs", rev = "3674073bba31e082b337cee63726cfeb186a3a0c" }
 
 [profile.release]
 lto = true

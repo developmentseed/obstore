@@ -66,6 +66,7 @@ impl From<PyGetOptions> for GetOptions {
             range: value.range.map(|inner| inner.0),
             version: value.version,
             head: value.head,
+            extensions: Default::default(),
         }
     }
 }
