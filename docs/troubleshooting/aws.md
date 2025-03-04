@@ -14,15 +14,12 @@ store = S3Store("sentinel-cogs", skip_signature=True)
 next(obs.list(store))
 ```
 
-raises (note, the error text may change in the future)
+raises
 
 ```
-GenericError: Generic {
-    store: "S3",
-    source: ListRequest {
-        source: BareRedirect,
-    },
-}
+GenericError: Generic S3 error: Error performing list request:
+Received redirect without LOCATION, this normally indicates an incorrectly
+configured region
 ```
 
 We can fix this by passing the correct region:
