@@ -195,7 +195,7 @@ class S3ConfigInput(TypedDict, total=False):
 
     Supported values:
 
-    - `"etag"`: Supported for S3-compatible stores that support conditional
+    - `"etag"` (default): Supported for S3-compatible stores that support conditional
         put using the standard [HTTP precondition] headers `If-Match` and
         `If-None-Match`.
 
@@ -325,7 +325,7 @@ class S3ConfigInput(TypedDict, total=False):
 
     Supported values:
 
-    - `"etag"`: Supported for S3-compatible stores that support conditional
+    - `"etag"` (default): Supported for S3-compatible stores that support conditional
         put using the standard [HTTP precondition] headers `If-Match` and
         `If-None-Match`.
 
@@ -429,7 +429,7 @@ class S3ConfigInput(TypedDict, total=False):
 
     Supported values:
 
-    - `"etag"`: Supported for S3-compatible stores that support conditional
+    - `"etag"` (default): Supported for S3-compatible stores that support conditional
         put using the standard [HTTP precondition] headers `If-Match` and
         `If-None-Match`.
 
@@ -560,7 +560,7 @@ class S3ConfigInput(TypedDict, total=False):
 
     Supported values:
 
-    - `"etag"`: Supported for S3-compatible stores that support conditional
+    - `"etag"` (default): Supported for S3-compatible stores that support conditional
         put using the standard [HTTP precondition] headers `If-Match` and
         `If-None-Match`.
 
