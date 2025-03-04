@@ -39,6 +39,7 @@ ignore = [
     "EM101",
     "FIX002", # Line contains TODO, consider resolving the issue
     "PYI021", # docstring-in-stub
+    "PYI051", # redundant-literal-union
     "PYI011", # typed-argument-default-in-stub
     "TD",     # Todo comments
     "TRY003", # Avoid specifying long messages outside the exception class

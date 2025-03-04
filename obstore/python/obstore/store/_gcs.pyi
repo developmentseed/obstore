@@ -24,7 +24,8 @@ class GCSConfig(TypedDict, total=False):
     google_application_credentials: str
     """Application credentials path.
 
-    See <https://cloud.google.com/docs/authentication/provide-credentials-adc>."""
+    See <https://cloud.google.com/docs/authentication/provide-credentials-adc>.
+    """
 
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
 # constructors

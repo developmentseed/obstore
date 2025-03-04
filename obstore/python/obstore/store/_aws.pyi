@@ -1,9 +1,71 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, NotRequired, Protocol, TypedDict, Unpack
+from typing import Any, Literal, NotRequired, Protocol, TypeAlias, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
+
+# To update s3 region list:
+# import pandas as pd  # noqa: ERA001
+# url = "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html"  # noqa: ERA001
+# result = pd.read_html(url)  # noqa: ERA001
+# sorted(result[0]["Region"])  # noqa: ERA001
+S3Regions: TypeAlias = Literal[
+    "af-south-1",
+    "ap-east-1",
+    "ap-northeast-1",
+    "ap-northeast-2",
+    "ap-northeast-3",
+    "ap-south-1",
+    "ap-south-2",
+    "ap-southeast-1",
+    "ap-southeast-2",
+    "ap-southeast-3",
+    "ap-southeast-4",
+    "ap-southeast-5",
+    "ap-southeast-7",
+    "ca-central-1",
+    "ca-west-1",
+    "eu-central-1",
+    "eu-central-2",
+    "eu-north-1",
+    "eu-south-1",
+    "eu-south-2",
+    "eu-west-1",
+    "eu-west-2",
+    "eu-west-3",
+    "il-central-1",
+    "me-central-1",
+    "me-south-1",
+    "mx-central-1",
+    "sa-east-1",
+    "us-east-1",
+    "us-east-2",
+    "us-gov-east-1",
+    "us-gov-west-1",
+    "us-west-1",
+    "us-west-2",
+]
+"""AWS regions."""
+
+S3ChecksumAlgorithm: TypeAlias = Literal[
+    "CRC64NVME",
+    "CRC32",
+    "CRC32C",
+    "SHA1",
+    "SHA256",
+]
+"""S3 Checksum algorithms
+
+From https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html#using-additional-checksums
+"""
+
+S3EncryptionAlgorithm: TypeAlias = Literal[
+    "AES256",
+    "aws:kms",
+    "aws:kms:dsse",
+    "sse-c",
+]
 
 # Note: we removed `bucket` because it overlaps with an existing named arg in the
 # constructors
@@ -18,7 +80,7 @@ class S3Config(TypedDict, total=False):
     """AWS Access Key"""
     aws_bucket: str
     """Bucket name"""
-    aws_checksum_algorithm: str
+    aws_checksum_algorithm: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
 
@@ -32,21 +94,21 @@ class S3Config(TypedDict, total=False):
     """
     See [`S3ConfigInput.aws_container_credentials_relative_uri`][obstore.store.S3ConfigInput.aws_container_credentials_relative_uri].
     """
-    aws_copy_if_not_exists: str
+    aws_copy_if_not_exists: Literal["multipart"] | str
     """
     See [`S3ConfigInput.aws_copy_if_not_exists`][obstore.store.S3ConfigInput.aws_copy_if_not_exists].
     """
-    aws_default_region: str
+    aws_default_region: S3Regions | str
     """Default region"""
     aws_disable_tagging: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
     aws_endpoint: str
     """Sets custom endpoint for communicating with AWS S3."""
-    aws_imdsv1_fallback: str
+    aws_imdsv1_fallback: bool
     """Fall back to ImdsV1"""
     aws_metadata_endpoint: str
     """Set the instance metadata endpoint"""
-    aws_region: str
+    aws_region: S3Regions | str
     """Region"""
     aws_request_payer: bool
     """If `True`, enable operations on requester-pays buckets."""
@@ -54,7 +116,7 @@ class S3Config(TypedDict, total=False):
     """Enable Support for S3 Express One Zone"""
     aws_secret_access_key: str
     """Secret Access Key"""
-    aws_server_side_encryption: str
+    aws_server_side_encryption: S3EncryptionAlgorithm | str
     """
     See [`S3ConfigInput.aws_server_side_encryption`][obstore.store.S3ConfigInput.aws_server_side_encryption].
     """
@@ -94,7 +156,7 @@ class S3ConfigInput(TypedDict, total=False):
     """Bucket name"""
     aws_bucket: str
     """Bucket name"""
-    aws_checksum_algorithm: str
+    aws_checksum_algorithm: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
 
@@ -120,7 +182,7 @@ class S3ConfigInput(TypedDict, total=False):
 
     <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
     """
-    aws_copy_if_not_exists: str
+    aws_copy_if_not_exists: Literal["multipart"] | str
     """Configure how to provide "copy if not exists".
 
     Supported values:
@@ -165,7 +227,7 @@ class S3ConfigInput(TypedDict, total=False):
         The default timeout is used if not specified. This will use the same region,
         credentials and endpoint as configured for S3.
     """
-    aws_default_region: str
+    aws_default_region: S3Regions | str
     """Default region"""
     aws_disable_tagging: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
@@ -173,11 +235,11 @@ class S3ConfigInput(TypedDict, total=False):
     """Sets custom endpoint for communicating with AWS S3."""
     aws_endpoint: str
     """Sets custom endpoint for communicating with AWS S3."""
-    aws_imdsv1_fallback: str
+    aws_imdsv1_fallback: bool
     """Fall back to ImdsV1"""
     aws_metadata_endpoint: str
     """Set the instance metadata endpoint"""
-    aws_region: str
+    aws_region: S3Regions | str
     """Region"""
     aws_request_payer: bool
     """If `True`, enable operations on requester-pays buckets."""
@@ -185,7 +247,7 @@ class S3ConfigInput(TypedDict, total=False):
     """Enable Support for S3 Express One Zone"""
     aws_secret_access_key: str
     """Secret Access Key"""
-    aws_server_side_encryption: str
+    aws_server_side_encryption: S3EncryptionAlgorithm | str
     """Type of encryption to use.
 
     If set, must be one of:
@@ -224,7 +286,7 @@ class S3ConfigInput(TypedDict, total=False):
 
     bucket_name: str
     """Bucket name"""
-    checksum_algorithm: str
+    checksum_algorithm: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
 
@@ -245,7 +307,7 @@ class S3ConfigInput(TypedDict, total=False):
 
         This will use the same region, credentials and endpoint as configured for S3.
     """
-    copy_if_not_exists: str
+    copy_if_not_exists: Literal["multipart"] | str
     """Configure how to provide "copy if not exists".
 
     Supported values:
@@ -290,7 +352,7 @@ class S3ConfigInput(TypedDict, total=False):
         The default timeout is used if not specified. This will use the same region,
         credentials and endpoint as configured for S3.
     """
-    default_region: str
+    default_region: S3Regions | str
     """Default region"""
     disable_tagging: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
@@ -298,11 +360,11 @@ class S3ConfigInput(TypedDict, total=False):
     """Sets custom endpoint for communicating with AWS S3."""
     endpoint: str
     """Sets custom endpoint for communicating with AWS S3."""
-    imdsv1_fallback: str
+    imdsv1_fallback: bool
     """Fall back to ImdsV1"""
     metadata_endpoint: str
     """Set the instance metadata endpoint"""
-    region: str
+    region: S3Regions | str
     """Region"""
     request_payer: bool
     """If `True`, enable operations on requester-pays buckets."""
@@ -328,7 +390,7 @@ class S3ConfigInput(TypedDict, total=False):
     """Bucket name"""
     AWS_BUCKET: str
     """Bucket name"""
-    AWS_CHECKSUM_ALGORITHM: str
+    AWS_CHECKSUM_ALGORITHM: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
 
@@ -354,7 +416,7 @@ class S3ConfigInput(TypedDict, total=False):
 
     <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
     """
-    AWS_COPY_IF_NOT_EXISTS: str
+    AWS_COPY_IF_NOT_EXISTS: Literal["multipart"] | str
     """Configure how to provide "copy if not exists".
 
     Supported values:
@@ -399,7 +461,7 @@ class S3ConfigInput(TypedDict, total=False):
         The default timeout is used if not specified. This will use the same region,
         credentials and endpoint as configured for S3.
     """
-    AWS_DEFAULT_REGION: str
+    AWS_DEFAULT_REGION: S3Regions | str
     """Default region"""
     AWS_DISABLE_TAGGING: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
@@ -407,11 +469,11 @@ class S3ConfigInput(TypedDict, total=False):
     """Sets custom endpoint for communicating with AWS S3."""
     AWS_ENDPOINT: str
     """Sets custom endpoint for communicating with AWS S3."""
-    AWS_IMDSV1_FALLBACK: str
+    AWS_IMDSV1_FALLBACK: bool
     """Fall back to ImdsV1"""
     AWS_METADATA_ENDPOINT: str
     """Set the instance metadata endpoint"""
-    AWS_REGION: str
+    AWS_REGION: S3Regions | str
     """Region"""
     AWS_REQUEST_PAYER: bool
     """If `True`, enable operations on requester-pays buckets."""
@@ -419,7 +481,7 @@ class S3ConfigInput(TypedDict, total=False):
     """Enable Support for S3 Express One Zone"""
     AWS_SECRET_ACCESS_KEY: str
     """Secret Access Key"""
-    AWS_SERVER_SIDE_ENCRYPTION: str
+    AWS_SERVER_SIDE_ENCRYPTION: S3EncryptionAlgorithm | str
     """Type of encryption to use.
 
     If set, must be one of:
@@ -459,7 +521,7 @@ class S3ConfigInput(TypedDict, total=False):
     """Bucket name"""
     BUCKET: str
     """Bucket name"""
-    CHECKSUM_ALGORITHM: str
+    CHECKSUM_ALGORITHM: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
 
@@ -480,7 +542,7 @@ class S3ConfigInput(TypedDict, total=False):
 
         This will use the same region, credentials and endpoint as configured for S3.
     """
-    COPY_IF_NOT_EXISTS: str
+    COPY_IF_NOT_EXISTS: Literal["multipart"] | str
     """Configure how to provide "copy if not exists".
 
     Supported values:
@@ -525,7 +587,7 @@ class S3ConfigInput(TypedDict, total=False):
         The default timeout is used if not specified. This will use the same region,
         credentials and endpoint as configured for S3.
     """
-    DEFAULT_REGION: str
+    DEFAULT_REGION: S3Regions | str
     """Default region"""
     DISABLE_TAGGING: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store."""
@@ -533,11 +595,11 @@ class S3ConfigInput(TypedDict, total=False):
     """Sets custom endpoint for communicating with AWS S3."""
     ENDPOINT: str
     """Sets custom endpoint for communicating with AWS S3."""
-    IMDSV1_FALLBACK: str
+    IMDSV1_FALLBACK: bool
     """Fall back to ImdsV1"""
     METADATA_ENDPOINT: str
     """Set the instance metadata endpoint"""
-    REGION: str
+    REGION: S3Regions | str
     """Region"""
     REQUEST_PAYER: bool
     """If `True`, enable operations on requester-pays buckets."""
