@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.5.0] - unreleased
+## [0.5.0] - 2025-03-05
 
 ### New Features :magic_wand:
 
