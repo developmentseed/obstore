@@ -30,7 +30,7 @@ The simplest, highest-throughput [^1] Python interface to [S3][s3], [GCS][gcs], 
 
 <!-- For Rust developers looking to add object_store support to their Python packages, refer to pyo3-object_store. -->
 
-[^1]: Benchmarking is currently ongoing, but [early results](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/2d8ee4df8c2d93463323394f09fd094ad0381122/test_results/cog_header_results.csv) indicate 9x higher throughput than aioboto3 and fsspec.
+[^1]: Benchmarking is ongoing, but preliminary results indicate roughly [9x higher throughput than fsspec](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/fe8f290cb3282dcc3bc96cae06ed5f90ad326eff/test_results/cog_header_results.csv) and [2.8x higher throughput than aioboto3](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/40e67509a248c5102a6b1608bcb9773295691213/test_results/20250218_results/ec2_m5/aggregated_results.csv) for many concurrent, small, get requests from an async context.
 
 ## Installation
 
