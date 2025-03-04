@@ -194,4 +194,16 @@ class MemoryStore:
 ObjectStore: TypeAlias = (
     AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
 )
-"""All supported ObjectStore implementations."""
+"""All supported ObjectStore implementations.
+
+!!! warning "Not importable at runtime"
+
+    To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+    ```py
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from obstore.store import ObjectStore
+    ```
+"""
