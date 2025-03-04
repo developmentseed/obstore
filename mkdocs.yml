@@ -35,6 +35,7 @@ nav:
   - Examples:
       - examples/fastapi.md
       - examples/minio.md
+      - examples/pyarrow.md
       - examples/tqdm.md
   - Blog:
       - blog/index.md
