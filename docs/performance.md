@@ -34,11 +34,11 @@ Let's consider the areas where we expect improved, possibly-improved, and equal 
 
 **Many-request throughput with the asynchronous API** is the primary place where we expect significantly improved performance. Especially when making many requests of relatively small files, we find that obstore can provide significantly higher throughput.
 
-For example, [preliminary results](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/fe8f290cb3282dcc3bc96cae06ed5f90ad326eff/test_results/cog_header_results.csv) indicate roughly 9x higher throughput than aioboto3 and fsspec. That specific benchmark considered fetching the first 16KB of a file many times.
+For example, preliminary results indicate roughly [9x higher throughput than fsspec](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/fe8f290cb3282dcc3bc96cae06ed5f90ad326eff/test_results/cog_header_results.csv) and [2.8x higher throughput than aioboto3](https://github.com/geospatial-jeff/pyasyncio-benchmark/blob/40e67509a248c5102a6b1608bcb9773295691213/test_results/20250218_results/ec2_m5/aggregated_results.csv). That specific benchmark considered fetching the first 16KB of a file many times from an async context.
 
 ## Possibly improved performance
 
-**Using the synchronous API**. We haven't benchmarked the synchronous API However, we do release the Python [GIL](https://en.wikipedia.org/wiki/Global_interpreter_lock) for all synchronous operations, so it may perform better in a thread pool than other Python request libraries.
+**Using the synchronous API**. We haven't benchmarked the synchronous API. However, we do release the Python [Global Interpreter Lock (GIL)](https://en.wikipedia.org/wiki/Global_interpreter_lock) for all synchronous operations, so it may perform better in a thread pool than other Python request libraries.
 
 ## Equal performance
 
