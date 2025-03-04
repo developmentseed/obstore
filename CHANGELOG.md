@@ -2,9 +2,41 @@
 
 ## [0.5.0] - unreleased
 
+### New Features :magic_wand:
+
+- **User-supplied credential callback** by @kylebarron in https://github.com/developmentseed/obstore/pull/234
+- **Fsspec updates**:
+  - [FEAT] Create obstore store in fsspec on demand by @machichima in https://github.com/developmentseed/obstore/pull/198
+  - [FEAT] support df.to_parquet and df.read_parquet() by @machichima in https://github.com/developmentseed/obstore/pull/165
+  - Document fsspec integration in user guide by @kylebarron in https://github.com/developmentseed/obstore/pull/299
+  - fsspec: Allow calling `register` with no arguments by @kylebarron in https://github.com/developmentseed/obstore/pull/298
+- Default to checking Azure CLI authentication by @kylebarron in https://github.com/developmentseed/obstore/pull/292
+- Enable pickling Bytes by @kylebarron in https://github.com/developmentseed/obstore/pull/295
+- Add AWS literal type hints by @kylebarron in https://github.com/developmentseed/obstore/pull/301
+- pyo3-bytes slicing by @jessekrubin in https://github.com/developmentseed/obstore/pull/249
+
 ### Breaking changes :wrench:
 
 - Removed `S3Store.from_session` and `S3Store._from_native`. Use credential providers instead.
+- Rename `AsyncFsspecStore` to `FsspecStore` by @kylebarron in https://github.com/developmentseed/obstore/pull/297
+
+### Bug fixes :bug:
+
+- Validate input for range request by @kylebarron in https://github.com/developmentseed/obstore/pull/255
+
+### Documentation :book:
+
+- Update performance numbers by @kylebarron in https://github.com/developmentseed/obstore/pull/307
+- Document type-only constructs by @kylebarron in https://github.com/developmentseed/obstore/pull/309, https://github.com/developmentseed/obstore/pull/311
+- Add import warning admonition on ObjectStore type by @kylebarron in
+- Update etag conditional put docs by @kylebarron in https://github.com/developmentseed/obstore/pull/310
+
+### New Contributors
+
+- @weiji14 made their first contribution in https://github.com/developmentseed/obstore/pull/272
+- @machichima made their first contribution in https://github.com/developmentseed/obstore/pull/198
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.4.0...py-v0.5.0
 
 ## [0.4.0] - 2025-02-10
 
@@ -19,11 +51,13 @@
   - Enable automatic cleanup for local store, when deleting directories by @kylebarron in https://github.com/developmentseed/obstore/pull/175
   - Optionally create root dir in LocalStore by @kylebarron in https://github.com/developmentseed/obstore/pull/177
 - **File-like object** updates:
+
   - Add support for writable file-like objects by @kylebarron in https://github.com/developmentseed/obstore/pull/167
   - Updates to readable file API:
 
     - Support user-specified capacity in readable file-like objects by @kylebarron in https://github.com/developmentseed/obstore/pull/174
     - Expose `ObjectMeta` from readable file API by @kylebarron in https://github.com/developmentseed/obstore/pull/176
+
 - Merge `config` and `kwargs` and validate that no configuration parameters have been passed multiple times. (https://github.com/developmentseed/obstore/pull/180, https://github.com/developmentseed/obstore/pull/182, https://github.com/developmentseed/obstore/pull/218)
 - Add `__repr__` to `Bytes` class by @jessekrubin in https://github.com/developmentseed/obstore/pull/173
 
