@@ -5,6 +5,17 @@ class BackoffConfig(TypedDict, total=False):
     """Exponential backoff with jitter.
 
     See <https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/>
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import BackoffConfig
+        ```
     """
 
     init_backoff: timedelta
@@ -40,6 +51,17 @@ class RetryConfig(TypedDict, total=False):
     more information
 
     [safe]: https://datatracker.ietf.org/doc/html/rfc7231#section-4.2.1
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import RetryConfig
+        ```
     """
 
     backoff: BackoffConfig

@@ -1,21 +1,9 @@
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Literal, TypeAlias, overload
+from typing import TypeAlias, overload
 
+from .__sign import HTTP_METHOD
 from .store import AzureStore, GCSStore, S3Store
-
-HTTP_METHOD: TypeAlias = Literal[
-    "GET",
-    "PUT",
-    "POST",
-    "HEAD",
-    "PATCH",
-    "TRACE",
-    "DELETE",
-    "OPTIONS",
-    "CONNECT",
-]
-"""Allowed HTTP Methods for signing."""
 
 SignCapableStore: TypeAlias = AzureStore | GCSStore | S3Store
 """ObjectStore instances that are capable of signing."""

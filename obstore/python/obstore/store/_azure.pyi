@@ -16,6 +16,17 @@ class AzureConfig(TypedDict, total=False):
 
     Note that this is a strict subset of the keys allowed for _input_ into the store,
     see [AzureConfigInput][obstore.store.AzureConfigInput].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import AzureConfig
+        ```
     """
 
     azure_storage_account_name: str
@@ -65,6 +76,17 @@ class AzureConfigInput(TypedDict, total=False):
 
     There are duplicates of many parameters, and parameters can be either upper or lower
     case. Not all parameters are required.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import AzureConfigInput
+        ```
     """
 
     access_key: str
@@ -332,6 +354,17 @@ class AzureAccessKey(TypedDict):
     """A shared Azure Storage Account Key.
 
     <https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-shared-key>
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import AzureAccessKey
+        ```
     """
 
     access_key: str
@@ -347,6 +380,17 @@ class AzureSASToken(TypedDict):
     """A shared access signature.
 
     <https://learn.microsoft.com/en-us/rest/api/storageservices/delegate-access-with-shared-access-signature>
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import AzureSASToken
+        ```
     """
 
     sas_token: str | list[tuple[str, str]]
@@ -362,6 +406,17 @@ class AzureBearerToken(TypedDict):
     """An authorization token.
 
     <https://learn.microsoft.com/en-us/rest/api/storageservices/authorize-with-azure-active-directory>
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import AzureBearerToken
+        ```
     """
 
     token: str
@@ -374,12 +429,35 @@ class AzureBearerToken(TypedDict):
     """
 
 AzureCredential: TypeAlias = AzureAccessKey | AzureSASToken | AzureBearerToken
-"""A type alias for supported azure credentials to be returned from `AzureCredentialProvider`."""
+"""A type alias for supported azure credentials to be returned from `AzureCredentialProvider`.
+
+!!! warning "Not importable at runtime"
+
+    To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+    ```py
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from obstore.store import AzureCredential
+    ```
+"""
 
 class AzureCredentialProvider(Protocol):
     """A type hint for a synchronous or asynchronous callback to provide custom Azure credentials.
 
     This should be passed into the `credential_provider` parameter of `AzureStore`.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import AzureCredentialProvider
+        ```
     """
 
     @staticmethod

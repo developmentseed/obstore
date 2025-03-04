@@ -5,55 +5,12 @@
 # ruff: noqa: A001
 # Variable `list` is shadowing a Python builtinRuff
 
-from datetime import datetime
-from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
+from typing import Generic, List, Literal, Self, overload
 
 from arro3.core import RecordBatch, Table
 
+from .__list import ListChunkType, ListResult, ObjectMeta
 from .store import ObjectStore
-
-class ObjectMeta(TypedDict):
-    """The metadata that describes an object."""
-
-    path: str
-    """The full path to the object"""
-
-    last_modified: datetime
-    """The last modified time"""
-
-    size: int
-    """The size in bytes of the object"""
-
-    e_tag: str | None
-    """The unique identifier for the object
-
-    <https://datatracker.ietf.org/doc/html/rfc9110#name-etag>
-    """
-
-    version: str | None
-    """A version indicator for this object"""
-
-class ListResult(TypedDict, Generic[ListChunkType]):
-    """Result of a list call.
-
-    Includes objects, prefixes (directories) and a token for the next set of results.
-    Individual result sets may be limited to 1,000 objects based on the underlying
-    object storage's limitations.
-    """
-
-    common_prefixes: List[str]
-    """Prefixes that are common (like directories)"""
-
-    objects: ListChunkType
-    """Object metadata for the listing"""
-
-ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  # noqa: PYI001
-"""The data structure used for holding list results.
-
-By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
-for improved performance when listing large buckets, you can pass `return_arrow=True`.
-Then an Arrow `RecordBatch` will be returned instead.
-"""
 
 class ListStream(Generic[ListChunkType]):
     """A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
