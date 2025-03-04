@@ -26,6 +26,17 @@ class ClientConfig(TypedDict, total=False):
 
     - `"2h 37min"`
     - `"32ms"`
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import ClientConfig
+        ```
     """
 
     allow_http: bool

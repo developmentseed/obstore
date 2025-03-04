@@ -74,6 +74,17 @@ class S3Config(TypedDict, total=False):
 
     Note that this is a strict subset of the keys allowed for _input_ into the store,
     see [S3ConfigInput][obstore.store.S3ConfigInput].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import S3Config
+        ```
     """
 
     aws_access_key_id: str
@@ -148,6 +159,23 @@ class S3Config(TypedDict, total=False):
     """If virtual hosted style request has to be used."""
 
 class S3ConfigInput(TypedDict, total=False):
+    """Configuration parameters for S3Store.
+
+    There are duplicates of many parameters, and parameters can be either upper or lower
+    case. Not all parameters are required.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import S3ConfigInput
+        ```
+    """
+
     access_key_id: str
     """AWS Access Key"""
     aws_access_key_id: str
@@ -619,7 +647,19 @@ class S3ConfigInput(TypedDict, total=False):
     """If virtual hosted style request has to be used."""
 
 class S3Credential(TypedDict):
-    """An S3 credential."""
+    """An S3 credential.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import S3Credential
+        ```
+    """
 
     access_key_id: str
     """AWS access key ID."""
@@ -701,6 +741,16 @@ class S3CredentialProvider(Protocol):
             }
     ```
 
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import S3CredentialProvider
+        ```
     """
 
     @staticmethod

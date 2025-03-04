@@ -10,6 +10,17 @@ class GCSConfig(TypedDict, total=False):
 
     Note that this is a strict subset of the keys allowed for _input_ into the store,
     see [GCSConfigInput][obstore.store.GCSConfigInput].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import GCSConfig
+        ```
     """
 
     google_service_account: str
@@ -34,6 +45,17 @@ class GCSConfigInput(TypedDict, total=False):
 
     There are duplicates of many parameters, and parameters can be either upper or lower
     case. Not all parameters are required.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import GCSConfigInput
+        ```
     """
 
     bucket_name: str
@@ -84,7 +106,19 @@ class GCSConfigInput(TypedDict, total=False):
     """Path to the service account file."""
 
 class GCSCredential(TypedDict):
-    """A Google Cloud Storage Credential."""
+    """A Google Cloud Storage Credential.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import GCSCredential
+        ```
+    """
 
     token: str
     """An HTTP bearer token."""
@@ -99,6 +133,17 @@ class GCSCredentialProvider(Protocol):
     """A type hint for a synchronous or asynchronous callback to provide custom Google Cloud Storage credentials.
 
     This should be passed into the `credential_provider` parameter of `GCSStore`.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore.store import GCSCredentialProvider
+        ```
     """
 
     @staticmethod
