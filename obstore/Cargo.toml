@@ -19,12 +19,15 @@ crate-type = ["cdylib"]
 
 [dependencies]
 arrow = "54.2.1"
+async-trait = "0.1.83"
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
 http = { workspace = true }
 indexmap = { workspace = true }
 object_store = { workspace = true }
+parking_lot = "0.12"
+pin-project = "1.1.7"
 pyo3 = { workspace = true, features = ["chrono"] }
 pyo3-arrow = "0.7.2"
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
