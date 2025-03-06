@@ -106,7 +106,6 @@ class BytesStream:
         file is large, it may exceed the default timeout of 30 seconds. In this case,
         you may see an error like:
 
-        x
         ```
         GenericError: Generic {
             store: "HTTP",
