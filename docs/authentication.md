@@ -67,7 +67,6 @@ from obstore.store import S3Store
 session = Session(...)
 credential_provider = Boto3CredentialProvider(session)
 store = S3Store("bucket_name", credential_provider=credential_provider)
-
 ```
 
 <!-- SSO authentication.
