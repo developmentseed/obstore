@@ -150,8 +150,6 @@ class AzureConfig(TypedDict, total=False):
     use_azure_cli: bool
     """Set if the Azure Cli should be used for acquiring access token.
 
-    Defaults to `True` (as a fallback).
-
     <https://learn.microsoft.com/en-us/cli/azure/account?view=azure-cli-latest#az-account-get-access-token>.
 
     **Environment variable**: `AZURE_USE_AZURE_CLI`.
