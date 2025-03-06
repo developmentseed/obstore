@@ -1,9 +1,9 @@
 from collections.abc import Sequence
 
 from .__get import GetOptions
-from .__list import ObjectMeta
 from ._attributes import Attributes
 from ._bytes import Bytes
+from ._list import ObjectMeta
 from .store import ObjectStore
 
 class GetResult:

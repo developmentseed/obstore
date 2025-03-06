@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
     import botocore.session
 
-    from obstore.store import S3ConfigInput, S3Credential
+    from obstore.store import S3Config, S3Credential
 
 
 class PolicyDescriptorTypeTypeDef(TypedDict):  # noqa: D101
@@ -56,7 +56,7 @@ class Boto3CredentialProvider:
     """  # noqa: E501
 
     credentials: botocore.credentials.Credentials
-    config: S3ConfigInput
+    config: S3Config
     ttl: timedelta
 
     def __init__(
@@ -114,7 +114,7 @@ class StsCredentialProvider:
     store.
     """  # noqa: E501
 
-    config: S3ConfigInput
+    config: S3Config
     session: boto3.session.Session
 
     def __init__(

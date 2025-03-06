@@ -53,14 +53,11 @@ if TYPE_CHECKING:
     from obstore import Attributes, Bytes, ReadableFile, WritableFile
     from obstore.store import (
         AzureConfig,
-        AzureConfigInput,
         ClientConfig,
         GCSConfig,
-        GCSConfigInput,
         ObjectStore,
         RetryConfig,
         S3Config,
-        S3ConfigInput,
     )
 
 __all__ = [
@@ -119,56 +116,48 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         self,
         protocol: Literal["s3", "s3a"],
         *args: Any,
-        config: S3Config | S3ConfigInput | None = None,
+        config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         asynchronous: bool = False,
         max_cache_size: int = 10,
         loop: Any = None,
         batch_size: int | None = None,
-        **kwargs: Unpack[S3ConfigInput],
+        **kwargs: Unpack[S3Config],
     ) -> None: ...
     @overload
     def __init__(
         self,
         protocol: Literal["gs"],
         *args: Any,
-        config: GCSConfig | GCSConfigInput | None = None,
+        config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         asynchronous: bool = False,
         max_cache_size: int = 10,
         loop: Any = None,
         batch_size: int | None = None,
-        **kwargs: Unpack[GCSConfigInput],
+        **kwargs: Unpack[GCSConfig],
     ) -> None: ...
     @overload
     def __init__(
         self,
         protocol: Literal["az", "adl", "azure", "abfs", "abfss"],
         *args: Any,
-        config: AzureConfig | AzureConfigInput | None = None,
+        config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         asynchronous: bool = False,
         max_cache_size: int = 10,
         loop: Any = None,
         batch_size: int | None = None,
-        **kwargs: Unpack[AzureConfigInput],
+        **kwargs: Unpack[AzureConfig],
     ) -> None: ...
     def __init__(  # noqa: PLR0913
         self,
         protocol: SUPPORTED_PROTOCOLS_T | str | None = None,
         *args: Any,
-        config: (
-            S3Config
-            | S3ConfigInput
-            | GCSConfig
-            | GCSConfigInput
-            | AzureConfig
-            | AzureConfigInput
-            | None
-        ) = None,
+        config: (S3Config | GCSConfig | AzureConfig | None) = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         asynchronous: bool = False,
@@ -184,7 +173,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 "gcs", or "abfs". If `None`, the default class-level protocol
                 is used. Default to None.
             config: Configuration for the cloud storage provider, which can be one of
-                S3Config, S3ConfigInput, GCSConfig, GCSConfigInput, AzureConfig,
+                S3Config, GCSConfig, AzureConfig,
                 or AzureConfigInput. Any of these values will be applied after checking
                 for environment variables. If `None`, no cloud storage configuration is
                 applied beyond what is found in environment variables.

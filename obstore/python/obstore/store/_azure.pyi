@@ -5,17 +5,8 @@ from typing import Any, Protocol, TypeAlias, TypedDict, Unpack
 from ._client import ClientConfig
 from ._retry import RetryConfig
 
-# TODO: add these parameters to config
-# azure_storage_authority_host
-# azure_fabric_token_service_url
-# azure_fabric_workload_host
-# "azure_fabric_session_token",
-# "azure_fabric_cluster_identifier",
 class AzureConfig(TypedDict, total=False):
-    """Configuration parameters returned from [AzureStore.config][obstore.store.AzureStore.config].
-
-    Note that this is a strict subset of the keys allowed for _input_ into the store,
-    see [AzureConfigInput][obstore.store.AzureConfigInput].
+    """Configuration parameters for AzureStore.
 
     !!! warning "Not importable at runtime"
 
@@ -29,326 +20,177 @@ class AzureConfig(TypedDict, total=False):
         ```
     """
 
-    azure_storage_account_name: str
-    """The name of the azure storage account"""
-    azure_storage_account_key: str
-    """Master key for accessing storage account"""
-    azure_storage_client_id: str
-    """Service principal client id for authorizing requests"""
-    azure_storage_client_secret: str
-    """Service principal client secret for authorizing requests"""
-    azure_storage_tenant_id: str
-    """Tenant id used in oauth flows"""
-    azure_storage_sas_key: str
+    storage_account_name: str
+    """The name of the azure storage account. (Required.)
+
+    **Environment variable**: `AZURE_STORAGE_ACCOUNT_NAME`.
+    """
+    storage_account_key: str
+    """Master key for accessing storage account.
+
+    **Environment variables**:
+
+    - `AZURE_STORAGE_ACCOUNT_KEY`
+    - `AZURE_STORAGE_ACCESS_KEY`
+    - `AZURE_STORAGE_MASTER_KEY`
+    """
+    storage_client_id: str
+    """The client id for use in client secret or k8s federated credential flow.
+
+    **Environment variables**:
+
+    - `AZURE_STORAGE_CLIENT_ID`
+    - `AZURE_CLIENT_ID`
+    """
+    storage_client_secret: str
+    """The client secret for use in client secret flow.
+
+    **Environment variables**:
+
+    - `AZURE_STORAGE_CLIENT_SECRET`
+    - `AZURE_CLIENT_SECRET`
+    """
+    storage_tenant_id: str
+    """The tenant id for use in client secret or k8s federated credential flow.
+
+    **Environment variables**:
+
+    - `AZURE_STORAGE_TENANT_ID`
+    - `AZURE_STORAGE_AUTHORITY_ID`
+    - `AZURE_TENANT_ID`
+    - `AZURE_AUTHORITY_ID`
+    """
+    storage_authority_host: str
+    """Sets an alternative authority host for OAuth based authorization.
+
+    Defaults to `https://login.microsoftonline.com`.
+
+    Common hosts for azure clouds are:
+
+    - Azure China: `"https://login.chinacloudapi.cn"`
+    - Azure Germany: `"https://login.microsoftonline.de"`
+    - Azure Government: `"https://login.microsoftonline.us"`
+    - Azure Public: `"https://login.microsoftonline.com"`
+
+    **Environment variables**:
+
+    - `AZURE_STORAGE_AUTHORITY_HOST`
+    - `AZURE_AUTHORITY_HOST`
+    """
+    storage_sas_key: str
     """
     Shared access signature.
 
     The signature is expected to be percent-encoded, `much `like they are provided in
     the azure storage explorer or azure portal.
+
+    **Environment variables**:
+
+    - `AZURE_STORAGE_SAS_KEY`
+    - `AZURE_STORAGE_SAS_TOKEN`
     """
-    azure_storage_token: str
-    """Bearer token"""
-    azure_storage_use_emulator: bool
-    """Use object store with azurite storage emulator"""
-    azure_use_fabric_endpoint: bool
-    """Use object store with url scheme account.dfs.fabric.microsoft.com"""
-    azure_storage_endpoint: str
-    """Override the endpoint used to communicate with blob storage"""
-    azure_msi_endpoint: str
-    """Endpoint to request a imds managed identity token"""
-    azure_object_id: str
-    """Object id for use with managed identity authentication"""
-    azure_msi_resource_id: str
-    """Msi resource id for use with managed identity authentication"""
-    azure_federated_token_file: str
-    """File containing token for Azure AD workload identity federation"""
-    azure_use_azure_cli: bool
-    """Use azure cli for acquiring access token"""
-    azure_skip_signature: bool
-    """Skip signing requests"""
-    azure_container_name: str
-    """Container name"""
-    azure_disable_tagging: bool
-    """Disables tagging objects"""
+    storage_token: str
+    """A static bearer token to be used for authorizing requests.
 
-class AzureConfigInput(TypedDict, total=False):
-    """Configuration parameters for AzureStore.
-
-    There are duplicates of many parameters, and parameters can be either upper or lower
-    case. Not all parameters are required.
-
-    !!! warning "Not importable at runtime"
-
-        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
-
-        ```py
-        from __future__ import annotations
-        from typing import TYPE_CHECKING
-        if TYPE_CHECKING:
-            from obstore.store import AzureConfigInput
-        ```
+    **Environment variable**: `AZURE_STORAGE_TOKEN`.
     """
+    storage_use_emulator: bool
+    """Set if the Azure emulator should be used (defaults to `False`).
 
-    access_key: str
-    """Master key for accessing storage account"""
-    account_key: str
-    """Master key for accessing storage account"""
-    account_name: str
-    """The name of the azure storage account"""
-    authority_id: str
-    """Tenant id used in oauth flows"""
-    azure_authority_id: str
-    """Tenant id used in oauth flows"""
-    azure_client_id: str
-    """Service principal client id for authorizing requests"""
-    azure_client_secret: str
-    """Service principal client secret for authorizing requests"""
-    azure_container_name: str
-    """Container name"""
-    azure_disable_tagging: bool
-    """Disables tagging objects"""
-    azure_endpoint: str
-    """Override the endpoint used to communicate with blob storage"""
-    azure_federated_token_file: str
-    """File containing token for Azure AD workload identity federation"""
-    azure_identity_endpoint: str
-    """Endpoint to request a imds managed identity token"""
-    azure_msi_endpoint: str
-    """Endpoint to request a imds managed identity token"""
-    azure_msi_resource_id: str
-    """Msi resource id for use with managed identity authentication"""
-    azure_object_id: str
-    """Object id for use with managed identity authentication"""
-    azure_skip_signature: bool
-    """Skip signing requests"""
-    azure_storage_access_key: str
-    """Master key for accessing storage account"""
-    azure_storage_account_key: str
-    """Master key for accessing storage account"""
-    azure_storage_account_name: str
-    """The name of the azure storage account"""
-    azure_storage_authority_id: str
-    """Tenant id used in oauth flows"""
-    azure_storage_client_id: str
-    """Service principal client id for authorizing requests"""
-    azure_storage_client_secret: str
-    """Service principal client secret for authorizing requests"""
-    azure_storage_endpoint: str
-    """Override the endpoint used to communicate with blob storage"""
-    azure_storage_master_key: str
-    """Master key for accessing storage account"""
-    azure_storage_sas_key: str
+    **Environment variable**: `AZURE_STORAGE_USE_EMULATOR`.
     """
-    Shared access signature.
+    use_fabric_endpoint: bool
+    """Set if Microsoft Fabric url scheme should be used (defaults to `False`).
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
-    """
-    azure_storage_sas_token: str
-    """
-    Shared access signature.
+    When disabled the url scheme used is `https://{account}.blob.core.windows.net`.
+    When enabled the url scheme used is `https://{account}.dfs.fabric.microsoft.com`.
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
-    """
-    azure_storage_tenant_id: str
-    """Tenant id used in oauth flows"""
-    azure_storage_token: str
-    """Bearer token"""
-    azure_storage_use_emulator: bool
-    """Use object store with azurite storage emulator"""
-    azure_tenant_id: str
-    """Tenant id used in oauth flows"""
-    azure_use_azure_cli: bool
-    """Use azure cli for acquiring access token.
+    !!! note
 
-    Defaults to `True`.
+        `storage_endpoint` will take precedence over this option.
     """
-    azure_use_fabric_endpoint: bool
-    """Use object store with url scheme account.dfs.fabric.microsoft.com"""
-    bearer_token: str
-    """Bearer token"""
-    client_id: str
-    """Service principal client id for authorizing requests"""
-    client_secret: str
-    """Service principal client secret for authorizing requests"""
-    container_name: str
-    """Container name"""
-    disable_tagging: bool
-    """Disables tagging objects"""
-    endpoint: str
-    """Override the endpoint used to communicate with blob storage"""
-    federated_token_file: str
-    """File containing token for Azure AD workload identity federation"""
-    identity_endpoint: str
-    """Endpoint to request a imds managed identity token"""
-    master_key: str
-    """Master key for accessing storage account"""
+    storage_endpoint: str
+    """Override the endpoint used to communicate with blob storage.
+
+    Defaults to `https://{account}.blob.core.windows.net`.
+
+    By default, only HTTPS schemes are enabled. To connect to an HTTP endpoint, enable
+    `allow_http` in the client options.
+
+    **Environment variables**:
+
+    - `AZURE_STORAGE_ENDPOINT`
+    - `AZURE_ENDPOINT`
+    """
     msi_endpoint: str
-    """Endpoint to request a imds managed identity token"""
-    msi_resource_id: str
-    """Msi resource id for use with managed identity authentication"""
+    """Endpoint to request a imds managed identity token.
+
+    **Environment variables**:
+
+    - `AZURE_MSI_ENDPOINT`
+    - `AZURE_IDENTITY_ENDPOINT`
+    """
     object_id: str
-    """Object id for use with managed identity authentication"""
-    sas_key: str
-    """
-    Shared access signature.
+    """Object id for use with managed identity authentication.
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
+    **Environment variable**: `AZURE_OBJECT_ID`.
     """
-    sas_token: str
-    """
-    Shared access signature.
+    msi_resource_id: str
+    """Msi resource id for use with managed identity authentication.
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
+    **Environment variable**: `AZURE_MSI_RESOURCE_ID`.
+    """
+    federated_token_file: str
+    """Sets a file path for acquiring azure federated identity token in k8s.
+
+    Requires `storage_client_id` and `storage_tenant_id` to be set.
+
+    **Environment variable**: `AZURE_FEDERATED_TOKEN_FILE`.
+    """
+    use_azure_cli: bool
+    """Set if the Azure Cli should be used for acquiring access token.
+
+    <https://learn.microsoft.com/en-us/cli/azure/account?view=azure-cli-latest#az-account-get-access-token>.
+
+    **Environment variable**: `AZURE_USE_AZURE_CLI`.
     """
     skip_signature: bool
-    """Skip signing requests"""
-    tenant_id: str
-    """Tenant id used in oauth flows"""
-    token: str
-    """Bearer token"""
-    use_azure_cli: bool
-    """Use azure cli for acquiring access token.
+    """If enabled, `AzureStore` will not fetch credentials and will not sign requests.
 
-    Defaults to `True`.
-    """
-    use_emulator: bool
-    """Use object store with azurite storage emulator"""
-    use_fabric_endpoint: bool
-    """Use object store with url scheme account.dfs.fabric.microsoft.com"""
-    ACCESS_KEY: str
-    """Master key for accessing storage account"""
-    ACCOUNT_KEY: str
-    """Master key for accessing storage account"""
-    ACCOUNT_NAME: str
-    """The name of the azure storage account"""
-    AUTHORITY_ID: str
-    """Tenant id used in oauth flows"""
-    AZURE_AUTHORITY_ID: str
-    """Tenant id used in oauth flows"""
-    AZURE_CLIENT_ID: str
-    """Service principal client id for authorizing requests"""
-    AZURE_CLIENT_SECRET: str
-    """Service principal client secret for authorizing requests"""
-    AZURE_CONTAINER_NAME: str
-    """Container name"""
-    AZURE_DISABLE_TAGGING: bool
-    """Disables tagging objects"""
-    AZURE_ENDPOINT: str
-    """Override the endpoint used to communicate with blob storage"""
-    AZURE_FEDERATED_TOKEN_FILE: str
-    """File containing token for Azure AD workload identity federation"""
-    AZURE_IDENTITY_ENDPOINT: str
-    """Endpoint to request a imds managed identity token"""
-    AZURE_MSI_ENDPOINT: str
-    """Endpoint to request a imds managed identity token"""
-    AZURE_MSI_RESOURCE_ID: str
-    """Msi resource id for use with managed identity authentication"""
-    AZURE_OBJECT_ID: str
-    """Object id for use with managed identity authentication"""
-    AZURE_SKIP_SIGNATURE: bool
-    """Skip signing requests"""
-    AZURE_STORAGE_ACCESS_KEY: str
-    """Master key for accessing storage account"""
-    AZURE_STORAGE_ACCOUNT_KEY: str
-    """Master key for accessing storage account"""
-    AZURE_STORAGE_ACCOUNT_NAME: str
-    """The name of the azure storage account"""
-    AZURE_STORAGE_AUTHORITY_ID: str
-    """Tenant id used in oauth flows"""
-    AZURE_STORAGE_CLIENT_ID: str
-    """Service principal client id for authorizing requests"""
-    AZURE_STORAGE_CLIENT_SECRET: str
-    """Service principal client secret for authorizing requests"""
-    AZURE_STORAGE_ENDPOINT: str
-    """Override the endpoint used to communicate with blob storage"""
-    AZURE_STORAGE_MASTER_KEY: str
-    """Master key for accessing storage account"""
-    AZURE_STORAGE_SAS_KEY: str
-    """
-    Shared access signature.
+    This can be useful when interacting with public containers.
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
+    **Environment variable**: `AZURE_SKIP_SIGNATURE`.
     """
-    AZURE_STORAGE_SAS_TOKEN: str
-    """
-    Shared access signature.
+    container_name: str
+    """Container name.
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
+    **Environment variable**: `AZURE_CONTAINER_NAME`.
     """
-    AZURE_STORAGE_TENANT_ID: str
-    """Tenant id used in oauth flows"""
-    AZURE_STORAGE_TOKEN: str
-    """Bearer token"""
-    AZURE_STORAGE_USE_EMULATOR: bool
-    """Use object store with azurite storage emulator"""
-    AZURE_TENANT_ID: str
-    """Tenant id used in oauth flows"""
-    AZURE_USE_AZURE_CLI: bool
-    """Use azure cli for acquiring access token.
+    disable_tagging: bool
+    """If set to `True` will ignore any tags provided to uploads.
 
-    Defaults to `True`.
+    **Environment variable**: `AZURE_DISABLE_TAGGING`.
     """
-    AZURE_USE_FABRIC_ENDPOINT: bool
-    """Use object store with url scheme account.dfs.fabric.microsoft.com"""
-    BEARER_TOKEN: str
-    """Bearer token"""
-    CLIENT_ID: str
-    """Service principal client id for authorizing requests"""
-    CLIENT_SECRET: str
-    """Service principal client secret for authorizing requests"""
-    CONTAINER_NAME: str
-    """Container name"""
-    DISABLE_TAGGING: bool
-    """Disables tagging objects"""
-    ENDPOINT: str
-    """Override the endpoint used to communicate with blob storage"""
-    FEDERATED_TOKEN_FILE: str
-    """File containing token for Azure AD workload identity federation"""
-    IDENTITY_ENDPOINT: str
-    """Endpoint to request a imds managed identity token"""
-    MASTER_KEY: str
-    """Master key for accessing storage account"""
-    MSI_ENDPOINT: str
-    """Endpoint to request a imds managed identity token"""
-    MSI_RESOURCE_ID: str
-    """Msi resource id for use with managed identity authentication"""
-    OBJECT_ID: str
-    """Object id for use with managed identity authentication"""
-    SAS_KEY: str
-    """
-    Shared access signature.
+    fabric_token_service_url: str
+    """Service URL for Fabric OAuth2 authentication.
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
+    **Environment variable**: `AZURE_FABRIC_TOKEN_SERVICE_URL`.
     """
-    SAS_TOKEN: str
-    """
-    Shared access signature.
+    fabric_workload_host: str
+    """Workload host for Fabric OAuth2 authentication.
 
-    The signature is expected to be percent-encoded, `much `like they are provided in
-    the azure storage explorer or azure portal.
+    **Environment variable**: `AZURE_FABRIC_WORKLOAD_HOST`.
     """
-    SKIP_SIGNATURE: bool
-    """Skip signing requests"""
-    TENANT_ID: str
-    """Tenant id used in oauth flows"""
-    TOKEN: str
-    """Bearer token"""
-    USE_AZURE_CLI: bool
-    """Use azure cli for acquiring access token.
+    fabric_session_token: str
+    """Session token for Fabric OAuth2 authentication.
 
-    Defaults to `True`.
+    **Environment variable**: `AZURE_FABRIC_SESSION_TOKEN`.
     """
-    USE_EMULATOR: bool
-    """Use object store with azurite storage emulator"""
-    USE_FABRIC_ENDPOINT: bool
-    """Use object store with url scheme account.dfs.fabric.microsoft.com"""
+    fabric_cluster_identifier: str
+    """Cluster identifier for Fabric OAuth2 authentication.
+
+    **Environment variable**: `AZURE_FABRIC_CLUSTER_IDENTIFIER`.
+    """
 
 class AzureAccessKey(TypedDict):
     """A shared Azure Storage Account Key.
@@ -467,19 +309,8 @@ class AzureCredentialProvider(Protocol):
 class AzureStore:
     """Interface to a Microsoft Azure Blob Storage container.
 
-    All constructors will check for environment variables. All environment variables
-    starting with `AZURE_` will be evaluated. Names must match keys from
-    [`AzureConfig`][obstore.store.AzureConfig]. Only upper-case environment variables
-    are accepted.
-
-    Some examples of variables extracted from environment:
-
-    - `AZURE_STORAGE_ACCOUNT_NAME`: storage account name
-    - `AZURE_STORAGE_ACCOUNT_KEY`: storage account master key
-    - `AZURE_STORAGE_ACCESS_KEY`: alias for `AZURE_STORAGE_ACCOUNT_KEY`
-    - `AZURE_STORAGE_CLIENT_ID` -> client id for service principal authorization
-    - `AZURE_STORAGE_CLIENT_SECRET` -> client secret for service principal authorization
-    - `AZURE_STORAGE_TENANT_ID` -> tenant id used in oauth flows
+    All constructors will check for environment variables. Refer to
+    [`AzureConfig`][obstore.store.AzureConfig] for valid environment variables.
     """
 
     def __init__(
@@ -487,11 +318,11 @@ class AzureStore:
         container: str | None = None,
         *,
         prefix: str | None = None,
-        config: AzureConfig | AzureConfigInput | None = None,
+        config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: AzureCredentialProvider | None = None,
-        **kwargs: Unpack[AzureConfigInput],
+        **kwargs: Unpack[AzureConfig],
     ) -> None:
         """Construct a new AzureStore.
 
@@ -517,11 +348,11 @@ class AzureStore:
         url: str,
         *,
         prefix: str | None = None,
-        config: AzureConfig | AzureConfigInput | None = None,
+        config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: AzureCredentialProvider | None = None,
-        **kwargs: Unpack[AzureConfigInput],
+        **kwargs: Unpack[AzureConfig],
     ) -> AzureStore:
         """Construct a new AzureStore with values populated from a well-known storage URL.
 

@@ -67,13 +67,8 @@ S3EncryptionAlgorithm: TypeAlias = Literal[
     "sse-c",
 ]
 
-# Note: we removed `bucket` because it overlaps with an existing named arg in the
-# constructors
 class S3Config(TypedDict, total=False):
-    """Configuration parameters returned from [S3Store.config][obstore.store.S3Store.config].
-
-    Note that this is a strict subset of the keys allowed for _input_ into the store,
-    see [S3ConfigInput][obstore.store.S3ConfigInput].
+    """Configuration parameters for S3Store.
 
     !!! warning "Not importable at runtime"
 
@@ -87,238 +82,26 @@ class S3Config(TypedDict, total=False):
         ```
     """
 
-    aws_access_key_id: str
-    """AWS Access Key"""
-    aws_bucket: str
-    """Bucket name"""
-    aws_checksum_algorithm: S3ChecksumAlgorithm | str
-    """
-    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
-
-    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
-    """
-    aws_conditional_put: str
-    """
-    See [`S3ConfigInput.aws_conditional_put`][obstore.store.S3ConfigInput.aws_conditional_put].
-    """
-    aws_container_credentials_relative_uri: str
-    """
-    See [`S3ConfigInput.aws_container_credentials_relative_uri`][obstore.store.S3ConfigInput.aws_container_credentials_relative_uri].
-    """
-    aws_copy_if_not_exists: Literal["multipart"] | str
-    """
-    See [`S3ConfigInput.aws_copy_if_not_exists`][obstore.store.S3ConfigInput.aws_copy_if_not_exists].
-    """
-    aws_default_region: S3Regions | str
-    """Default region"""
-    aws_disable_tagging: bool
-    """Disable tagging objects. This can be desirable if not supported by the backing store."""
-    aws_endpoint: str
-    """Sets custom endpoint for communicating with AWS S3."""
-    aws_imdsv1_fallback: bool
-    """Fall back to ImdsV1"""
-    aws_metadata_endpoint: str
-    """Set the instance metadata endpoint"""
-    aws_region: S3Regions | str
-    """Region"""
-    aws_request_payer: bool
-    """If `True`, enable operations on requester-pays buckets."""
-    aws_s3_express: bool
-    """Enable Support for S3 Express One Zone"""
-    aws_secret_access_key: str
-    """Secret Access Key"""
-    aws_server_side_encryption: S3EncryptionAlgorithm | str
-    """
-    See [`S3ConfigInput.aws_server_side_encryption`][obstore.store.S3ConfigInput.aws_server_side_encryption].
-    """
-    aws_session_token: str
-    """Token to use for requests (passed to underlying provider)"""
-    aws_skip_signature: bool
-    """If `True`, S3Store will not fetch credentials and will not sign requests."""
-    aws_sse_bucket_key_enabled: bool
-    """
-    If set to `True`, will use the bucket's default KMS key for server-side encryption.
-    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
-    """
-    aws_sse_customer_key_base64: str
-    """
-    The base64 encoded, 256-bit customer encryption key to use for server-side
-    encryption. If set, the server side encryption config value must be `"sse-c"`.
-    """
-    aws_sse_kms_key_id: str
-    """
-    The KMS key ID to use for server-side encryption.
-
-    If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
-    """
-    aws_token: str
-    """Token to use for requests (passed to underlying provider)"""
-    aws_unsigned_payload: bool
-    """Avoid computing payload checksum when calculating signature."""
-    aws_virtual_hosted_style_request: bool
-    """If virtual hosted style request has to be used."""
-
-class S3ConfigInput(TypedDict, total=False):
-    """Configuration parameters for S3Store.
-
-    There are duplicates of many parameters, and parameters can be either upper or lower
-    case. Not all parameters are required.
-
-    !!! warning "Not importable at runtime"
-
-        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
-
-        ```py
-        from __future__ import annotations
-        from typing import TYPE_CHECKING
-        if TYPE_CHECKING:
-            from obstore.store import S3ConfigInput
-        ```
-    """
-
     access_key_id: str
-    """AWS Access Key"""
-    aws_access_key_id: str
-    """AWS Access Key"""
-    aws_bucket_name: str
-    """Bucket name"""
-    aws_bucket: str
-    """Bucket name"""
-    aws_checksum_algorithm: S3ChecksumAlgorithm | str
+    """AWS Access Key.
+
+    **Environment variable**: `AWS_ACCESS_KEY_ID`.
     """
-    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+    bucket: str
+    """Bucket name (required).
 
-    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    **Environment variables**:
+
+    - `AWS_BUCKET`
+    - `AWS_BUCKET_NAME`
     """
-    aws_conditional_put: str
-    """Configure how to provide conditional put support
-
-    Supported values:
-
-    - `"etag"` (default): Supported for S3-compatible stores that support conditional
-        put using the standard [HTTP precondition] headers `If-Match` and
-        `If-None-Match`.
-
-        [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
-
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
-
-        This will use the same region, credentials and endpoint as configured for S3.
-    """
-    aws_container_credentials_relative_uri: str
-    """Set the container credentials relative URI
-
-    <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
-    """
-    aws_copy_if_not_exists: Literal["multipart"] | str
-    """Configure how to provide "copy if not exists".
-
-    Supported values:
-
-    - `"multipart"`:
-
-        Native Amazon S3 supports copy if not exists through a multipart upload
-        where the upload copies an existing object and is completed only if the
-        new object does not already exist.
-
-        !!! warning
-            When using this mode, `copy_if_not_exists` does not copy tags
-            or attributes from the source object.
-
-        !!! warning
-            When using this mode, `copy_if_not_exists` makes only a best
-            effort attempt to clean up the multipart upload if the copy operation
-            fails. Consider using a lifecycle rule to automatically clean up
-            abandoned multipart uploads.
-
-    - `"header:<HEADER_NAME>:<HEADER_VALUE>"`:
-
-        Some S3-compatible stores, such as Cloudflare R2, support copy if not exists
-        semantics through custom headers.
-
-        If set, `copy_if_not_exists` will perform a normal copy operation with the
-        provided header pair, and expect the store to fail with `412 Precondition
-        Failed` if the destination file already exists.
-
-        For example `header: cf-copy-destination-if-none-match: *`, would set
-        the header `cf-copy-destination-if-none-match` to `*`.
-
-    - `"header-with-status:<HEADER_NAME>:<HEADER_VALUE>:<STATUS>"`:
-
-        The same as the header variant above but allows custom status code checking, for
-        object stores that return values other than 412.
-
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
-
-        The name of a DynamoDB table to use for coordination.
-
-        The default timeout is used if not specified. This will use the same region,
-        credentials and endpoint as configured for S3.
-    """
-    aws_default_region: S3Regions | str
-    """Default region"""
-    aws_disable_tagging: bool
-    """Disable tagging objects. This can be desirable if not supported by the backing store."""
-    aws_endpoint_url: str
-    """Sets custom endpoint for communicating with AWS S3."""
-    aws_endpoint: str
-    """Sets custom endpoint for communicating with AWS S3."""
-    aws_imdsv1_fallback: bool
-    """Fall back to ImdsV1"""
-    aws_metadata_endpoint: str
-    """Set the instance metadata endpoint"""
-    aws_region: S3Regions | str
-    """Region"""
-    aws_request_payer: bool
-    """If `True`, enable operations on requester-pays buckets."""
-    aws_s3_express: bool
-    """Enable Support for S3 Express One Zone"""
-    aws_secret_access_key: str
-    """Secret Access Key"""
-    aws_server_side_encryption: S3EncryptionAlgorithm | str
-    """Type of encryption to use.
-
-    If set, must be one of:
-
-    - `"AES256"` (SSE-S3)
-    - `"aws:kms"` (SSE-KMS)
-    - `"aws:kms:dsse"` (DSSE-KMS)
-    - `"sse-c"`
-    """
-    aws_session_token: str
-    """Token to use for requests (passed to underlying provider)"""
-    aws_skip_signature: bool
-    """If `True`, S3Store will not fetch credentials and will not sign requests."""
-    aws_sse_bucket_key_enabled: bool
-    """
-    If set to `True`, will use the bucket's default KMS key for server-side encryption.
-    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
-    """
-    aws_sse_customer_key_base64: str
-    """
-    The base64 encoded, 256-bit customer encryption key to use for server-side
-    encryption. If set, the server side encryption config value must be `"sse-c"`.
-    """
-    aws_sse_kms_key_id: str
-    """
-    The KMS key ID to use for server-side encryption.
-
-    If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
-    """
-    aws_token: str
-    """Token to use for requests (passed to underlying provider)"""
-    aws_unsigned_payload: bool
-    """Avoid computing payload checksum when calculating signature."""
-    aws_virtual_hosted_style_request: bool
-    """If virtual hosted style request has to be used."""
-
-    bucket_name: str
-    """Bucket name"""
     checksum_algorithm: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
 
     [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+
+    **Environment variable**: `AWS_CHECKSUM_ALGORITHM`.
     """
     conditional_put: str
     """Configure how to provide conditional put support
@@ -334,6 +117,15 @@ class S3ConfigInput(TypedDict, total=False):
     - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
 
         This will use the same region, credentials and endpoint as configured for S3.
+
+    **Environment variable**: `AWS_CONDITIONAL_PUT`.
+    """
+    container_credentials_relative_uri: str
+    """Set the container credentials relative URI
+
+    <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
+
+    **Environment variable**: `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`.
     """
     copy_if_not_exists: Literal["multipart"] | str
     """Configure how to provide "copy if not exists".
@@ -379,137 +171,91 @@ class S3ConfigInput(TypedDict, total=False):
 
         The default timeout is used if not specified. This will use the same region,
         credentials and endpoint as configured for S3.
+
+    **Environment variable**: `AWS_COPY_IF_NOT_EXISTS`.
     """
     default_region: S3Regions | str
-    """Default region"""
+    """Default region.
+
+    **Environment variable**: `AWS_DEFAULT_REGION`.
+    """
     disable_tagging: bool
-    """Disable tagging objects. This can be desirable if not supported by the backing store."""
-    endpoint_url: str
-    """Sets custom endpoint for communicating with AWS S3."""
+    """Disable tagging objects. This can be desirable if not supported by the backing store.
+
+    **Environment variable**: `AWS_DISABLE_TAGGING`.
+    """
     endpoint: str
-    """Sets custom endpoint for communicating with AWS S3."""
+    """The endpoint for communicating with AWS S3.
+
+    Defaults to the [region endpoint].
+
+    For example, this might be set to `"http://localhost:4566:` for testing against a
+    localstack instance.
+
+    The `endpoint` field should be consistent with `with_virtual_hosted_style_request`,
+    i.e. if `virtual_hosted_style_request` is set to `True` then `endpoint` should have
+    the bucket name included.
+
+    By default, only HTTPS schemes are enabled. To connect to an HTTP endpoint, enable
+    `allow_http` in the client options.
+
+    [region endpoint]: https://docs.aws.amazon.com/general/latest/gr/s3.html
+
+    **Environment variables**:
+
+    - `AWS_ENDPOINT_URL`
+    - `AWS_ENDPOINT`
+    """
     imdsv1_fallback: bool
-    """Fall back to ImdsV1"""
+    """Fall back to ImdsV1.
+
+    By default instance credentials will only be fetched over [IMDSv2], as AWS
+    recommends against having IMDSv1 enabled on EC2 instances as it is vulnerable to
+    [SSRF attack]
+
+    However, certain deployment environments, such as those running old versions of
+    kube2iam, may not support IMDSv2. This option will enable automatic fallback to
+    using IMDSv1 if the token endpoint returns a 403 error indicating that IMDSv2 is not
+    supported.
+
+    This option has no effect if not using instance credentials.
+
+    [IMDSv2]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
+    [SSRF attack]: https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/
+
+    **Environment variable**: `AWS_IMDSV1_FALLBACK`.
+    """
     metadata_endpoint: str
-    """Set the instance metadata endpoint"""
+    """Set the [instance metadata endpoint], used primarily within AWS EC2.
+
+    This defaults to the IPv4 endpoint: `http://169.254.169.254`. One can alternatively
+    use the IPv6 endpoint `http://fd00:ec2::254`.
+
+    **Environment variable**: `AWS_METADATA_ENDPOINT`.
+    """
     region: S3Regions | str
-    """Region"""
+    """The region, defaults to `us-east-1`
+
+    **Environment variable**: `AWS_REGION`.
+    """
     request_payer: bool
-    """If `True`, enable operations on requester-pays buckets."""
+    """If `True`, enable operations on requester-pays buckets.
+
+    <https://docs.aws.amazon.com/AmazonS3/latest/userguide/RequesterPaysBuckets.html>
+
+    **Environment variable**: `AWS_REQUEST_PAYER`.
+    """
     s3_express: bool
-    """Enable Support for S3 Express One Zone"""
+    """Enable Support for S3 Express One Zone.
+
+    **Environment variable**: `AWS_S3_EXPRESS`.
+    """
     secret_access_key: str
-    """Secret Access Key"""
-    session_token: str
-    """Token to use for requests (passed to underlying provider)"""
-    skip_signature: bool
-    """If `True`, S3Store will not fetch credentials and will not sign requests."""
-    token: str
-    """Token to use for requests (passed to underlying provider)"""
-    unsigned_payload: bool
-    """Avoid computing payload checksum when calculating signature."""
-    virtual_hosted_style_request: bool
-    """If virtual hosted style request has to be used."""
-    ACCESS_KEY_ID: str
-    """AWS Access Key"""
-    AWS_ACCESS_KEY_ID: str
-    """AWS Access Key"""
-    AWS_BUCKET_NAME: str
-    """Bucket name"""
-    AWS_BUCKET: str
-    """Bucket name"""
-    AWS_CHECKSUM_ALGORITHM: S3ChecksumAlgorithm | str
+    """Secret Access Key.
+
+    **Environment variable**: `AWS_SECRET_ACCESS_KEY`.
     """
-    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
-
-    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
-    """
-    AWS_CONDITIONAL_PUT: str
-    """Configure how to provide conditional put support
-
-    Supported values:
-
-    - `"etag"` (default): Supported for S3-compatible stores that support conditional
-        put using the standard [HTTP precondition] headers `If-Match` and
-        `If-None-Match`.
-
-        [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
-
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
-
-        This will use the same region, credentials and endpoint as configured for S3.
-    """
-    AWS_CONTAINER_CREDENTIALS_RELATIVE_URI: str
-    """Set the container credentials relative URI
-
-    <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
-    """
-    AWS_COPY_IF_NOT_EXISTS: Literal["multipart"] | str
-    """Configure how to provide "copy if not exists".
-
-    Supported values:
-
-    - `"multipart"`:
-
-        Native Amazon S3 supports copy if not exists through a multipart upload
-        where the upload copies an existing object and is completed only if the
-        new object does not already exist.
-
-        !!! warning
-            When using this mode, `copy_if_not_exists` does not copy tags
-            or attributes from the source object.
-
-        !!! warning
-            When using this mode, `copy_if_not_exists` makes only a best
-            effort attempt to clean up the multipart upload if the copy operation
-            fails. Consider using a lifecycle rule to automatically clean up
-            abandoned multipart uploads.
-
-    - `"header:<HEADER_NAME>:<HEADER_VALUE>"`:
-
-        Some S3-compatible stores, such as Cloudflare R2, support copy if not exists
-        semantics through custom headers.
-
-        If set, `copy_if_not_exists` will perform a normal copy operation with the
-        provided header pair, and expect the store to fail with `412 Precondition
-        Failed` if the destination file already exists.
-
-        For example `header: cf-copy-destination-if-none-match: *`, would set
-        the header `cf-copy-destination-if-none-match` to `*`.
-
-    - `"header-with-status:<HEADER_NAME>:<HEADER_VALUE>:<STATUS>"`:
-
-        The same as the header variant above but allows custom status code checking, for
-        object stores that return values other than 412.
-
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
-
-        The name of a DynamoDB table to use for coordination.
-
-        The default timeout is used if not specified. This will use the same region,
-        credentials and endpoint as configured for S3.
-    """
-    AWS_DEFAULT_REGION: S3Regions | str
-    """Default region"""
-    AWS_DISABLE_TAGGING: bool
-    """Disable tagging objects. This can be desirable if not supported by the backing store."""
-    AWS_ENDPOINT_URL: str
-    """Sets custom endpoint for communicating with AWS S3."""
-    AWS_ENDPOINT: str
-    """Sets custom endpoint for communicating with AWS S3."""
-    AWS_IMDSV1_FALLBACK: bool
-    """Fall back to ImdsV1"""
-    AWS_METADATA_ENDPOINT: str
-    """Set the instance metadata endpoint"""
-    AWS_REGION: S3Regions | str
-    """Region"""
-    AWS_REQUEST_PAYER: bool
-    """If `True`, enable operations on requester-pays buckets."""
-    AWS_S3_EXPRESS: str
-    """Enable Support for S3 Express One Zone"""
-    AWS_SECRET_ACCESS_KEY: str
-    """Secret Access Key"""
-    AWS_SERVER_SIDE_ENCRYPTION: S3EncryptionAlgorithm | str
+    server_side_encryption: S3EncryptionAlgorithm | str
     """Type of encryption to use.
 
     If set, must be one of:
@@ -518,133 +264,74 @@ class S3ConfigInput(TypedDict, total=False):
     - `"aws:kms"` (SSE-KMS)
     - `"aws:kms:dsse"` (DSSE-KMS)
     - `"sse-c"`
+
+    **Environment variable**: `AWS_SERVER_SIDE_ENCRYPTION`.
     """
-    AWS_SESSION_TOKEN: str
-    """Token to use for requests (passed to underlying provider)"""
-    AWS_SKIP_SIGNATURE: bool
-    """If `True`, S3Store will not fetch credentials and will not sign requests."""
-    AWS_SSE_BUCKET_KEY_ENABLED: bool
+    session_token: str
+    """Token to use for requests (passed to underlying provider).
+
+    **Environment variables**:
+
+    - `AWS_SESSION_TOKEN`
+    - `AWS_TOKEN`
     """
-    If set to `True`, will use the bucket's default KMS key for server-side encryption.
-    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
+    skip_signature: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests.
+
+    This can be useful when interacting with public S3 buckets that deny authorized requests.
+
+    **Environment variable**: `AWS_SKIP_SIGNATURE`.
     """
-    AWS_SSE_CUSTOMER_KEY_BASE64: str
+    sse_bucket_key_enabled: bool
+    """Set whether to enable bucket key for server side encryption.
+
+    This overrides the bucket default setting for bucket keys.
+
+    - When `False`, each object is encrypted with a unique data key.
+    - When `True`, a single data key is used for the entire bucket,
+      reducing overhead of encryption.
+
+    **Environment variable**: `AWS_SSE_BUCKET_KEY_ENABLED`.
+    """
+    sse_customer_key_base64: str
     """
     The base64 encoded, 256-bit customer encryption key to use for server-side
     encryption. If set, the server side encryption config value must be `"sse-c"`.
+
+    **Environment variable**: `AWS_SSE_CUSTOMER_KEY_BASE64`.
     """
-    AWS_SSE_KMS_KEY_ID: str
+    sse_kms_key_id: str
     """
     The KMS key ID to use for server-side encryption.
 
-    If set, the server side encrypting config value must be `"aws:kms"` or `"aws:kms:dsse"`.
+    If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
+
+    **Environment variable**: `AWS_SSE_KMS_KEY_ID`.
     """
-    AWS_TOKEN: str
-    """Token to use for requests (passed to underlying provider)"""
-    AWS_UNSIGNED_PAYLOAD: bool
-    """Avoid computing payload checksum when calculating signature."""
-    AWS_VIRTUAL_HOSTED_STYLE_REQUEST: bool
-    """If virtual hosted style request has to be used."""
-    BUCKET_NAME: str
-    """Bucket name"""
-    BUCKET: str
-    """Bucket name"""
-    CHECKSUM_ALGORITHM: S3ChecksumAlgorithm | str
+    unsigned_payload: bool
+    """Avoid computing payload checksum when calculating signature.
+
+    See [unsigned payload option](https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html).
+
+    - `False` (default): Signed payload option is used, where the checksum for the request body is computed and included when constructing a canonical request.
+    - `True`: Unsigned payload option is used. `UNSIGNED-PAYLOAD` literal is included when constructing a canonical request,
+
+    **Environment variable**: `AWS_UNSIGNED_PAYLOAD`.
     """
-    Sets the [checksum algorithm] which has to be used for object integrity check during upload.
+    virtual_hosted_style_request: bool
+    """If virtual hosted style request has to be used.
 
-    [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+    If `virtual_hosted_style_request` is:
+
+    - `False` (default):  Path style request is used
+    - `True`:  Virtual hosted style request is used
+
+    If the `endpoint` is provided then it should be consistent with
+    `virtual_hosted_style_request`. i.e. if `virtual_hosted_style_request` is set to
+    `True` then `endpoint` should have bucket name included.
+
+    **Environment variable**: `AWS_VIRTUAL_HOSTED_STYLE_REQUEST`.
     """
-    CONDITIONAL_PUT: str
-    """Configure how to provide conditional put support
-
-    Supported values:
-
-    - `"etag"` (default): Supported for S3-compatible stores that support conditional
-        put using the standard [HTTP precondition] headers `If-Match` and
-        `If-None-Match`.
-
-        [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
-
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
-
-        This will use the same region, credentials and endpoint as configured for S3.
-    """
-    COPY_IF_NOT_EXISTS: Literal["multipart"] | str
-    """Configure how to provide "copy if not exists".
-
-    Supported values:
-
-    - `"multipart"`:
-
-        Native Amazon S3 supports copy if not exists through a multipart upload
-        where the upload copies an existing object and is completed only if the
-        new object does not already exist.
-
-        !!! warning
-            When using this mode, `copy_if_not_exists` does not copy tags
-            or attributes from the source object.
-
-        !!! warning
-            When using this mode, `copy_if_not_exists` makes only a best
-            effort attempt to clean up the multipart upload if the copy operation
-            fails. Consider using a lifecycle rule to automatically clean up
-            abandoned multipart uploads.
-
-    - `"header:<HEADER_NAME>:<HEADER_VALUE>"`:
-
-        Some S3-compatible stores, such as Cloudflare R2, support copy if not exists
-        semantics through custom headers.
-
-        If set, `copy_if_not_exists` will perform a normal copy operation with the
-        provided header pair, and expect the store to fail with `412 Precondition
-        Failed` if the destination file already exists.
-
-        For example `header: cf-copy-destination-if-none-match: *`, would set
-        the header `cf-copy-destination-if-none-match` to `*`.
-
-    - `"header-with-status:<HEADER_NAME>:<HEADER_VALUE>:<STATUS>"`:
-
-        The same as the header variant above but allows custom status code checking, for
-        object stores that return values other than 412.
-
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
-
-        The name of a DynamoDB table to use for coordination.
-
-        The default timeout is used if not specified. This will use the same region,
-        credentials and endpoint as configured for S3.
-    """
-    DEFAULT_REGION: S3Regions | str
-    """Default region"""
-    DISABLE_TAGGING: bool
-    """Disable tagging objects. This can be desirable if not supported by the backing store."""
-    ENDPOINT_URL: str
-    """Sets custom endpoint for communicating with AWS S3."""
-    ENDPOINT: str
-    """Sets custom endpoint for communicating with AWS S3."""
-    IMDSV1_FALLBACK: bool
-    """Fall back to ImdsV1"""
-    METADATA_ENDPOINT: str
-    """Set the instance metadata endpoint"""
-    REGION: S3Regions | str
-    """Region"""
-    REQUEST_PAYER: bool
-    """If `True`, enable operations on requester-pays buckets."""
-    S3_EXPRESS: str
-    """Enable Support for S3 Express One Zone"""
-    SECRET_ACCESS_KEY: str
-    """Secret Access Key"""
-    SESSION_TOKEN: str
-    """Token to use for requests (passed to underlying provider)"""
-    SKIP_SIGNATURE: bool
-    """If `True`, S3Store will not fetch credentials and will not sign requests."""
-    TOKEN: str
-    """Token to use for requests (passed to underlying provider)"""
-    UNSIGNED_PAYLOAD: bool
-    """Avoid computing payload checksum when calculating signature."""
-    VIRTUAL_HOSTED_STYLE_REQUEST: bool
-    """If virtual hosted style request has to be used."""
 
 class S3Credential(TypedDict):
     """An S3 credential.
@@ -760,20 +447,8 @@ class S3CredentialProvider(Protocol):
 class S3Store:
     """Interface to an Amazon S3 bucket.
 
-    All constructors will check for environment variables. All environment variables
-    starting with `AWS_` will be evaluated. Names must match keys from
-    [`S3ConfigInput`][obstore.store.S3ConfigInput]. Only upper-case environment
-    variables are accepted.
-
-    Some examples of variables extracted from environment:
-
-    - `AWS_ACCESS_KEY_ID` -> access_key_id
-    - `AWS_SECRET_ACCESS_KEY` -> secret_access_key
-    - `AWS_DEFAULT_REGION` -> region
-    - `AWS_ENDPOINT` -> endpoint
-    - `AWS_SESSION_TOKEN` -> token
-    - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
-    - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
+    All constructors will check for environment variables. Refer to
+    [`S3Config`][obstore.store.S3Config] for valid environment variables.
 
     **Examples**:
 
@@ -793,11 +468,11 @@ class S3Store:
         bucket: str | None = None,
         *,
         prefix: str | None = None,
-        config: S3Config | S3ConfigInput | None = None,
+        config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: S3CredentialProvider | None = None,
-        **kwargs: Unpack[S3ConfigInput],
+        **kwargs: Unpack[S3Config],  # type: ignore[GeneralTypeIssues] (bucket key overlaps with positional arg)
     ) -> None:
         """Create a new S3Store.
 
@@ -821,11 +496,11 @@ class S3Store:
         cls,
         url: str,
         *,
-        config: S3Config | S3ConfigInput | None = None,
+        config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: S3CredentialProvider | None = None,
-        **kwargs: Unpack[S3ConfigInput],
+        **kwargs: Unpack[S3Config],
     ) -> S3Store:
         """Parse available connection info from a well-known storage URL.
 

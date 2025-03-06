@@ -114,18 +114,18 @@ import fsspec
 from obstore.fsspec import register
 
 if TYPE_CHECKING:
-    from obstore.store import S3ConfigInput
+    from obstore.store import S3Config
 
 register("s3")
 
-config: S3ConfigInput = {"region": "us-west-2", "skip_signature": True}
+config: S3Config = {"region": "us-west-2", "skip_signature": True}
 fs = fsspec.filesystem("s3", config=config)
 ```
 
-Then your type checker will validate that the `config` dictionary is compatible with [`S3ConfigInput`][obstore.store.S3ConfigInput]. VSCode also provides auto suggestions for parameters:
+Then your type checker will validate that the `config` dictionary is compatible with [`S3Config`][obstore.store.S3Config]. VSCode also provides auto suggestions for parameters:
 
-![](./assets/fsspec-type-hinting.jpg)
+![](./assets/fsspec-type-hinting.png)
 
 !!! note
 
-    `S3ConfigInput` is a "type-only" construct, and so it needs to be imported from within an `if TYPE_CHECKING` block. Additionally, `from __future__ import annotations` must be at the top of the file.
+    `S3Config` is a "type-only" construct, and so it needs to be imported from within an `if TYPE_CHECKING` block. Additionally, `from __future__ import annotations` must be at the top of the file.
