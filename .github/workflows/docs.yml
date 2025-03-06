@@ -16,6 +16,10 @@ jobs:
   build:
     name: Deploy Python docs
     runs-on: ubuntu-latest
+    # Used for configuring social plugin in mkdocs.yml
+    # Unclear if this is always set in github actions
+    env:
+      CI: "TRUE"
     steps:
       - uses: actions/checkout@v4
         # We need to additionally fetch the gh-pages branch for mike deploy
