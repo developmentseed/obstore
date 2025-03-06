@@ -176,21 +176,24 @@ def test_split_path(fs: FsspecStore):
     assert fs._split_path("mybucket/path/to/file") == ("mybucket", "path/to/file")
     assert fs._split_path("data-bucket/") == ("data-bucket", "")
 
-    # url format, wrong porotocol
-    with pytest.raises(ValueError, match="Expect protocol to be s3. Got gs"):
+    # url format, wrong protocol
+    with pytest.raises(ValueError, match="Expected protocol to be s3. Got gs"):
         fs._split_path("gs://data-bucket/")
 
     # in url format, without bucket
-    fs._protocol = "file"
-    assert fs._split_path("file:///mybucket/path/to/file") == (
+    file_fs = FsspecStore("file")
+    assert file_fs._split_path("file:///mybucket/path/to/file") == (
         "",
         "/mybucket/path/to/file",
     )
-    assert fs._split_path("file:///data-bucket/") == ("", "/data-bucket/")
+    assert file_fs._split_path("file:///data-bucket/") == ("", "/data-bucket/")
 
     # path format, without bucket
-    assert fs._split_path("/mybucket/path/to/file") == ("", "/mybucket/path/to/file")
-    assert fs._split_path("/data-bucket/") == ("", "/data-bucket/")
+    assert file_fs._split_path("/mybucket/path/to/file") == (
+        "",
+        "/mybucket/path/to/file",
+    )
+    assert file_fs._split_path("/data-bucket/") == ("", "/data-bucket/")
 
 
 def test_list(fs: FsspecStore):

@@ -207,14 +207,16 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         ```
 
         """
-        if protocol is None:
-            self._protocol = self.protocol
-        else:
-            self._protocol = protocol
+        # TODO: support multiple protocols as input
+        # We need to assign to self.protocol so that other libraries can see that this
+        # is a concrete implementation. E.g. `duckdb.register_filesystem` fails when
+        # `self.protocol` is the default `"abstract"`.
+        if protocol is not None:
+            self.protocol = protocol  # type: ignore (incorrect typing as ClassVar)
 
-        if self._protocol not in SUPPORTED_PROTOCOLS:
+        if self.protocol not in SUPPORTED_PROTOCOLS:
             warnings.warn(
-                f"Unknown protocol: {self._protocol}; requests may fail.",
+                f"Unknown protocol: {self.protocol}; requests may fail.",
                 stacklevel=2,
             )
 
@@ -253,16 +255,26 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         parsed = urlparse(path)
 
         # If the protocol doesn't require buckets, return empty bucket and full path
-        if self._protocol in protocol_without_bucket:
+        if self.protocol in protocol_without_bucket:
             return (
                 "",
                 f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path,
             )
 
         if parsed.scheme:
-            if parsed.scheme != self._protocol:
-                err_msg = f"Expect protocol to be {self._protocol}. Got {parsed.scheme}"
+            if isinstance(self.protocol, str) and parsed.scheme != self.protocol:
+                err_msg = (
+                    f"Expected protocol to be {self.protocol}. Got {parsed.scheme}"
+                )
                 raise ValueError(err_msg)
+
+            if parsed.scheme not in self.protocol:
+                err_msg = (
+                    f"Expected protocol to be one of {self.protocol}. "
+                    f"Got {parsed.scheme}"
+                )
+                raise ValueError(err_msg)
+
             return (parsed.netloc, parsed.path.lstrip("/"))
 
         # path not in url format
@@ -273,8 +285,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         return (path_li[0], path_li[1])
 
     def _construct_store(self, bucket: str) -> ObjectStore:
+        protocol = self.protocol if isinstance(self.protocol, str) else self.protocol[0]
         return from_url(
-            url=f"{self._protocol}://{bucket}",
+            url=f"{protocol}://{bucket}",
             config=self.config,
             client_options=self.client_options,
             retry_config=self.retry_config,
@@ -485,7 +498,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _ls(
         self,
         path: str,
-        detail: bool = True,
+        # This is a change from the base class, but it seems like every fsspec
+        # implementation overrides this 🤷‍♂️
+        # E.g. https://github.com/fsspec/s3fs/issues/945
+        detail: bool = False,
         **_kwargs: Any,
     ) -> list[dict[str, Any]] | list[str]:
         bucket, path = self._split_path(path)
