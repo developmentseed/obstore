@@ -16,9 +16,18 @@
 
 ### Breaking changes :wrench:
 
+#### Object store methods
+
+No breaking changes.
+
+#### Store constructors
+
 - Removed `S3Store.from_session` and `S3Store._from_native`. Use credential providers instead.
-- Rename `AsyncFsspecStore` to `FsspecStore` by @kylebarron in https://github.com/developmentseed/obstore/pull/297
 - Reduce the config variations supported for input. I.e. we previously allowed `region`, `aws_region`, `REGION` or `AWS_REGION` as a config parameter to `S3Store`, which could make it confusing. We now only support a single config input value for each underlying concept. https://github.com/developmentseed/obstore/pull/323
+
+#### Fsspec
+
+- Rename `AsyncFsspecStore` to `FsspecStore` by @kylebarron in https://github.com/developmentseed/obstore/pull/297
 
 ### Bug fixes :bug:
 
