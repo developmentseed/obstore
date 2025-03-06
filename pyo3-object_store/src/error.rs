@@ -143,7 +143,7 @@ impl From<PyObjectStoreError> for PyErr {
                 object_store::Error::UnknownConfigurationKey { store: _, key: _ } => {
                     UnknownConfigurationKeyError::new_err(print_with_debug(err))
                 }
-                _ => GenericError::new_err(err.to_string()),
+                _ => GenericError::new_err(print_with_debug(err)),
             },
             PyObjectStoreError::IOError(err) => PyIOError::new_err(err),
         }
