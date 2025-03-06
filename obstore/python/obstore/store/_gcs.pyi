@@ -6,10 +6,7 @@ from ._client import ClientConfig
 from ._retry import RetryConfig
 
 class GCSConfig(TypedDict, total=False):
-    """Configuration parameters returned from [GCSStore.config][obstore.store.GCSStore.config].
-
-    Note that this is a strict subset of the keys allowed for _input_ into the store,
-    see [GCSConfigInput][obstore.store.GCSConfigInput].
+    """Configuration parameters for GCSStore.
 
     !!! warning "Not importable at runtime"
 
@@ -23,87 +20,20 @@ class GCSConfig(TypedDict, total=False):
         ```
     """
 
-    google_service_account: str
+    service_account: str
     """Path to the service account file."""
 
-    google_service_account_key: str
+    service_account_key: str
     """The serialized service account key"""
 
-    google_bucket: str
+    bucket: str
     """Bucket name."""
 
-    google_application_credentials: str
+    application_credentials: str
     """Application credentials path.
 
     See <https://cloud.google.com/docs/authentication/provide-credentials-adc>.
     """
-
-# Note: we removed `bucket` because it overlaps with an existing named arg in the
-# constructors
-class GCSConfigInput(TypedDict, total=False):
-    """Configuration parameters for GCSStore.
-
-    There are duplicates of many parameters, and parameters can be either upper or lower
-    case. Not all parameters are required.
-
-    !!! warning "Not importable at runtime"
-
-        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
-
-        ```py
-        from __future__ import annotations
-        from typing import TYPE_CHECKING
-        if TYPE_CHECKING:
-            from obstore.store import GCSConfigInput
-        ```
-    """
-
-    bucket_name: str
-    """Bucket name."""
-    google_application_credentials: str
-    """Application credentials path.
-
-    See <https://cloud.google.com/docs/authentication/provide-credentials-adc>."""
-    google_bucket_name: str
-    """Bucket name."""
-    google_bucket: str
-    """Bucket name."""
-    google_service_account_key: str
-    """The serialized service account key"""
-    google_service_account_path: str
-    """Path to the service account file."""
-    google_service_account: str
-    """Path to the service account file."""
-    service_account_key: str
-    """The serialized service account key"""
-    service_account_path: str
-    """Path to the service account file."""
-    service_account: str
-    """Path to the service account file."""
-    BUCKET_NAME: str
-    """Bucket name."""
-    BUCKET: str
-    """Bucket name."""
-    GOOGLE_APPLICATION_CREDENTIALS: str
-    """Application credentials path.
-
-    See <https://cloud.google.com/docs/authentication/provide-credentials-adc>."""
-    GOOGLE_BUCKET_NAME: str
-    """Bucket name."""
-    GOOGLE_BUCKET: str
-    """Bucket name."""
-    GOOGLE_SERVICE_ACCOUNT_KEY: str
-    """The serialized service account key"""
-    GOOGLE_SERVICE_ACCOUNT_PATH: str
-    """Path to the service account file."""
-    GOOGLE_SERVICE_ACCOUNT: str
-    """Path to the service account file."""
-    SERVICE_ACCOUNT_KEY: str
-    """The serialized service account key"""
-    SERVICE_ACCOUNT_PATH: str
-    """Path to the service account file."""
-    SERVICE_ACCOUNT: str
-    """Path to the service account file."""
 
 class GCSCredential(TypedDict):
     """A Google Cloud Storage Credential.
@@ -177,11 +107,11 @@ class GCSStore:
         bucket: str | None = None,
         *,
         prefix: str | None = None,
-        config: GCSConfig | GCSConfigInput | None = None,
+        config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: GCSCredentialProvider | None = None,
-        **kwargs: Unpack[GCSConfigInput],
+        **kwargs: Unpack[GCSConfig],  # type: ignore[GeneralTypeIssues] (bucket key overlaps with positional arg)
     ) -> None:
         """Construct a new GCSStore.
 
@@ -207,11 +137,11 @@ class GCSStore:
         url: str,
         *,
         prefix: str | None = None,
-        config: GCSConfig | GCSConfigInput | None = None,
+        config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: GCSCredentialProvider | None = None,
-        **kwargs: Unpack[GCSConfigInput],
+        **kwargs: Unpack[GCSConfig],
     ) -> GCSStore:
         """Construct a new GCSStore with values populated from a well-known storage URL.
 

@@ -214,7 +214,12 @@ impl<'py> IntoPyObject<'py> for PyGoogleConfigKey {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(PyString::new(py, self.0.as_ref()))
+        let s = self
+            .0
+            .as_ref()
+            .strip_prefix("google_")
+            .expect("Expected config prefix to start with google_");
+        Ok(PyString::new(py, s))
     }
 }
 

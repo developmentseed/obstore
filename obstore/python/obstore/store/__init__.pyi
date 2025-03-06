@@ -4,21 +4,18 @@ from pathlib import Path
 from typing import Any, TypeAlias, Unpack, overload
 
 from ._aws import S3Config as S3Config
-from ._aws import S3ConfigInput as S3ConfigInput
 from ._aws import S3Credential as S3Credential
 from ._aws import S3CredentialProvider as S3CredentialProvider
 from ._aws import S3Store as S3Store
 from ._azure import AzureAccessKey as AzureAccessKey
 from ._azure import AzureBearerToken as AzureBearerToken
 from ._azure import AzureConfig as AzureConfig
-from ._azure import AzureConfigInput as AzureConfigInput
 from ._azure import AzureCredential as AzureCredential
 from ._azure import AzureCredentialProvider as AzureCredentialProvider
 from ._azure import AzureSASToken as AzureSASToken
 from ._azure import AzureStore as AzureStore
 from ._client import ClientConfig as ClientConfig
 from ._gcs import GCSConfig as GCSConfig
-from ._gcs import GCSConfigInput as GCSConfigInput
 from ._gcs import GCSCredential as GCSCredential
 from ._gcs import GCSCredentialProvider as GCSCredentialProvider
 from ._gcs import GCSStore as GCSStore
@@ -30,31 +27,31 @@ from ._retry import RetryConfig as RetryConfig
 def from_url(
     url: str,
     *,
-    config: S3Config | S3ConfigInput | None = None,
+    config: S3Config | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: S3CredentialProvider | None = None,
-    **kwargs: Unpack[S3ConfigInput],
+    **kwargs: Unpack[S3Config],
 ) -> ObjectStore: ...
 @overload
 def from_url(
     url: str,
     *,
-    config: GCSConfig | GCSConfigInput | None = None,
+    config: GCSConfig | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: GCSCredentialProvider | None = None,
-    **kwargs: Unpack[GCSConfigInput],
+    **kwargs: Unpack[GCSConfig],
 ) -> ObjectStore: ...
 @overload
 def from_url(
     url: str,
     *,
-    config: AzureConfig | AzureConfigInput | None = None,
+    config: AzureConfig | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: AzureCredentialProvider | None = None,
-    **kwargs: Unpack[AzureConfigInput],
+    **kwargs: Unpack[AzureConfig],
 ) -> ObjectStore: ...
 @overload
 def from_url(
@@ -69,7 +66,7 @@ def from_url(
 def from_url(
     url: str,
     *,
-    config: S3ConfigInput | GCSConfigInput | AzureConfigInput | None = None,
+    config: S3Config | GCSConfig | AzureConfig | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: Callable | None = None,

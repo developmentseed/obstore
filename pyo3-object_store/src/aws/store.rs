@@ -221,7 +221,12 @@ impl<'py> IntoPyObject<'py> for PyAmazonS3ConfigKey {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        Ok(PyString::new(py, self.0.as_ref()))
+        let s = self
+            .0
+            .as_ref()
+            .strip_prefix("aws_")
+            .expect("Expected config prefix to start with aws_");
+        Ok(PyString::new(py, s))
     }
 }
 
