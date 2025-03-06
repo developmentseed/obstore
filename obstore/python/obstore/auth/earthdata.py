@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from obstore.store import S3ConfigInput, S3Credential
+    from obstore.store import S3Config, S3Credential
 
 CREDENTIALS_API = "https://archive.podaac.earthdata.nasa.gov/s3credentials"
 
@@ -42,7 +42,7 @@ class NasaEarthdataCredentialProvider:
     [NASA Earthdata]: https://www.earthdata.nasa.gov/
     """  # noqa: E501
 
-    config: S3ConfigInput
+    config: S3Config
 
     def __init__(
         self,
@@ -118,7 +118,7 @@ class NasaEarthdataAsyncCredentialProvider:
     [NASA Earthdata]: https://www.earthdata.nasa.gov/
     """  # noqa: E501
 
-    config: S3ConfigInput
+    config: S3Config
 
     def __init__(
         self,

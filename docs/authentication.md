@@ -25,7 +25,7 @@ Note that many authentication variants are already supported natively.
 
 - Basic authentication, where an access key ID, secret access key, and optionally token are passed in via environment variables or configuration parameters.
 - [WebIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRoleWithWebIdentity.html). This requires the `AWS_WEB_IDENTITY_TOKEN_FILE` and `AWS_ROLE_ARN` environment variables to be set. Additionally, `AWS_ROLE_SESSION_NAME` can be set to specify a session name.
-- [Container credentials](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html). Ensure you pass [`aws_container_credentials_relative_uri`][obstore.store.S3ConfigInput.aws_container_credentials_relative_uri] to the `S3Store`.
+- [Container credentials](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html). Ensure you pass [`container_credentials_relative_uri`][obstore.store.S3Config.container_credentials_relative_uri] to the `S3Store`.
 - [Instance credentials](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html).
 
 (A transcription of [this underlying code](https://github.com/apache/arrow-rs/blob/a00f9f43a0530b9255e4f9940e43121deedb0cc7/object_store/src/aws/builder.rs#L900-L970)).
@@ -44,7 +44,7 @@ Note that many authentication variants are already supported natively.
 - Workload identity OAuth2, using a `client_id`, `tenant_id`, and `federated_token_file` passed in by the user
 - OAuth2, using a `client_id`, `client_secret`, and `tenant_id` passed in by the user
 - A SAS key passed in by the user.
-- Azure CLI. (If you want to ensure the IMDS authentication is used below, pass [`use_azure_cli=False`][obstore.store.AzureConfigInput.use_azure_cli] to `AzureStore`.)
+- Azure CLI. (If you want to ensure the IMDS authentication is used below, pass [`use_azure_cli=False`][obstore.store.AzureConfig.use_azure_cli] to `AzureStore`.)
 - IMDS Managed Identity Provider.
 
 (A transcription of [this underlying code](https://github.com/apache/arrow-rs/blob/a00f9f43a0530b9255e4f9940e43121deedb0cc7/object_store/src/azure/builder.rs#L942-L1019)).

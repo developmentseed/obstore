@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import boto3
@@ -10,7 +12,7 @@ from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 from obstore.store import S3Store
 
 if TYPE_CHECKING:
-    from obstore.store import S3ConfigInput
+    from obstore.store import S3Config
 
 TEST_BUCKET_NAME = "test"
 
@@ -49,17 +51,17 @@ def s3(moto_server_uri: str):
 def s3_store(s3: str):
     return S3Store.from_url(
         f"s3://{TEST_BUCKET_NAME}/",
-        aws_endpoint_url=s3,
-        aws_region="us-east-1",
-        aws_skip_signature=True,
+        endpoint=s3,
+        region="us-east-1",
+        skip_signature=True,
         client_options={"allow_http": True},
     )
 
 
 @pytest.fixture
-def s3_store_config(s3: str) -> "S3ConfigInput":
+def s3_store_config(s3: str) -> S3Config:
     return {
-        "AWS_ENDPOINT_URL": s3,
-        "AWS_REGION": "us-east-1",
-        "AWS_SKIP_SIGNATURE": True,
+        "endpoint": s3,
+        "region": "us-east-1",
+        "skip_signature": True,
     }
