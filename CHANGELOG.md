@@ -10,7 +10,6 @@
   - [FEAT] support df.to_parquet and df.read_parquet() by @machichima in https://github.com/developmentseed/obstore/pull/165
   - Document fsspec integration in user guide by @kylebarron in https://github.com/developmentseed/obstore/pull/299
   - fsspec: Allow calling `register` with no arguments by @kylebarron in https://github.com/developmentseed/obstore/pull/298
-- Default to checking Azure CLI authentication by @kylebarron in https://github.com/developmentseed/obstore/pull/292
 - Enable pickling Bytes by @kylebarron in https://github.com/developmentseed/obstore/pull/295
 - Add AWS literal type hints by @kylebarron in https://github.com/developmentseed/obstore/pull/301
 - pyo3-bytes slicing by @jessekrubin in https://github.com/developmentseed/obstore/pull/249
@@ -19,6 +18,7 @@
 
 - Removed `S3Store.from_session` and `S3Store._from_native`. Use credential providers instead.
 - Rename `AsyncFsspecStore` to `FsspecStore` by @kylebarron in https://github.com/developmentseed/obstore/pull/297
+- Reduce the config variations supported for input. I.e. we previously allowed `region`, `aws_region`, `REGION` or `AWS_REGION` as a config parameter to `S3Store`, which could make it confusing. We now only support a single config input value for each underlying concept. https://github.com/developmentseed/obstore/pull/323
 
 ### Bug fixes :bug:
 

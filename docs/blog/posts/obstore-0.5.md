@@ -99,12 +99,6 @@ Here are two examples from vscode:
 ![](../../assets/aws_type_hint1.png){: style="height:300px"}
 ![](../../assets/aws_type_hint2.png){: style="height:200px"}
 
-## Check Azure CLI authentication by default
-
-When creating an [`AzureStore`][obstore.store.AzureStore], we now default to checking Azure CLI authentication as a fallback method. This makes it easier to use obstore on development machines.
-
-This doesn't change behavior when explicitly passing credentials into `AzureStore`.
-
 ## Benchmarking
 
 We've continued work on [benchmarking obstore](https://github.com/geospatial-jeff/pyasyncio-benchmark).
