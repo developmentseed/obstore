@@ -21,18 +21,51 @@ class GCSConfig(TypedDict, total=False):
     """
 
     service_account: str
-    """Path to the service account file."""
+    """Path to the service account file.
+
+    This or `service_account_key` must be set.
+
+    Example value `"/tmp/gcs.json"`. Example contents of `gcs.json`:
+
+    ```json
+    {
+       "gcs_base_url": "https://localhost:4443",
+       "disable_oauth": true,
+       "client_email": "",
+       "private_key": ""
+    }
+    ```
+
+    **Environment variables**:
+
+    - `GOOGLE_SERVICE_ACCOUNT`
+    - `GOOGLE_SERVICE_ACCOUNT_PATH`
+    """
 
     service_account_key: str
-    """The serialized service account key"""
+    """The serialized service account key.
+
+    The service account must be in the JSON format. This or `with_service_account_path`
+    must be set.
+
+    **Environment variable**: `GOOGLE_SERVICE_ACCOUNT_KEY`.
+    """
 
     bucket: str
-    """Bucket name."""
+    """Bucket name. (required)
+
+    **Environment variables**:
+
+    - `GOOGLE_BUCKET`
+    - `GOOGLE_BUCKET_NAME`
+    """
 
     application_credentials: str
     """Application credentials path.
 
     See <https://cloud.google.com/docs/authentication/provide-credentials-adc>.
+
+    **Environment variable**: `GOOGLE_APPLICATION_CREDENTIALS`.
     """
 
 class GCSCredential(TypedDict):
@@ -83,19 +116,8 @@ class GCSCredentialProvider(Protocol):
 class GCSStore:
     """Interface to Google Cloud Storage.
 
-    All constructors will check for environment variables. All environment variables
-    starting with `GOOGLE_` will be evaluated. Names must match keys from
-    [`GCSConfig`][obstore.store.GCSConfig]. Only upper-case environment variables are
-    accepted.
-
-    Some examples of variables extracted from environment:
-
-    - `GOOGLE_SERVICE_ACCOUNT`: location of service account file
-    - `GOOGLE_SERVICE_ACCOUNT_PATH`: (alias) location of service account file
-    - `SERVICE_ACCOUNT`: (alias) location of service account file
-    - `GOOGLE_SERVICE_ACCOUNT_KEY`: JSON serialized service account key
-    - `GOOGLE_BUCKET`: bucket name
-    - `GOOGLE_BUCKET_NAME`: (alias) bucket name
+    All constructors will check for environment variables. Refer to
+    [`GCSConfig`][obstore.store.GCSConfig] for valid environment variables.
 
     If no credentials are explicitly provided, they will be sourced from the environment
     as documented
