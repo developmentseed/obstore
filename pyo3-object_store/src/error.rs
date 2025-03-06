@@ -103,53 +103,57 @@ pub enum PyObjectStoreError {
 
 impl From<PyObjectStoreError> for PyErr {
     fn from(error: PyObjectStoreError) -> Self {
-        // #? gives "pretty-printing" in the errors
-        // https://doc.rust-lang.org/std/fmt/trait.Debug.html
         match error {
             PyObjectStoreError::PyErr(err) => err,
             PyObjectStoreError::ObjectStoreError(ref err) => match err {
                 object_store::Error::Generic {
                     store: _,
                     source: _,
-                } => GenericError::new_err(err.to_string()),
+                } => GenericError::new_err(print_with_debug(err)),
                 object_store::Error::NotFound { path: _, source: _ } => {
-                    PyFileNotFoundError::new_err(format!("{err:#?}"))
+                    PyFileNotFoundError::new_err(print_with_debug(err))
                 }
                 object_store::Error::InvalidPath { source: _ } => {
-                    InvalidPathError::new_err(format!("{err:#?}"))
+                    InvalidPathError::new_err(print_with_debug(err))
                 }
                 object_store::Error::JoinError { source: _ } => {
-                    JoinError::new_err(format!("{err:#?}"))
+                    JoinError::new_err(print_with_debug(err))
                 }
                 object_store::Error::NotSupported { source: _ } => {
-                    NotSupportedError::new_err(format!("{err:#?}"))
+                    NotSupportedError::new_err(print_with_debug(err))
                 }
                 object_store::Error::AlreadyExists { path: _, source: _ } => {
-                    AlreadyExistsError::new_err(format!("{err:#?}"))
+                    AlreadyExistsError::new_err(print_with_debug(err))
                 }
                 object_store::Error::Precondition { path: _, source: _ } => {
-                    PreconditionError::new_err(format!("{err:#?}"))
+                    PreconditionError::new_err(print_with_debug(err))
                 }
                 object_store::Error::NotModified { path: _, source: _ } => {
-                    NotModifiedError::new_err(format!("{err:#?}"))
+                    NotModifiedError::new_err(print_with_debug(err))
                 }
                 object_store::Error::NotImplemented => {
-                    PyNotImplementedError::new_err(format!("{err:#?}"))
+                    PyNotImplementedError::new_err(print_with_debug(err))
                 }
                 object_store::Error::PermissionDenied { path: _, source: _ } => {
-                    PermissionDeniedError::new_err(format!("{err:#?}"))
+                    PermissionDeniedError::new_err(print_with_debug(err))
                 }
                 object_store::Error::Unauthenticated { path: _, source: _ } => {
-                    UnauthenticatedError::new_err(format!("{err:#?}"))
+                    UnauthenticatedError::new_err(print_with_debug(err))
                 }
                 object_store::Error::UnknownConfigurationKey { store: _, key: _ } => {
-                    UnknownConfigurationKeyError::new_err(format!("{err:#?}"))
+                    UnknownConfigurationKeyError::new_err(print_with_debug(err))
                 }
                 _ => GenericError::new_err(err.to_string()),
             },
-            PyObjectStoreError::IOError(err) => PyIOError::new_err(format!("{err:#?}")),
+            PyObjectStoreError::IOError(err) => PyIOError::new_err(err),
         }
     }
+}
+
+fn print_with_debug(err: &object_store::Error) -> String {
+    // #? gives "pretty-printing" for debug
+    // https://doc.rust-lang.org/std/fmt/trait.Debug.html
+    format!("{err}\n\nDebug source:\n{err:#?}")
 }
 
 impl<'a, 'py> From<DowncastError<'a, 'py>> for PyObjectStoreError {
