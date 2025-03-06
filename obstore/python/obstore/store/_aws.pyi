@@ -83,14 +83,25 @@ class S3Config(TypedDict, total=False):
     """
 
     access_key_id: str
-    """AWS Access Key"""
+    """AWS Access Key.
+
+    **Environment variable**: `AWS_ACCESS_KEY_ID`.
+    """
     bucket: str
-    """Bucket name"""
+    """Bucket name (required).
+
+    **Environment variables**:
+
+    - `AWS_BUCKET`
+    - `AWS_BUCKET_NAME`
+    """
     checksum_algorithm: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
 
     [checksum algorithm]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html
+
+    **Environment variable**: `AWS_CHECKSUM_ALGORITHM`.
     """
     conditional_put: str
     """Configure how to provide conditional put support
@@ -106,11 +117,15 @@ class S3Config(TypedDict, total=False):
     - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
 
         This will use the same region, credentials and endpoint as configured for S3.
+
+    **Environment variable**: `AWS_CONDITIONAL_PUT`.
     """
     container_credentials_relative_uri: str
     """Set the container credentials relative URI
 
     <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
+
+    **Environment variable**: `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`.
     """
     copy_if_not_exists: Literal["multipart"] | str
     """Configure how to provide "copy if not exists".
@@ -156,25 +171,90 @@ class S3Config(TypedDict, total=False):
 
         The default timeout is used if not specified. This will use the same region,
         credentials and endpoint as configured for S3.
+
+    **Environment variable**: `AWS_COPY_IF_NOT_EXISTS`.
     """
     default_region: S3Regions | str
-    """Default region"""
+    """Default region.
+
+    **Environment variable**: `AWS_DEFAULT_REGION`.
+    """
     disable_tagging: bool
-    """Disable tagging objects. This can be desirable if not supported by the backing store."""
+    """Disable tagging objects. This can be desirable if not supported by the backing store.
+
+    **Environment variable**: `AWS_DISABLE_TAGGING`.
+    """
     endpoint: str
-    """Sets custom endpoint for communicating with AWS S3."""
+    """The endpoint for communicating with AWS S3.
+
+    Defaults to the [region endpoint].
+
+    For example, this might be set to `"http://localhost:4566:` for testing against a
+    localstack instance.
+
+    The `endpoint` field should be consistent with `with_virtual_hosted_style_request`,
+    i.e. if `virtual_hosted_style_request` is set to `True` then `endpoint` should have
+    the bucket name included.
+
+    By default, only HTTPS schemes are enabled. To connect to an HTTP endpoint, enable
+    `allow_http` in the client options.
+
+    [region endpoint]: https://docs.aws.amazon.com/general/latest/gr/s3.html
+
+    **Environment variables**:
+
+    - `AWS_ENDPOINT_URL`
+    - `AWS_ENDPOINT`
+    """
     imdsv1_fallback: bool
-    """Fall back to ImdsV1"""
+    """Fall back to ImdsV1.
+
+    By default instance credentials will only be fetched over [IMDSv2], as AWS
+    recommends against having IMDSv1 enabled on EC2 instances as it is vulnerable to
+    [SSRF attack]
+
+    However, certain deployment environments, such as those running old versions of
+    kube2iam, may not support IMDSv2. This option will enable automatic fallback to
+    using IMDSv1 if the token endpoint returns a 403 error indicating that IMDSv2 is not
+    supported.
+
+    This option has no effect if not using instance credentials.
+
+    [IMDSv2]: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html
+    [SSRF attack]: https://aws.amazon.com/blogs/security/defense-in-depth-open-firewalls-reverse-proxies-ssrf-vulnerabilities-ec2-instance-metadata-service/
+
+    **Environment variable**: `AWS_IMDSV1_FALLBACK`.
+    """
     metadata_endpoint: str
-    """Set the instance metadata endpoint"""
+    """Set the [instance metadata endpoint], used primarily within AWS EC2.
+
+    This defaults to the IPv4 endpoint: `http://169.254.169.254`. One can alternatively
+    use the IPv6 endpoint `http://fd00:ec2::254`.
+
+    **Environment variable**: `AWS_METADATA_ENDPOINT`.
+    """
     region: S3Regions | str
-    """Region"""
+    """The region, defaults to `us-east-1`
+
+    **Environment variable**: `AWS_REGION`.
+    """
     request_payer: bool
-    """If `True`, enable operations on requester-pays buckets."""
+    """If `True`, enable operations on requester-pays buckets.
+
+    <https://docs.aws.amazon.com/AmazonS3/latest/userguide/RequesterPaysBuckets.html>
+
+    **Environment variable**: `AWS_REQUEST_PAYER`.
+    """
     s3_express: bool
-    """Enable Support for S3 Express One Zone"""
+    """Enable Support for S3 Express One Zone.
+
+    **Environment variable**: `AWS_S3_EXPRESS`.
+    """
     secret_access_key: str
-    """Secret Access Key"""
+    """Secret Access Key.
+
+    **Environment variable**: `AWS_SECRET_ACCESS_KEY`.
+    """
     server_side_encryption: S3EncryptionAlgorithm | str
     """Type of encryption to use.
 
@@ -184,31 +264,74 @@ class S3Config(TypedDict, total=False):
     - `"aws:kms"` (SSE-KMS)
     - `"aws:kms:dsse"` (DSSE-KMS)
     - `"sse-c"`
+
+    **Environment variable**: `AWS_SERVER_SIDE_ENCRYPTION`.
     """
     session_token: str
-    """Token to use for requests (passed to underlying provider)"""
-    skip_signature: bool
-    """If `True`, S3Store will not fetch credentials and will not sign requests."""
-    sse_bucket_key_enabled: bool
+    """Token to use for requests (passed to underlying provider).
+
+    **Environment variables**:
+
+    - `AWS_SESSION_TOKEN`
+    - `AWS_TOKEN`
     """
-    If set to `True`, will use the bucket's default KMS key for server-side encryption.
-    If set to `False`, will disable the use of the bucket's default KMS key for server-side encryption.
+    skip_signature: bool
+    """If `True`, S3Store will not fetch credentials and will not sign requests.
+
+    This can be useful when interacting with public S3 buckets that deny authorized requests.
+
+    **Environment variable**: `AWS_SKIP_SIGNATURE`.
+    """
+    sse_bucket_key_enabled: bool
+    """Set whether to enable bucket key for server side encryption.
+
+    This overrides the bucket default setting for bucket keys.
+
+    - When `False`, each object is encrypted with a unique data key.
+    - When `True`, a single data key is used for the entire bucket,
+      reducing overhead of encryption.
+
+    **Environment variable**: `AWS_SSE_BUCKET_KEY_ENABLED`.
     """
     sse_customer_key_base64: str
     """
     The base64 encoded, 256-bit customer encryption key to use for server-side
     encryption. If set, the server side encryption config value must be `"sse-c"`.
+
+    **Environment variable**: `AWS_SSE_CUSTOMER_KEY_BASE64`.
     """
     sse_kms_key_id: str
     """
     The KMS key ID to use for server-side encryption.
 
     If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
+
+    **Environment variable**: `AWS_SSE_KMS_KEY_ID`.
     """
     unsigned_payload: bool
-    """Avoid computing payload checksum when calculating signature."""
+    """Avoid computing payload checksum when calculating signature.
+
+    See [unsigned payload option](https://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html).
+
+    - `False` (default): Signed payload option is used, where the checksum for the request body is computed and included when constructing a canonical request.
+    - `True`: Unsigned payload option is used. `UNSIGNED-PAYLOAD` literal is included when constructing a canonical request,
+
+    **Environment variable**: `AWS_UNSIGNED_PAYLOAD`.
+    """
     virtual_hosted_style_request: bool
-    """If virtual hosted style request has to be used."""
+    """If virtual hosted style request has to be used.
+
+    If `virtual_hosted_style_request` is:
+
+    - `False` (default):  Path style request is used
+    - `True`:  Virtual hosted style request is used
+
+    If the `endpoint` is provided then it should be consistent with
+    `virtual_hosted_style_request`. i.e. if `virtual_hosted_style_request` is set to
+    `True` then `endpoint` should have bucket name included.
+
+    **Environment variable**: `AWS_VIRTUAL_HOSTED_STYLE_REQUEST`.
+    """
 
 class S3Credential(TypedDict):
     """An S3 credential.
@@ -324,20 +447,8 @@ class S3CredentialProvider(Protocol):
 class S3Store:
     """Interface to an Amazon S3 bucket.
 
-    All constructors will check for environment variables. All environment variables
-    starting with `AWS_` will be evaluated. Names must match keys from
-    [`S3Config`][obstore.store.S3Config]. Only upper-case environment
-    variables are accepted.
-
-    Some examples of variables extracted from environment:
-
-    - `AWS_ACCESS_KEY_ID` -> access_key_id
-    - `AWS_SECRET_ACCESS_KEY` -> secret_access_key
-    - `AWS_DEFAULT_REGION` -> region
-    - `AWS_ENDPOINT` -> endpoint
-    - `AWS_SESSION_TOKEN` -> token
-    - `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI` -> <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
-    - `AWS_REQUEST_PAYER` -> set to "true" to permit requester-pays connections.
+    All constructors will check for environment variables. Refer to
+    [`S3Config`][obstore.store.S3Config] for valid environment variables.
 
     **Examples**:
 
