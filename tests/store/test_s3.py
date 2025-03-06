@@ -1,3 +1,5 @@
+# ruff: noqa: PGH003
+
 import pickle
 
 import pytest
@@ -31,21 +33,32 @@ def test_error_overlapping_config_kwargs():
 
     # Also raises for variations of the same parameter
     with pytest.raises(BaseError, match="Duplicate key"):
-        S3Store("bucket", config={"aws_skip_signature": True}, skip_signature=True)
+        S3Store(
+            "bucket",
+            config={"aws_skip_signature": True},  # type: ignore
+            skip_signature=True,
+        )
 
     with pytest.raises(BaseError, match="Duplicate key"):
-        S3Store("bucket", config={"AWS_SKIP_SIGNATURE": True}, skip_signature=True)
+        S3Store(
+            "bucket",
+            config={"AWS_SKIP_SIGNATURE": True},  # type: ignore
+            skip_signature=True,
+        )
 
 
 def test_overlapping_config_keys():
     with pytest.raises(BaseError, match="Duplicate key"):
-        S3Store("bucket", config={"aws_skip_signature": True, "skip_signature": True})
+        S3Store(
+            "bucket",
+            config={"aws_skip_signature": True, "skip_signature": True},  # type: ignore
+        )
 
     with pytest.raises(BaseError, match="Duplicate key"):
-        S3Store("bucket", aws_skip_signature=True, skip_signature=True)
+        S3Store("bucket", aws_skip_signature=True, skip_signature=True)  # type: ignore
 
     with pytest.raises(BaseError, match="Duplicate key"):
-        S3Store("bucket", AWS_SKIP_SIGNATURE=True, skip_signature=True)
+        S3Store("bucket", AWS_SKIP_SIGNATURE=True, skip_signature=True)  # type: ignore
 
 
 @pytest.mark.asyncio
