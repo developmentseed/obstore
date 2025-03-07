@@ -57,7 +57,7 @@ impl AzureConfig {
 }
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
-#[pyclass(name = "AzureStore", frozen)]
+#[pyclass(name = "AzureStore", frozen, subclass)]
 pub struct PyAzureStore {
     store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.

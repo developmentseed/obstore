@@ -1,5 +1,4 @@
 import pickle
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -46,8 +45,8 @@ def test_local_from_url():
         store = LocalStore.from_url(url)
 
 
-def test_create_prefix():
-    tmpdir = Path(tempfile.gettempdir()) / "abc"
+def test_create_prefix(tmp_path: Path):
+    tmpdir = tmp_path / "abc"
     assert not tmpdir.exists()
     LocalStore(tmpdir, mkdir=True)
     assert tmpdir.exists()
@@ -57,18 +56,16 @@ def test_create_prefix():
     assert tmpdir.exists()
 
 
-def test_prefix_property():
-    tmpdir = Path(tempfile.gettempdir())
-    store = LocalStore(tmpdir)
-    assert store.prefix == tmpdir
+def test_prefix_property(tmp_path: Path):
+    store = LocalStore(tmp_path)
+    assert store.prefix == tmp_path
     assert isinstance(store.prefix, Path)
     # Can pass it back to the store init
     LocalStore(store.prefix)
 
 
-def test_pickle():
-    tmpdir = Path(tempfile.gettempdir())
-    store = LocalStore(tmpdir)
+def test_pickle(tmp_path: Path):
+    store = LocalStore(tmp_path)
     obs.put(store, "path.txt", b"foo")
     new_store: LocalStore = pickle.loads(pickle.dumps(store))
     assert obs.get(new_store, "path.txt").bytes() == b"foo"

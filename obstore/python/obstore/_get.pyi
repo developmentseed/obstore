@@ -5,7 +5,7 @@ from typing import TypedDict
 from ._attributes import Attributes
 from ._bytes import Bytes
 from ._list import ObjectMeta
-from .store import ObjectStore
+from ._store import ObjectStore
 
 class OffsetRange(TypedDict):
     """Request all bytes starting from a given byte offset."""
