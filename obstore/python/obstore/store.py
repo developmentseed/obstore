@@ -5,30 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Literal, TypeAlias, overload
 
 import obstore as obs
-from obstore._store import (
-    AzureAccessKey,  # noqa: F401
-    AzureBearerToken,  # noqa: F401
-    AzureConfig,  # noqa: F401
-    AzureCredential,  # noqa: F401
-    AzureCredentialProvider,  # noqa: F401
-    AzureSASToken,  # noqa: F401
-    BackoffConfig,  # noqa: F401
-    ClientConfig,  # noqa: F401
-    GCSConfig,  # noqa: F401
-    GCSCredential,  # noqa: F401
-    GCSCredentialProvider,  # noqa: F401
-    RetryConfig,  # noqa: F401
-    S3Config,  # noqa: F401
-    S3Credential,  # noqa: F401
-    S3CredentialProvider,  # noqa: F401
-    from_url,
-)
-from obstore._store import AzureStore as _AzureStore
-from obstore._store import GCSStore as _GCSStore
-from obstore._store import HTTPStore as _HTTPStore
-from obstore._store import LocalStore as _LocalStore
-from obstore._store import MemoryStore as _MemoryStore
-from obstore._store import S3Store as _S3Store
+from obstore._obstore import _store
+
+# Re-export
+from_url = _store.from_url
 
 if TYPE_CHECKING:
     import sys
@@ -44,7 +24,7 @@ if TYPE_CHECKING:
 
     from arro3.core import RecordBatch, Table
 
-    from obstore import (
+    from obstore._obstore import (
         Attributes,
         Bytes,
         GetOptions,
@@ -54,6 +34,23 @@ if TYPE_CHECKING:
         ObjectMeta,
         PutMode,
         PutResult,
+    )
+    from obstore._store import (
+        AzureAccessKey,  # noqa: F401
+        AzureBearerToken,  # noqa: F401
+        AzureConfig,  # noqa: F401
+        AzureCredential,  # noqa: F401
+        AzureCredentialProvider,  # noqa: F401
+        AzureSASToken,  # noqa: F401
+        BackoffConfig,  # noqa: F401
+        ClientConfig,  # noqa: F401
+        GCSConfig,  # noqa: F401
+        GCSCredential,  # noqa: F401
+        GCSCredentialProvider,  # noqa: F401
+        RetryConfig,  # noqa: F401
+        S3Config,  # noqa: F401
+        S3Credential,  # noqa: F401
+        S3CredentialProvider,  # noqa: F401
     )
 
     if sys.version_info >= (3, 12):
@@ -466,7 +463,7 @@ class _ObjectStoreMixin:
         )
 
 
-class AzureStore(_ObjectStoreMixin, _AzureStore):
+class AzureStore(_ObjectStoreMixin, _store.AzureStore):
     """Interface to a Microsoft Azure Blob Storage container.
 
     All constructors will check for environment variables. Refer to
@@ -474,7 +471,7 @@ class AzureStore(_ObjectStoreMixin, _AzureStore):
     """
 
 
-class GCSStore(_ObjectStoreMixin, _GCSStore):
+class GCSStore(_ObjectStoreMixin, _store.GCSStore):
     """Interface to Google Cloud Storage.
 
     All constructors will check for environment variables. Refer to
@@ -486,7 +483,7 @@ class GCSStore(_ObjectStoreMixin, _GCSStore):
     """
 
 
-class HTTPStore(_ObjectStoreMixin, _HTTPStore):
+class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
     """Configure a connection to a generic HTTP server.
 
     **Example**
@@ -507,7 +504,7 @@ class HTTPStore(_ObjectStoreMixin, _HTTPStore):
     """
 
 
-class LocalStore(_ObjectStoreMixin, _LocalStore):
+class LocalStore(_ObjectStoreMixin, _store.LocalStore):
     """An ObjectStore interface to local filesystem storage.
 
     Can optionally be created with a directory prefix.
@@ -522,7 +519,7 @@ class LocalStore(_ObjectStoreMixin, _LocalStore):
     """
 
 
-class MemoryStore(_ObjectStoreMixin, _MemoryStore):
+class MemoryStore(_ObjectStoreMixin, _store.MemoryStore):
     """A fully in-memory implementation of ObjectStore.
 
     Create a new in-memory store:
@@ -532,7 +529,7 @@ class MemoryStore(_ObjectStoreMixin, _MemoryStore):
     """
 
 
-class S3Store(_ObjectStoreMixin, _S3Store):
+class S3Store(_ObjectStoreMixin, _store.S3Store):
     """Interface to an Amazon S3 bucket.
 
     All constructors will check for environment variables. Refer to
