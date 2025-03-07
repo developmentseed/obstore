@@ -100,10 +100,11 @@ pub fn register_exceptions_module(
     py: Python<'_>,
     parent_module: &Bound<'_, PyModule>,
     parent_module_str: &str,
+    sub_module_str: &str,
 ) -> PyResult<()> {
-    let full_module_string = format!("{}.exceptions", parent_module_str);
+    let full_module_string = format!("{}.{}", parent_module_str, sub_module_str);
 
-    let child_module = PyModule::new(parent_module.py(), "exceptions")?;
+    let child_module = PyModule::new(parent_module.py(), sub_module_str)?;
 
     child_module.add("BaseError", py.get_type::<BaseError>())?;
     child_module.add("GenericError", py.get_type::<GenericError>())?;
