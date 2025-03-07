@@ -8,6 +8,7 @@ mod delete;
 mod get;
 mod head;
 mod list;
+mod metrics;
 mod path;
 mod put;
 mod rename;
@@ -83,6 +84,8 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(rename::rename))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign_async))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign))?;
+
+    m.add_class::<metrics::PyObjectStoreMetrics>()?;
 
     Ok(())
 }
