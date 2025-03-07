@@ -11,7 +11,6 @@ class Head(Protocol):
         """Return the metadata for the specified location.
 
         Args:
-            store: The ObjectStore instance to use.
             path: The path within ObjectStore to retrieve.
 
         Returns:

@@ -12,7 +12,6 @@ class Rename(Protocol):
         copied.
 
         Args:
-            store: The ObjectStore instance to use.
             from_: Source path
             to: Destination path
 

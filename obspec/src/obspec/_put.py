@@ -108,7 +108,6 @@ class Put(Protocol):
             You can turn off multipart uploads by passing `use_multipart=False`.
 
         Args:
-            store: The ObjectStore instance to use.
             path: The path within ObjectStore for where to save the file.
             file: The object to upload. Supports various input:
 

@@ -11,7 +11,6 @@ class Delete(Protocol):
         """Delete the object at the specified location(s).
 
         Args:
-            store: The ObjectStore instance to use.
             paths: The path or paths within the store to delete.
 
                 When supported by the underlying store, this method will use bulk

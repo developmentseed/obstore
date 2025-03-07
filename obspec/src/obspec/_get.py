@@ -228,29 +228,7 @@ class GetResult(Protocol):
 
 
 class BufferStream(Protocol):
-    """An async stream of bytes.
-
-    !!! note "Request timeouts"
-        The underlying stream needs to stay alive until the last chunk is polled. If the
-        file is large, it may exceed the default timeout of 30 seconds. In this case,
-        you may see an error like:
-
-        ```
-        GenericError: Generic {
-            store: "HTTP",
-            source: reqwest::Error {
-                kind: Decode,
-                source: reqwest::Error {
-                    kind: Body,
-                    source: TimedOut,
-                },
-            },
-        }
-        ```
-
-        To fix this, set the `timeout` parameter in the
-        [`client_options`][obstore.store.ClientConfig] passed when creating the store.
-    """
+    """An async stream of bytes."""
 
     def __aiter__(self) -> Self:
         """Return `Self` as an async iterator."""
@@ -261,11 +239,11 @@ class BufferStream(Protocol):
         ...
 
     async def __anext__(self) -> Buffer:
-        """Return the next chunk of bytes in the stream."""
+        """Return the next Buffer chunk in the stream."""
         ...
 
     def __next__(self) -> Buffer:
-        """Return the next chunk of bytes in the stream."""
+        """Return the next Buffer chunk in the stream."""
         ...
 
 
@@ -279,7 +257,6 @@ class Get(Protocol):
         """Return the bytes that are stored at the specified location.
 
         Args:
-            store: The ObjectStore instance to use.
             path: The path within ObjectStore to retrieve.
             options: options for accessing the file. Defaults to None.
 
@@ -321,7 +298,6 @@ class GetRange(Protocol):
         exact requested range will be returned.
 
         Args:
-            store: The ObjectStore instance to use.
             path: The path within ObjectStore to retrieve.
 
         Keyword Args:
@@ -373,7 +349,6 @@ class GetRanges(Protocol):
         - Make multiple `fetch` requests in parallel (up to maximum of 10)
 
         Args:
-            store: The ObjectStore instance to use.
             path: The path within ObjectStore to retrieve.
 
         Other Args:

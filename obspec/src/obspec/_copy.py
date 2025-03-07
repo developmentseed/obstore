@@ -8,7 +8,6 @@ class Copy(Protocol):
         """Copy an object from one path to another in the same object store.
 
         Args:
-            store: The ObjectStore instance to use.
             from_: Source path
             to: Destination path
 

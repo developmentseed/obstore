@@ -167,7 +167,6 @@ class List(Protocol[ListChunkType_co]):
             synchronous or asynchronous fashion. See [`ListStream`][obstore.ListStream].
 
         Args:
-            store: The ObjectStore instance to use.
             prefix: The prefix within ObjectStore to use for listing. Defaults to None.
 
         Keyword Args:
@@ -230,7 +229,6 @@ class ListWithDelimiter(Protocol[ListChunkType_co]):
             the paths in the result.
 
         Args:
-            store: The ObjectStore instance to use.
             prefix: The prefix within ObjectStore to use for listing. Defaults to None.
 
         Keyword Args:
