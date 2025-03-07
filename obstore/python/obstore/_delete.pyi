@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from .store import ObjectStore
+from ._store import ObjectStore
 
 def delete(store: ObjectStore, paths: str | Sequence[str]) -> None:
     """Delete the object at the specified location(s).

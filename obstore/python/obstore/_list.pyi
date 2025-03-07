@@ -10,7 +10,7 @@ from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
 
 from arro3.core import RecordBatch, Table
 
-from .store import ObjectStore
+from ._store import ObjectStore
 
 class ObjectMeta(TypedDict):
     """The metadata that describes an object."""

@@ -1,5 +1,5 @@
 from ._list import ObjectMeta
-from .store import ObjectStore
+from ._store import ObjectStore
 
 def head(store: ObjectStore, path: str) -> ObjectMeta:
     """Return the metadata for the specified location.

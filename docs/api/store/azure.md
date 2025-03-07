@@ -1,6 +1,9 @@
 # Microsoft Azure
 
 ::: obstore.store.AzureStore
+    options:
+        inherited_members: true
+        show_bases: false
 ::: obstore.store.AzureConfig
     options:
         show_if_no_docstring: true
