@@ -31,7 +31,7 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["examples/fastapi-example"]
+members = ["obspec", "examples/fastapi-example"]
 
 [tool.ruff.lint]
 select = ["ALL"]

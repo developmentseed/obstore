@@ -74,6 +74,19 @@ nav:
       - Overridden Defaults: dev/overridden-defaults.md
       - dev/pickle.md
   - CHANGELOG.md
+  - obspec Specification:
+      - obspec/index.md
+      - obspec API:
+          - obspec/api/copy.md
+          - obspec/api/delete.md
+          - obspec/api/get.md
+          - obspec/api/head.md
+          - obspec/api/list.md
+          - obspec/api/meta.md
+          - obspec/api/put.md
+          - obspec/api/rename.md
+          - obspec/api/attributes.md
+          - obspec/api/arrow.md
 
 watch:
   - obstore/python
