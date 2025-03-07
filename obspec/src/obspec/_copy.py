@@ -35,5 +35,5 @@ class CopyAsync(Protocol):
     ) -> None:
         """Call `copy` asynchronously.
 
-        Refer to the documentation for [copy][obstore.copy].
+        Refer to the documentation for [Copy][obspec.Copy].
         """

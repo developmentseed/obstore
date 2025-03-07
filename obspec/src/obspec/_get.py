@@ -276,7 +276,7 @@ class GetAsync(Protocol):
     ) -> GetResult:
         """Call `get` asynchronously.
 
-        Refer to the documentation for [get][obstore.get].
+        Refer to the documentation for [Get][obspec.Get].
         """
         ...
 
@@ -326,7 +326,7 @@ class GetRangeAsync(Protocol):
     ) -> Buffer:
         """Call `get_range` asynchronously.
 
-        Refer to the documentation for [get_range][obstore.get_range].
+        Refer to the documentation for [GetRange][obspec.GetRange].
         """
         ...
 
@@ -378,6 +378,6 @@ class GetRangesAsync(Protocol):
     ) -> list[Buffer]:
         """Call `get_ranges` asynchronously.
 
-        Refer to the documentation for [get_ranges][obstore.get_ranges].
+        Refer to the documentation for [GetRanges][obspec.GetRanges].
         """
         ...

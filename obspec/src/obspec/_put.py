@@ -43,7 +43,7 @@ There are three modes:
   [`AlreadyExistsError`][obstore.exceptions.AlreadyExistsError] if an object already
   exists at the provided path.
 - Update: Perform an atomic write operation if the current version of the object matches
-  the provided [`UpdateVersion`][obstore.UpdateVersion], returning
+  the provided [`UpdateVersion`][obspec.UpdateVersion], returning
   [`PreconditionError`][obstore.exceptions.PreconditionError] otherwise.
 
 If a string is provided, it must be one of:
@@ -52,7 +52,7 @@ If a string is provided, it must be one of:
 - `"create"`
 
 If a `dict` is provided, it must meet the criteria of
-[`UpdateVersion`][obstore.UpdateVersion].
+[`UpdateVersion`][obspec.UpdateVersion].
 """
 
 
@@ -121,8 +121,8 @@ class Put(Protocol):
                 protocol.
 
         Keyword Args:
-            mode: Configure the [`PutMode`][obstore.PutMode] for this operation. Refer
-                to the [`PutMode`][obstore.PutMode] docstring for more information.
+            mode: Configure the [`PutMode`][obspec.PutMode] for this operation. Refer
+                to the [`PutMode`][obspec.PutMode] docstring for more information.
 
                 If this provided and is not `"overwrite"`, a non-multipart upload will
                 be performed. Defaults to `"overwrite"`.
@@ -163,7 +163,7 @@ class PutAsync(Protocol):
     ) -> PutResult:
         """Call `put` asynchronously.
 
-        Refer to the documentation for [`put`][obstore.put]. In addition to what the
+        Refer to the documentation for [`Put`][obspec.Put]. In addition to what the
         synchronous `put` allows for the `file` parameter, this **also supports an async
         iterator or iterable** of objects implementing the Python buffer protocol.
 

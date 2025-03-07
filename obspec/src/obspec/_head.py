@@ -24,6 +24,6 @@ class HeadAsync(Protocol):
     async def head_async(self, path: str) -> ObjectMeta:
         """Call `head` asynchronously.
 
-        Refer to the documentation for [head][obstore.head].
+        Refer to the documentation for [Head][obspec.Head].
         """
         ...

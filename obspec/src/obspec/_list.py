@@ -14,7 +14,7 @@ ListChunkType_co = TypeVar(
 )
 """The data structure used for holding list results.
 
-By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
+By default, listing APIs return a `list` of [`ObjectMeta`][obspec.ObjectMeta]. However
 for improved performance when listing large buckets, you can pass `return_arrow=True`.
 Then an Arrow `RecordBatch` will be returned instead.
 """
@@ -36,7 +36,7 @@ class ListResult(TypedDict, Generic[ListChunkType_co]):
 
 
 class ListStream(Protocol[ListChunkType_co]):
-    """A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
+    """A stream of [ObjectMeta][obspec.ObjectMeta] that can be polled in a sync or
     async fashion.
     """  # noqa: D205
 
@@ -158,13 +158,13 @@ class List(Protocol[ListChunkType_co]):
         ```
 
         !!! note
-            The order of returned [`ObjectMeta`][obstore.ObjectMeta] is not
+            The order of returned [`ObjectMeta`][obspec.ObjectMeta] is not
             guaranteed
 
         !!! note
             There is no async version of this method, because `list` is not async under
             the hood, rather it only instantiates a stream, which can be polled in
-            synchronous or asynchronous fashion. See [`ListStream`][obstore.ListStream].
+            synchronous or asynchronous fashion. See [`ListStream`][obspec.ListStream].
 
         Args:
             prefix: The prefix within ObjectStore to use for listing. Defaults to None.
@@ -175,8 +175,8 @@ class List(Protocol[ListChunkType_co]):
             chunk_size: The number of items to collect per chunk in the returned
                 (async) iterator. All chunks except for the last one will have this many
                 items. This is ignored in the
-                [`collect`][obstore.ListStream.collect] and
-                [`collect_async`][obstore.ListStream.collect_async] methods of
+                [`collect`][obspec.ListStream.collect] and
+                [`collect_async`][obspec.ListStream.collect_async] methods of
                 `ListStream`.
             return_arrow: If `True`, return each batch of list items as an Arrow
                 `RecordBatch`, not as a list of Python `dict`s. Arrow removes
@@ -269,6 +269,6 @@ class ListWithDelimiterAsync(Protocol[ListChunkType_co]):
         """Call `list_with_delimiter` asynchronously.
 
         Refer to the documentation for
-        [list_with_delimiter][obstore.list_with_delimiter].
+        [ListWithDelimiter][obspec.ListWithDelimiter].
         """
         ...

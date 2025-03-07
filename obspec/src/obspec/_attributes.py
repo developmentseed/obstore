@@ -42,8 +42,8 @@ Any other string key specifies a user-defined metadata field for the object.
 Attributes: TypeAlias = dict[Attribute, str]
 """Additional attributes of an object
 
-Attributes can be specified in [`put`][obstore.put]/[`put_async`][obstore.put_async] and
-retrieved from [`get`][obstore.get]/[`get_async`][obstore.get_async].
+Attributes can be specified in [`Put`][obspec.Put]/[`PutAsync`][obspec.PutAsync] and
+retrieved from [`Get`][obspec.Get]/[`GetAsync`][obspec.GetAsync].
 
 Unlike ObjectMeta, Attributes are not returned by listing APIs
 """

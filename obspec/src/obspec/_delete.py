@@ -28,5 +28,5 @@ class DeleteAsync(Protocol):
     async def delete_async(self, paths: str | Sequence[str]) -> None:
         """Call `delete` asynchronously.
 
-        Refer to the documentation for [delete][obstore.delete].
+        Refer to the documentation for [Delete][obspec.Delete].
         """

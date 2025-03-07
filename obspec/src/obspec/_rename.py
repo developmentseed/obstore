@@ -33,5 +33,5 @@ class RenameAsync(Protocol):
     ) -> None:
         """Call `rename` asynchronously.
 
-        Refer to the documentation for [rename][obstore.rename].
+        Refer to the documentation for [Rename][obspec.Rename].
         """
