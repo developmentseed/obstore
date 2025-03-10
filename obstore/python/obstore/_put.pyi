@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import IO, Literal, TypeAlias, TypedDict
 
 from ._attributes import Attributes
-from .store import ObjectStore
+from ._store import ObjectStore
 
 if sys.version_info >= (3, 12):
     from collections.abc import Buffer

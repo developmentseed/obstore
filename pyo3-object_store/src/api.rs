@@ -14,7 +14,8 @@ use crate::{
 ///
 /// - [`Python`][pyo3::prelude::Python] token
 /// - parent_module: [`PyModule`][pyo3::prelude::PyModule] object
-/// - parent_module_str: the string name of the Python module for how this is exported.
+/// - parent_module_str: the string name of the parent Python module for how this is exported.
+/// - sub_module_str: the string name of **this** Python module. Usually `store` but `_store` may be preferred in some cases.
 ///
 /// ```notest
 /// #[pymodule]
@@ -41,10 +42,11 @@ pub fn register_store_module(
     py: Python<'_>,
     parent_module: &Bound<'_, PyModule>,
     parent_module_str: &str,
+    sub_module_str: &str,
 ) -> PyResult<()> {
-    let full_module_string = format!("{}.store", parent_module_str);
+    let full_module_string = format!("{}.{}", parent_module_str, sub_module_str);
 
-    let child_module = PyModule::new(parent_module.py(), "store")?;
+    let child_module = PyModule::new(parent_module.py(), sub_module_str)?;
 
     child_module.add_wrapped(wrap_pyfunction!(from_url))?;
     child_module.add_class::<PyAzureStore>()?;
@@ -98,10 +100,11 @@ pub fn register_exceptions_module(
     py: Python<'_>,
     parent_module: &Bound<'_, PyModule>,
     parent_module_str: &str,
+    sub_module_str: &str,
 ) -> PyResult<()> {
-    let full_module_string = format!("{}.exceptions", parent_module_str);
+    let full_module_string = format!("{}.{}", parent_module_str, sub_module_str);
 
-    let child_module = PyModule::new(parent_module.py(), "exceptions")?;
+    let child_module = PyModule::new(parent_module.py(), sub_module_str)?;
 
     child_module.add("BaseError", py.get_type::<BaseError>())?;
     child_module.add("GenericError", py.get_type::<GenericError>())?;

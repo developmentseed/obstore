@@ -5,7 +5,7 @@ from typing import Self
 from ._attributes import Attributes
 from ._bytes import Bytes
 from ._list import ObjectMeta
-from .store import ObjectStore
+from ._store import ObjectStore
 
 if sys.version_info >= (3, 12):
     from collections.abc import Buffer
