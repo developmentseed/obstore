@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-object_store"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
 description = "object_store integration for pyo3."
@@ -22,12 +22,7 @@ futures = "0.3"
 humantime = "2.1"
 # This is already an object_store dependency
 itertools = "0.14.0"
-object_store = { version = "0.11.2", features = [
-    "aws",
-    "azure",
-    "gcp",
-    "http",
-] }
+object_store = { version = "0.12", features = ["aws", "azure", "gcp", "http"] }
 # This is already an object_store dependency
 percent-encoding = "2.1"
 pyo3 = { version = "0.23.4", features = ["chrono", "indexmap"] }
@@ -36,9 +31,6 @@ serde = "1"
 thiserror = "1"
 tokio = { version = "1.40", features = ["rt-multi-thread"] }
 url = "2"
-
-[patch.crates-io]
-object_store = { git = "https://github.com/apache/arrow-rs", rev = "3674073bba31e082b337cee63726cfeb186a3a0c" }
 
 [lib]
 crate-type = ["rlib"]
