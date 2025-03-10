@@ -14,6 +14,8 @@ from obstore.fsspec import FsspecStore, register
 from tests.conftest import TEST_BUCKET_NAME
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from obstore.store import S3Config
 
 
@@ -227,6 +229,107 @@ async def test_list_async(s3_store_config: S3Config):
     assert out[1]["type"] == "directory"
 
 
+def test_info(fs: FsspecStore):
+    fs.pipe_file(f"{TEST_BUCKET_NAME}/dir/afile", b"data")
+
+    # info for directory
+    out = fs.info(f"{TEST_BUCKET_NAME}/dir")
+    assert out == {
+        "name": f"{TEST_BUCKET_NAME}/dir",
+        "type": "directory",
+        "size": 0,
+    }
+
+    # info for file not exist
+    with pytest.raises(FileNotFoundError):
+        fs.info(f"{TEST_BUCKET_NAME}/dir/bfile")
+
+    # info for directory not exist
+    with pytest.raises(FileNotFoundError):
+        fs.info(f"{TEST_BUCKET_NAME}/dir_1/")
+
+    # also test with isdir
+    assert fs.isdir(f"{TEST_BUCKET_NAME}/dir")
+    assert not fs.isdir(f"{TEST_BUCKET_NAME}/dir/afile")
+    assert not fs.isdir(f"{TEST_BUCKET_NAME}/dir/bfile")
+    assert not fs.isdir(f"{TEST_BUCKET_NAME}/dir_1/")
+
+
+@pytest.mark.asyncio
+async def test_info_async(fs: FsspecStore):
+    await fs._pipe_file(f"{TEST_BUCKET_NAME}/dir/afile", b"data")
+
+    # info for directory
+    out = await fs._info(f"{TEST_BUCKET_NAME}/dir")
+    assert out == {
+        "name": f"{TEST_BUCKET_NAME}/dir",
+        "type": "directory",
+        "size": 0,
+    }
+
+    # info for file not exist
+    with pytest.raises(FileNotFoundError):
+        await fs._info(f"{TEST_BUCKET_NAME}/dir/bfile")
+
+    # info for directory not exist
+    with pytest.raises(FileNotFoundError):
+        await fs._info(f"{TEST_BUCKET_NAME}/dir_1/")
+
+    # also test with isdir
+    assert await fs._isdir(f"{TEST_BUCKET_NAME}/dir")
+    assert not await fs._isdir(f"{TEST_BUCKET_NAME}/dir/afile")
+    assert not await fs._isdir(f"{TEST_BUCKET_NAME}/dir/bfile")
+    assert not await fs._isdir(f"{TEST_BUCKET_NAME}/dir_1/")
+
+
+def test_put_files(fs: FsspecStore, tmp_path: Path):
+    """Test put new file to S3 synchronously."""
+    test_data = "Hello, World!"
+    local_file_path = tmp_path / "test_file.txt"
+    local_file_path.write_text(test_data)
+
+    assert local_file_path.read_text() == test_data
+    remote_file_path = f"{TEST_BUCKET_NAME}/uploaded_test_file.txt"
+
+    fs.put(str(local_file_path), remote_file_path)
+
+    # Verify file upload
+    assert remote_file_path in fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert fs.cat(remote_file_path)[remote_file_path] == test_data.encode()
+
+    # Cleanup remote file
+    fs.rm(remote_file_path)
+
+
+@pytest.mark.asyncio
+async def test_put_files_async(s3_store_config: S3Config, tmp_path: Path):
+    """Test put new file to S3 asynchronously."""
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=s3_store_config,
+        client_options={"allow_http": True},
+        asynchronous=True,
+    )
+
+    test_data = "Hello, World!"
+    local_file_path = tmp_path / "test_file.txt"
+    local_file_path.write_text(test_data)
+
+    assert local_file_path.read_text() == test_data
+    remote_file_path = f"{TEST_BUCKET_NAME}/uploaded_test_file.txt"
+
+    await fs._put(str(local_file_path), remote_file_path)
+
+    # Verify file upload
+    assert remote_file_path in await fs._ls(f"{TEST_BUCKET_NAME}", detail=False)
+    out = await fs._cat([remote_file_path])
+    assert out[remote_file_path] == test_data.encode()
+
+    # Cleanup remote file
+    await fs._rm(remote_file_path)
+
+
 @pytest.mark.network
 def test_remote_parquet(s3_store_config: S3Config):
     register(["https", "s3"])
@@ -256,9 +359,9 @@ def test_remote_parquet(s3_store_config: S3Config):
 
     # Read Parquet file from s3 and verify its contents
     parquet_table = pq.read_table(write_parquet_path, filesystem=fs_s3)
-    assert parquet_table.equals(table), (
-        "Parquet file contents from s3 do not match the original file"
-    )
+    assert parquet_table.equals(
+        table,
+    ), "Parquet file contents from s3 do not match the original file"
 
 
 def test_multi_file_ops(fs: FsspecStore):
