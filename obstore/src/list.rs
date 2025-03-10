@@ -232,6 +232,11 @@ impl<'py> IntoPyObject<'py> for PyRecordBatchWrapper {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        py.import(intern!(py, "arro3.core")).map_err(|_| {
+            PyImportError::new_err(
+                "Could not import arro3.core. Install with\npip install arro3-core",
+            )
+        })?;
         self.0.into_arro3(py)
     }
 }
@@ -250,6 +255,11 @@ impl<'py> IntoPyObject<'py> for PyTableWrapper {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        py.import(intern!(py, "arro3.core")).map_err(|_| {
+            PyImportError::new_err(
+                "Could not import arro3.core. Install with\npip install arro3-core",
+            )
+        })?;
         self.0.into_arro3(py)
     }
 }
