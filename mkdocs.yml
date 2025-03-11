@@ -62,7 +62,6 @@ nav:
       - api/put.md
       - api/rename.md
       - api/sign.md
-      - api/attributes.md
       - api/exceptions.md
       - api/file.md
       - obstore.fsspec: api/fsspec.md
@@ -157,6 +156,7 @@ plugins:
             - https://arrow.apache.org/docs/objects.inv
             - https://boto3.amazonaws.com/v1/documentation/api/latest/objects.inv
             - https://botocore.amazonaws.com/v1/documentation/api/latest/objects.inv
+            - https://developmentseed.org/obspec/latest/objects.inv
             - https://docs.aiohttp.org/en/stable/objects.inv
             - https://docs.pola.rs/api/python/stable/objects.inv
             - https://docs.python.org/3/objects.inv
