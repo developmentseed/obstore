@@ -23,18 +23,12 @@ if TYPE_CHECKING:
     from typing import IO, Literal
 
     from arro3.core import RecordBatch, Table
+    from obspec._attributes import Attributes
+    from obspec._get import GetOptions
+    from obspec._meta import ObjectMeta
+    from obspec._put import PutMode, PutResult
 
-    from obstore._obstore import (
-        Attributes,
-        Bytes,
-        GetOptions,
-        GetResult,
-        ListResult,
-        ListStream,
-        ObjectMeta,
-        PutMode,
-        PutResult,
-    )
+    from obstore._obstore import Bytes, GetResult, ListResult, ListStream
     from obstore._store import (
         AzureAccessKey,  # noqa: F401
         AzureBearerToken,  # noqa: F401
@@ -283,6 +277,17 @@ class _ObjectStoreMixin:
 
         Refer to the documentation for [list][obstore.list].
         """
+        # Splitting these fixes the typing issue with the `return_arrow` parameter, by
+        # converting from a bool to a Literal[True] or Literal[False]
+        if return_arrow:
+            return obs.list(
+                self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+                prefix,
+                offset=offset,
+                chunk_size=chunk_size,
+                return_arrow=return_arrow,
+            )
+
         return obs.list(
             self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
             prefix,
@@ -317,6 +322,15 @@ class _ObjectStoreMixin:
         Refer to the documentation for
         [list_with_delimiter][obstore.list_with_delimiter].
         """  # noqa: D205
+        # Splitting these fixes the typing issue with the `return_arrow` parameter, by
+        # converting from a bool to a Literal[True] or Literal[False]
+        if return_arrow:
+            return obs.list_with_delimiter(
+                self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+                prefix,
+                return_arrow=return_arrow,
+            )
+
         return obs.list_with_delimiter(
             self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
             prefix,
@@ -348,6 +362,15 @@ class _ObjectStoreMixin:
         Refer to the documentation for
         [list_with_delimiter][obstore.list_with_delimiter].
         """
+        # Splitting these fixes the typing issue with the `return_arrow` parameter, by
+        # converting from a bool to a Literal[True] or Literal[False]
+        if return_arrow:
+            return await obs.list_with_delimiter_async(
+                self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+                prefix,
+                return_arrow=return_arrow,
+            )
+
         return await obs.list_with_delimiter_async(
             self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
             prefix,
