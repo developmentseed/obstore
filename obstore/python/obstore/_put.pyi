@@ -65,7 +65,7 @@ def put(
               protocol.
 
     Keyword Args:
-        mode: Configure the [`PutMode`][obstore.PutMode] for this operation. Refer to the [`PutMode`][obstore.PutMode] docstring for more information.
+        mode: Configure the [`PutMode`][obspec.PutMode] for this operation. Refer to the [`PutMode`][obspec.PutMode] docstring for more information.
 
             If this provided and is not `"overwrite"`, a non-multipart upload will be performed. Defaults to `"overwrite"`.
         attributes: Provide a set of `Attributes`. Defaults to `None`.

@@ -72,7 +72,7 @@ Obstore version 0.5 is expected to improve on extensible credentials by enabling
 
 ## Return Arrow data from `list_with_delimiter`
 
-By default, the [`obstore.list`][] and [`obstore.list_with_delimiter`][] APIs [return standard Python `dict`s][obstore.ObjectMeta]. However, if you're listing a large bucket, the overhead of materializing all those Python objects can become significant.
+By default, the [`obstore.list`][] and [`obstore.list_with_delimiter`][] APIs [return standard Python `dict`s][obspec.ObjectMeta]. However, if you're listing a large bucket, the overhead of materializing all those Python objects can become significant.
 
 [`obstore.list`][] and [`obstore.list_with_delimiter`][] now both support a `return_arrow` keyword parameter. If set to `True`, an Arrow [`RecordBatch`][arro3.core.RecordBatch] or [`Table`][arro3.core.Table] will be returned, which is both faster and more memory efficient.
 
