@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from . import store
 from ._obstore import (
+    Bytes,
     ___version,
     copy,
     copy_async,
@@ -36,23 +37,14 @@ if TYPE_CHECKING:
         HTTP_METHOD,
         AsyncReadableFile,
         AsyncWritableFile,
-        Attribute,
-        Attributes,
         Bytes,
         BytesStream,
-        GetOptions,
         GetResult,
         ListChunkType,
         ListResult,
         ListStream,
-        ObjectMeta,
-        OffsetRange,
-        PutMode,
-        PutResult,
         ReadableFile,
         SignCapableStore,
-        SuffixRange,
-        UpdateVersion,
         WritableFile,
     )
 __version__: str = ___version()
