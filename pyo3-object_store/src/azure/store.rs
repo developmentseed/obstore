@@ -214,12 +214,16 @@ impl<'py> IntoPyObject<'py> for PyAzureConfigKey {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let s = self
-            .0
-            .as_ref()
-            .strip_prefix("azure_")
-            .expect("Expected config prefix to start with azure_");
-        Ok(PyString::new(py, s))
+        let s = self.0.as_ref();
+        // Anything with an `azure_storage_` prefix we can fully strip
+        if let Some(stripped) = s.strip_prefix("azure_storage_") {
+            return Ok(PyString::new(py, stripped));
+        }
+        Ok(PyString::new(
+            py,
+            s.strip_prefix("azure_")
+                .expect("Expected config prefix to start with azure_"),
+        ))
     }
 }
 
