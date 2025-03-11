@@ -11,6 +11,7 @@ mod list;
 mod path;
 mod put;
 mod rename;
+mod scheme;
 mod signer;
 mod tags;
 mod utils;
@@ -81,6 +82,7 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(put::put))?;
     m.add_wrapped(wrap_pyfunction!(rename::rename_async))?;
     m.add_wrapped(wrap_pyfunction!(rename::rename))?;
+    m.add_wrapped(wrap_pyfunction!(scheme::parse_scheme))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign_async))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign))?;
 

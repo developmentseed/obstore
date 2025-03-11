@@ -1,20 +1,21 @@
 """Interface for constructing cloud storage classes."""
 
+# ruff: noqa: F401
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, TypeAlias, overload
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, Unpack, overload
 
 import obstore as obs
 from obstore._obstore import _store
-
-# Re-export
-from_url = _store.from_url
+from obstore._obstore import parse_scheme as _parse_scheme
 
 if TYPE_CHECKING:
     import sys
     from collections.abc import (
         AsyncIterable,
         AsyncIterator,
+        Callable,
         Iterable,
         Iterator,
         Sequence,
@@ -30,21 +31,21 @@ if TYPE_CHECKING:
 
     from obstore._obstore import Bytes, GetResult, ListResult, ListStream
     from obstore._store import (
-        AzureAccessKey,  # noqa: F401
-        AzureBearerToken,  # noqa: F401
-        AzureConfig,  # noqa: F401
-        AzureCredential,  # noqa: F401
-        AzureCredentialProvider,  # noqa: F401
-        AzureSASToken,  # noqa: F401
-        BackoffConfig,  # noqa: F401
-        ClientConfig,  # noqa: F401
-        GCSConfig,  # noqa: F401
-        GCSCredential,  # noqa: F401
-        GCSCredentialProvider,  # noqa: F401
-        RetryConfig,  # noqa: F401
-        S3Config,  # noqa: F401
-        S3Credential,  # noqa: F401
-        S3CredentialProvider,  # noqa: F401
+        AzureAccessKey,
+        AzureBearerToken,
+        AzureConfig,
+        AzureCredential,
+        AzureCredentialProvider,
+        AzureSASToken,
+        BackoffConfig,
+        ClientConfig,
+        GCSConfig,
+        GCSCredential,
+        GCSCredentialProvider,
+        RetryConfig,
+        S3Config,
+        S3Credential,
+        S3CredentialProvider,
     )
 
     if sys.version_info >= (3, 12):
@@ -576,3 +577,152 @@ ObjectStore: TypeAlias = (
     AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
 )
 """All supported ObjectStore implementations."""
+
+
+# Note: we define `from_url` again so that we can instantiate the **subclasses**.
+@overload
+def from_url(
+    url: str,
+    *,
+    config: S3Config | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    credential_provider: S3CredentialProvider | None = None,
+    **kwargs: Unpack[S3Config],
+) -> ObjectStore: ...
+@overload
+def from_url(
+    url: str,
+    *,
+    config: GCSConfig | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    credential_provider: GCSCredentialProvider | None = None,
+    **kwargs: Unpack[GCSConfig],
+) -> ObjectStore: ...
+@overload
+def from_url(
+    url: str,
+    *,
+    config: AzureConfig | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    credential_provider: AzureCredentialProvider | None = None,
+    **kwargs: Unpack[AzureConfig],
+) -> ObjectStore: ...
+@overload
+def from_url(  # type: ignore (parameter overlap)
+    url: str,
+    *,
+    config: None = None,
+    client_options: None = None,
+    retry_config: None = None,
+    automatic_cleanup: bool = False,
+    mkdir: bool = False,
+) -> ObjectStore: ...
+def from_url(
+    url: str,
+    *,
+    config: S3Config | GCSConfig | AzureConfig | None = None,
+    client_options: ClientConfig | None = None,
+    retry_config: RetryConfig | None = None,
+    credential_provider: Callable | None = None,
+    **kwargs: Any,
+) -> ObjectStore:
+    """Easy construction of store by URL, identifying the relevant store.
+
+    This will defer to a store-specific `from_url` constructor based on the provided
+    `url`. E.g. passing `"s3://bucket/path"` will defer to
+    [`S3Store.from_url`][obstore.store.S3Store.from_url].
+
+    Supported formats:
+
+    - `file:///path/to/my/file` -> [`LocalStore`][obstore.store.LocalStore]
+    - `memory:///` -> [`MemoryStore`][obstore.store.MemoryStore]
+    - `s3://bucket/path` -> [`S3Store`][obstore.store.S3Store] (also supports `s3a`)
+    - `gs://bucket/path` -> [`GCSStore`][obstore.store.GCSStore]
+    - `az://account/container/path` -> [`AzureStore`][obstore.store.AzureStore] (also
+      supports `adl`, `azure`, `abfs`, `abfss`)
+    - `http://mydomain/path` -> [`HTTPStore`][obstore.store.HTTPStore]
+    - `https://mydomain/path` -> [`HTTPStore`][obstore.store.HTTPStore]
+
+    There are also special cases for AWS and Azure for `https://{host?}/path` paths:
+
+    - `dfs.core.windows.net`, `blob.core.windows.net`, `dfs.fabric.microsoft.com`,
+      `blob.fabric.microsoft.com` -> [`AzureStore`][obstore.store.AzureStore]
+    - `amazonaws.com` -> [`S3Store`][obstore.store.S3Store]
+    - `r2.cloudflarestorage.com` -> [`S3Store`][obstore.store.S3Store]
+
+    !!! note
+        For best static typing, use the constructors on individual store classes
+        directly.
+
+    Args:
+        url: well-known storage URL.
+
+    Keyword Args:
+        config: per-store Configuration. Values in this config will override values
+            inferred from the url. Defaults to None.
+        client_options: HTTP Client options. Defaults to None.
+        retry_config: Retry configuration. Defaults to None.
+        credential_provider: A callback to provide custom credentials to the underlying
+            store classes.
+        kwargs: per-store configuration passed down to store-specific builders.
+
+    """
+    scheme = _parse_scheme(url)
+    if scheme == "s3":
+        return S3Store.from_url(
+            url,
+            config=config,  # type: ignore (config narrowing)
+            client_options=client_options,
+            retry_config=retry_config,
+            credential_provider=credential_provider,
+            **kwargs,
+        )
+    if scheme == "gcs":
+        return GCSStore.from_url(
+            url,
+            config=config,  # type: ignore (config narrowing)
+            client_options=client_options,
+            retry_config=retry_config,
+            credential_provider=credential_provider,
+            **kwargs,
+        )
+    if scheme == "azure":
+        return AzureStore.from_url(
+            url,
+            config=config,  # type: ignore (config narrowing)
+            client_options=client_options,
+            retry_config=retry_config,
+            credential_provider=credential_provider,
+            **kwargs,
+        )
+    if scheme == "http":
+        return HTTPStore.from_url(
+            url,
+            client_options=client_options,
+            retry_config=retry_config,
+        )
+    if scheme == "local":
+        automatic_cleanup = False
+        mkdir = False
+        if "automatic_cleanup" in kwargs:
+            automatic_cleanup = kwargs.pop("automatic_cleanup")
+        if "mkdir" in kwargs:
+            mkdir = kwargs.pop("mkdir")
+
+        return LocalStore.from_url(
+            url,
+            automatic_cleanup=automatic_cleanup,
+            mkdir=mkdir,
+        )
+    if scheme == "memory":
+        if config or kwargs:
+            msg = "MemoryStore does not accept any configuration"
+            raise ValueError(msg)
+
+        return MemoryStore()
+
+    msg = f"Unknown scheme: {url}"
+    raise ValueError(msg)

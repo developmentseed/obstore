@@ -32,6 +32,7 @@ from ._put import put as put
 from ._put import put_async as put_async
 from ._rename import rename as rename
 from ._rename import rename_async as rename_async
+from ._scheme import parse_scheme as parse_scheme
 from ._sign import HTTP_METHOD as HTTP_METHOD
 from ._sign import SignCapableStore as SignCapableStore
 from ._sign import sign as sign
