@@ -132,7 +132,6 @@ impl PyS3Store {
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
         cls: &Bound<PyType>,
-        py: Python,
         url: PyUrl,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
@@ -153,7 +152,7 @@ impl PyS3Store {
 
         // Note: we pass **back** through Python so that if cls is a subclass, we instantiate the
         // subclass
-        let kwargs = kwargs.unwrap_or_default().into_pyobject(py)?;
+        let kwargs = kwargs.unwrap_or_default().into_pyobject(cls.py())?;
         kwargs.set_item("prefix", prefix)?;
         kwargs.set_item("config", config)?;
         kwargs.set_item("client_options", client_options)?;
