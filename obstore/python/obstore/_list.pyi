@@ -5,40 +5,23 @@
 # ruff: noqa: A001
 # Variable `list` is shadowing a Python builtinRuff
 
-from datetime import datetime
 from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
 
 from arro3.core import RecordBatch, Table
+from obspec._meta import ObjectMeta
 
 from ._store import ObjectStore
-
-class ObjectMeta(TypedDict):
-    """The metadata that describes an object."""
-
-    path: str
-    """The full path to the object"""
-
-    last_modified: datetime
-    """The last modified time"""
-
-    size: int
-    """The size in bytes of the object"""
-
-    e_tag: str | None
-    """The unique identifier for the object
-
-    <https://datatracker.ietf.org/doc/html/rfc9110#name-etag>
-    """
-
-    version: str | None
-    """A version indicator for this object"""
 
 ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  # noqa: PYI001
 """The data structure used for holding list results.
 
-By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
+By default, listing APIs return a `list` of [`ObjectMeta`][obspec.ObjectMeta]. However
 for improved performance when listing large buckets, you can pass `return_arrow=True`.
 Then an Arrow `RecordBatch` will be returned instead.
+
+This implements [`obspec.ListChunkType_co`][], but is redefined here to specialize the
+exact instance of the Arrow return type, given that in the obstore implementation, an
+[`arro3.core.RecordBatch`][] or [`arro3.core.Table`][] will always be returned.
 """
 
 class ListResult(TypedDict, Generic[ListChunkType]):
@@ -47,6 +30,8 @@ class ListResult(TypedDict, Generic[ListChunkType]):
     Includes objects, prefixes (directories) and a token for the next set of results.
     Individual result sets may be limited to 1,000 objects based on the underlying
     object storage's limitations.
+
+    This implements [`obspec.ListResult`][].
     """
 
     common_prefixes: List[str]
@@ -56,8 +41,10 @@ class ListResult(TypedDict, Generic[ListChunkType]):
     """Object metadata for the listing"""
 
 class ListStream(Generic[ListChunkType]):
-    """A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
+    """A stream of [ObjectMeta][obspec.ObjectMeta] that can be polled in a sync or
     async fashion.
+
+    This implements [`obspec.ListStream`][].
     """  # noqa: D205
 
     def __aiter__(self) -> Self:
@@ -170,7 +157,7 @@ def list(
     ```
 
     !!! note
-        The order of returned [`ObjectMeta`][obstore.ObjectMeta] is not
+        The order of returned [`ObjectMeta`][obspec.ObjectMeta] is not
         guaranteed
 
     !!! note

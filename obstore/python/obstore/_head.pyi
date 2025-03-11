@@ -1,5 +1,7 @@
-from ._list import ObjectMeta
-from ._store import ObjectStore
+# TODO: fix improt
+from obspec._meta import ObjectMeta
+
+from .store import ObjectStore
 
 def head(store: ObjectStore, path: str) -> ObjectMeta:
     """Return the metadata for the specified location.
