@@ -1,3 +1,4 @@
+from . import _store as _store
 from ._buffered import AsyncReadableFile as AsyncReadableFile
 from ._buffered import AsyncWritableFile as AsyncWritableFile
 from ._buffered import ReadableFile as ReadableFile
