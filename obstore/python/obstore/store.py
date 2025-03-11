@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal, TypeAlias, Unpack, overload
 import obstore as obs
 from obstore._obstore import _store
 from obstore._obstore import parse_scheme as _parse_scheme
+from obstore.exceptions import BaseError
 
 if TYPE_CHECKING:
     import sys
@@ -620,7 +621,7 @@ def from_url(  # type: ignore (parameter overlap)
     automatic_cleanup: bool = False,
     mkdir: bool = False,
 ) -> ObjectStore: ...
-def from_url(
+def from_url(  # noqa: C901
     url: str,
     *,
     config: S3Config | GCSConfig | AzureConfig | None = None,
@@ -699,6 +700,10 @@ def from_url(
             **kwargs,
         )
     if scheme == "http":
+        if config or kwargs:
+            msg = "HTTPStore does not accept any configuration"
+            raise BaseError(msg)
+
         return HTTPStore.from_url(
             url,
             client_options=client_options,
@@ -720,9 +725,9 @@ def from_url(
     if scheme == "memory":
         if config or kwargs:
             msg = "MemoryStore does not accept any configuration"
-            raise ValueError(msg)
+            raise BaseError(msg)
 
         return MemoryStore()
 
     msg = f"Unknown scheme: {url}"
-    raise ValueError(msg)
+    raise BaseError(msg)
