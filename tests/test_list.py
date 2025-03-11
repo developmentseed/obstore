@@ -1,18 +1,17 @@
 import pytest
 from arro3.core import RecordBatch, Table
 
-import obstore as obs
 from obstore.store import MemoryStore
 
 
 def test_list():
     store = MemoryStore()
 
-    obs.put(store, "file1.txt", b"foo")
-    obs.put(store, "file2.txt", b"bar")
-    obs.put(store, "file3.txt", b"baz")
+    store.put("file1.txt", b"foo")
+    store.put("file2.txt", b"bar")
+    store.put("file3.txt", b"baz")
 
-    stream = obs.list(store)
+    stream = store.list()
     result = stream.collect()
     assert len(result) == 3
 
@@ -21,9 +20,9 @@ def test_list_as_arrow():
     store = MemoryStore()
 
     for i in range(100):
-        obs.put(store, f"file{i}.txt", b"foo")
+        store.put(f"file{i}.txt", b"foo")
 
-    stream = obs.list(store, return_arrow=True, chunk_size=10)
+    stream = store.list(return_arrow=True, chunk_size=10)
     yielded_batches = 0
     for batch in stream:
         assert isinstance(batch, RecordBatch)
@@ -32,7 +31,7 @@ def test_list_as_arrow():
 
     assert yielded_batches == 10
 
-    stream = obs.list(store, return_arrow=True, chunk_size=10)
+    stream = store.list(return_arrow=True, chunk_size=10)
     batch = stream.collect()
     assert isinstance(batch, RecordBatch)
     assert batch.num_rows == 100
@@ -43,9 +42,9 @@ async def test_list_stream_async():
     store = MemoryStore()
 
     for i in range(100):
-        await obs.put_async(store, f"file{i}.txt", b"foo")
+        await store.put_async(f"file{i}.txt", b"foo")
 
-    stream = obs.list(store, return_arrow=True, chunk_size=10)
+    stream = store.list(return_arrow=True, chunk_size=10)
     yielded_batches = 0
     async for batch in stream:
         assert isinstance(batch, RecordBatch)
@@ -54,7 +53,7 @@ async def test_list_stream_async():
 
     assert yielded_batches == 10
 
-    stream = obs.list(store, return_arrow=True, chunk_size=10)
+    stream = store.list(return_arrow=True, chunk_size=10)
     batch = await stream.collect_async()
     assert isinstance(batch, RecordBatch)
     assert batch.num_rows == 100
@@ -63,30 +62,30 @@ async def test_list_stream_async():
 def test_list_with_delimiter():
     store = MemoryStore()
 
-    obs.put(store, "a/file1.txt", b"foo")
-    obs.put(store, "a/file2.txt", b"bar")
-    obs.put(store, "b/file3.txt", b"baz")
+    store.put("a/file1.txt", b"foo")
+    store.put("a/file2.txt", b"bar")
+    store.put("b/file3.txt", b"baz")
 
-    list_result1 = obs.list_with_delimiter(store)
+    list_result1 = store.list_with_delimiter()
     assert list_result1["common_prefixes"] == ["a", "b"]
     assert list_result1["objects"] == []
 
-    list_result2 = obs.list_with_delimiter(store, "a")
+    list_result2 = store.list_with_delimiter("a")
     assert list_result2["common_prefixes"] == []
     assert list_result2["objects"][0]["path"] == "a/file1.txt"
     assert list_result2["objects"][1]["path"] == "a/file2.txt"
 
-    list_result3 = obs.list_with_delimiter(store, "b")
+    list_result3 = store.list_with_delimiter("b")
     assert list_result3["common_prefixes"] == []
     assert list_result3["objects"][0]["path"] == "b/file3.txt"
 
     # Test returning arrow
-    list_result1 = obs.list_with_delimiter(store, return_arrow=True)
+    list_result1 = store.list_with_delimiter(return_arrow=True)
     assert list_result1["common_prefixes"] == ["a", "b"]
     assert list_result1["objects"].num_rows == 0
     assert isinstance(list_result1["objects"], Table)
 
-    list_result2 = obs.list_with_delimiter(store, "a", return_arrow=True)
+    list_result2 = store.list_with_delimiter("a", return_arrow=True)
     assert list_result2["common_prefixes"] == []
     assert list_result2["objects"].num_rows == 2
     assert list_result2["objects"]["path"][0].as_py() == "a/file1.txt"
@@ -97,30 +96,30 @@ def test_list_with_delimiter():
 async def test_list_with_delimiter_async():
     store = MemoryStore()
 
-    await obs.put_async(store, "a/file1.txt", b"foo")
-    await obs.put_async(store, "a/file2.txt", b"bar")
-    await obs.put_async(store, "b/file3.txt", b"baz")
+    await store.put_async("a/file1.txt", b"foo")
+    await store.put_async("a/file2.txt", b"bar")
+    await store.put_async("b/file3.txt", b"baz")
 
-    list_result1 = await obs.list_with_delimiter_async(store)
+    list_result1 = await store.list_with_delimiter_async()
     assert list_result1["common_prefixes"] == ["a", "b"]
     assert list_result1["objects"] == []
 
-    list_result2 = await obs.list_with_delimiter_async(store, "a")
+    list_result2 = await store.list_with_delimiter_async("a")
     assert list_result2["common_prefixes"] == []
     assert list_result2["objects"][0]["path"] == "a/file1.txt"
     assert list_result2["objects"][1]["path"] == "a/file2.txt"
 
-    list_result3 = await obs.list_with_delimiter_async(store, "b")
+    list_result3 = await store.list_with_delimiter_async("b")
     assert list_result3["common_prefixes"] == []
     assert list_result3["objects"][0]["path"] == "b/file3.txt"
 
     # Test returning arrow
-    list_result1 = await obs.list_with_delimiter_async(store, return_arrow=True)
+    list_result1 = await store.list_with_delimiter_async(return_arrow=True)
     assert list_result1["common_prefixes"] == ["a", "b"]
     assert list_result1["objects"].num_rows == 0
     assert isinstance(list_result1["objects"], Table)
 
-    list_result2 = await obs.list_with_delimiter_async(store, "a", return_arrow=True)
+    list_result2 = await store.list_with_delimiter_async("a", return_arrow=True)
     assert list_result2["common_prefixes"] == []
     assert list_result2["objects"].num_rows == 2
     assert list_result2["objects"]["path"][0].as_py() == "a/file1.txt"
