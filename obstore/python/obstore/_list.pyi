@@ -98,7 +98,7 @@ def list(
     !!! note
         There is no async version of this method, because `list` is not async under the
         hood, rather it only instantiates a stream, which can be polled in synchronous
-        or asynchronous fashion. See [`ListStream`][obstore.ListStream].
+        or asynchronous fashion. See [`ListStream`][obspec.ListStream].
 
     Args:
         store: The ObjectStore instance to use.
@@ -109,8 +109,8 @@ def list(
         chunk_size: The number of items to collect per chunk in the returned
             (async) iterator. All chunks except for the last one will have this many
             items. This is ignored in the
-            [`collect`][obstore.ListStream.collect] and
-            [`collect_async`][obstore.ListStream.collect_async] methods of
+            [`collect`][obspec.ListStream.collect] and
+            [`collect_async`][obspec.ListStream.collect_async] methods of
             `ListStream`.
         return_arrow: If `True`, return each batch of list items as an Arrow
             `RecordBatch`, not as a list of Python `dict`s. Arrow removes serialization
