@@ -35,9 +35,6 @@ dev-dependencies = [
 [tool.uv.workspace]
 members = ["examples/fastapi-example"]
 
-[tool.uv.sources]
-obspec = { path = "../obspec" }
-
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
