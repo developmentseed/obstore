@@ -20,12 +20,12 @@ class AzureConfig(TypedDict, total=False):
         ```
     """
 
-    storage_account_name: str
+    account_name: str
     """The name of the azure storage account. (Required.)
 
     **Environment variable**: `AZURE_STORAGE_ACCOUNT_NAME`.
     """
-    storage_account_key: str
+    account_key: str
     """Master key for accessing storage account.
 
     **Environment variables**:
@@ -34,7 +34,7 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_STORAGE_ACCESS_KEY`
     - `AZURE_STORAGE_MASTER_KEY`
     """
-    storage_client_id: str
+    client_id: str
     """The client id for use in client secret or k8s federated credential flow.
 
     **Environment variables**:
@@ -42,7 +42,7 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_STORAGE_CLIENT_ID`
     - `AZURE_CLIENT_ID`
     """
-    storage_client_secret: str
+    client_secret: str
     """The client secret for use in client secret flow.
 
     **Environment variables**:
@@ -50,7 +50,7 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_STORAGE_CLIENT_SECRET`
     - `AZURE_CLIENT_SECRET`
     """
-    storage_tenant_id: str
+    tenant_id: str
     """The tenant id for use in client secret or k8s federated credential flow.
 
     **Environment variables**:
@@ -60,7 +60,7 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_TENANT_ID`
     - `AZURE_AUTHORITY_ID`
     """
-    storage_authority_host: str
+    authority_host: str
     """Sets an alternative authority host for OAuth based authorization.
 
     Defaults to `https://login.microsoftonline.com`.
@@ -77,7 +77,7 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_STORAGE_AUTHORITY_HOST`
     - `AZURE_AUTHORITY_HOST`
     """
-    storage_sas_key: str
+    sas_key: str
     """
     Shared access signature.
 
@@ -89,12 +89,12 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_STORAGE_SAS_KEY`
     - `AZURE_STORAGE_SAS_TOKEN`
     """
-    storage_token: str
+    token: str
     """A static bearer token to be used for authorizing requests.
 
     **Environment variable**: `AZURE_STORAGE_TOKEN`.
     """
-    storage_use_emulator: bool
+    use_emulator: bool
     """Set if the Azure emulator should be used (defaults to `False`).
 
     **Environment variable**: `AZURE_STORAGE_USE_EMULATOR`.
@@ -107,9 +107,9 @@ class AzureConfig(TypedDict, total=False):
 
     !!! note
 
-        `storage_endpoint` will take precedence over this option.
+        `endpoint` will take precedence over this option.
     """
-    storage_endpoint: str
+    endpoint: str
     """Override the endpoint used to communicate with blob storage.
 
     Defaults to `https://{account}.blob.core.windows.net`.
@@ -143,7 +143,7 @@ class AzureConfig(TypedDict, total=False):
     federated_token_file: str
     """Sets a file path for acquiring azure federated identity token in k8s.
 
-    Requires `storage_client_id` and `storage_tenant_id` to be set.
+    Requires `client_id` and `tenant_id` to be set.
 
     **Environment variable**: `AZURE_FEDERATED_TOKEN_FILE`.
     """
