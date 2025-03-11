@@ -1,7 +1,7 @@
 # TODO: move to reusable types package
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, TypeAlias, Unpack, overload
+from typing import Any, Self, TypeAlias, Unpack, overload
 
 from ._aws import S3Config as S3Config
 from ._aws import S3Credential as S3Credential
@@ -154,7 +154,7 @@ class LocalStore:
         *,
         automatic_cleanup: bool = False,
         mkdir: bool = False,
-    ) -> LocalStore:
+    ) -> Self:
         """Construct a new LocalStore from a `file://` URL.
 
         **Examples:**

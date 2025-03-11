@@ -1,6 +1,6 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, Protocol, TypeAlias, TypedDict, Unpack
+from typing import Any, Protocol, Self, TypeAlias, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -353,7 +353,7 @@ class AzureStore:
         retry_config: RetryConfig | None = None,
         credential_provider: AzureCredentialProvider | None = None,
         **kwargs: Unpack[AzureConfig],
-    ) -> AzureStore:
+    ) -> Self:
         """Construct a new AzureStore with values populated from a well-known storage URL.
 
         The supported url schemes are:

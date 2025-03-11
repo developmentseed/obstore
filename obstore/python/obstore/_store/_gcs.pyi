@@ -1,6 +1,6 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, Protocol, TypedDict, Unpack
+from typing import Any, Protocol, Self, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -164,7 +164,7 @@ class GCSStore:
         retry_config: RetryConfig | None = None,
         credential_provider: GCSCredentialProvider | None = None,
         **kwargs: Unpack[GCSConfig],
-    ) -> GCSStore:
+    ) -> Self:
         """Construct a new GCSStore with values populated from a well-known storage URL.
 
         The supported url schemes are:

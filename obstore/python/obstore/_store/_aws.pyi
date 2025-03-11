@@ -1,6 +1,15 @@
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, Literal, NotRequired, Protocol, TypeAlias, TypedDict, Unpack
+from typing import (
+    Any,
+    Literal,
+    NotRequired,
+    Protocol,
+    Self,
+    TypeAlias,
+    TypedDict,
+    Unpack,
+)
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
@@ -501,7 +510,7 @@ class S3Store:
         retry_config: RetryConfig | None = None,
         credential_provider: S3CredentialProvider | None = None,
         **kwargs: Unpack[S3Config],
-    ) -> S3Store:
+    ) -> Self:
         """Parse available connection info from a well-known storage URL.
 
         The supported url schemes are:

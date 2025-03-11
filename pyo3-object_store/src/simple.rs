@@ -34,6 +34,7 @@ pub fn from_url(
         ObjectStoreScheme::AmazonS3 => {
             let store = PyS3Store::from_url(
                 &PyType::new::<PyS3Store>(py),
+                py,
                 url,
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
@@ -46,6 +47,7 @@ pub fn from_url(
         ObjectStoreScheme::GoogleCloudStorage => {
             let store = PyGCSStore::from_url(
                 &PyType::new::<PyGCSStore>(py),
+                py,
                 url,
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
@@ -58,6 +60,7 @@ pub fn from_url(
         ObjectStoreScheme::MicrosoftAzure => {
             let store = PyAzureStore::from_url(
                 &PyType::new::<PyAzureStore>(py),
+                py,
                 url,
                 config.map(|x| x.extract()).transpose()?,
                 client_options,
@@ -71,6 +74,7 @@ pub fn from_url(
             raise_if_config_passed(config, kwargs, "http")?;
             let store = PyHttpStore::from_url(
                 &PyType::new::<PyHttpStore>(py),
+                py,
                 url,
                 client_options,
                 retry_config,

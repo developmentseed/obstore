@@ -1,3 +1,5 @@
+from typing import Self
+
 from ._client import ClientConfig
 from ._retry import RetryConfig
 
@@ -32,7 +34,7 @@ class HTTPStore:
         *,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
-    ) -> HTTPStore:
+    ) -> Self:
         """Construct a new HTTPStore from a URL.
 
         This is an alias of [`HTTPStore.__init__`][obstore.store.HTTPStore.__init__].
