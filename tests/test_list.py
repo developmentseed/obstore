@@ -1,3 +1,6 @@
+import pandas as pd
+import polars as pl
+import pyarrow as pa
 import pytest
 from arro3.core import RecordBatch, Table
 
@@ -82,14 +85,15 @@ def test_list_with_delimiter():
     # Test returning arrow
     list_result1 = store.list_with_delimiter(return_arrow=True)
     assert list_result1["common_prefixes"] == ["a", "b"]
-    assert list_result1["objects"].num_rows == 0
+    assert Table(list_result1["objects"]).num_rows == 0
     assert isinstance(list_result1["objects"], Table)
 
     list_result2 = store.list_with_delimiter("a", return_arrow=True)
     assert list_result2["common_prefixes"] == []
-    assert list_result2["objects"].num_rows == 2
-    assert list_result2["objects"]["path"][0].as_py() == "a/file1.txt"
-    assert list_result2["objects"]["path"][1].as_py() == "a/file2.txt"
+    objects = Table(list_result2["objects"])
+    assert objects.num_rows == 2
+    assert objects["path"][0].as_py() == "a/file1.txt"
+    assert objects["path"][1].as_py() == "a/file2.txt"
 
 
 @pytest.mark.asyncio
@@ -116,11 +120,23 @@ async def test_list_with_delimiter_async():
     # Test returning arrow
     list_result1 = await store.list_with_delimiter_async(return_arrow=True)
     assert list_result1["common_prefixes"] == ["a", "b"]
-    assert list_result1["objects"].num_rows == 0
+    assert Table(list_result1["objects"]).num_rows == 0
     assert isinstance(list_result1["objects"], Table)
 
     list_result2 = await store.list_with_delimiter_async("a", return_arrow=True)
     assert list_result2["common_prefixes"] == []
-    assert list_result2["objects"].num_rows == 2
-    assert list_result2["objects"]["path"][0].as_py() == "a/file1.txt"
-    assert list_result2["objects"]["path"][1].as_py() == "a/file2.txt"
+    objects = Table(list_result2["objects"])
+    assert objects.num_rows == 2
+    assert objects["path"][0].as_py() == "a/file1.txt"
+    assert objects["path"][1].as_py() == "a/file2.txt"
+
+
+def test_list_as_arrow_to_polars():
+    store = MemoryStore()
+
+    for i in range(100):
+        store.put(f"file{i}.txt", b"foo")
+
+    stream = store.list(return_arrow=True, chunk_size=10)
+    _pl_df = pl.DataFrame(next(stream))
+    _df = pa.record_batch(next(stream)).to_pandas(types_mapper=pd.ArrowDtype)

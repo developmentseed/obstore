@@ -1176,10 +1176,25 @@ wheels = [
 [[package]]
 name = "obspec"
 version = "0.1.0b1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/50/4a/ef272abf32b3d397727224987ed0fe4f55589c7e6ab608f2e62dc60d8be1/obspec-0.1.0b1.tar.gz", hash = "sha256:4d3bee05724efe27d6974b1766bcd65dcd32a2440a3bc27469f0c5f0425d82fc", size = 90417 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/58/7783b352fcdd95b50a8246e405281890bd9db14afc0d416cbc304bc42e04/obspec-0.1.0b1-py3-none-any.whl", hash = "sha256:6a1f4475dbe4a950996b49eba993bab6bef0f0d85847e49183a5f58a4f1dcc04", size = 14807 },
+source = { directory = "../obspec" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "arro3-core", specifier = ">=0.4.2" },
+    { name = "griffe", specifier = ">=1.6.0" },
+    { name = "griffe-inherited-docstrings", specifier = ">=1.0.1" },
+    { name = "ipykernel", specifier = ">=6.29.5" },
+    { name = "mike", specifier = ">=2.1.3" },
+    { name = "mkdocs", specifier = ">=1.6.1" },
+    { name = "mkdocs-material", extras = ["imaging"], specifier = ">=9.6.3" },
+    { name = "mkdocstrings", specifier = ">=0.27.0" },
+    { name = "mkdocstrings-python", specifier = ">=1.13.0" },
+    { name = "pip", specifier = ">=24.2" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "ruff", specifier = ">=0.8.4" },
 ]
 
 [[package]]
@@ -1384,6 +1399,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e5/69/882ee5c9d017149285cab114ebeab373308ef0f874fcdac9beb90e0ac4da/ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3", size = 159130 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a3/58/35da89ee790598a0700ea49b2a66594140f44dec458c07e8e3d4979137fc/ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce", size = 49567 },
+]
+
+[[package]]
+name = "polars"
+version = "1.24.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bf/d3/453bcecbe14a5aba6be47c99d81f4e1f941d3de729d5e0ce5c7d527c05ed/polars-1.24.0.tar.gz", hash = "sha256:6e7553789495081c998f5e4ad4ebc7e19e970a9cc83326d40461564e85ad226d", size = 4446066 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/3f/16f87d9ec4707d717a434bc54307506594522de99fdfe3d5d76233912c94/polars-1.24.0-cp39-abi3-macosx_10_12_x86_64.whl", hash = "sha256:563b99a6597fe77a3c89d478e4a6fb49c063f44ef84d4adefe490e14626e2f99", size = 33792674 },
+    { url = "https://files.pythonhosted.org/packages/35/cd/27353d0b9331d60a95f5708370441348d4a3af0f609961ceaaa3b583190f/polars-1.24.0-cp39-abi3-macosx_11_0_arm64.whl", hash = "sha256:6ad64d938d60b7fda39b60892ef67bc6a9942e0c7170db593a65d019e8730b09", size = 30469541 },
+    { url = "https://files.pythonhosted.org/packages/a7/db/668d8328b1c3d8381023fc4ed905a88b93cca041c088f42a94dbd6822469/polars-1.24.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:331e737465b8d954bec51e6906bdc6e979a6ee52f97ffe5e8d0c10794a46bfd9", size = 34313540 },
+    { url = "https://files.pythonhosted.org/packages/12/16/f95207616b2e802c381459cf01f0d233daa98bdc4e394ec88044af9e927f/polars-1.24.0-cp39-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:3c6c774aebdd5cd601839594986648789352f72b8893f4b7e34224e75b060c8d", size = 31490266 },
+    { url = "https://files.pythonhosted.org/packages/8b/82/cb0512747ec5508a4f840a521feb27f28a81eac1aef6c92fc25643073579/polars-1.24.0-cp39-abi3-win_amd64.whl", hash = "sha256:a5a473ff44fe1b9e3e7a9013a9321efe841d858e89cf33d424e6f3fef3ea4d5e", size = 34678593 },
+    { url = "https://files.pythonhosted.org/packages/67/00/db3810803938467a215c1f161ff21ad6fef581d5ac1381ee2990d0180c19/polars-1.24.0-cp39-abi3-win_arm64.whl", hash = "sha256:5ea781ca8e0a39c3b677171dbd852e5fa2d5c53417b5fbd69d711b6044a49eaa", size = 30892251 },
 ]
 
 [[package]]
@@ -2020,6 +2049,7 @@ dev = [
     { name = "obspec" },
     { name = "pandas" },
     { name = "pip" },
+    { name = "polars" },
     { name = "pyarrow" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -2044,9 +2074,10 @@ dev = [
     { name = "mkdocstrings", specifier = ">=0.27.0" },
     { name = "mkdocstrings-python", specifier = ">=1.13.0" },
     { name = "moto", extras = ["s3", "server"], specifier = ">=5.0.18" },
-    { name = "obspec", specifier = ">=0.1.0b1" },
+    { name = "obspec", directory = "../obspec" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pip", specifier = ">=24.2" },
+    { name = "polars", specifier = ">=1.24.0" },
     { name = "pyarrow", specifier = ">=17.0.0" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
