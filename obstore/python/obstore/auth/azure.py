@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import azure.identity
@@ -57,8 +57,7 @@ if TYPE_CHECKING:
 
 
 class AzureAuthCredentialProvider:
-    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] that uses
-    [`azure.identity`][].
+    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] that uses [`azure.identity`][].
 
     This credential provider uses `azure-identity`, and will error if this cannot
     be imported.
@@ -74,7 +73,7 @@ class AzureAuthCredentialProvider:
     ```
 
     [`azure.identity`]: https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme
-    """
+    """  # noqa: E501
 
     credential: AzureCredentialUnionType
 
@@ -90,10 +89,14 @@ class AzureAuthCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.DefaultAzureCredential`][] will be
                 called to find default credentials.
+            scopes: Scopes required by the access token. If not specified,
+                ["https://storage.azure.com/.default"] will be used by default.
+            tenant_id: Optionally specify the Azure Tenant ID which will be passed to
+                the credential's `get_token` method.
 
         [`azure.identity.DefaultAzureCredential`]: https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential
-        """
 
+        """
         self.credential = credential or azure.identity.DefaultAzureCredential()
 
         # Use the Azure Storage scope by default
@@ -106,27 +109,27 @@ class AzureAuthCredentialProvider:
 
     def __call__(self) -> AzureCredential:
         """Fetch the credential."""
-
         # Fetch new token if the cached token does not exist or expires
         # in less than 5 minutes.
         if self.token:
-            token_expires_in = (
-                datetime.fromtimestamp(self.token.expires_on) - datetime.now()
-            )
+            token_expires_in = datetime.fromtimestamp(
+                self.token.expires_on,
+                UTC,
+            ) - datetime.now(UTC)
         if not self.token or token_expires_in < timedelta(minutes=5):
             self.token = self.credential.get_token(
-                *self.scopes, tenant_id=self.tenant_id
+                *self.scopes,
+                tenant_id=self.tenant_id,
             )
 
         return {
             "token": self.token.token,
-            "expires_at": datetime.fromtimestamp(self.token.expires_on),
+            "expires_at": datetime.fromtimestamp(self.token.expires_on, UTC),
         }
 
 
 class AzureAuthAsyncCredentialProvider:
-    """An async CredentialProvider for [AzureStore][obstore.store.AzureStore] that uses
-    [`azure.identity`][].
+    """An async CredentialProvider for [AzureStore][obstore.store.AzureStore] that uses [`azure.identity`][].
 
     This credential provider uses `azure-identity` and `aiohttp`, and will error if
     these cannot be imported.
@@ -142,7 +145,7 @@ class AzureAuthAsyncCredentialProvider:
     ```
 
     [`azure.identity`]: https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme
-    """
+    """  # noqa: E501
 
     credential: AzureAsyncCredentialUnionType
 
@@ -158,10 +161,14 @@ class AzureAuthAsyncCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.aio.DefaultAzureCredential`][] will be
                 called to find default credentials.
+            scopes: Scopes required by the access token. If not specified,
+                ["https://storage.azure.com/.default"] will be used by default.
+            tenant_id: Optionally specify the Azure Tenant ID which will be passed to
+                the credential's `get_token` method.
 
         [`azure.identity.aio.DefaultAzureCredential`]: https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.aio.defaultazurecredential
-        """
 
+        """
         self.credential = credential or azure.identity.aio.DefaultAzureCredential()
 
         # Use the Azure Storage scope by default
@@ -174,19 +181,20 @@ class AzureAuthAsyncCredentialProvider:
 
     async def __call__(self) -> AzureCredential:
         """Fetch the credential."""
-
         # Fetch new token if the cached token does not exist or expires
         # in less than 5 minutes.
         if self.token:
-            token_expires_in = (
-                datetime.fromtimestamp(self.token.expires_on) - datetime.now()
-            )
+            token_expires_in = datetime.fromtimestamp(
+                self.token.expires_on,
+                UTC,
+            ) - datetime.now(UTC)
         if not self.token or token_expires_in < timedelta(minutes=5):
             self.token = await self.credential.get_token(
-                *self.scopes, tenant_id=self.tenant_id
+                *self.scopes,
+                tenant_id=self.tenant_id,
             )
 
         return {
             "token": self.token.token,
-            "expires_at": datetime.fromtimestamp(self.token.expires_on),
+            "expires_at": datetime.fromtimestamp(self.token.expires_on, UTC),
         }
