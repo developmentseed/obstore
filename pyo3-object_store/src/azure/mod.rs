@@ -1,5 +1,5 @@
-mod credentials;
+pub(crate) mod credentials;
 mod error;
-mod store;
+pub(crate) mod store;
 
 pub use store::PyAzureStore;

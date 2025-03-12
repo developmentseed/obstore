@@ -12,7 +12,7 @@ use crate::aws::store::PyAmazonS3Config;
 use crate::credentials::{TemporaryToken, TokenCache};
 
 /// A wrapper around an [AwsCredential] that includes an optional expiry timestamp.
-struct PyAwsCredential {
+pub struct PyAwsCredential {
     credential: AwsCredential,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -52,6 +52,7 @@ impl<'py> FromPyObject<'py> for PyAwsCredential {
 
 // TODO: don't use a cache for static credentials where `expires_at` is `None`
 // (so you don't need to access a mutex)
+/// Exported only for Python integration tests
 #[derive(Debug)]
 pub struct PyAWSCredentialProvider {
     /// The provided user callback to manage credential refresh
@@ -150,7 +151,7 @@ impl PyAWSCredentialProvider {
     /// Call the user-provided callback and extract to a token.
     ///
     /// This is separate from `fetch_token` below so that it can return a `PyResult`.
-    async fn call(&self) -> PyResult<PyAwsCredential> {
+    pub async fn call(&self) -> PyResult<PyAwsCredential> {
         let call_result = Python::with_gil(|py| {
             self.user_callback
                 .call0(py)?

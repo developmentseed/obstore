@@ -14,7 +14,8 @@ use crate::azure::error::Error;
 use crate::credentials::{TemporaryToken, TokenCache};
 use crate::PyObjectStoreError;
 
-struct PyAzureAccessKey {
+/// Only exported for tests
+pub struct PyAzureAccessKey {
     access_key: AzureAccessKey,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -35,7 +36,8 @@ impl<'py> FromPyObject<'py> for PyAzureAccessKey {
     }
 }
 
-struct PyAzureSASToken {
+/// Only exported for tests
+pub struct PyAzureSASToken {
     sas_token: Vec<(String, String)>,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -63,7 +65,8 @@ impl<'py> FromPyObject<'py> for PyAzureSASToken {
     }
 }
 
-struct PyBearerToken {
+/// Only exported for tests
+pub struct PyBearerToken {
     token: String,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -77,8 +80,9 @@ impl<'py> FromPyObject<'py> for PyBearerToken {
     }
 }
 
+/// Only exported for tests
 #[derive(FromPyObject)]
-enum PyAzureCredential {
+pub enum PyAzureCredential {
     AccessKey(PyAzureAccessKey),
     SASToken(PyAzureSASToken),
     BearerToken(PyBearerToken),
@@ -132,6 +136,7 @@ fn split_sas(sas: &str) -> Result<Vec<(String, String)>, object_store::Error> {
     Ok(pairs)
 }
 
+/// Only exported for tests
 #[derive(Debug)]
 pub struct PyAzureCredentialProvider {
     /// The provided user callback to manage credential refresh
@@ -232,7 +237,6 @@ impl PyAzureCredentialProvider {
     }
 }
 
-// TODO: store expiration time and only call the external Python function as needed
 #[async_trait]
 impl CredentialProvider for PyAzureCredentialProvider {
     type Credential = AzureCredential;

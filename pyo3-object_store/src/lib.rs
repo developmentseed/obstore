@@ -34,3 +34,12 @@ pub use runtime::get_runtime;
 pub use simple::from_url;
 pub use store::PyObjectStore;
 pub use url::PyUrl;
+
+/// Private exports for use in Python integration tests. These may change at any time.
+pub mod _private {
+    pub use crate::aws::credentials::{PyAWSCredentialProvider, PyAwsCredential};
+    pub use crate::azure::credentials::{
+        PyAzureAccessKey, PyAzureCredentialProvider, PyAzureSASToken, PyBearerToken,
+    };
+    pub use crate::gcp::credentials::{PyGcpCredential, PyGcpCredentialProvider};
+}

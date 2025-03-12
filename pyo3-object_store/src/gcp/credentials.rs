@@ -14,7 +14,7 @@ use crate::credentials::{TemporaryToken, TokenCache};
 const DEFAULT_GCP_MIN_TTL: TimeDelta = TimeDelta::minutes(4);
 
 /// A wrapper around a [GcpCredential] that includes an optional expiry timestamp.
-struct PyGcpCredential {
+pub struct PyGcpCredential {
     credential: GcpCredential,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -42,6 +42,7 @@ impl<'py> FromPyObject<'py> for PyGcpCredential {
 
 // TODO: don't use a cache for static credentials where `expires_at` is `None`
 // (so you don't need to access a mutex)
+/// Exported only for Python integration tests
 #[derive(Debug)]
 pub struct PyGcpCredentialProvider {
     /// The provided user callback to manage credential refresh
