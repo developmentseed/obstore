@@ -160,7 +160,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         self,
         protocol: SUPPORTED_PROTOCOLS_T | str | None = None,
         *args: Any,
-        config: (S3Config | GCSConfig | AzureConfig | None) = None,
+        config: S3Config | GCSConfig | AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         asynchronous: bool = False,
@@ -480,9 +480,19 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 "version": head["version"],
             }
         except FileNotFoundError:
-            # use info in fsspec.AbstractFileSystem
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(None, super().info, path, **_kwargs)
+            pass
+
+        # Ref: https://github.com/fsspec/s3fs/blob/01b9c4b838b81375093ae1d78562edf6bdc616ea/s3fs/core.py#L1471-L1492
+        # We check to see if the path is a directory by attempting to list its
+        # contexts. If anything is found, it is indeed a directory
+        out = await self._ls(path, detail=True)
+        if len(out) > 0:
+            return {
+                "name": f"{bucket}/{path_no_bucket}",
+                "type": "directory",
+                "size": 0,
+            }
+        raise FileNotFoundError(path)
 
     @overload
     async def _ls(
@@ -785,11 +795,13 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
 
 def register(
-    protocol: SUPPORTED_PROTOCOLS_T
-    | str
-    | Iterable[SUPPORTED_PROTOCOLS_T]
-    | Iterable[str]
-    | None = None,
+    protocol: (
+        SUPPORTED_PROTOCOLS_T
+        | str
+        | Iterable[SUPPORTED_PROTOCOLS_T]
+        | Iterable[str]
+        | None
+    ) = None,
     *,
     asynchronous: bool = False,
 ) -> None:
