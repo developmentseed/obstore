@@ -11,7 +11,7 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 
 use crate::azure::error::Error;
-use crate::credentials::{TemporaryToken, TokenCache};
+use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
 use crate::PyObjectStoreError;
 
 struct PyAzureAccessKey {
@@ -200,10 +200,10 @@ impl PyCredentialProviderResult {
 
 impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(credentials) = ob.extract() {
-            Ok(Self::Sync(credentials))
-        } else {
+        if is_awaitable(ob)? {
             Ok(Self::Async(ob.clone().unbind()))
+        } else {
+            Ok(Self::Sync(ob.extract()?))
         }
     }
 }
@@ -223,8 +223,8 @@ impl PyAzureCredentialProvider {
         let credential = self
             .call()
             .await
-            .map_err(|err| object_store::Error::Generic {
-                store: "External Azure credential provider",
+            .map_err(|err| object_store::Error::Unauthenticated {
+                path: "External Azure credential provider".to_string(),
                 source: Box::new(err),
             })?;
 

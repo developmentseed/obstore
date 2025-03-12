@@ -1,11 +1,12 @@
 # ruff: noqa: PGH003
 
 import pickle
+from datetime import UTC, datetime
 
 import pytest
 
 import obstore as obs
-from obstore.exceptions import BaseError
+from obstore.exceptions import BaseError, UnauthenticatedError
 from obstore.store import S3Store, from_url
 
 
@@ -97,3 +98,27 @@ def test_config_round_trip():
     assert store.prefix == new_store.prefix
     assert store.client_options == new_store.client_options
     assert store.retry_config == new_store.retry_config
+
+
+def test_invalid_credential_provider():
+    """Test that passing an invalid synchronous credential provider raises an error.
+
+    instead of trying to await the value.
+    """
+
+    def credential_provider():
+        return {"access_key_id": "str", "expires_at": datetime.now(UTC)}
+
+    store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
+    with pytest.raises(UnauthenticatedError):
+        obs.list(store).collect()
+
+
+@pytest.mark.asyncio
+async def test_invalid_credential_provider_async():
+    async def credential_provider():
+        return {"access_key_id": "str", "expires_at": datetime.now(UTC)}
+
+    store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
+    with pytest.raises(UnauthenticatedError):
+        await obs.list(store).collect_async()
