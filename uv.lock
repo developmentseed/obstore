@@ -1174,6 +1174,15 @@ wheels = [
 ]
 
 [[package]]
+name = "obspec"
+version = "0.1.0b1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/50/4a/ef272abf32b3d397727224987ed0fe4f55589c7e6ab608f2e62dc60d8be1/obspec-0.1.0b1.tar.gz", hash = "sha256:4d3bee05724efe27d6974b1766bcd65dcd32a2440a3bc27469f0c5f0425d82fc", size = 90417 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8a/58/7783b352fcdd95b50a8246e405281890bd9db14afc0d416cbc304bc42e04/obspec-0.1.0b1-py3-none-any.whl", hash = "sha256:6a1f4475dbe4a950996b49eba993bab6bef0f0d85847e49183a5f58a4f1dcc04", size = 14807 },
+]
+
+[[package]]
 name = "openapi-schema-validator"
 version = "0.6.3"
 source = { registry = "https://pypi.org/simple" }
@@ -2008,6 +2017,7 @@ dev = [
     { name = "mkdocstrings" },
     { name = "mkdocstrings-python" },
     { name = "moto", extra = ["s3", "server"] },
+    { name = "obspec" },
     { name = "pandas" },
     { name = "pip" },
     { name = "pyarrow" },
@@ -2034,6 +2044,7 @@ dev = [
     { name = "mkdocstrings", specifier = ">=0.27.0" },
     { name = "mkdocstrings-python", specifier = ">=1.13.0" },
     { name = "moto", extras = ["s3", "server"], specifier = ">=5.0.18" },
+    { name = "obspec", specifier = "==0.1.0b1" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pip", specifier = ">=24.2" },
     { name = "pyarrow", specifier = ">=17.0.0" },

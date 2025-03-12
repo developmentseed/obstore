@@ -2,7 +2,9 @@ import sys
 from contextlib import AbstractAsyncContextManager, AbstractContextManager
 from typing import Self
 
-from ._attributes import Attributes
+# TODO: fix import
+from obspec._attributes import Attributes
+
 from ._bytes import Bytes
 from ._list import ObjectMeta
 from .store import ObjectStore

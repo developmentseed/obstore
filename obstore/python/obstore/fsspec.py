@@ -50,7 +50,10 @@ from obstore.store import from_url
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Iterable
 
-    from obstore import Attributes, Bytes, ReadableFile, WritableFile
+    # TODO: fix import
+    from obspec._attributes import Attributes
+
+    from obstore import Bytes, ReadableFile, WritableFile
     from obstore.store import (
         AzureConfig,
         ClientConfig,

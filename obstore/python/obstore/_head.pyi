@@ -1,4 +1,6 @@
-from ._list import ObjectMeta
+# TODO: fix improt
+from obspec._meta import ObjectMeta
+
 from .store import ObjectStore
 
 def head(store: ObjectStore, path: str) -> ObjectMeta:

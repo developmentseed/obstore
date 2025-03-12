@@ -1384,8 +1384,9 @@ dependencies = [
 
 [[package]]
 name = "object_store"
-version = "0.11.2"
-source = "git+https://github.com/apache/arrow-rs?rev=3674073bba31e082b337cee63726cfeb186a3a0c#3674073bba31e082b337cee63726cfeb186a3a0c"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9ce831b09395f933addbc56d894d889e4b226eba304d4e7adbab591e26daf1e"
 dependencies = [
  "async-trait",
  "base64",
@@ -1700,7 +1701,7 @@ dependencies = [
 
 [[package]]
 name = "pyo3-object_store"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "async-trait",
  "bytes",
