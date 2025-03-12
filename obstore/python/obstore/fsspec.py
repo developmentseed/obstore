@@ -479,6 +479,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         except FileNotFoundError:
             pass
 
+        # Ref: https://github.com/fsspec/s3fs/blob/01b9c4b838b81375093ae1d78562edf6bdc616ea/s3fs/core.py#L1471-L1492
         # We check to see if the path is a directory by attempting to list its
         # contexts. If anything is found, it is indeed a directory
         out = await self._ls(path, detail=True)
