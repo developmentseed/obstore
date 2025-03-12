@@ -56,7 +56,7 @@ if TYPE_CHECKING:
     )
 
 
-class AzureAuthCredentialProvider:
+class AzureCredentialProvider:
     """A CredentialProvider for [AzureStore][obstore.store.AzureStore] that uses [`azure.identity`][].
 
     This credential provider uses `azure-identity`, and will error if this cannot
@@ -65,10 +65,10 @@ class AzureAuthCredentialProvider:
     **Example:**
 
     ```py
-    from obstore.auth.azure import AzureAuthCredentialProvider
+    from obstore.auth.azure import AzureCredentialProvider
     from obstore.store import AzureStore
 
-    credential_provider = AzureAuthCredentialProvider(credential=...)
+    credential_provider = AzureCredentialProvider(credential=...)
     store = AzureStore("container", credential_provider=credential_provider)
     ```
 
@@ -83,7 +83,7 @@ class AzureAuthCredentialProvider:
         scopes: list[str] | None = None,
         tenant_id: str | None = None,
     ) -> None:
-        """Create a new AzureAuthCredentialProvider.
+        """Create a new AzureCredentialProvider.
 
         Args:
             credential: Credential to use for this provider. Defaults to `None`,
@@ -128,7 +128,7 @@ class AzureAuthCredentialProvider:
         }
 
 
-class AzureAuthAsyncCredentialProvider:
+class AzureAsyncCredentialProvider:
     """An async CredentialProvider for [AzureStore][obstore.store.AzureStore] that uses [`azure.identity`][].
 
     This credential provider uses `azure-identity` and `aiohttp`, and will error if
@@ -137,10 +137,10 @@ class AzureAuthAsyncCredentialProvider:
     **Example:**
 
     ```py
-    from obstore.auth.azure import AzureAuthAsyncCredentialProvider
+    from obstore.auth.azure import AzureAsyncCredentialProvider
     from obstore.store import AzureStore
 
-    credential_provider = AzureAuthAsyncCredentialProvider(credential=...)
+    credential_provider = AzureAsyncCredentialProvider(credential=...)
     store = AzureStore("container", credential_provider=credential_provider)
     ```
 
@@ -155,7 +155,7 @@ class AzureAuthAsyncCredentialProvider:
         scopes: list[str] | None = None,
         tenant_id: str | None = None,
     ) -> None:
-        """Create a new AzureAuthAsyncCredentialProvider.
+        """Create a new AzureAsyncCredentialProvider.
 
         Args:
             credential: Credential to use for this provider. Defaults to `None`,
