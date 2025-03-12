@@ -32,7 +32,7 @@ impl HTTPConfig {
 }
 
 /// A Python-facing wrapper around a [`HttpStore`].
-#[pyclass(name = "HTTPStore", frozen)]
+#[pyclass(name = "HTTPStore", frozen, subclass)]
 pub struct PyHttpStore {
     // Note: we don't need to wrap this in a MaybePrefixedStore because the HttpStore manages its
     // own prefix.
@@ -83,12 +83,19 @@ impl PyHttpStore {
     #[classmethod]
     #[pyo3(signature = (url, *, client_options=None, retry_config=None))]
     pub(crate) fn from_url(
-        _cls: &Bound<PyType>,
+        cls: &Bound<PyType>,
+        py: Python,
         url: PyUrl,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-    ) -> PyObjectStoreResult<Self> {
-        Self::new(url, client_options, retry_config)
+    ) -> PyObjectStoreResult<PyObject> {
+        // Note: we pass **back** through Python so that if cls is a subclass, we instantiate the
+        // subclass
+        let kwargs = PyDict::new(py);
+        kwargs.set_item("url", url)?;
+        kwargs.set_item("client_options", client_options)?;
+        kwargs.set_item("retry_config", retry_config)?;
+        Ok(cls.call((), Some(&kwargs))?.unbind())
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {

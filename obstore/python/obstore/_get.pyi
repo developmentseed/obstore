@@ -6,7 +6,7 @@ from obspec._get import GetOptions
 
 from ._bytes import Bytes
 from ._list import ObjectMeta
-from .store import ObjectStore
+from ._store import ObjectStore
 
 class GetResult:
     """Result for a get request.

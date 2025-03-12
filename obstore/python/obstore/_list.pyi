@@ -1,77 +1,12 @@
-# ruff: noqa: UP006
-# ruff: noqa: UP035
-# Use `list` instead of `List` for type annotation
-# `typing.List` is deprecated, use `list` instead
-# ruff: noqa: A001
-# Variable `list` is shadowing a Python builtinRuff
+# ruff: noqa: A001, UP006, UP035
 
-from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
+from typing import List, Literal, overload
 
 from arro3.core import RecordBatch, Table
+from obspec._list import ListResult, ListStream
 from obspec._meta import ObjectMeta
 
-from .store import ObjectStore
-
-ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  # noqa: PYI001
-"""The data structure used for holding list results.
-
-By default, listing APIs return a `list` of [`ObjectMeta`][obspec.ObjectMeta]. However
-for improved performance when listing large buckets, you can pass `return_arrow=True`.
-Then an Arrow `RecordBatch` will be returned instead.
-
-This implements [`obspec.ListChunkType_co`][], but is redefined here to specialize the
-exact instance of the Arrow return type, given that in the obstore implementation, an
-[`arro3.core.RecordBatch`][] or [`arro3.core.Table`][] will always be returned.
-"""
-
-class ListResult(TypedDict, Generic[ListChunkType]):
-    """Result of a list call.
-
-    Includes objects, prefixes (directories) and a token for the next set of results.
-    Individual result sets may be limited to 1,000 objects based on the underlying
-    object storage's limitations.
-
-    This implements [`obspec.ListResult`][].
-    """
-
-    common_prefixes: List[str]
-    """Prefixes that are common (like directories)"""
-
-    objects: ListChunkType
-    """Object metadata for the listing"""
-
-class ListStream(Generic[ListChunkType]):
-    """A stream of [ObjectMeta][obspec.ObjectMeta] that can be polled in a sync or
-    async fashion.
-
-    This implements [`obspec.ListStream`][].
-    """  # noqa: D205
-
-    def __aiter__(self) -> Self:
-        """Return `Self` as an async iterator."""
-
-    def __iter__(self) -> Self:
-        """Return `Self` as an async iterator."""
-
-    async def collect_async(self) -> ListChunkType:
-        """Collect all remaining ObjectMeta objects in the stream.
-
-        This ignores the `chunk_size` parameter from the `list` call and collects all
-        remaining data into a single chunk.
-        """
-
-    def collect(self) -> ListChunkType:
-        """Collect all remaining ObjectMeta objects in the stream.
-
-        This ignores the `chunk_size` parameter from the `list` call and collects all
-        remaining data into a single chunk.
-        """
-
-    async def __anext__(self) -> ListChunkType:
-        """Return the next chunk of ObjectMeta in the stream."""
-
-    def __next__(self) -> ListChunkType:
-        """Return the next chunk of ObjectMeta in the stream."""
+from ._store import ObjectStore
 
 @overload
 def list(
@@ -163,7 +98,7 @@ def list(
     !!! note
         There is no async version of this method, because `list` is not async under the
         hood, rather it only instantiates a stream, which can be polled in synchronous
-        or asynchronous fashion. See [`ListStream`][obstore.ListStream].
+        or asynchronous fashion. See [`ListStream`][obspec.ListStream].
 
     Args:
         store: The ObjectStore instance to use.
@@ -174,8 +109,8 @@ def list(
         chunk_size: The number of items to collect per chunk in the returned
             (async) iterator. All chunks except for the last one will have this many
             items. This is ignored in the
-            [`collect`][obstore.ListStream.collect] and
-            [`collect_async`][obstore.ListStream.collect_async] methods of
+            [`collect`][obspec.ListStream.collect] and
+            [`collect_async`][obspec.ListStream.collect_async] methods of
             `ListStream`.
         return_arrow: If `True`, return each batch of list items as an Arrow
             `RecordBatch`, not as a list of Python `dict`s. Arrow removes serialization

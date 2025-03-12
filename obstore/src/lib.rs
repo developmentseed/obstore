@@ -11,6 +11,7 @@ mod list;
 mod path;
 mod put;
 mod rename;
+mod scheme;
 mod signer;
 mod tags;
 mod utils;
@@ -51,8 +52,8 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
     m.add_wrapped(wrap_pyfunction!(___version))?;
 
-    pyo3_object_store::register_store_module(py, m, "obstore")?;
-    pyo3_object_store::register_exceptions_module(py, m, "obstore")?;
+    pyo3_object_store::register_store_module(py, m, "obstore", "_store")?;
+    pyo3_object_store::register_exceptions_module(py, m, "obstore", "exceptions")?;
 
     m.add_class::<pyo3_bytes::PyBytes>()?;
     // Set the value of `__module__` correctly on PyBytes
@@ -81,6 +82,7 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(put::put))?;
     m.add_wrapped(wrap_pyfunction!(rename::rename_async))?;
     m.add_wrapped(wrap_pyfunction!(rename::rename))?;
+    m.add_wrapped(wrap_pyfunction!(scheme::parse_scheme))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign_async))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign))?;
 

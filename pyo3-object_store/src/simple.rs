@@ -71,6 +71,7 @@ pub fn from_url(
             raise_if_config_passed(config, kwargs, "http")?;
             let store = PyHttpStore::from_url(
                 &PyType::new::<PyHttpStore>(py),
+                py,
                 url,
                 client_options,
                 retry_config,

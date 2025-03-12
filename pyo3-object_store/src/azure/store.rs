@@ -57,7 +57,7 @@ impl AzureConfig {
 }
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
-#[pyclass(name = "AzureStore", frozen)]
+#[pyclass(name = "AzureStore", frozen, subclass)]
 pub struct PyAzureStore {
     store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
@@ -124,33 +124,34 @@ impl PyAzureStore {
     #[classmethod]
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     pub(crate) fn from_url(
-        _cls: &Bound<PyType>,
+        cls: &Bound<PyType>,
         url: PyUrl,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAzureCredentialProvider>,
         kwargs: Option<PyAzureConfig>,
-    ) -> PyObjectStoreResult<Self> {
+    ) -> PyObjectStoreResult<PyObject> {
         // We manually parse the URL to find the prefix because `parse_url` does not apply the
         // prefix.
         let (_, prefix) =
             ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
-        let prefix = if prefix.parts().count() != 0 {
+        let prefix: Option<String> = if prefix.parts().count() != 0 {
             Some(prefix.into())
         } else {
             None
         };
         let config = parse_url(config, url.as_ref())?;
-        Self::new(
-            None,
-            prefix,
-            Some(config),
-            client_options,
-            retry_config,
-            credential_provider,
-            kwargs,
-        )
+
+        // Note: we pass **back** through Python so that if cls is a subclass, we instantiate the
+        // subclass
+        let kwargs = kwargs.unwrap_or_default().into_pyobject(cls.py())?;
+        kwargs.set_item("prefix", prefix)?;
+        kwargs.set_item("config", config)?;
+        kwargs.set_item("client_options", client_options)?;
+        kwargs.set_item("retry_config", retry_config)?;
+        kwargs.set_item("credential_provider", credential_provider)?;
+        Ok(cls.call((), Some(&kwargs))?.unbind())
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {

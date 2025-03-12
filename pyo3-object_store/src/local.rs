@@ -29,7 +29,7 @@ impl LocalConfig {
 }
 
 /// A Python-facing wrapper around a [`LocalFileSystem`].
-#[pyclass(name = "LocalStore", frozen)]
+#[pyclass(name = "LocalStore", frozen, subclass)]
 pub struct PyLocalStore {
     store: Arc<LocalFileSystem>,
     config: LocalConfig,
@@ -52,7 +52,7 @@ impl PyLocalStore {
 impl PyLocalStore {
     #[new]
     #[pyo3(signature = (prefix=None, *, automatic_cleanup=false, mkdir=false))]
-    fn py_new(
+    fn new(
         prefix: Option<std::path::PathBuf>,
         automatic_cleanup: bool,
         mkdir: bool,
@@ -79,11 +79,11 @@ impl PyLocalStore {
     #[classmethod]
     #[pyo3(signature = (url, *, automatic_cleanup=false, mkdir=false))]
     pub(crate) fn from_url(
-        _cls: &Bound<PyType>,
+        cls: &Bound<PyType>,
         url: PyUrl,
         automatic_cleanup: bool,
         mkdir: bool,
-    ) -> PyObjectStoreResult<Self> {
+    ) -> PyObjectStoreResult<PyObject> {
         let url = url.into_inner();
         let (scheme, path) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
 
@@ -96,7 +96,14 @@ impl PyLocalStore {
         // Hopefully this also works on Windows.
         let root = std::path::Path::new("/");
         let full_path = root.join(path.as_ref());
-        Self::py_new(Some(full_path), automatic_cleanup, mkdir)
+
+        // Note: we pass **back** through Python so that if cls is a subclass, we instantiate the
+        // subclass
+        let kwargs = PyDict::new(cls.py());
+        kwargs.set_item("prefix", full_path)?;
+        kwargs.set_item("automatic_cleanup", automatic_cleanup)?;
+        kwargs.set_item("mkdir", mkdir)?;
+        Ok(cls.call((), Some(&kwargs))?.unbind())
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {

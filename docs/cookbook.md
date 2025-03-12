@@ -39,6 +39,19 @@ store = ... # store of your choice
 # Get a stream of Arrow RecordBatches of metadata
 list_stream = obs.list(store, prefix="data", return_arrow=True)
 for record_batch in list_stream:
+    # Perform zero-copy conversion to your arrow-backed library of choice
+    #
+    # To pyarrow:
+    # pyarrow.record_batch(record_batch)
+    #
+    # To polars:
+    # polars.DataFrame(record_batch)
+    #
+    # To pandas (with Arrow-backed data-types):
+    # pyarrow.record_batch(record_batch).to_pandas(types_mapper=pd.ArrowDtype)
+    #
+    # To arro3:
+    # arro3.core.RecordBatch(record_batch)
     print(record_batch.num_rows)
 ```
 

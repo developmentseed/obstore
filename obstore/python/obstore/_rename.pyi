@@ -1,4 +1,4 @@
-from .store import ObjectStore
+from ._store import ObjectStore
 
 def rename(store: ObjectStore, from_: str, to: str, *, overwrite: bool = True) -> None:
     """Move an object from one path to another in the same object store.

@@ -21,7 +21,7 @@ dev-dependencies = [
     "mkdocstrings-python>=1.13.0",
     "mkdocstrings>=0.27.0",
     "moto[s3,server]>=5.0.18",
-    "obspec>=0.1.0-beta.1",
+    "obspec>=0.1.0b1",
     "pandas>=2.2.3",
     "pip>=24.2",
     "pyarrow>=17.0.0",
@@ -29,6 +29,7 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "ruff>=0.8.4",
     "types-boto3[sts]>=1.36.23",
+    "polars>=1.24.0",
 ]
 
 [tool.uv.workspace]

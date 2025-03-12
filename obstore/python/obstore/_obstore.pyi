@@ -1,3 +1,4 @@
+from . import _store as _store
 from ._buffered import AsyncReadableFile as AsyncReadableFile
 from ._buffered import AsyncWritableFile as AsyncWritableFile
 from ._buffered import ReadableFile as ReadableFile
@@ -21,9 +22,6 @@ from ._get import get_ranges as get_ranges
 from ._get import get_ranges_async as get_ranges_async
 from ._head import head as head
 from ._head import head_async as head_async
-from ._list import ListChunkType as ListChunkType
-from ._list import ListResult as ListResult
-from ._list import ListStream as ListStream
 from ._list import list as list  # noqa: A004
 from ._list import list_with_delimiter as list_with_delimiter
 from ._list import list_with_delimiter_async as list_with_delimiter_async
@@ -31,6 +29,7 @@ from ._put import put as put
 from ._put import put_async as put_async
 from ._rename import rename as rename
 from ._rename import rename_async as rename_async
+from ._scheme import parse_scheme as parse_scheme
 from ._sign import HTTP_METHOD as HTTP_METHOD
 from ._sign import SignCapableStore as SignCapableStore
 from ._sign import sign as sign
