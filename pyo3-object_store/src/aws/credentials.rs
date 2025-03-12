@@ -9,7 +9,7 @@ use pyo3::intern;
 use pyo3::prelude::*;
 
 use crate::aws::store::PyAmazonS3Config;
-use crate::credentials::{TemporaryToken, TokenCache};
+use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
 
 /// A wrapper around an [AwsCredential] that includes an optional expiry timestamp.
 struct PyAwsCredential {
@@ -138,10 +138,10 @@ impl PyCredentialProviderResult {
 
 impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(credentials) = ob.extract() {
-            Ok(Self::Sync(credentials))
-        } else {
+        if is_awaitable(ob)? {
             Ok(Self::Async(ob.clone().unbind()))
+        } else {
+            Ok(Self::Sync(ob.extract()?))
         }
     }
 }
@@ -164,8 +164,8 @@ impl PyAWSCredentialProvider {
         let credential = self
             .call()
             .await
-            .map_err(|err| object_store::Error::Generic {
-                store: "External AWS credential provider",
+            .map_err(|err| object_store::Error::Unauthenticated {
+                path: "External AWS credential provider".to_string(),
                 source: Box::new(err),
             })?;
 

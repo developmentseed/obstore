@@ -1,5 +1,8 @@
 use chrono::Utc;
 use chrono::{DateTime, TimeDelta};
+use pyo3::intern;
+use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 use std::future::Future;
 use tokio::sync::Mutex;
 
@@ -86,4 +89,13 @@ impl<T: Clone + Send> TokenCache<T> {
 
         Ok(token)
     }
+}
+
+/// Check whether a Python object is awaitable
+pub(crate) fn is_awaitable<'py>(ob: &Bound<'py, PyAny>) -> PyResult<bool> {
+    let py = ob.py();
+    let inspect_mod = py.import(intern!(py, "inspect"))?;
+    inspect_mod
+        .call_method1(intern!(py, "isawaitable"), PyTuple::new(py, [ob])?)?
+        .extract::<bool>()
 }

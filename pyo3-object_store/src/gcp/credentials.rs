@@ -8,7 +8,7 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
 
-use crate::credentials::{TemporaryToken, TokenCache};
+use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
 
 /// Ref https://github.com/apache/arrow-rs/pull/6638
 const DEFAULT_GCP_MIN_TTL: TimeDelta = TimeDelta::minutes(4);
@@ -114,10 +114,10 @@ impl PyCredentialProviderResult {
 
 impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(credentials) = ob.extract() {
-            Ok(Self::Sync(credentials))
-        } else {
+        if is_awaitable(ob)? {
             Ok(Self::Async(ob.clone().unbind()))
+        } else {
+            Ok(Self::Sync(ob.extract()?))
         }
     }
 }
@@ -140,8 +140,8 @@ impl PyGcpCredentialProvider {
         let credential = self
             .call()
             .await
-            .map_err(|err| object_store::Error::Generic {
-                store: "External GCP credential provider",
+            .map_err(|err| object_store::Error::Unauthenticated {
+                path: "External GCP credential provider".to_string(),
                 source: Box::new(err),
             })?;
 
