@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import azure.identity
@@ -105,23 +105,12 @@ class AzureCredentialProvider:
         self.scopes = scopes
         self.tenant_id = tenant_id
 
-        # Token cache
-        self.token = None
-
     def __call__(self) -> AzureCredential:
         """Fetch the credential."""
-        # Fetch new token if the cached token does not exist or expires
-        # in less than 5 minutes.
-        if self.token:
-            token_expires_in = datetime.fromtimestamp(
-                self.token.expires_on,
-                UTC,
-            ) - datetime.now(UTC)
-        if not self.token or token_expires_in < timedelta(minutes=5):
-            self.token = self.credential.get_token(
-                *self.scopes,
-                tenant_id=self.tenant_id,
-            )
+        self.token = self.credential.get_token(
+            *self.scopes,
+            tenant_id=self.tenant_id,
+        )
 
         return {
             "token": self.token.token,
@@ -174,23 +163,12 @@ class AzureAsyncCredentialProvider:
         self.scopes = scopes
         self.tenant_id = tenant_id
 
-        # Token cache
-        self.token = None
-
     async def __call__(self) -> AzureCredential:
         """Fetch the credential."""
-        # Fetch new token if the cached token does not exist or expires
-        # in less than 5 minutes.
-        if self.token:
-            token_expires_in = datetime.fromtimestamp(
-                self.token.expires_on,
-                UTC,
-            ) - datetime.now(UTC)
-        if not self.token or token_expires_in < timedelta(minutes=5):
-            self.token = await self.credential.get_token(
-                *self.scopes,
-                tenant_id=self.tenant_id,
-            )
+        self.token = await self.credential.get_token(
+            *self.scopes,
+            tenant_id=self.tenant_id,
+        )
 
         return {
             "token": self.token.token,
