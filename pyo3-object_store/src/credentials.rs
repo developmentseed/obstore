@@ -92,7 +92,7 @@ impl<T: Clone + Send> TokenCache<T> {
 }
 
 /// Check whether a Python object is awaitable
-pub(crate) fn is_awaitable<'py>(ob: &Bound<'py, PyAny>) -> PyResult<bool> {
+pub(crate) fn is_awaitable(ob: &Bound<PyAny>) -> PyResult<bool> {
     let py = ob.py();
     let inspect_mod = py.import(intern!(py, "inspect"))?;
     inspect_mod
