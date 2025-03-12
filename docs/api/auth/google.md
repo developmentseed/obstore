@@ -1,4 +1,4 @@
 # Google Auth
 
-::: obstore.auth.google.GoogleAuthCredentialProvider
-::: obstore.auth.google.GoogleAuthAsyncCredentialProvider
+::: obstore.auth.google.GoogleCredentialProvider
+::: obstore.auth.google.GoogleAsyncCredentialProvider
