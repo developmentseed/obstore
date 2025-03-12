@@ -12,6 +12,8 @@ import azure.identity
 import azure.identity.aio
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from obstore.store import AzureCredential
 
     AzureCredentialUnionType = (
@@ -55,6 +57,8 @@ if TYPE_CHECKING:
         | azure.identity.aio.WorkloadIdentityCredential
     )
 
+DEFAULT_SCOPES = ("https://storage.azure.com/.default",)
+
 
 class AzureCredentialProvider:
     """A CredentialProvider for [AzureStore][obstore.store.AzureStore] that uses [`azure.identity`][].
@@ -80,7 +84,7 @@ class AzureCredentialProvider:
     def __init__(
         self,
         credential: AzureCredentialUnionType | None = None,
-        scopes: list[str] | None = None,
+        scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
         """Create a new AzureCredentialProvider.
@@ -90,7 +94,7 @@ class AzureCredentialProvider:
                 in which case [`azure.identity.DefaultAzureCredential`][] will be
                 called to find default credentials.
             scopes: Scopes required by the access token. If not specified,
-                ["https://storage.azure.com/.default"] will be used by default.
+                ("https://storage.azure.com/.default",) will be used by default.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
 
@@ -98,10 +102,7 @@ class AzureCredentialProvider:
 
         """
         self.credential = credential or azure.identity.DefaultAzureCredential()
-
-        # Use the Azure Storage scope by default
-        self.scopes = scopes or ["https://storage.azure.com/.default"]
-
+        self.scopes = scopes
         self.tenant_id = tenant_id
 
         # Token cache
@@ -152,7 +153,7 @@ class AzureAsyncCredentialProvider:
     def __init__(
         self,
         credential: AzureAsyncCredentialUnionType | None = None,
-        scopes: list[str] | None = None,
+        scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
         """Create a new AzureAsyncCredentialProvider.
@@ -162,7 +163,7 @@ class AzureAsyncCredentialProvider:
                 in which case [`azure.identity.aio.DefaultAzureCredential`][] will be
                 called to find default credentials.
             scopes: Scopes required by the access token. If not specified,
-                ["https://storage.azure.com/.default"] will be used by default.
+                ("https://storage.azure.com/.default",) will be used by default.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
 
@@ -170,10 +171,7 @@ class AzureAsyncCredentialProvider:
 
         """
         self.credential = credential or azure.identity.aio.DefaultAzureCredential()
-
-        # Use the Azure Storage scope by default
-        self.scopes = scopes or ["https://storage.azure.com/.default"]
-
+        self.scopes = scopes
         self.tenant_id = tenant_id
 
         # Token cache
