@@ -548,5 +548,8 @@ class S3Store:
     def client_options(self) -> ClientConfig | None:
         """Get the store's client configuration."""
     @property
+    def credential_provider(self) -> S3CredentialProvider | None:
+        """Get the store's credential provider."""
+    @property
     def retry_config(self) -> RetryConfig | None:
         """Get the store's retry configuration."""
