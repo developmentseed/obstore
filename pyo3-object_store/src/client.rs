@@ -30,8 +30,18 @@ impl<'py> IntoPyObject<'py> for PyClientConfigKey {
     }
 }
 
+impl<'py> IntoPyObject<'py> for &PyClientConfigKey {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(PyString::new(py, self.0.as_ref()))
+    }
+}
+
 /// A wrapper around `ClientOptions` that implements [`FromPyObject`].
-#[derive(Clone, Debug, FromPyObject, IntoPyObject)]
+#[derive(Clone, Debug, FromPyObject, IntoPyObject, IntoPyObjectRef)]
 pub struct PyClientOptions(HashMap<PyClientConfigKey, PyConfigValue>);
 
 impl From<PyClientOptions> for ClientOptions {

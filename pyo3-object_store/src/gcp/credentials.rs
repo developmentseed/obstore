@@ -81,13 +81,23 @@ impl<'py> FromPyObject<'py> for PyGcpCredentialProvider {
     }
 }
 
-impl<'py> IntoPyObject<'py> for PyGcpCredentialProvider {
+impl<'py> IntoPyObject<'py> for &PyGcpCredentialProvider {
     type Target = PyAny;
     type Output = Bound<'py, PyAny>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
         Ok(self.user_callback.bind(py).clone())
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyGcpCredentialProvider {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (&self).into_pyobject(py)
     }
 }
 

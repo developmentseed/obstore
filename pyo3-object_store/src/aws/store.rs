@@ -44,15 +44,15 @@ impl S3Config {
         if let Some(prefix) = &self.prefix {
             kwargs.set_item(intern!(py, "prefix"), prefix.as_ref().as_ref())?;
         }
-        kwargs.set_item(intern!(py, "config"), self.config.clone())?;
+        kwargs.set_item(intern!(py, "config"), &self.config)?;
         if let Some(client_options) = &self.client_options {
-            kwargs.set_item(intern!(py, "client_options"), client_options.clone())?;
+            kwargs.set_item(intern!(py, "client_options"), client_options)?;
         }
         if let Some(retry_config) = &self.retry_config {
-            kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
+            kwargs.set_item(intern!(py, "retry_config"), retry_config)?;
         }
         if let Some(credential_provider) = &self.credential_provider {
-            kwargs.set_item("credential_provider", credential_provider.clone())?;
+            kwargs.set_item("credential_provider", credential_provider)?;
         }
 
         PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
@@ -184,18 +184,23 @@ impl PyS3Store {
     }
 
     #[getter]
-    fn config(&self) -> PyAmazonS3Config {
-        self.config.config.clone()
+    fn config(&self) -> &PyAmazonS3Config {
+        &self.config.config
     }
 
     #[getter]
-    fn client_options(&self) -> Option<PyClientOptions> {
-        self.config.client_options.clone()
+    fn client_options(&self) -> Option<&PyClientOptions> {
+        self.config.client_options.as_ref()
     }
 
     #[getter]
-    fn retry_config(&self) -> Option<PyRetryConfig> {
-        self.config.retry_config.clone()
+    fn credential_provider(&self) -> Option<&PyAWSCredentialProvider> {
+        self.config.credential_provider.as_ref()
+    }
+
+    #[getter]
+    fn retry_config(&self) -> Option<&PyRetryConfig> {
+        self.config.retry_config.as_ref()
     }
 }
 
@@ -216,7 +221,7 @@ impl AsRef<str> for PyAmazonS3ConfigKey {
     }
 }
 
-impl<'py> IntoPyObject<'py> for PyAmazonS3ConfigKey {
+impl<'py> IntoPyObject<'py> for &PyAmazonS3ConfigKey {
     type Target = PyString;
     type Output = Bound<'py, PyString>;
     type Error = PyErr;
@@ -228,6 +233,16 @@ impl<'py> IntoPyObject<'py> for PyAmazonS3ConfigKey {
             .strip_prefix("aws_")
             .expect("Expected config prefix to start with aws_");
         Ok(PyString::new(py, s))
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyAmazonS3ConfigKey {
+    type Target = PyString;
+    type Output = Bound<'py, PyString>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (&self).into_pyobject(py)
     }
 }
 
@@ -243,7 +258,7 @@ impl From<PyAmazonS3ConfigKey> for AmazonS3ConfigKey {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject, IntoPyObjectRef)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
