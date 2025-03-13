@@ -18,9 +18,10 @@ use pyo3::types::PyDict;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
+use pyo3_object_store::PyObjectStore;
 
 use crate::attributes::PyAttributes;
+use crate::error::PyObstoreResult;
 use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
 
@@ -68,7 +69,7 @@ pub(crate) enum PullSource {
 
 impl PullSource {
     /// Number of bytes in the file-like object
-    fn nbytes(&mut self) -> PyObjectStoreResult<usize> {
+    fn nbytes(&mut self) -> PyObstoreResult<usize> {
         let origin_pos = self.stream_position()?;
         let size = self.seek(SeekFrom::End(0))?;
         self.seek(SeekFrom::Start(origin_pos))?;
@@ -76,7 +77,7 @@ impl PullSource {
     }
 
     /// Whether to use multipart uploads.
-    fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
+    fn use_multipart(&mut self, chunk_size: usize) -> PyObstoreResult<bool> {
         Ok(self.nbytes()? > chunk_size)
     }
 }
@@ -111,7 +112,7 @@ pub(crate) enum SyncPushSource {
 }
 
 impl SyncPushSource {
-    fn next_chunk(&mut self) -> PyObjectStoreResult<Option<Bytes>> {
+    fn next_chunk(&mut self) -> PyObstoreResult<Option<Bytes>> {
         match self {
             Self::Iterator(iter) => {
                 Python::with_gil(|py| match iter.call_method0(py, intern!(py, "__next__")) {
@@ -131,14 +132,14 @@ impl SyncPushSource {
         }
     }
 
-    fn read_all(&mut self) -> PyObjectStoreResult<PutPayload> {
-        let buffers = self.into_iter().collect::<PyObjectStoreResult<Vec<_>>>()?;
+    fn read_all(&mut self) -> PyObstoreResult<PutPayload> {
+        let buffers = self.into_iter().collect::<PyObstoreResult<Vec<_>>>()?;
         Ok(PutPayload::from_iter(buffers))
     }
 }
 
 impl Iterator for SyncPushSource {
-    type Item = PyObjectStoreResult<Bytes>;
+    type Item = PyObstoreResult<Bytes>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_chunk().transpose()
@@ -155,7 +156,7 @@ pub(crate) enum AsyncPushSource {
 }
 
 impl AsyncPushSource {
-    async fn read_all(&mut self) -> PyObjectStoreResult<PutPayload> {
+    async fn read_all(&mut self) -> PyObstoreResult<PutPayload> {
         let mut buffers = vec![];
         while let Some(buf) = self.next_chunk().await? {
             buffers.push(buf);
@@ -163,7 +164,7 @@ impl AsyncPushSource {
         Ok(PutPayload::from_iter(buffers))
     }
 
-    async fn next_chunk(&mut self) -> PyObjectStoreResult<Option<Bytes>> {
+    async fn next_chunk(&mut self) -> PyObstoreResult<Option<Bytes>> {
         match self {
             Self::AsyncIterator(iter) => {
                 // Note: we have to acquire the GIL once to create the future and a separate time
@@ -209,7 +210,7 @@ pub(crate) enum PutInput {
 
 impl PutInput {
     /// Whether to use multipart uploads.
-    fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
+    fn use_multipart(&mut self, chunk_size: usize) -> PyObstoreResult<bool> {
         match self {
             Self::Pull(pull_source) => pull_source.use_multipart(chunk_size),
             // We always use multipart uploads for push-based sources because we have no way of
@@ -218,7 +219,7 @@ impl PutInput {
         }
     }
 
-    async fn read_all(&mut self) -> PyObjectStoreResult<PutPayload> {
+    async fn read_all(&mut self) -> PyObstoreResult<PutPayload> {
         match self {
             Self::Pull(pull_source) => match pull_source {
                 PullSource::Buffer(buffer) => Ok(buffer.get_ref().clone().into()),
@@ -304,7 +305,7 @@ pub(crate) fn put(
     use_multipart: Option<bool>,
     chunk_size: usize,
     max_concurrency: usize,
-) -> PyObjectStoreResult<PyPutResult> {
+) -> PyObstoreResult<PyPutResult> {
     if matches!(file, PutInput::AsyncPush(_)) {
         return Err(
             PyValueError::new_err("Async input not allowed in 'put'. Use 'put_async'.").into(),
@@ -409,7 +410,7 @@ async fn put_inner(
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
-) -> PyObjectStoreResult<PyPutResult> {
+) -> PyObstoreResult<PyPutResult> {
     let mut opts = PutOptions::default();
 
     if let Some(attributes) = attributes {
@@ -434,7 +435,7 @@ async fn put_multipart_inner(
     max_concurrency: usize,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
-) -> PyObjectStoreResult<PyPutResult> {
+) -> PyObstoreResult<PyPutResult> {
     let mut opts = PutMultipartOpts::default();
 
     if let Some(attributes) = attributes {
@@ -462,7 +463,7 @@ async fn write_multipart(
     reader: PutInput,
     chunk_size: usize,
     max_concurrency: usize,
-) -> PyObjectStoreResult<()> {
+) -> PyObstoreResult<()> {
     // Match across pull, push, async push
     match reader {
         PutInput::Pull(mut pull_reader) => loop {

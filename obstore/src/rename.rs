@@ -1,7 +1,8 @@
 use object_store::ObjectStore;
 use pyo3::prelude::*;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::PyObjectStore;
 
+use crate::error::{PyObstoreError, PyObstoreResult};
 use crate::runtime::get_runtime;
 use crate::utils::PyNone;
 
@@ -13,7 +14,7 @@ pub(crate) fn rename(
     from_: String,
     to: String,
     overwrite: bool,
-) -> PyObjectStoreResult<()> {
+) -> PyObstoreResult<()> {
     let runtime = get_runtime(py)?;
     let from_ = from_.into();
     let to = to.into();
@@ -24,7 +25,7 @@ pub(crate) fn rename(
             store.as_ref().rename_if_not_exists(&from_, &to)
         };
         runtime.block_on(fut)?;
-        Ok::<_, PyObjectStoreError>(())
+        Ok::<_, PyObstoreError>(())
     })
 }
 
@@ -45,7 +46,7 @@ pub(crate) fn rename_async(
         } else {
             store.as_ref().rename_if_not_exists(&from_, &to)
         };
-        fut.await.map_err(PyObjectStoreError::ObjectStoreError)?;
+        fut.await.map_err(PyObstoreError::from)?;
         Ok(PyNone)
     })
 }

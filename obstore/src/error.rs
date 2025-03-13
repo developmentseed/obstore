@@ -21,6 +21,30 @@ import_exception!(obspec.exceptions, UnknownConfigurationKeyError);
 
 pub struct PyObstoreError(PyObjectStoreError);
 
+impl From<PyObjectStoreError> for PyObstoreError {
+    fn from(value: PyObjectStoreError) -> Self {
+        PyObstoreError(value)
+    }
+}
+
+impl From<object_store::Error> for PyObstoreError {
+    fn from(value: object_store::Error) -> Self {
+        PyObstoreError(PyObjectStoreError::ObjectStoreError(value))
+    }
+}
+
+impl From<PyErr> for PyObstoreError {
+    fn from(value: PyErr) -> Self {
+        PyObstoreError(PyObjectStoreError::PyErr(value))
+    }
+}
+
+impl From<std::io::Error> for PyObstoreError {
+    fn from(value: std::io::Error) -> Self {
+        PyObstoreError(PyObjectStoreError::IOError(value))
+    }
+}
+
 impl From<PyObstoreError> for PyErr {
     fn from(value: PyObstoreError) -> Self {
         match value.0 {
@@ -70,6 +94,8 @@ impl From<PyObstoreError> for PyErr {
         }
     }
 }
+
+pub type PyObstoreResult<T> = Result<T, PyObstoreError>;
 
 fn print_with_debug(err: &object_store::Error) -> String {
     // #? gives "pretty-printing" for debug

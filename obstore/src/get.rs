@@ -10,10 +10,11 @@ use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::PyObjectStore;
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
+use crate::error::{PyObstoreError, PyObstoreResult};
 use crate::list::PyObjectMeta;
 use crate::runtime::get_runtime;
 
@@ -129,7 +130,7 @@ impl PyGetResult {
 
 #[pymethods]
 impl PyGetResult {
-    fn bytes(&self, py: Python) -> PyObjectStoreResult<PyBytes> {
+    fn bytes(&self, py: Python) -> PyObstoreResult<PyBytes> {
         let get_result = self
             .0
             .lock()
@@ -139,7 +140,7 @@ impl PyGetResult {
         let runtime = get_runtime(py)?;
         py.allow_threads(|| {
             let bytes = runtime.block_on(get_result.bytes())?;
-            Ok::<_, PyObjectStoreError>(PyBytes::new(bytes))
+            Ok::<_, PyObstoreError>(PyBytes::new(bytes))
         })
     }
 
@@ -151,10 +152,7 @@ impl PyGetResult {
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         pyo3_async_runtimes::tokio::future_into_py(py, async move {
-            let bytes = get_result
-                .bytes()
-                .await
-                .map_err(PyObjectStoreError::ObjectStoreError)?;
+            let bytes = get_result.bytes().await.map_err(PyObstoreError::from)?;
             Ok(PyBytes::new(bytes))
         })
     }
@@ -241,7 +239,7 @@ async fn next_stream(
                     return Ok(PyBytesWrapper::new_multiple(buffers));
                 }
             }
-            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+            Some(Err(e)) => return Err(PyObstoreError::from(e).into()),
             None => {
                 if buffers.is_empty() {
                     // Depending on whether the iteration is sync or not, we raise either a
@@ -323,7 +321,7 @@ pub(crate) fn get(
     store: PyObjectStore,
     path: String,
     options: Option<PyGetOptions>,
-) -> PyObjectStoreResult<PyGetResult> {
+) -> PyObstoreResult<PyGetResult> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
         let path = &path.into();
@@ -333,7 +331,7 @@ pub(crate) fn get(
             store.as_ref().get(path)
         };
         let out = runtime.block_on(fut)?;
-        Ok::<_, PyObjectStoreError>(PyGetResult::new(out))
+        Ok::<_, PyObstoreError>(PyGetResult::new(out))
     })
 }
 
@@ -352,7 +350,7 @@ pub(crate) fn get_async(
         } else {
             store.as_ref().get(path)
         };
-        let out = fut.await.map_err(PyObjectStoreError::ObjectStoreError)?;
+        let out = fut.await.map_err(PyObstoreError::from)?;
         Ok(PyGetResult::new(out))
     })
 }
@@ -366,12 +364,12 @@ pub(crate) fn get_range(
     start: u64,
     end: Option<u64>,
     length: Option<u64>,
-) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
+) -> PyObstoreResult<pyo3_bytes::PyBytes> {
     let runtime = get_runtime(py)?;
     let range = params_to_range(start, end, length)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_range(&path.into(), range))?;
-        Ok::<_, PyObjectStoreError>(pyo3_bytes::PyBytes::new(out))
+        Ok::<_, PyObstoreError>(pyo3_bytes::PyBytes::new(out))
     })
 }
 
@@ -391,7 +389,7 @@ pub(crate) fn get_range_async(
             .as_ref()
             .get_range(&path.into(), range)
             .await
-            .map_err(PyObjectStoreError::ObjectStoreError)?;
+            .map_err(PyObstoreError::from)?;
         Ok(pyo3_bytes::PyBytes::new(out))
     })
 }
@@ -400,7 +398,7 @@ fn params_to_range(
     start: u64,
     end: Option<u64>,
     length: Option<u64>,
-) -> PyObjectStoreResult<Range<u64>> {
+) -> PyObstoreResult<Range<u64>> {
     match (end, length) {
         (Some(_), Some(_)) => {
             Err(PyValueError::new_err("end and length cannot both be non-None.").into())
@@ -420,12 +418,12 @@ pub(crate) fn get_ranges(
     starts: Vec<u64>,
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,
-) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
+) -> PyObstoreResult<Vec<pyo3_bytes::PyBytes>> {
     let runtime = get_runtime(py)?;
     let ranges = params_to_ranges(starts, ends, lengths)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;
-        Ok::<_, PyObjectStoreError>(out.into_iter().map(|buf| buf.into()).collect())
+        Ok::<_, PyObstoreError>(out.into_iter().map(|buf| buf.into()).collect())
     })
 }
 
@@ -445,7 +443,7 @@ pub(crate) fn get_ranges_async(
             .as_ref()
             .get_ranges(&path.into(), &ranges)
             .await
-            .map_err(PyObjectStoreError::ObjectStoreError)?;
+            .map_err(PyObstoreError::from)?;
         Ok(out
             .into_iter()
             .map(pyo3_bytes::PyBytes::new)
@@ -457,7 +455,7 @@ fn params_to_ranges(
     starts: Vec<u64>,
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,
-) -> PyObjectStoreResult<Vec<Range<u64>>> {
+) -> PyObstoreResult<Vec<Range<u64>>> {
     match (ends, lengths) {
         (Some(_), Some(_)) => {
             Err(PyValueError::new_err("ends and lengths cannot both be non-None.").into())
@@ -480,7 +478,7 @@ fn params_to_ranges(
     }
 }
 
-fn validate_range(r: Range<u64>) -> PyObjectStoreResult<Range<u64>> {
+fn validate_range(r: Range<u64>) -> PyObstoreResult<Range<u64>> {
     if r.end <= r.start {
         return Err(PyValueError::new_err(format!(
             "Invalid range requested, start: {} end: {}",
