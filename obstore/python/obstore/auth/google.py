@@ -76,7 +76,7 @@ class GoogleAuthCredentialProvider:
         self.credentials.refresh(self.request)
         return {
             # self.credentials.token is a str
-            "token": cast(str, self.credentials.token),
+            "token": cast("str", self.credentials.token),
             "expires_at": _replace_expiry_timezone_utc(self.credentials.expiry),
         }
 
@@ -146,7 +146,7 @@ class GoogleAuthAsyncCredentialProvider:
         await self.credentials.refresh(self.async_request)
         return {
             # self.credentials.token is a str
-            "token": cast(str, self.credentials.token),
+            "token": cast("str", self.credentials.token),
             "expires_at": _replace_expiry_timezone_utc(self.credentials.expiry),
         }
 
