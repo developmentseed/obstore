@@ -32,7 +32,7 @@ from ._obstore import (
 )
 
 if TYPE_CHECKING:
-    from . import _store, exceptions
+    from . import _exceptions, _store
     from ._obstore import (
         HTTP_METHOD,
         AsyncReadableFile,
@@ -40,9 +40,6 @@ if TYPE_CHECKING:
         Bytes,
         BytesStream,
         GetResult,
-        ListChunkType,
-        ListResult,
-        ListStream,
         ReadableFile,
         SignCapableStore,
         WritableFile,

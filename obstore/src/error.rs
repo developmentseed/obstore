@@ -4,20 +4,18 @@ use pyo3::prelude::*;
 use pyo3::import_exception;
 use pyo3_object_store::PyObjectStoreError;
 
-import_exception!(obspec.exceptions, BaseError);
-
-import_exception!(obspec.exceptions, GenericError);
-import_exception!(obspec.exceptions, NotFoundError);
-import_exception!(obspec.exceptions, InvalidPathError);
-import_exception!(obspec.exceptions, JoinError);
-import_exception!(obspec.exceptions, NotSupportedError);
-import_exception!(obspec.exceptions, AlreadyExistsError);
-import_exception!(obspec.exceptions, PreconditionError);
-import_exception!(obspec.exceptions, NotModifiedError);
-import_exception!(obspec.exceptions, NotImplementedError);
-import_exception!(obspec.exceptions, PermissionDeniedError);
-import_exception!(obspec.exceptions, UnauthenticatedError);
-import_exception!(obspec.exceptions, UnknownConfigurationKeyError);
+import_exception!(obstore.exceptions, GenericError);
+import_exception!(obstore.exceptions, NotFoundError);
+import_exception!(obstore.exceptions, InvalidPathError);
+import_exception!(obstore.exceptions, JoinError);
+import_exception!(obstore.exceptions, NotSupportedError);
+import_exception!(obstore.exceptions, AlreadyExistsError);
+import_exception!(obstore.exceptions, PreconditionError);
+import_exception!(obstore.exceptions, NotModifiedError);
+import_exception!(obstore.exceptions, NotImplementedError);
+import_exception!(obstore.exceptions, PermissionDeniedError);
+import_exception!(obstore.exceptions, UnauthenticatedError);
+import_exception!(obstore.exceptions, UnknownConfigurationKeyError);
 
 pub struct PyObstoreError(PyObjectStoreError);
 
