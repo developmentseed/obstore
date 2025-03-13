@@ -5,6 +5,7 @@ mod attributes;
 mod buffered;
 mod copy;
 mod delete;
+mod error;
 mod get;
 mod head;
 mod list;

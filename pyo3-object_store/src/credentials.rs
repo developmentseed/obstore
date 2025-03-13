@@ -60,7 +60,6 @@ impl<T: Clone + Send> TokenCache<T> {
         F: FnOnce() -> Fut + Send,
         Fut: Future<Output = Result<TemporaryToken<T>, E>> + Send,
     {
-        // let now = Instant::now();
         let now = Utc::now();
 
         let mut locked = self.cache.lock().await;
@@ -68,9 +67,6 @@ impl<T: Clone + Send> TokenCache<T> {
         if let Some((cached, fetched_at)) = locked.as_ref() {
             match cached.expiry {
                 Some(expiry_time) => {
-                    // let x = ttl - now;
-                    // let x = ttl.signed_duration_since(now);
-                    // let x = expiry_time - now > self.min_ttl.into();
                     if expiry_time - now > self.min_ttl ||
                         // if we've recently attempted to fetch this token and it's not actually
                         // expired, we'll wait to re-fetch it and return the cached one
