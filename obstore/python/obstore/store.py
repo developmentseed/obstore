@@ -6,10 +6,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias, Unpack, overload
 
+from obspec.exceptions import BaseError
+
 import obstore as obs
 from obstore._obstore import _store
 from obstore._obstore import parse_scheme as _parse_scheme
-from obstore.exceptions import BaseError
 
 if TYPE_CHECKING:
     import sys

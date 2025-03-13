@@ -1,8 +1,8 @@
 from pathlib import Path
 
 import pytest
+from obspec.exceptions import BaseError, UnknownConfigurationKeyError
 
-from obstore.exceptions import BaseError, UnknownConfigurationKeyError
 from obstore.store import from_url
 
 

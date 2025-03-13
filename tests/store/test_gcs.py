@@ -1,6 +1,6 @@
 import pytest
+from obspec.exceptions import BaseError
 
-from obstore.exceptions import BaseError
 from obstore.store import GCSStore
 
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.5.0] - 2025-03-10
+## [0.5.0] - XXXX-XX-XX
 
 ### New Features :magic_wand:
 
@@ -15,6 +15,8 @@
 - pyo3-bytes slicing by @jessekrubin in https://github.com/developmentseed/obstore/pull/249
 
 ### Breaking changes :wrench:
+
+- `obstore.exceptions` moved to `obspec.exceptions`
 
 #### Object store methods
 

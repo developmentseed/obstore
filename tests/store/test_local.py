@@ -2,9 +2,9 @@ import pickle
 from pathlib import Path
 
 import pytest
+from obspec.exceptions import GenericError
 
 import obstore as obs
-from obstore.exceptions import GenericError
 from obstore.store import LocalStore
 
 HERE = Path()

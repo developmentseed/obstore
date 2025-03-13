@@ -62,7 +62,6 @@ nav:
       - api/put.md
       - api/rename.md
       - api/sign.md
-      - api/exceptions.md
       - api/file.md
       - obstore.fsspec: api/fsspec.md
   - Advanced Topics:

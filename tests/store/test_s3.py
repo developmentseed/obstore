@@ -4,9 +4,9 @@ import pickle
 from datetime import UTC, datetime
 
 import pytest
+from obspec.exceptions import BaseError, UnauthenticatedError
 
 import obstore as obs
-from obstore.exceptions import BaseError, UnauthenticatedError
 from obstore.store import S3Store, from_url
 
 
