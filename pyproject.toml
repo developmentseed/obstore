@@ -27,7 +27,7 @@ dev-dependencies = [
     "pyarrow>=17.0.0",
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
-    "ruff>=0.8.4",
+    "ruff>=0.10.0",
     "types-boto3[sts]>=1.36.23",
     "polars>=1.24.0",
 ]
