@@ -4,12 +4,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, Unpack, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeAlias, Unpack, overload
 
-from obspec.exceptions import BaseError
+import obspec
 
 import obstore as obs
-from obstore._obstore import _store
+from obstore._obstore import _exceptions, _store
 from obstore._obstore import parse_scheme as _parse_scheme
 
 if TYPE_CHECKING:
@@ -497,6 +497,41 @@ class AzureStore(_ObjectStoreMixin, _store.AzureStore):
     [`AzureConfig`][obstore.store.AzureConfig] for valid environment variables.
     """
 
+    def __new__(cls, *args, **kwargs) -> Self:  # noqa: D102, ANN002, ANN003
+        try:
+            return super().__new__(cls, *args, **kwargs)
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        prefix: str | None = None,
+        config: AzureConfig | None = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+        credential_provider: AzureCredentialProvider | None = None,
+        **kwargs: Unpack[AzureConfig],
+    ) -> Self:
+        try:
+            return super().from_url(
+                url,
+                prefix=prefix,
+                config=config,
+                client_options=client_options,
+                retry_config=retry_config,
+                credential_provider=credential_provider,
+                **kwargs,
+            )
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
 
 class GCSStore(_ObjectStoreMixin, _store.GCSStore):
     """Interface to Google Cloud Storage.
@@ -508,6 +543,42 @@ class GCSStore(_ObjectStoreMixin, _store.GCSStore):
     as documented
     [here](https://cloud.google.com/docs/authentication/application-default-credentials).
     """
+
+    def __new__(cls, *args, **kwargs) -> Self:  # noqa: D102, ANN002, ANN003
+        try:
+            return super().__new__(cls, *args, **kwargs)
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        prefix: str | None = None,
+        config: GCSConfig | None = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
+        **kwargs: Unpack[GCSConfig],
+    ) -> Self:
+        # docstring inherited
+        try:
+            return super().from_url(
+                url,
+                prefix=prefix,
+                config=config,
+                client_options=client_options,
+                retry_config=retry_config,
+                credential_provider=credential_provider,
+                **kwargs,
+            )
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
 
 
 class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
@@ -530,6 +601,33 @@ class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
     ```
     """
 
+    def __new__(cls, *args, **kwargs) -> Self:  # noqa: D102, ANN002, ANN003
+        try:
+            return super().__new__(cls, *args, **kwargs)
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        client_options: _store.ClientConfig | None = None,
+        retry_config: _store.RetryConfig | None = None,
+    ) -> Self:
+        try:
+            return super().from_url(
+                url,
+                client_options=client_options,
+                retry_config=retry_config,
+            )
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
 
 class LocalStore(_ObjectStoreMixin, _store.LocalStore):
     """An ObjectStore interface to local filesystem storage.
@@ -545,6 +643,33 @@ class LocalStore(_ObjectStoreMixin, _store.LocalStore):
     ```
     """
 
+    def __new__(cls, *args, **kwargs) -> Self:  # noqa: D102, ANN002, ANN003
+        try:
+            return super().__new__(cls, *args, **kwargs)
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        automatic_cleanup: bool = False,
+        mkdir: bool = False,
+    ) -> Self:
+        try:
+            return super().from_url(
+                url,
+                automatic_cleanup=automatic_cleanup,
+                mkdir=mkdir,
+            )
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
 
 class MemoryStore(_ObjectStoreMixin, _store.MemoryStore):
     """A fully in-memory implementation of ObjectStore.
@@ -554,6 +679,14 @@ class MemoryStore(_ObjectStoreMixin, _store.MemoryStore):
     store = MemoryStore()
     ```
     """
+
+    def __new__(cls, *args, **kwargs) -> Self:  # noqa: D102, ANN002, ANN003
+        try:
+            return super().__new__(cls, *args, **kwargs)
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
 
 
 class S3Store(_ObjectStoreMixin, _store.S3Store):
@@ -574,6 +707,42 @@ class S3Store(_ObjectStoreMixin, _store.S3Store):
     Pass `skip_signature=True` as a keyword argument or have `AWS_SKIP_SIGNATURE=True`
     set in the environment.
     """
+
+    def __new__(cls, *args, **kwargs) -> Self:  # noqa: D102, ANN002, ANN003
+        try:
+            return super().__new__(cls, *args, **kwargs)
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
+
+    @classmethod
+    def from_url(
+        cls,
+        url: str,
+        *,
+        prefix: str | None = None,
+        config: S3Config | None = None,
+        client_options: ClientConfig | None = None,
+        retry_config: RetryConfig | None = None,
+        credential_provider: S3CredentialProvider | None = None,
+        **kwargs: Unpack[S3Config],
+    ) -> Self:
+        # docstring inherited
+        try:
+            return super().from_url(
+                url,
+                prefix=prefix,
+                config=config,
+                client_options=client_options,
+                retry_config=retry_config,
+                credential_provider=credential_provider,
+                **kwargs,
+            )
+        except _exceptions.BaseError as e:
+            new_err = _convert_exception(e)
+
+        raise new_err
 
 
 ObjectStore: TypeAlias = (
@@ -704,7 +873,7 @@ def from_url(  # noqa: C901
     if scheme == "http":
         if config or kwargs:
             msg = "HTTPStore does not accept any configuration"
-            raise BaseError(msg)
+            raise obspec.exceptions.GenericError(msg)
 
         return HTTPStore.from_url(
             url,
@@ -727,9 +896,39 @@ def from_url(  # noqa: C901
     if scheme == "memory":
         if config or kwargs:
             msg = "MemoryStore does not accept any configuration"
-            raise BaseError(msg)
+            raise obspec.exceptions.GenericError(msg)
 
         return MemoryStore()
 
     msg = f"Unknown scheme: {url}"
-    raise BaseError(msg)
+    raise obspec.exceptions.GenericError(msg)
+
+
+def _convert_exception(err: _exceptions.BaseError) -> obspec.exceptions.BaseError:  # noqa: C901, PLR0911
+    """Convert exception from pyo3-object_store exception to obspec exception."""
+    if err.__class__ is _exceptions.GenericError:
+        return obspec.exceptions.GenericError(*err.args)
+    if err.__class__ is _exceptions.NotFoundError:
+        return obspec.exceptions.NotFoundError(*err.args)
+    if err.__class__ is _exceptions.InvalidPathError:
+        return obspec.exceptions.InvalidPathError(*err.args)
+    if err.__class__ is _exceptions.JoinError:
+        return obspec.exceptions.JoinError(*err.args)
+    if err.__class__ is _exceptions.NotSupportedError:
+        return obspec.exceptions.NotSupportedError(*err.args)
+    if err.__class__ is _exceptions.AlreadyExistsError:
+        return obspec.exceptions.AlreadyExistsError(*err.args)
+    if err.__class__ is _exceptions.PreconditionError:
+        return obspec.exceptions.PreconditionError(*err.args)
+    if err.__class__ is _exceptions.NotModifiedError:
+        return obspec.exceptions.NotModifiedError(*err.args)
+    if err.__class__ is NotImplementedError:
+        return obspec.exceptions.NotImplementedError(*err.args)
+    if err.__class__ is _exceptions.PermissionDeniedError:
+        return obspec.exceptions.PermissionDeniedError(*err.args)
+    if err.__class__ is _exceptions.UnauthenticatedError:
+        return obspec.exceptions.UnauthenticatedError(*err.args)
+    if err.__class__ is _exceptions.UnknownConfigurationKeyError:
+        return obspec.exceptions.UnknownConfigurationKeyError(*err.args)
+
+    return obspec.exceptions.BaseError(*err.args)
