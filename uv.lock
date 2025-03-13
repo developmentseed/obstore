@@ -1175,11 +1175,11 @@ wheels = [
 
 [[package]]
 name = "obspec"
-version = "0.1.0b1"
+version = "0.1.0b3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/50/4a/ef272abf32b3d397727224987ed0fe4f55589c7e6ab608f2e62dc60d8be1/obspec-0.1.0b1.tar.gz", hash = "sha256:4d3bee05724efe27d6974b1766bcd65dcd32a2440a3bc27469f0c5f0425d82fc", size = 90417 }
+sdist = { url = "https://files.pythonhosted.org/packages/e8/c7/27e2de129314bed5419405d649bdf050569de5ab76236ece881869d7e489/obspec-0.1.0b3.tar.gz", hash = "sha256:085a4b977fc2c4b5ff8431c8c0a7634411390bf8d0d938ad0d8a0732bf28b6e3", size = 90810 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8a/58/7783b352fcdd95b50a8246e405281890bd9db14afc0d416cbc304bc42e04/obspec-0.1.0b1-py3-none-any.whl", hash = "sha256:6a1f4475dbe4a950996b49eba993bab6bef0f0d85847e49183a5f58a4f1dcc04", size = 14807 },
+    { url = "https://files.pythonhosted.org/packages/46/4e/88974dfeff571b661127770f2a5a51ff638f96db4d3d391c044f3885b65c/obspec-0.1.0b3-py3-none-any.whl", hash = "sha256:f43ddfc79198ed614492c56c20e1c2a092d0ac368aef167aa3c6daa3115437e9", size = 15503 },
 ]
 
 [[package]]
@@ -2059,7 +2059,7 @@ dev = [
     { name = "mkdocstrings", specifier = ">=0.27.0" },
     { name = "mkdocstrings-python", specifier = ">=1.13.0" },
     { name = "moto", extras = ["s3", "server"], specifier = ">=5.0.18" },
-    { name = "obspec", specifier = ">=0.1.0b1" },
+    { name = "obspec", specifier = ">=0.1.0b3" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pip", specifier = ">=24.2" },
     { name = "polars", specifier = ">=1.24.0" },
