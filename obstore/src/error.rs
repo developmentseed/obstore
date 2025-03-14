@@ -1,0 +1,102 @@
+use pyo3::exceptions::PyIOError;
+use pyo3::prelude::*;
+
+use pyo3::import_exception;
+use pyo3_object_store::PyObjectStoreError;
+
+import_exception!(obstore.exceptions, GenericError);
+import_exception!(obstore.exceptions, NotFoundError);
+import_exception!(obstore.exceptions, InvalidPathError);
+import_exception!(obstore.exceptions, JoinError);
+import_exception!(obstore.exceptions, NotSupportedError);
+import_exception!(obstore.exceptions, AlreadyExistsError);
+import_exception!(obstore.exceptions, PreconditionError);
+import_exception!(obstore.exceptions, NotModifiedError);
+import_exception!(obstore.exceptions, NotImplementedError);
+import_exception!(obstore.exceptions, PermissionDeniedError);
+import_exception!(obstore.exceptions, UnauthenticatedError);
+import_exception!(obstore.exceptions, UnknownConfigurationKeyError);
+
+pub struct PyObstoreError(PyObjectStoreError);
+
+impl From<PyObjectStoreError> for PyObstoreError {
+    fn from(value: PyObjectStoreError) -> Self {
+        PyObstoreError(value)
+    }
+}
+
+impl From<object_store::Error> for PyObstoreError {
+    fn from(value: object_store::Error) -> Self {
+        PyObstoreError(PyObjectStoreError::ObjectStoreError(value))
+    }
+}
+
+impl From<PyErr> for PyObstoreError {
+    fn from(value: PyErr) -> Self {
+        PyObstoreError(PyObjectStoreError::PyErr(value))
+    }
+}
+
+impl From<std::io::Error> for PyObstoreError {
+    fn from(value: std::io::Error) -> Self {
+        PyObstoreError(PyObjectStoreError::IOError(value))
+    }
+}
+
+impl From<PyObstoreError> for PyErr {
+    fn from(value: PyObstoreError) -> Self {
+        match value.0 {
+            PyObjectStoreError::PyErr(err) => err,
+            PyObjectStoreError::ObjectStoreError(ref err) => match err {
+                object_store::Error::Generic {
+                    store: _,
+                    source: _,
+                } => GenericError::new_err(print_with_debug(err)),
+                object_store::Error::NotFound { path: _, source: _ } => {
+                    NotFoundError::new_err(print_with_debug(err))
+                }
+                object_store::Error::InvalidPath { source: _ } => {
+                    InvalidPathError::new_err(print_with_debug(err))
+                }
+                object_store::Error::JoinError { source: _ } => {
+                    JoinError::new_err(print_with_debug(err))
+                }
+                object_store::Error::NotSupported { source: _ } => {
+                    NotSupportedError::new_err(print_with_debug(err))
+                }
+                object_store::Error::AlreadyExists { path: _, source: _ } => {
+                    AlreadyExistsError::new_err(print_with_debug(err))
+                }
+                object_store::Error::Precondition { path: _, source: _ } => {
+                    PreconditionError::new_err(print_with_debug(err))
+                }
+                object_store::Error::NotModified { path: _, source: _ } => {
+                    NotModifiedError::new_err(print_with_debug(err))
+                }
+                object_store::Error::NotImplemented => {
+                    NotImplementedError::new_err(print_with_debug(err))
+                }
+                object_store::Error::PermissionDenied { path: _, source: _ } => {
+                    PermissionDeniedError::new_err(print_with_debug(err))
+                }
+                object_store::Error::Unauthenticated { path: _, source: _ } => {
+                    UnauthenticatedError::new_err(print_with_debug(err))
+                }
+                object_store::Error::UnknownConfigurationKey { store: _, key: _ } => {
+                    UnknownConfigurationKeyError::new_err(print_with_debug(err))
+                }
+                _ => GenericError::new_err(print_with_debug(err)),
+            },
+            PyObjectStoreError::IOError(err) => PyIOError::new_err(err),
+            err => GenericError::new_err(format!("{err}\n\nDebug source:\n{err:#?}")),
+        }
+    }
+}
+
+pub type PyObstoreResult<T> = Result<T, PyObstoreError>;
+
+fn print_with_debug(err: &object_store::Error) -> String {
+    // #? gives "pretty-printing" for debug
+    // https://doc.rust-lang.org/std/fmt/trait.Debug.html
+    format!("{err}\n\nDebug source:\n{err:#?}")
+}

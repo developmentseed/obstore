@@ -1,3 +1,4 @@
+from . import _exceptions as _exceptions
 from . import _store as _store
 from ._buffered import AsyncReadableFile as AsyncReadableFile
 from ._buffered import AsyncWritableFile as AsyncWritableFile

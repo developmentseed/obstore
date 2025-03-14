@@ -13,12 +13,10 @@ use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3_object_store::{
-    MaybePrefixedStore, PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult,
-    PyS3Store, PyUrl,
-};
+use pyo3_object_store::{MaybePrefixedStore, PyAzureStore, PyGCSStore, PyS3Store, PyUrl};
 use url::Url;
 
+use crate::error::{PyObstoreError, PyObstoreResult};
 use crate::path::PyPaths;
 use crate::runtime::get_runtime;
 
@@ -154,7 +152,7 @@ pub(crate) fn sign(
     method: PyMethod,
     paths: PyPaths,
     expires_in: Duration,
-) -> PyObjectStoreResult<PySignResult> {
+) -> PyObstoreResult<PySignResult> {
     let runtime = get_runtime(py)?;
     let method = method.0;
 
@@ -187,14 +185,14 @@ pub(crate) fn sign_async(
                 let url = store
                     .signed_url(method, &path, expires_in)
                     .await
-                    .map_err(PyObjectStoreError::ObjectStoreError)?;
+                    .map_err(PyObstoreError::from)?;
                 Ok(PySignResult::One(PyUrl::new(url)))
             }
             PyPaths::Many(paths) => {
                 let urls = store
                     .signed_urls(method, &paths, expires_in)
                     .await
-                    .map_err(PyObjectStoreError::ObjectStoreError)?;
+                    .map_err(PyObstoreError::from)?;
                 Ok(PySignResult::Many(PyUrls(
                     urls.into_iter().map(PyUrl::new).collect(),
                 )))

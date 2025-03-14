@@ -10,11 +10,12 @@ use pyo3::types::PyString;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::future_into_py;
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::PyObjectStore;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Lines};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
+use crate::error::{PyObstoreError, PyObstoreResult};
 use crate::list::PyObjectMeta;
 use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
@@ -26,7 +27,7 @@ pub(crate) fn open_reader(
     store: PyObjectStore,
     path: String,
     buffer_size: usize,
-) -> PyObjectStoreResult<PyReadableFile> {
+) -> PyObstoreResult<PyReadableFile> {
     let store = store.into_inner();
     let runtime = get_runtime(py)?;
     let (reader, meta) =
@@ -53,11 +54,11 @@ async fn create_reader(
     store: Arc<dyn ObjectStore>,
     path: String,
     capacity: usize,
-) -> PyObjectStoreResult<(BufReader, ObjectMeta)> {
+) -> PyObstoreResult<(BufReader, ObjectMeta)> {
     let meta = store
         .head(&path.into())
         .await
-        .map_err(PyObjectStoreError::ObjectStoreError)?;
+        .map_err(PyObstoreError::from)?;
     Ok((BufReader::with_capacity(store, &meta, capacity), meta))
 }
 
@@ -82,7 +83,7 @@ impl PyReadableFile {
 impl PyReadableFile {
     // Note: to enable this, we'd have to make the PyReadableFile contain an `Option<>` that here
     // we could move out.
-    // async fn __aiter__(&mut self) -> PyObjectStoreResult<PyLinesReader> {
+    // async fn __aiter__(&mut self) -> PyObstoreResult<PyLinesReader> {
     //     let reader = self.reader.clone();
     //     let reader = reader.lock().await;
     //     let lines = reader.lines();
@@ -293,7 +294,7 @@ pub(crate) fn open_writer(
     buffer_size: usize,
     tags: Option<PyTagSet>,
     max_concurrency: usize,
-) -> PyObjectStoreResult<PyWritableFile> {
+) -> PyObstoreResult<PyWritableFile> {
     Ok(PyWritableFile::new(
         create_writer(store, path, attributes, buffer_size, tags, max_concurrency),
         false,
@@ -477,7 +478,7 @@ async fn abort_writer(writer: Arc<Mutex<Option<BufWriter>>>) -> PyResult<()> {
     let mut writer = writer
         .take()
         .ok_or(PyIOError::new_err("Writer already closed."))?;
-    writer.abort().await.map_err(PyObjectStoreError::from)?;
+    writer.abort().await.map_err(PyObstoreError::from)?;
     Ok(())
 }
 
@@ -506,6 +507,6 @@ async fn write(writer: Arc<Mutex<Option<BufWriter>>>, buffer: PyBytes) -> PyResu
         .ok_or(PyIOError::new_err("Writer already closed."))?;
     let buffer = buffer.into_inner();
     let buffer_length = buffer.len();
-    writer.put(buffer).await.map_err(PyObjectStoreError::from)?;
+    writer.put(buffer).await.map_err(PyObstoreError::from)?;
     Ok(buffer_length)
 }

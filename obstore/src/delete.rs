@@ -1,13 +1,14 @@
 use futures::{StreamExt, TryStreamExt};
 use pyo3::prelude::*;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::PyObjectStore;
 
+use crate::error::{PyObstoreError, PyObstoreResult};
 use crate::path::PyPaths;
 use crate::runtime::get_runtime;
 use crate::utils::PyNone;
 
 #[pyfunction]
-pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObjectStoreResult<()> {
+pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObstoreResult<()> {
     let runtime = get_runtime(py)?;
     let store = store.into_inner();
     py.allow_threads(|| {
@@ -22,7 +23,7 @@ pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObje
                 runtime.block_on(stream.try_collect::<Vec<_>>())?;
             }
         };
-        Ok::<_, PyObjectStoreError>(())
+        Ok::<_, PyObstoreError>(())
     })
 }
 
@@ -36,10 +37,7 @@ pub(crate) fn delete_async(
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         match paths {
             PyPaths::One(path) => {
-                store
-                    .delete(&path)
-                    .await
-                    .map_err(PyObjectStoreError::ObjectStoreError)?;
+                store.delete(&path).await.map_err(PyObstoreError::from)?;
             }
             PyPaths::Many(paths) => {
                 // TODO: add option to allow some errors here?
@@ -48,7 +46,7 @@ pub(crate) fn delete_async(
                 stream
                     .try_collect::<Vec<_>>()
                     .await
-                    .map_err(PyObjectStoreError::ObjectStoreError)?;
+                    .map_err(PyObstoreError::from)?;
             }
         }
         Ok(PyNone)

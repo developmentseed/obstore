@@ -4,12 +4,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, Unpack, overload
+from typing import TYPE_CHECKING, Any, Literal, Self, TypeAlias, Unpack, overload
+
+import obspec
 
 import obstore as obs
-from obstore._obstore import _store
+from obstore._obstore import _exceptions, _store
 from obstore._obstore import parse_scheme as _parse_scheme
-from obstore.exceptions import BaseError
+from obstore.exceptions import GenericError
 
 if TYPE_CHECKING:
     import sys
@@ -703,7 +705,7 @@ def from_url(  # noqa: C901
     if scheme == "http":
         if config or kwargs:
             msg = "HTTPStore does not accept any configuration"
-            raise BaseError(msg)
+            raise GenericError(msg)
 
         return HTTPStore.from_url(
             url,
@@ -726,9 +728,9 @@ def from_url(  # noqa: C901
     if scheme == "memory":
         if config or kwargs:
             msg = "MemoryStore does not accept any configuration"
-            raise BaseError(msg)
+            raise GenericError(msg)
 
         return MemoryStore()
 
     msg = f"Unknown scheme: {url}"
-    raise BaseError(msg)
+    raise GenericError(msg)

@@ -1,8 +1,8 @@
 import itertools
 
 import pytest
+from obspec.exceptions import AlreadyExistsError
 
-from obstore.exceptions import AlreadyExistsError
 from obstore.store import MemoryStore
 
 

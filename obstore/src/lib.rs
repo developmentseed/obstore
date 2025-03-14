@@ -5,6 +5,7 @@ mod attributes;
 mod buffered;
 mod copy;
 mod delete;
+mod error;
 mod get;
 mod head;
 mod list;
@@ -54,7 +55,7 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(___version))?;
 
     pyo3_object_store::register_store_module(py, m, "obstore", "_store")?;
-    pyo3_object_store::register_exceptions_module(py, m, "obstore", "exceptions")?;
+    pyo3_object_store::register_exceptions_module(py, m, "obstore", "_exceptions")?;
 
     m.add_class::<pyo3_bytes::PyBytes>()?;
     // Set the value of `__module__` correctly on PyBytes

@@ -15,9 +15,10 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_arrow::{PyRecordBatch, PyTable};
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::PyObjectStore;
 use tokio::sync::Mutex;
 
+use crate::error::{PyObstoreError, PyObstoreResult};
 use crate::runtime::get_runtime;
 
 pub(crate) struct PyObjectMeta(ObjectMeta);
@@ -165,7 +166,7 @@ async fn next_stream(
                     }
                 }
             }
-            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+            Some(Err(e)) => return Err(PyObstoreError::from(e).into()),
             None => {
                 if metas.is_empty() {
                     // Depending on whether the iteration is sync or not, we raise either a
@@ -201,7 +202,7 @@ async fn collect_stream(
             Some(Ok(meta)) => {
                 metas.push(PyObjectMeta(meta));
             }
-            Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
+            Some(Err(e)) => return Err(PyObstoreError::from(e).into()),
             None => match return_arrow {
                 true => {
                     return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
@@ -404,7 +405,7 @@ pub(crate) fn list(
     offset: Option<String>,
     chunk_size: usize,
     return_arrow: bool,
-) -> PyObjectStoreResult<PyListStream> {
+) -> PyObstoreResult<PyListStream> {
     if return_arrow {
         // Ensure that arro3.core is installed if returning as arrow.
         // The IntoPy impl is infallible, but `PyRecordBatch::to_arro3` can fail if arro3 is not
@@ -434,7 +435,7 @@ pub(crate) fn list_with_delimiter(
     store: PyObjectStore,
     prefix: Option<String>,
     return_arrow: bool,
-) -> PyObjectStoreResult<PyListResult> {
+) -> PyObstoreResult<PyListResult> {
     let runtime = get_runtime(py)?;
     py.allow_threads(|| {
         let out = runtime.block_on(list_with_delimiter_materialize(
@@ -442,7 +443,7 @@ pub(crate) fn list_with_delimiter(
             prefix.map(|s| s.into()).as_ref(),
             return_arrow,
         ))?;
-        Ok::<_, PyObjectStoreError>(out)
+        Ok::<_, PyObstoreError>(out)
     })
 }
 
@@ -469,7 +470,7 @@ async fn list_with_delimiter_materialize(
     store: Arc<dyn ObjectStore>,
     prefix: Option<&Path>,
     return_arrow: bool,
-) -> PyObjectStoreResult<PyListResult> {
+) -> PyObstoreResult<PyListResult> {
     let list_result = store.list_with_delimiter(prefix).await?;
     Ok(PyListResult::new(list_result, return_arrow))
 }
