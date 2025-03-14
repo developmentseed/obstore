@@ -85,11 +85,12 @@ impl PyObjectStore {
 /// This is defined as a separate enum so that variants aren't public
 #[derive(Debug, Clone)]
 enum PyExternalObjectStoreInner {
-    AzureStore(PyAzureStore),
-    GCSStore(PyGCSStore),
-    HttpStore(PyHttpStore),
-    LocalStore(PyLocalStore),
-    S3Store(PyS3Store),
+    Azure(PyAzureStore),
+    #[allow(clippy::upper_case_acronyms)]
+    GCS(PyGCSStore),
+    Http(PyHttpStore),
+    Local(PyLocalStore),
+    S3(PyS3Store),
 }
 
 impl<'py> FromPyObject<'py> for PyExternalObjectStoreInner {
@@ -110,7 +111,7 @@ impl<'py> FromPyObject<'py> for PyExternalObjectStoreInner {
                 .downcast::<PyAzureStore>()?
                 .get()
                 .clone();
-            return Ok(Self::AzureStore(store));
+            return Ok(Self::Azure(store));
         }
 
         if cls_name == PyGCSStore::NAME {
@@ -122,7 +123,7 @@ impl<'py> FromPyObject<'py> for PyExternalObjectStoreInner {
                 .downcast::<PyGCSStore>()?
                 .get()
                 .clone();
-            return Ok(Self::GCSStore(store));
+            return Ok(Self::GCS(store));
         }
 
         if cls_name == PyHttpStore::NAME {
@@ -134,7 +135,7 @@ impl<'py> FromPyObject<'py> for PyExternalObjectStoreInner {
                 .downcast::<PyHttpStore>()?
                 .get()
                 .clone();
-            return Ok(Self::HttpStore(store));
+            return Ok(Self::Http(store));
         }
 
         if cls_name == PyLocalStore::NAME {
@@ -146,7 +147,7 @@ impl<'py> FromPyObject<'py> for PyExternalObjectStoreInner {
                 .downcast::<PyLocalStore>()?
                 .get()
                 .clone();
-            return Ok(Self::LocalStore(store));
+            return Ok(Self::Local(store));
         }
 
         if cls_name == PyS3Store::NAME {
@@ -158,7 +159,7 @@ impl<'py> FromPyObject<'py> for PyExternalObjectStoreInner {
                 .downcast::<PyS3Store>()?
                 .get()
                 .clone();
-            return Ok(Self::S3Store(store));
+            return Ok(Self::S3(store));
         }
 
         Err(PyValueError::new_err(format!(
@@ -199,11 +200,11 @@ pub struct PyExternalObjectStore(PyExternalObjectStoreInner);
 impl From<PyExternalObjectStore> for Arc<dyn ObjectStore> {
     fn from(value: PyExternalObjectStore) -> Self {
         match value.0 {
-            PyExternalObjectStoreInner::AzureStore(store) => store.into_inner(),
-            PyExternalObjectStoreInner::GCSStore(store) => store.into_inner(),
-            PyExternalObjectStoreInner::HttpStore(store) => store.into_inner(),
-            PyExternalObjectStoreInner::LocalStore(store) => store.into_inner(),
-            PyExternalObjectStoreInner::S3Store(store) => store.into_inner(),
+            PyExternalObjectStoreInner::Azure(store) => store.into_inner(),
+            PyExternalObjectStoreInner::GCS(store) => store.into_inner(),
+            PyExternalObjectStoreInner::Http(store) => store.into_inner(),
+            PyExternalObjectStoreInner::Local(store) => store.into_inner(),
+            PyExternalObjectStoreInner::S3(store) => store.into_inner(),
         }
     }
 }
