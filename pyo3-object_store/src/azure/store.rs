@@ -58,6 +58,7 @@ impl AzureConfig {
 }
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
+#[derive(Debug, Clone)]
 #[pyclass(name = "AzureStore", frozen, subclass)]
 pub struct PyAzureStore {
     store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
