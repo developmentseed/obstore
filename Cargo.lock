@@ -1701,7 +1701,7 @@ dependencies = [
 
 [[package]]
 name = "pyo3-object_store"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 dependencies = [
  "async-trait",
  "bytes",
