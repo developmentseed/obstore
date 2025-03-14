@@ -8,6 +8,8 @@ dependencies = []
 
 [tool.uv]
 dev-dependencies = [
+    "aiohttp>=3.11.13",
+    "azure-identity>=1.21.0",
     "arro3-core>=0.4.2",
     "boto3>=1.35.38",
     "fsspec>=2024.10.0",

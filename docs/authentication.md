@@ -77,13 +77,13 @@ Refer to [`obstore.auth.boto3`](api/auth/boto3.md).
 
 #### google.auth
 
-You can use the [`GoogleAuthCredentialProvider`][obstore.auth.google.GoogleAuthCredentialProvider] to use [`google.auth`][] to handle credentials.
+You can use the [`GoogleCredentialProvider`][obstore.auth.google.GoogleCredentialProvider] to use [`google.auth`][] to handle credentials.
 
 ```py
-from obstore.auth.google import GoogleAuthCredentialProvider
+from obstore.auth.google import GoogleCredentialProvider
 from obstore.store import GCSStore
 
-credential_provider = GoogleAuthCredentialProvider(credentials=...)
+credential_provider = GoogleCredentialProvider(credentials=...)
 store = GCSStore("bucket_name", credential_provider=credential_provider)
 ```
 
