@@ -4,9 +4,9 @@ import pickle
 from datetime import UTC, datetime
 
 import pytest
-from obspec.exceptions import BaseError, UnauthenticatedError
 
 import obstore as obs
+from obstore.exceptions import GenericError, UnauthenticatedError
 from obstore.store import S3Store, from_url
 
 
@@ -29,18 +29,18 @@ def test_construct_store_boolean_config():
 
 
 def test_error_overlapping_config_kwargs():
-    with pytest.raises(BaseError, match="Duplicate key"):
+    with pytest.raises(GenericError, match="Duplicate key"):
         S3Store("bucket", config={"skip_signature": True}, skip_signature=True)
 
     # Also raises for variations of the same parameter
-    with pytest.raises(BaseError, match="Duplicate key"):
+    with pytest.raises(GenericError, match="Duplicate key"):
         S3Store(
             "bucket",
             config={"aws_skip_signature": True},  # type: ignore
             skip_signature=True,
         )
 
-    with pytest.raises(BaseError, match="Duplicate key"):
+    with pytest.raises(GenericError, match="Duplicate key"):
         S3Store(
             "bucket",
             config={"AWS_SKIP_SIGNATURE": True},  # type: ignore
@@ -49,16 +49,16 @@ def test_error_overlapping_config_kwargs():
 
 
 def test_overlapping_config_keys():
-    with pytest.raises(BaseError, match="Duplicate key"):
+    with pytest.raises(GenericError, match="Duplicate key"):
         S3Store(
             "bucket",
             config={"aws_skip_signature": True, "skip_signature": True},  # type: ignore
         )
 
-    with pytest.raises(BaseError, match="Duplicate key"):
+    with pytest.raises(GenericError, match="Duplicate key"):
         S3Store("bucket", aws_skip_signature=True, skip_signature=True)  # type: ignore
 
-    with pytest.raises(BaseError, match="Duplicate key"):
+    with pytest.raises(GenericError, match="Duplicate key"):
         S3Store("bucket", AWS_SKIP_SIGNATURE=True, skip_signature=True)  # type: ignore
 
 
@@ -122,3 +122,9 @@ async def test_invalid_credential_provider_async():
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):
         await obs.list(store).collect_async()
+
+
+import obstore
+
+dir(obstore._obstore)
+obstore._obstore._exceptions.BaseError
