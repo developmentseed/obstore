@@ -19,7 +19,7 @@ use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
 use crate::PyUrl;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct S3Config {
     prefix: Option<PyPath>,
     config: PyAmazonS3Config,
@@ -159,6 +159,14 @@ impl PyS3Store {
         kwargs.set_item("retry_config", retry_config)?;
         kwargs.set_item("credential_provider", credential_provider)?;
         Ok(cls.call((), Some(&kwargs))?.unbind())
+    }
+
+    fn __eq__(&self, other: &Bound<PyAny>) -> bool {
+        // Ensure we never error on __eq__ by returning false if the other object is not an S3Store
+        other
+            .downcast::<PyS3Store>()
+            .map(|other| self.config == other.get().config)
+            .unwrap_or(false)
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {

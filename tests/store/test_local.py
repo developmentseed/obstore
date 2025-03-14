@@ -69,3 +69,12 @@ def test_pickle(tmp_path: Path):
     obs.put(store, "path.txt", b"foo")
     new_store: LocalStore = pickle.loads(pickle.dumps(store))
     assert obs.get(new_store, "path.txt").bytes() == b"foo"
+
+
+def test_eq():
+    store = LocalStore(HERE, automatic_cleanup=True)
+    store2 = LocalStore(HERE, automatic_cleanup=True)
+    store3 = LocalStore(HERE)
+    assert store == store  # noqa: PLR0124
+    assert store == store2
+    assert store != store3

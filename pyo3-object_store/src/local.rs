@@ -11,7 +11,7 @@ use pyo3::{intern, IntoPyObjectExt};
 use crate::error::PyObjectStoreResult;
 use crate::PyUrl;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 struct LocalConfig {
     prefix: Option<std::path::PathBuf>,
     automatic_cleanup: bool,
@@ -104,6 +104,15 @@ impl PyLocalStore {
         kwargs.set_item("automatic_cleanup", automatic_cleanup)?;
         kwargs.set_item("mkdir", mkdir)?;
         Ok(cls.call((), Some(&kwargs))?.unbind())
+    }
+
+    fn __eq__(&self, other: &Bound<PyAny>) -> bool {
+        // Ensure we never error on __eq__ by returning false if the other object is not the same
+        // type
+        other
+            .downcast::<PyLocalStore>()
+            .map(|other| self.config == other.get().config)
+            .unwrap_or(false)
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
