@@ -58,6 +58,7 @@ impl GCSConfig {
 }
 
 /// A Python-facing wrapper around a [`GoogleCloudStorage`].
+#[derive(Debug, Clone)]
 #[pyclass(name = "GCSStore", frozen, subclass)]
 pub struct PyGCSStore {
     store: Arc<MaybePrefixedStore<GoogleCloudStorage>>,
