@@ -17,6 +17,7 @@ use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
 
+#[derive(Debug, Clone, PartialEq)]
 struct GCSConfig {
     prefix: Option<PyPath>,
     config: PyGoogleConfig,
@@ -152,6 +153,15 @@ impl PyGCSStore {
         kwargs.set_item("retry_config", retry_config)?;
         kwargs.set_item("credential_provider", credential_provider)?;
         Ok(cls.call((), Some(&kwargs))?.unbind())
+    }
+
+    fn __eq__(&self, other: &Bound<PyAny>) -> bool {
+        // Ensure we never error on __eq__ by returning false if the other object is not the same
+        // type
+        other
+            .downcast::<PyGCSStore>()
+            .map(|other| self.config == other.get().config)
+            .unwrap_or(false)
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {

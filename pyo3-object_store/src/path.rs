@@ -2,7 +2,7 @@ use object_store::path::Path;
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct PyPath(Path);
 
 impl<'py> FromPyObject<'py> for PyPath {

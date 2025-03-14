@@ -4,7 +4,7 @@ use object_store::{BackoffConfig, RetryConfig};
 use pyo3::intern;
 use pyo3::prelude::*;
 
-#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
+#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef, PartialEq)]
 pub struct PyBackoffConfig {
     #[pyo3(item)]
     init_backoff: Duration,
@@ -51,7 +51,7 @@ impl From<BackoffConfig> for PyBackoffConfig {
     }
 }
 
-#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef)]
+#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef, PartialEq)]
 pub struct PyRetryConfig {
     #[pyo3(item)]
     backoff: PyBackoffConfig,

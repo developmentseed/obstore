@@ -7,6 +7,7 @@ use object_store::CredentialProvider;
 use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
 
@@ -50,6 +51,14 @@ pub struct PyGcpCredentialProvider {
     cache: TokenCache<Arc<GcpCredential>>,
 }
 
+impl PyGcpCredentialProvider {
+    fn equals(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.user_callback
+            .call_method1(py, "__eq__", PyTuple::new(py, vec![&other.user_callback])?)?
+            .extract(py)
+    }
+}
+
 impl Clone for PyGcpCredentialProvider {
     fn clone(&self) -> Self {
         let cloned_callback = Python::with_gil(|py| self.user_callback.clone_ref(py));
@@ -57,6 +66,12 @@ impl Clone for PyGcpCredentialProvider {
             user_callback: cloned_callback,
             cache: self.cache.clone(),
         }
+    }
+}
+
+impl PartialEq for PyGcpCredentialProvider {
+    fn eq(&self, other: &Self) -> bool {
+        Python::with_gil(|py| self.equals(py, other)).unwrap_or(false)
     }
 }
 

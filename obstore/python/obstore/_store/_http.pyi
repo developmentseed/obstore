@@ -40,6 +40,7 @@ class HTTPStore:
         This is an alias of [`HTTPStore.__init__`][obstore.store.HTTPStore.__init__].
         """
 
+    def __eq__(self, value: object) -> bool: ...
     def __getnewargs_ex__(self): ...
     @property
     def url(self) -> str:

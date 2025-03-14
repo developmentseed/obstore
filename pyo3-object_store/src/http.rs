@@ -9,6 +9,7 @@ use crate::error::PyObjectStoreResult;
 use crate::retry::PyRetryConfig;
 use crate::{PyClientOptions, PyUrl};
 
+#[derive(Debug, Clone, PartialEq)]
 struct HTTPConfig {
     url: PyUrl,
     client_options: Option<PyClientOptions>,
@@ -96,6 +97,15 @@ impl PyHttpStore {
         kwargs.set_item("client_options", client_options)?;
         kwargs.set_item("retry_config", retry_config)?;
         Ok(cls.call((), Some(&kwargs))?.unbind())
+    }
+
+    fn __eq__(&self, other: &Bound<PyAny>) -> bool {
+        // Ensure we never error on __eq__ by returning false if the other object is not the same
+        // type
+        other
+            .downcast::<PyHttpStore>()
+            .map(|other| self.config == other.get().config)
+            .unwrap_or(false)
     }
 
     fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {

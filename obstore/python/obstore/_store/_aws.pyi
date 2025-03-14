@@ -537,6 +537,7 @@ class S3Store:
 
         """
 
+    def __eq__(self, value: object) -> bool: ...
     def __getnewargs_ex__(self): ...
     @property
     def prefix(self) -> str | None:

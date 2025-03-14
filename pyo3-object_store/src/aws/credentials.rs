@@ -7,6 +7,7 @@ use object_store::CredentialProvider;
 use pyo3::exceptions::PyTypeError;
 use pyo3::intern;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 use crate::aws::store::PyAmazonS3Config;
 use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
@@ -66,6 +67,12 @@ impl PyAWSCredentialProvider {
     pub(crate) fn config(&self) -> Option<&PyAmazonS3Config> {
         self.config.as_ref()
     }
+
+    fn equals(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.user_callback
+            .call_method1(py, "__eq__", PyTuple::new(py, vec![&other.user_callback])?)?
+            .extract(py)
+    }
 }
 
 impl Clone for PyAWSCredentialProvider {
@@ -76,6 +83,12 @@ impl Clone for PyAWSCredentialProvider {
             cache: self.cache.clone(),
             config: self.config.clone(),
         }
+    }
+}
+
+impl PartialEq for PyAWSCredentialProvider {
+    fn eq(&self, other: &Self) -> bool {
+        Python::with_gil(|py| self.equals(py, other)).unwrap_or(false)
     }
 }
 

@@ -41,7 +41,7 @@ impl<'py> IntoPyObject<'py> for &PyClientConfigKey {
 }
 
 /// A wrapper around `ClientOptions` that implements [`FromPyObject`].
-#[derive(Clone, Debug, FromPyObject, IntoPyObject, IntoPyObjectRef)]
+#[derive(Clone, Debug, FromPyObject, IntoPyObject, IntoPyObjectRef, PartialEq)]
 pub struct PyClientOptions(HashMap<PyClientConfigKey, PyConfigValue>);
 
 impl From<PyClientOptions> for ClientOptions {

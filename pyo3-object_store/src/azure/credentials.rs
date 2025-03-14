@@ -9,6 +9,7 @@ use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
+use pyo3::types::PyTuple;
 
 use crate::azure::error::Error;
 use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
@@ -139,6 +140,14 @@ pub struct PyAzureCredentialProvider {
     cache: TokenCache<Arc<AzureCredential>>,
 }
 
+impl PyAzureCredentialProvider {
+    fn equals(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.user_callback
+            .call_method1(py, "__eq__", PyTuple::new(py, vec![&other.user_callback])?)?
+            .extract(py)
+    }
+}
+
 impl Clone for PyAzureCredentialProvider {
     fn clone(&self) -> Self {
         let cloned_callback = Python::with_gil(|py| self.user_callback.clone_ref(py));
@@ -146,6 +155,12 @@ impl Clone for PyAzureCredentialProvider {
             user_callback: cloned_callback,
             cache: self.cache.clone(),
         }
+    }
+}
+
+impl PartialEq for PyAzureCredentialProvider {
+    fn eq(&self, other: &Self) -> bool {
+        Python::with_gil(|py| self.equals(py, other)).unwrap_or(false)
     }
 }
 

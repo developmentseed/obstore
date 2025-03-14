@@ -122,3 +122,12 @@ async def test_invalid_credential_provider_async():
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):
         await obs.list(store).collect_async()
+
+
+def test_eq():
+    store = S3Store("bucket", client_options={"timeout": "10s"})
+    store2 = S3Store("bucket", client_options={"timeout": "10s"})
+    store3 = S3Store("bucket")
+    assert store == store  # noqa: PLR0124
+    assert store == store2
+    assert store != store3
