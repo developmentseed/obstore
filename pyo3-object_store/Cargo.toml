@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-object_store"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
 description = "object_store integration for pyo3."

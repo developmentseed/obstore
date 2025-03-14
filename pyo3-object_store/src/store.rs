@@ -248,3 +248,19 @@ pub enum AnyObjectStore {
     /// A wrapper around a [`PyExternalObjectStore`].
     PyExternalObjectStore(PyExternalObjectStore),
 }
+
+impl From<AnyObjectStore> for Arc<dyn ObjectStore> {
+    fn from(value: AnyObjectStore) -> Self {
+        match value {
+            AnyObjectStore::PyObjectStore(store) => store.into(),
+            AnyObjectStore::PyExternalObjectStore(store) => store.into(),
+        }
+    }
+}
+
+impl AnyObjectStore {
+    /// Consume self and return a reference-counted [`ObjectStore`].
+    pub fn into_dyn(self) -> Arc<dyn ObjectStore> {
+        self.into()
+    }
+}
