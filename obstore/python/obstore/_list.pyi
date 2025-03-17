@@ -1,12 +1,88 @@
 # ruff: noqa: A001, UP006, UP035
 
-from typing import List, Literal, overload
+from datetime import datetime
+from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
 
 from arro3.core import RecordBatch, Table
-from obspec._list import ListResult, ListStream
-from obspec._meta import ObjectMeta
 
 from ._store import ObjectStore
+
+class ObjectMeta(TypedDict):
+    """The metadata that describes an object."""
+
+    path: str
+    """The full path to the object"""
+
+    last_modified: datetime
+    """The last modified time"""
+
+    size: int
+    """The size in bytes of the object"""
+
+    e_tag: str | None
+    """The unique identifier for the object
+    <https://datatracker.ietf.org/doc/html/rfc9110#name-etag>
+    """
+
+    version: str | None
+    """A version indicator for this object"""
+
+ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  # noqa: PYI001
+"""The data structure used for holding list results.
+
+By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
+for improved performance when listing large buckets, you can pass `return_arrow=True`.
+Then an Arrow `RecordBatch` will be returned instead.
+"""
+
+class ListResult(TypedDict, Generic[ListChunkType]):
+    """Result of a list call.
+
+    Includes objects, prefixes (directories) and a token for the next set of results.
+    Individual result sets may be limited to 1,000 objects based on the underlying
+    object storage's limitations.
+
+    This implements [`obstore.ListResult`][].
+    """
+
+    common_prefixes: List[str]
+    """Prefixes that are common (like directories)"""
+
+    objects: ListChunkType
+    """Object metadata for the listing"""
+
+class ListStream(Generic[ListChunkType]):
+    """A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
+    async fashion.
+
+    This implements [`obstore.ListStream`][].
+    """  # noqa: D205
+
+    def __aiter__(self) -> Self:
+        """Return `Self` as an async iterator."""
+
+    def __iter__(self) -> Self:
+        """Return `Self` as an async iterator."""
+
+    async def collect_async(self) -> ListChunkType:
+        """Collect all remaining ObjectMeta objects in the stream.
+
+        This ignores the `chunk_size` parameter from the `list` call and collects all
+        remaining data into a single chunk.
+        """
+
+    def collect(self) -> ListChunkType:
+        """Collect all remaining ObjectMeta objects in the stream.
+
+        This ignores the `chunk_size` parameter from the `list` call and collects all
+        remaining data into a single chunk.
+        """
+
+    async def __anext__(self) -> ListChunkType:
+        """Return the next chunk of ObjectMeta in the stream."""
+
+    def __next__(self) -> ListChunkType:
+        """Return the next chunk of ObjectMeta in the stream."""
 
 @overload
 def list(
@@ -92,13 +168,13 @@ def list(
     ```
 
     !!! note
-        The order of returned [`ObjectMeta`][obspec.ObjectMeta] is not
+        The order of returned [`ObjectMeta`][obstore.ObjectMeta] is not
         guaranteed
 
     !!! note
         There is no async version of this method, because `list` is not async under the
         hood, rather it only instantiates a stream, which can be polled in synchronous
-        or asynchronous fashion. See [`ListStream`][obspec.ListStream].
+        or asynchronous fashion. See [`ListStream`][obstore.ListStream].
 
     Args:
         store: The ObjectStore instance to use.
@@ -109,8 +185,8 @@ def list(
         chunk_size: The number of items to collect per chunk in the returned
             (async) iterator. All chunks except for the last one will have this many
             items. This is ignored in the
-            [`collect`][obspec.ListStream.collect] and
-            [`collect_async`][obspec.ListStream.collect_async] methods of
+            [`collect`][obstore.ListStream.collect] and
+            [`collect_async`][obstore.ListStream.collect_async] methods of
             `ListStream`.
         return_arrow: If `True`, return each batch of list items as an Arrow
             `RecordBatch`, not as a list of Python `dict`s. Arrow removes serialization
