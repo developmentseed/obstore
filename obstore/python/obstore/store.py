@@ -25,12 +25,16 @@ if TYPE_CHECKING:
     from typing import IO, Literal
 
     from arro3.core import RecordBatch, Table
-    from obspec._attributes import Attributes
-    from obspec._get import GetOptions
-    from obspec._list import ListResult, ListStream
-    from obspec._meta import ObjectMeta
-    from obspec._put import PutMode, PutResult
 
+    from obstore import (
+        Attributes,
+        GetOptions,
+        ListResult,
+        ListStream,
+        ObjectMeta,
+        PutMode,
+        PutResult,
+    )
     from obstore._obstore import Bytes, GetResult
     from obstore._store import (
         AzureAccessKey,

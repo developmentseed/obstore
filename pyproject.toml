@@ -23,7 +23,6 @@ dev-dependencies = [
     "mkdocstrings-python>=1.13.0",
     "mkdocstrings>=0.27.0",
     "moto[s3,server]>=5.0.18",
-    "obspec>=0.1.0b1",
     "pandas>=2.2.3",
     "pip>=24.2",
     "pyarrow>=17.0.0",

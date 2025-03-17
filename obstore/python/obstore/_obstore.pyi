@@ -1,4 +1,6 @@
 from . import _store as _store
+from ._attributes import Attribute as Attribute
+from ._attributes import Attributes as Attributes
 from ._buffered import AsyncReadableFile as AsyncReadableFile
 from ._buffered import AsyncWritableFile as AsyncWritableFile
 from ._buffered import ReadableFile as ReadableFile
@@ -13,7 +15,10 @@ from ._copy import copy_async as copy_async
 from ._delete import delete as delete
 from ._delete import delete_async as delete_async
 from ._get import BytesStream as BytesStream
+from ._get import GetOptions as GetOptions
 from ._get import GetResult as GetResult
+from ._get import OffsetRange as OffsetRange
+from ._get import SuffixRange as SuffixRange
 from ._get import get as get
 from ._get import get_async as get_async
 from ._get import get_range as get_range
@@ -22,9 +27,16 @@ from ._get import get_ranges as get_ranges
 from ._get import get_ranges_async as get_ranges_async
 from ._head import head as head
 from ._head import head_async as head_async
+from ._list import ListChunkType as ListChunkType
+from ._list import ListResult as ListResult
+from ._list import ListStream as ListStream
+from ._list import ObjectMeta as ObjectMeta
 from ._list import list as list  # noqa: A004
 from ._list import list_with_delimiter as list_with_delimiter
 from ._list import list_with_delimiter_async as list_with_delimiter_async
+from ._put import PutMode as PutMode
+from ._put import PutResult as PutResult
+from ._put import UpdateVersion as UpdateVersion
 from ._put import put as put
 from ._put import put_async as put_async
 from ._rename import rename as rename
