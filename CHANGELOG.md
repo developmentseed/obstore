@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1] - 2025-03-17
+
+### Bug fixes :bug:
+
+- Fix import errors for Python 3.9 and 3.10. Update CI. by @kylebarron in https://github.com/developmentseed/obstore/pull/372
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.5.0...py-v0.5.1
+
 ## [0.5.0] - 2025-03-17
 
 ### New Features :magic_wand:
