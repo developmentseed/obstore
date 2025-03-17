@@ -37,7 +37,7 @@ import warnings
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Unpack, overload
+from typing import TYPE_CHECKING, Literal, overload
 from urllib.parse import urlparse
 
 import fsspec.asyn
@@ -49,6 +49,7 @@ from obstore.store import from_url
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Iterable
+    from typing import Any, Unpack
 
     from obstore import Attributes, Bytes, ReadableFile, WritableFile
     from obstore.store import (

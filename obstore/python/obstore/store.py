@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, TypeAlias, Unpack, overload
+from typing import TYPE_CHECKING, overload
 
 import obstore as obs
 from obstore._obstore import _store
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
         Sequence,
     )
     from pathlib import Path
-    from typing import IO, Literal
+    from typing import IO, Any, Literal, TypeAlias, Unpack
 
     from arro3.core import RecordBatch, Table
 
