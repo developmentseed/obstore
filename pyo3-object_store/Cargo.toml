@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-object_store"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
 description = "object_store integration for pyo3."
@@ -25,8 +25,8 @@ itertools = "0.14.0"
 object_store = { version = "0.12", features = ["aws", "azure", "gcp", "http"] }
 # This is already an object_store dependency
 percent-encoding = "2.1"
-pyo3 = { version = "0.23.4", features = ["chrono", "indexmap"] }
-pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
+pyo3 = { version = "0.24", features = ["chrono", "indexmap"] }
+pyo3-async-runtimes = { version = "0.24", features = ["tokio-runtime"] }
 serde = "1"
 thiserror = "1"
 tokio = { version = "1.40", features = ["rt-multi-thread"] }
