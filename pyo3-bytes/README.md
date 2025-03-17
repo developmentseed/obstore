@@ -58,3 +58,10 @@ methods (with the same signature) as the Python `bytes` object.
 The Python type hints are available in the Github repo in the file `bytes.pyi`.
 I don't know the best way to distribute this to downstream projects. If you have
 an idea, create an issue to discuss.
+
+## Version compatibility
+
+| pyo3-bytes | pyo3 |
+| ---------- | ---- |
+| 0.1.x      | 0.23 |
+| 0.2.x      | 0.24 |

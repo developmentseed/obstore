@@ -61,3 +61,4 @@ We don't yet have a _great_ solution here for reusing the store builder type hin
 | pyo3-object_store | pyo3 | object_store |
 | ----------------- | ---- | ------------ |
 | 0.1.x             | 0.23 | 0.12         |
+| 0.2.x             | 0.24 | 0.12         |
