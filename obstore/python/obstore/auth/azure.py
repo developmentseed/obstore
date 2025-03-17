@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 DEFAULT_SCOPES = ("https://storage.azure.com/.default",)
+"""Default scopes used for Azure credential providers."""
 
 
 class AzureCredentialProvider:
@@ -68,8 +69,7 @@ class AzureCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.DefaultAzureCredential`][] will be
                 called to find default credentials.
-            scopes: Scopes required by the access token. If not specified,
-                ("https://storage.azure.com/.default",) will be used by default.
+            scopes: Scopes required by the access token.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
 
@@ -146,8 +146,7 @@ class AzureAsyncCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.aio.DefaultAzureCredential`][] will be
                 called to find default credentials.
-            scopes: Scopes required by the access token. If not specified,
-                ("https://storage.azure.com/.default",) will be used by default.
+            scopes: Scopes required by the access token.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
 

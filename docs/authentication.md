@@ -94,20 +94,20 @@ Refer to [`obstore.auth.google`](api/auth/google.md).
 You can use the [`AzureCredentialProvider`][obstore.auth.azure.AzureCredentialProvider] to use [`azure.identity`][] to handle credentials.
 
 ``` python
-import obstore
+import obstore as obs
 from obstore.auth.azure import AzureCredentialProvider
 from obstore.store import AzureStore
 
 credential_provider = AzureAsyncCredentialProvider(credential=...)
 store = AzureStore("container", credential_provider=credential_provider)
-print(obstore.list(store).collect())
+print(obs.list(store).collect())
 ```
 
 Alternatively, you can use [`AzureAsyncCredentialProvider`][obstore.auth.azure.AzureAsyncCredentialProvider] with the async API:
 
 ``` python
 import asyncio
-import obstore
+import obstore as obs
 from obstore.auth.azure import AzureCredentialProvider
 from obstore.store import AzureStore
 
@@ -115,7 +115,7 @@ credential_provider = AzureAsyncCredentialProvider(credential=...)
 store = AzureStore("container", credential_provider=credential_provider)
 
 async def fetch_blobs():
-    blobs = await obstore.list(store).collect_async()
+    blobs = await obs.list(store).collect_async()
     print(blobs)
 
 asyncio.run(fetch_blobs())
