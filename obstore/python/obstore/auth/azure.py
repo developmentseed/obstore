@@ -16,46 +16,6 @@ if TYPE_CHECKING:
 
     from obstore.store import AzureCredential
 
-    AzureCredentialUnionType = (
-        azure.identity.AuthorizationCodeCredential
-        | azure.identity.AzureCliCredential
-        | azure.identity.AzureDeveloperCliCredential
-        | azure.identity.AzurePipelinesCredential
-        | azure.identity.AzurePowerShellCredential
-        | azure.identity.CertificateCredential
-        | azure.identity.ChainedTokenCredential
-        | azure.identity.ClientAssertionCredential
-        | azure.identity.ClientSecretCredential
-        | azure.identity.DefaultAzureCredential
-        | azure.identity.DeviceCodeCredential
-        | azure.identity.EnvironmentCredential
-        | azure.identity.InteractiveBrowserCredential
-        | azure.identity.ManagedIdentityCredential
-        | azure.identity.OnBehalfOfCredential
-        | azure.identity.SharedTokenCacheCredential
-        | azure.identity.UsernamePasswordCredential
-        | azure.identity.VisualStudioCodeCredential
-        | azure.identity.WorkloadIdentityCredential
-    )
-
-    AzureAsyncCredentialUnionType = (
-        azure.identity.aio.AuthorizationCodeCredential
-        | azure.identity.aio.AzureCliCredential
-        | azure.identity.aio.AzureDeveloperCliCredential
-        | azure.identity.aio.AzurePipelinesCredential
-        | azure.identity.aio.AzurePowerShellCredential
-        | azure.identity.aio.CertificateCredential
-        | azure.identity.aio.ChainedTokenCredential
-        | azure.identity.aio.ClientAssertionCredential
-        | azure.identity.aio.ClientSecretCredential
-        | azure.identity.aio.DefaultAzureCredential
-        | azure.identity.aio.EnvironmentCredential
-        | azure.identity.aio.ManagedIdentityCredential
-        | azure.identity.aio.OnBehalfOfCredential
-        | azure.identity.aio.SharedTokenCacheCredential
-        | azure.identity.aio.VisualStudioCodeCredential
-        | azure.identity.aio.WorkloadIdentityCredential
-    )
 
 DEFAULT_SCOPES = ("https://storage.azure.com/.default",)
 
@@ -77,11 +37,28 @@ class AzureCredentialProvider:
     ```
     """  # noqa: E501
 
-    credential: AzureCredentialUnionType
-
     def __init__(
         self,
-        credential: AzureCredentialUnionType | None = None,
+        credential: azure.identity.AuthorizationCodeCredential
+        | azure.identity.AzureCliCredential
+        | azure.identity.AzureDeveloperCliCredential
+        | azure.identity.AzurePipelinesCredential
+        | azure.identity.AzurePowerShellCredential
+        | azure.identity.CertificateCredential
+        | azure.identity.ChainedTokenCredential
+        | azure.identity.ClientAssertionCredential
+        | azure.identity.ClientSecretCredential
+        | azure.identity.DefaultAzureCredential
+        | azure.identity.DeviceCodeCredential
+        | azure.identity.EnvironmentCredential
+        | azure.identity.InteractiveBrowserCredential
+        | azure.identity.ManagedIdentityCredential
+        | azure.identity.OnBehalfOfCredential
+        | azure.identity.SharedTokenCacheCredential
+        | azure.identity.UsernamePasswordCredential
+        | azure.identity.VisualStudioCodeCredential
+        | azure.identity.WorkloadIdentityCredential
+        | None = None,
         scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
@@ -141,11 +118,25 @@ class AzureAsyncCredentialProvider:
     ```
     """  # noqa: E501
 
-    credential: AzureAsyncCredentialUnionType
-
     def __init__(
         self,
-        credential: AzureAsyncCredentialUnionType | None = None,
+        credential: azure.identity.aio.AuthorizationCodeCredential
+        | azure.identity.aio.AzureCliCredential
+        | azure.identity.aio.AzureDeveloperCliCredential
+        | azure.identity.aio.AzurePipelinesCredential
+        | azure.identity.aio.AzurePowerShellCredential
+        | azure.identity.aio.CertificateCredential
+        | azure.identity.aio.ChainedTokenCredential
+        | azure.identity.aio.ClientAssertionCredential
+        | azure.identity.aio.ClientSecretCredential
+        | azure.identity.aio.DefaultAzureCredential
+        | azure.identity.aio.EnvironmentCredential
+        | azure.identity.aio.ManagedIdentityCredential
+        | azure.identity.aio.OnBehalfOfCredential
+        | azure.identity.aio.SharedTokenCacheCredential
+        | azure.identity.aio.VisualStudioCodeCredential
+        | azure.identity.aio.WorkloadIdentityCredential
+        | None = None,
         scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
