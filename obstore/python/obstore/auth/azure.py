@@ -75,8 +75,6 @@ class AzureCredentialProvider:
     credential_provider = AzureCredentialProvider(credential=...)
     store = AzureStore("container", credential_provider=credential_provider)
     ```
-
-    [`azure.identity`]: https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme
     """  # noqa: E501
 
     credential: AzureCredentialUnionType
@@ -141,8 +139,6 @@ class AzureAsyncCredentialProvider:
 
     asyncio.run(fetch_blobs())
     ```
-
-    [`azure.identity`]: https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme
     """  # noqa: E501
 
     credential: AzureAsyncCredentialUnionType
