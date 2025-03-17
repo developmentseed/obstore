@@ -1,6 +1,6 @@
 ---
 draft: false
-date: 2025-03-10
+date: 2025-03-17
 categories:
   - Release
 authors:
@@ -18,6 +18,35 @@ This post gives an overview of what's new in obstore version 0.5.
 <!-- more -->
 
 Refer to the [changelog](../../CHANGELOG.md) for all updates.
+
+## Class method wrappers
+
+Until now, obstore provided only a _functional_ API with top-level functions exported from the `obstore` module. Now, obstore additionally provides these functions as methods on each store class.
+
+**Previously**:
+
+```py
+import obstore as obs
+from obstore.store import AzureStore
+
+store = AzureStore()
+obs.put(store, ...)
+```
+
+**Now**:
+
+```py
+from obstore.store import AzureStore
+
+store = AzureStore()
+store.put(...) # (1)!
+```
+
+1.  Note that this calls the class method `store.put` instead of the module-level function `obstore.put`.
+
+This also can ease understanding of the API, since you can explore available methods from the store object directly.
+
+![](../../assets/class-methods-vscode-suggestions.jpg)
 
 ## Credential providers
 
