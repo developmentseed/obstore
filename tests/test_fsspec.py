@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import os
+import sys
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -17,6 +18,10 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from obstore.store import S3Config
+
+
+if sys.version_info < (3, 10):
+    pytest.skip("Moto doesn't seem to support Python 3.9", allow_module_level=True)
 
 
 @pytest.fixture

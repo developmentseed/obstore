@@ -7,6 +7,12 @@ resolution-markers = [
     "python_full_version < '3.10'",
 ]
 
+[manifest]
+constraints = [
+    { name = "urllib", marker = "python_full_version == '3.9.*'" },
+    { name = "urllib", marker = "python_full_version >= '3.10'", specifier = ">=2.0" },
+]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -1523,7 +1529,7 @@ wheels = [
 
 [[package]]
 name = "moto"
-version = "5.0.26"
+version = "5.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -1536,9 +1542,9 @@ dependencies = [
     { name = "werkzeug" },
     { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8b/a9/996e9d0c8c5d6f8b044d4facfe6eb6c42feb4ab5c2a24d78f780bd942f61/moto-5.0.26.tar.gz", hash = "sha256:6829f58a670a087e7c5b63f8183c6b72d64a1444e420c212250b7326b69a9183", size = 6442983 }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/ee/88b514190cb4ece02b377ea61ff26b596fa967609c82aa2f2856bfae2f3e/moto-5.1.1.tar.gz", hash = "sha256:5b25dbc62cccd9f36ef062c870db49d976b241129024fab049e2d3d1296e2a57", size = 6647375 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/dd/40c20b3bcdf335f56776e1adea5edd1b1026f3f98816944a123393f64df3/moto-5.0.26-py3-none-any.whl", hash = "sha256:803831f427ca6c0452ae4fb898d731cfc19906466a33a88cbc1076abcbfcbba7", size = 4614956 },
+    { url = "https://files.pythonhosted.org/packages/e9/36/e3d70d25064a03dfa13555bf26ca934bb2167df221065938278e1e1961eb/moto-5.1.1-py3-none-any.whl", hash = "sha256:615904d6210431950a59a2bdec365d60e791eacbe3dd07a3a5d742c88ef847dd", size = 4788429 },
 ]
 
 [package.optional-dependencies]
@@ -3140,7 +3146,7 @@ dev = [
     { name = "mkdocs-material", extras = ["imaging"], specifier = ">=9.6.3" },
     { name = "mkdocstrings", specifier = ">=0.27.0" },
     { name = "mkdocstrings-python", specifier = ">=1.13.0" },
-    { name = "moto", extras = ["s3", "server"], specifier = ">=5.0.18" },
+    { name = "moto", extras = ["s3", "server"], specifier = ">=5.1.1" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pip", specifier = ">=24.2" },
     { name = "polars", specifier = ">=1.24.0" },

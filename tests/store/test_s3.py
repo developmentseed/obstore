@@ -1,6 +1,7 @@
 # ruff: noqa: PGH003
 
 import pickle
+import sys
 from datetime import datetime, timezone
 
 import pytest
@@ -10,12 +11,20 @@ from obstore.exceptions import BaseError, UnauthenticatedError
 from obstore.store import S3Store, from_url
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="Moto doesn't seem to support Python 3.9",
+)
 @pytest.mark.asyncio
 async def test_list_async(s3_store: S3Store):
     list_result = await obs.list(s3_store).collect_async()
     assert any("afile" in x["path"] for x in list_result)
 
 
+@pytest.mark.skipif(
+    sys.version_info < (3, 10),
+    reason="Moto doesn't seem to support Python 3.9",
+)
 @pytest.mark.asyncio
 async def test_get_async(s3_store: S3Store):
     resp = await obs.get_async(s3_store, "afile")
