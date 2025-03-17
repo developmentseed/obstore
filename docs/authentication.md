@@ -129,13 +129,13 @@ There's a long tail of possible authentication mechanisms. Obstore allows you to
 
 You can provide **either a synchronous or asynchronous callback** for your custom authentication function.
 
-!!! note
-
-    Provide an asynchronous credential provider for optimal performance.
-
 - A custom AWS credential provider, passed in to [`S3Store`][obstore.store.S3Store] must return an [`S3Credential`][obstore.store.S3Credential].
 - A custom GCS credential provider, passed in to [`GCSStore`][obstore.store.GCSStore] must return a [`GCSCredential`][obstore.store.GCSCredential].
 - A custom Azure credential provider, passed in to [`AzureStore`][obstore.store.AzureStore] must return an [`AzureCredential`][obstore.store.AzureCredential].
+
+!!! warning
+
+    Asynchronous credential providers can be more performant but are only supported when using obstore's asynchronous APIs. (In particular, there must be an event loop running.)
 
 #### Basic Example
 
