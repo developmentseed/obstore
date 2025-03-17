@@ -1,11 +1,17 @@
 # ruff: noqa: A001, UP006, UP035
 
+import sys
 from datetime import datetime
-from typing import Generic, List, Literal, Self, TypedDict, TypeVar, overload
+from typing import Generic, List, Literal, TypedDict, TypeVar, overload
 
 from arro3.core import RecordBatch, Table
 
 from ._store import ObjectStore
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 class ObjectMeta(TypedDict):
     """The metadata that describes an object."""

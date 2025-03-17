@@ -1,7 +1,8 @@
 # TODO: move to reusable types package
+import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Self, TypeAlias, Unpack, overload
+from typing import Any, overload
 
 from ._aws import S3Config as S3Config
 from ._aws import S3Credential as S3Credential
@@ -22,6 +23,16 @@ from ._gcs import GCSStore as GCSStore
 from ._http import HTTPStore as HTTPStore
 from ._retry import BackoffConfig as BackoffConfig
 from ._retry import RetryConfig as RetryConfig
+
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
+
+if sys.version_info >= (3, 11):
+    from typing import Self, Unpack
+else:
+    from typing_extensions import Self, Unpack
 
 @overload
 def from_url(

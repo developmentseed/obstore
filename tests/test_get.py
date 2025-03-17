@@ -124,13 +124,15 @@ def test_get_ranges():
     ends = [15, 20, 25, 30]
     buffers = store.get_ranges(path, starts=starts, ends=ends)
 
-    for start, end, buffer in zip(starts, ends, buffers, strict=True):
+    # set strict=True when we upgrade to 3.10
+    for start, end, buffer in zip(starts, ends, buffers):
         assert memoryview(buffer) == data[start:end]
 
     lengths = [10, 10, 10, 10]
     buffers = store.get_ranges(path, starts=starts, lengths=lengths)
 
-    for start, end, buffer in zip(starts, ends, buffers, strict=True):
+    # set strict=True when we upgrade to 3.10
+    for start, end, buffer in zip(starts, ends, buffers):
         assert memoryview(buffer) == data[start:end]
 
 

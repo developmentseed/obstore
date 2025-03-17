@@ -37,7 +37,7 @@ import warnings
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, Unpack, overload
+from typing import TYPE_CHECKING, Literal, overload
 from urllib.parse import urlparse
 
 import fsspec.asyn
@@ -48,7 +48,9 @@ from obstore import open_reader, open_writer
 from obstore.store import from_url
 
 if TYPE_CHECKING:
+    import sys
     from collections.abc import Coroutine, Iterable
+    from typing import Any
 
     from obstore import Attributes, Bytes, ReadableFile, WritableFile
     from obstore.store import (
@@ -59,6 +61,12 @@ if TYPE_CHECKING:
         RetryConfig,
         S3Config,
     )
+
+    if sys.version_info >= (3, 11):
+        from typing import Unpack
+    else:
+        from typing_extensions import Unpack
+
 
 __all__ = [
     "BufferedFile",
@@ -391,9 +399,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             raise ValueError
 
         per_file_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
-        for idx, (path, start, end) in enumerate(
-            zip(paths, starts, ends, strict=False),
-        ):
+        # When upgrading to Python 3.10, use strict=True
+        for idx, (path, start, end) in enumerate(zip(paths, starts, ends)):
             per_file_requests[path].append((start, end, idx))
 
         futs: list[Coroutine[Any, Any, list[Bytes]]] = []
@@ -409,13 +416,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         result = await asyncio.gather(*futs)
 
         output_buffers: list[bytes] = [b""] * len(paths)
-        for per_file_request, buffers in zip(
-            per_file_requests.items(),
-            result,
-            strict=True,
-        ):
+        # When upgrading to Python 3.10, use strict=True
+        for per_file_request, buffers in zip(per_file_requests.items(), result):
             path, ranges = per_file_request
-            for buffer, ranges_ in zip(buffers, ranges, strict=True):
+            # When upgrading to Python 3.10, use strict=True
+            for buffer, ranges_ in zip(buffers, ranges):
                 initial_index = ranges_[2]
                 output_buffers[initial_index] = buffer.to_bytes()
 

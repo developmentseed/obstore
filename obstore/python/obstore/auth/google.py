@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, cast
 
 import google.auth
@@ -156,4 +156,4 @@ def _replace_expiry_timezone_utc(expiry: datetime | None) -> datetime | None:
     if expiry is None:
         return None
 
-    return expiry.replace(tzinfo=UTC) if expiry.tzinfo is None else expiry
+    return expiry.replace(tzinfo=timezone.utc) if expiry.tzinfo is None else expiry
