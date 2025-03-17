@@ -89,7 +89,37 @@ store = GCSStore("bucket_name", credential_provider=credential_provider)
 
 Refer to [`obstore.auth.google`](api/auth/google.md).
 
-<!-- #### Using `azure.identity` -->
+#### `azure.identity`
+
+You can use the [`AzureCredentialProvider`][obstore.auth.azure.AzureCredentialProvider] to use [`azure.identity`][] to handle credentials.
+
+``` python
+import obstore
+from obstore.auth.azure import AzureCredentialProvider
+from obstore.store import AzureStore
+
+credential_provider = AzureAsyncCredentialProvider(credential=...)
+store = AzureStore("container", credential_provider=credential_provider)
+print(obstore.list(store).collect())
+```
+
+Alternatively, you can use [`AzureAsyncCredentialProvider`][obstore.auth.azure.AzureAsyncCredentialProvider] with the async API:
+
+``` python
+import asyncio
+import obstore
+from obstore.auth.azure import AzureCredentialProvider
+from obstore.store import AzureStore
+
+credential_provider = AzureAsyncCredentialProvider(credential=...)
+store = AzureStore("container", credential_provider=credential_provider)
+
+async def fetch_blobs():
+    blobs = await obstore.list(store).collect_async()
+    print(blobs)
+
+asyncio.run(fetch_blobs())
+```
 
 ### Custom Authentication
 
