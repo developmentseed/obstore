@@ -1,10 +1,15 @@
 import sys
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
 from pathlib import Path
-from typing import IO, Literal, TypeAlias, TypedDict
+from typing import IO, Literal, TypedDict
 
 from ._attributes import Attributes
 from .store import ObjectStore
+
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 12):
     from collections.abc import Buffer

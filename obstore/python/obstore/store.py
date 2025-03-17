@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Union, overload
 
 import obstore as obs
 from obstore._obstore import _store
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
         Sequence,
     )
     from pathlib import Path
-    from typing import IO, Any, Literal, TypeAlias, Unpack
+    from typing import IO, Any, Literal
 
     from arro3.core import RecordBatch, Table
 
@@ -53,6 +53,16 @@ if TYPE_CHECKING:
         S3Credential,
         S3CredentialProvider,
     )
+
+    if sys.version_info >= (3, 10):
+        from typing import TypeAlias
+    else:
+        from typing_extensions import TypeAlias
+
+    if sys.version_info >= (3, 11):
+        from typing import Unpack
+    else:
+        from typing_extensions import Unpack
 
     if sys.version_info >= (3, 12):
         from collections.abc import Buffer
@@ -579,9 +589,14 @@ class S3Store(_ObjectStoreMixin, _store.S3Store):
     """
 
 
-ObjectStore: TypeAlias = (
-    AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
-)
+ObjectStore: TypeAlias = Union[
+    AzureStore,
+    GCSStore,
+    HTTPStore,
+    S3Store,
+    LocalStore,
+    MemoryStore,
+]
 """All supported ObjectStore implementations."""
 
 
