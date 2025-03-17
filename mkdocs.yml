@@ -51,6 +51,7 @@ nav:
           - api/store/config.md
           # - api/store/middleware.md
       - obstore.auth:
+          - api/auth/azure.md
           - api/auth/boto3.md
           - api/auth/earthdata.md
           - api/auth/google.md
@@ -164,6 +165,7 @@ plugins:
             - https://google-auth.readthedocs.io/en/master/objects.inv
             - https://kylebarron.dev/arro3/latest/objects.inv
             - https://requests.readthedocs.io/en/latest/objects.inv
+            - https://azuresdkdocs.z19.web.core.windows.net/python/azure-identity/latest/objects.inv
 
 # https://github.com/developmentseed/titiler/blob/50934c929cca2fa8d3c408d239015f8da429c6a8/docs/mkdocs.yml#L115-L140
 markdown_extensions:

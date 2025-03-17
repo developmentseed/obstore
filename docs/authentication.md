@@ -77,19 +77,51 @@ Refer to [`obstore.auth.boto3`](api/auth/boto3.md).
 
 #### google.auth
 
-You can use the [`GoogleAuthCredentialProvider`][obstore.auth.google.GoogleAuthCredentialProvider] to use [`google.auth`][] to handle credentials.
+You can use the [`GoogleCredentialProvider`][obstore.auth.google.GoogleCredentialProvider] to use [`google.auth`][] to handle credentials.
 
 ```py
-from obstore.auth.google import GoogleAuthCredentialProvider
+from obstore.auth.google import GoogleCredentialProvider
 from obstore.store import GCSStore
 
-credential_provider = GoogleAuthCredentialProvider(credentials=...)
+credential_provider = GoogleCredentialProvider(credentials=...)
 store = GCSStore("bucket_name", credential_provider=credential_provider)
 ```
 
 Refer to [`obstore.auth.google`](api/auth/google.md).
 
-<!-- #### Using `azure.identity` -->
+#### `azure.identity`
+
+You can use the [`AzureCredentialProvider`][obstore.auth.azure.AzureCredentialProvider] to use [`azure.identity`][] to handle credentials.
+
+``` python
+import obstore as obs
+from obstore.auth.azure import AzureCredentialProvider
+from obstore.store import AzureStore
+
+credential_provider = AzureAsyncCredentialProvider(credential=...)
+store = AzureStore("container", credential_provider=credential_provider)
+print(obs.list(store).collect())
+```
+
+Alternatively, you can use [`AzureAsyncCredentialProvider`][obstore.auth.azure.AzureAsyncCredentialProvider] with the async API:
+
+``` python
+import asyncio
+import obstore as obs
+from obstore.auth.azure import AzureCredentialProvider
+from obstore.store import AzureStore
+
+credential_provider = AzureAsyncCredentialProvider(credential=...)
+store = AzureStore("container", credential_provider=credential_provider)
+
+async def fetch_blobs():
+    blobs = await obs.list(store).collect_async()
+    print(blobs)
+
+asyncio.run(fetch_blobs())
+
+Refer to [`obstore.auth.azure`](api/auth/azure.md).
+```
 
 ### Custom Authentication
 
