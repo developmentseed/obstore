@@ -127,11 +127,19 @@ class AzureAsyncCredentialProvider:
     **Example:**
 
     ```py
+    import asyncio
+    import obstore
     from obstore.auth.azure import AzureAsyncCredentialProvider
     from obstore.store import AzureStore
 
     credential_provider = AzureAsyncCredentialProvider(credential=...)
     store = AzureStore("container", credential_provider=credential_provider)
+
+    async def fetch_blobs():
+        blobs = await obstore.list(store).collect_async()
+        print(blobs)
+
+    asyncio.run(fetch_blobs())
     ```
 
     [`azure.identity`]: https://learn.microsoft.com/en-us/python/api/overview/azure/identity-readme
