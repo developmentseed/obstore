@@ -1,10 +1,12 @@
 # Changelog
 
-## [0.5.0] - 2025-03-10
+## [0.5.0] - 2025-03-17
 
 ### New Features :magic_wand:
 
+- **Class methods wrapper**. Instead of calling `obstore.get(store)`, you can now call `store.get()` directly. by @kylebarron in https://github.com/developmentseed/obstore/pull/331
 - **User-supplied credential callback** by @kylebarron in https://github.com/developmentseed/obstore/pull/234
+  - Add Azure credential providers by @daviewales in https://github.com/developmentseed/obstore/pull/343
 - **Fsspec updates**:
   - [FEAT] Create obstore store in fsspec on demand by @machichima in https://github.com/developmentseed/obstore/pull/198
   - [FEAT] support df.to_parquet and df.read_parquet() by @machichima in https://github.com/developmentseed/obstore/pull/165
