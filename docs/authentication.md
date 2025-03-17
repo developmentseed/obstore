@@ -119,6 +119,8 @@ async def fetch_blobs():
     print(blobs)
 
 asyncio.run(fetch_blobs())
+
+Refer to [`obstore.auth.azure`](api/auth/azure.md).
 ```
 
 ### Custom Authentication

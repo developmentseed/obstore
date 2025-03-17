@@ -51,6 +51,7 @@ nav:
           - api/store/config.md
           # - api/store/middleware.md
       - obstore.auth:
+          - api/auth/azure.md
           - api/auth/boto3.md
           - api/auth/earthdata.md
           - api/auth/google.md
