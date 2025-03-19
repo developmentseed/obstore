@@ -265,7 +265,7 @@ path2 = "data/file2"
 # This only constructs the stream, it doesn't materialize the data in memory
 resp = await obs.get_async(store1, path1)
 # A streaming upload is created to copy the file to path2
-await obs.put_async(store2, path2, resp, chunk_size=chunk_size)
+await obs.put_async(store2, path2, resp)
 ```
 
 Or, by customizing the chunk size and the upload concurrency you can control memory overhead.
