@@ -38,10 +38,10 @@ class PlanetaryComputerCredentialProvider:
 
     def __init__(  # noqa: PLR0913
         self,
+        url: str | None = None,
         *,
         account_name: str | None = None,
         container_name: str | None = None,
-        url: str | None = None,
         session: requests.Session | None = None,
         sas_url: str | None = None,
         subscription_key: str | None = None,
