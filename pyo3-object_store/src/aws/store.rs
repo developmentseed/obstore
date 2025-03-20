@@ -97,26 +97,35 @@ impl PyS3Store {
     ) -> PyObjectStoreResult<Self> {
         let mut builder = AmazonS3Builder::from_env();
         let mut config = config.unwrap_or_default();
-        if let Some(credential_provider) = credential_provider.clone() {
-            // Apply config from credential provider onto builder
-            if let Some(config) = credential_provider.config() {
-                builder = config.clone().apply_config(builder);
-            }
-            builder = builder.with_credentials(Arc::new(credential_provider));
-        }
+
         if let Some(bucket) = bucket {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
             // in sync.
             config.insert_raising_if_exists(AmazonS3ConfigKey::Bucket, bucket)?;
         }
-        let combined_config = combine_config_kwargs(config, kwargs)?;
-        builder = combined_config.clone().apply_config(builder);
+
+        let mut combined_config = combine_config_kwargs(config, kwargs)?;
+
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
+
+        if let Some(credential_provider) = credential_provider.clone() {
+            // Apply credential provider config onto main config
+            if let Some(credential_config) = credential_provider.config() {
+                for (key, val) in credential_config.0.iter() {
+                    // Give precedence to passed-in config values
+                    combined_config.insert_if_not_exists(key.clone(), val.clone());
+                }
+            }
+            builder = builder.with_credentials(Arc::new(credential_provider));
+        }
+
+        builder = combined_config.clone().apply_config(builder);
+
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: S3Config {
