@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0] -
+
+### Breaking changes :wrench:
+
+#### Object store methods
+
+No breaking changes.
+
+#### Store constructors
+
+- In the `AzureStore` constructor, the `container` positional argument was renamed to `container_name` to match the `container_name` key in `AzureConfig`.
+
+  This is a breaking change if you had been calling `AzureStore(container="my container name")`. This is not breaking if you had been using it as a positional argument `AzureStore("my container name")` or if you had already been using `AzureStore(container_name="my container name")`.
+
+  The idea here is that we want one and only one argument name for each underlying config parameter. Most of these breaking changes took place in 0.5.0, but this was overlooked.
+
+
 ## [0.5.1] - 2025-03-17
 
 ### Bug fixes :bug:
