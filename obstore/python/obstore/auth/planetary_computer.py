@@ -14,13 +14,14 @@ if TYPE_CHECKING:
 
     import requests
 
-    from obstore.store import AzureCredential, AzureSASToken
+    from obstore.store import AzureConfig, AzureSASToken
 
     if sys.version_info >= (3, 11):
         from typing import Self
     else:
         from typing_extensions import Self
 
+_BLOB_STORAGE_DOMAIN = ".blob.core.windows.net"
 _SETTINGS_ENV_STR = "~/.planetarycomputer/settings.env"
 _SETTINGS_ENV_FILE = Path(_SETTINGS_ENV_STR).expanduser()
 
@@ -32,15 +33,18 @@ __all__ = ["PlanetaryComputerCredentialProvider"]
 class PlanetaryComputerCredentialProvider:
     """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing Planetary Computer."""  # noqa: E501
 
-    def __init__(
+    config: AzureConfig
+    prefix: str | None
+
+    def __init__(  # noqa: PLR0913
         self,
         *,
         account_name: str | None = None,
         container_name: str | None = None,
-        sas_url: str | None = None,
-        session: requests.Session | None = None,
-        subscription_key: str | None = None,
         url: str | None = None,
+        session: requests.Session | None = None,
+        sas_url: str | None = None,
+        subscription_key: str | None = None,
     ) -> None:
         """Construct a new PlanetaryComputerCredentialProvider."""
         import requests
@@ -83,79 +87,82 @@ class PlanetaryComputerCredentialProvider:
             self.session = session
 
         if url is not None:
-            assert container_name is None and account_name is None
+            if container_name is not None or account_name is not None:
+                raise ValueError(
+                    "Cannot pass container_name or account_name when passing url.",
+                )
 
             parsed_url = urlparse(url.rstrip("/"))
-
-            self.account, self.container = parse_blob_url(parsed_url)
+            self.account, self.container, self.prefix = _parse_blob_url(parsed_url)
         else:
-            assert container_name is not None and account_name is not None
+            if container_name is None or account_name is None:
+                msg = (
+                    "Must pass both container_name and account_name when url is not"
+                    " passed.",
+                )
+                raise ValueError(msg)
+
             self.account = account_name
             self.container = container_name
 
-    def __call__(self) -> AzureCredential:
+        self.config = {"account_name": self.account, "container_name": self.container}
+
+    def __call__(self) -> AzureSASToken:
         """Fetch a new token."""
-        return _get_token_sync(
+        token_request_url = self.settings.token_request_url(
             account_name=self.account,
             container_name=self.container,
-            settings=self.settings,
-            session=self.session,
         )
 
-
-def _get_token_sync(
-    *,
-    account_name: str,
-    container_name: str,
-    settings: _Settings,
-    session: requests.Session,
-) -> AzureSASToken:
-    """Get a token for a container in a storage account.
-
-    Returns:
-        SASToken: the generated token
-
-    """
-    token_request_url = settings.token_request_url(
-        account_name=account_name,
-        container_name=container_name,
-    )
-
-    response = session.get(
-        token_request_url,
-        headers=(
-            {"Ocp-Apim-Subscription-Key": settings.subscription_key}
-            if settings.subscription_key
-            else None
-        ),
-    )
-    response.raise_for_status()
-
-    d = response.json()
-    expires_at = datetime.fromisoformat(d["msft:expiry"].replace("Z", "+00:00"))
-
-    return {
-        "sas_token": d["token"],
-        "expires_at": expires_at,
-    }
+        response = self.session.get(
+            token_request_url,
+            headers=(
+                {"Ocp-Apim-Subscription-Key": self.settings.subscription_key}
+                if self.settings.subscription_key
+                else None
+            ),
+        )
+        response.raise_for_status()
+        return _parse_json_response(response.json())
 
 
-def parse_blob_url(parsed_url: ParseResult) -> tuple[str, str]:
+def _parse_blob_url(parsed_url: ParseResult) -> tuple[str, str, str | None]:
     """Find the account and container in a blob URL.
 
     Returns:
         Tuple of the account name and container name
 
     """
+    if not parsed_url.netloc.endswith(_BLOB_STORAGE_DOMAIN):
+        msg = (
+            f"Invalid blob URL: {urlunparse(parsed_url)}\n"
+            f"Could not parse account name from {parsed_url.netloc}.\n"
+            f"Expected to end with {_BLOB_STORAGE_DOMAIN}."
+        )
+        raise ValueError(msg)
+
     try:
         account_name = parsed_url.netloc.split(".")[0]
-        path_blob = parsed_url.path.lstrip("/").split("/", 1)
-        container_name = path_blob[-2]
+        parsed_path = parsed_url.path.lstrip("/").split("/", 1)
+        if len(parsed_path) == 1:
+            container_name = parsed_path[0]
+            prefix = None
+        else:
+            container_name, prefix = parsed_path
+
     except Exception as failed_parse:
         msg = f"Invalid blob URL: {urlunparse(parsed_url)}"
         raise ValueError(msg) from failed_parse
 
-    return account_name, container_name
+    return account_name, container_name, prefix
+
+
+def _parse_json_response(d: dict[str, str]) -> AzureSASToken:
+    expires_at = datetime.fromisoformat(d["msft:expiry"].replace("Z", "+00:00"))
+    return {
+        "sas_token": d["token"],
+        "expires_at": expires_at,
+    }
 
 
 @dataclass
