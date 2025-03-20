@@ -54,7 +54,7 @@ class PlanetaryComputerCredentialProvider:
         import urllib3
         import urllib3.util.retry
 
-        self.settings = _Settings.load(
+        self._settings = _Settings.load(
             subscription_key=subscription_key,
             sas_url=sas_url,
         )
@@ -84,34 +84,32 @@ class PlanetaryComputerCredentialProvider:
             adapter = requests.adapters.HTTPAdapter(max_retries=retry)
             session.mount("http://", adapter)
             session.mount("https://", adapter)
-            self.session = session
+            self._session = session
         else:
-            self.session = session
+            self._session = session
 
-        self.account, self.container, self.prefix = (
+        self._account, self._container, self.prefix = (
             _validate_url_container_account_input(
                 url=url,
                 account_name=account_name,
                 container_name=container_name,
             )
         )
-        self.config = {"account_name": self.account, "container_name": self.container}
+        self.config = {"account_name": self._account, "container_name": self._container}
 
     def __call__(self) -> AzureSASToken:
         """Fetch a new token."""
-        token_request_url = self.settings.token_request_url(
-            account_name=self.account,
-            container_name=self.container,
+        token_request_url = self._settings.token_request_url(
+            account_name=self._account,
+            container_name=self._container,
         )
 
-        response = self.session.get(
-            token_request_url,
-            headers=(
-                {"Ocp-Apim-Subscription-Key": self.settings.subscription_key}
-                if self.settings.subscription_key
-                else None
-            ),
+        headers = (
+            {"Ocp-Apim-Subscription-Key": self._settings.subscription_key}
+            if self._settings.subscription_key
+            else None
         )
+        response = self._session.get(token_request_url, headers=headers)
         response.raise_for_status()
         return _parse_json_response(response.json())
 
@@ -133,7 +131,7 @@ class PlanetaryComputerAsyncCredentialProvider:
         subscription_key: str | None = None,
     ) -> None:
         """Construct a new PlanetaryComputerAsyncCredentialProvider."""
-        self.settings = _Settings.load(
+        self._settings = _Settings.load(
             subscription_key=subscription_key,
             sas_url=sas_url,
         )
@@ -147,7 +145,7 @@ class PlanetaryComputerAsyncCredentialProvider:
                     raise_for_status=False,
                     retry_options=retry_options,
                 )
-                self.session = retry_client
+                self._session = retry_client
             except ImportError:
                 from aiohttp import ClientSession
 
@@ -159,33 +157,33 @@ class PlanetaryComputerAsyncCredentialProvider:
                     stacklevel=3,
                 )
 
-                self.session = ClientSession()
+                self._session = ClientSession()
 
         else:
-            self.session = session
+            self._session = session
 
-        self.account, self.container, self.prefix = (
+        self._account, self._container, self.prefix = (
             _validate_url_container_account_input(
                 url=url,
                 account_name=account_name,
                 container_name=container_name,
             )
         )
-        self.config = {"account_name": self.account, "container_name": self.container}
+        self.config = {"account_name": self._account, "container_name": self._container}
 
     async def __call__(self) -> AzureSASToken:
         """Fetch a new token."""
-        token_request_url = self.settings.token_request_url(
-            account_name=self.account,
-            container_name=self.container,
+        token_request_url = self._settings.token_request_url(
+            account_name=self._account,
+            container_name=self._container,
         )
 
         headers = (
-            {"Ocp-Apim-Subscription-Key": self.settings.subscription_key}
-            if self.settings.subscription_key
+            {"Ocp-Apim-Subscription-Key": self._settings.subscription_key}
+            if self._settings.subscription_key
             else None
         )
-        async with self.session.get(token_request_url, headers=headers) as resp:
+        async with self._session.get(token_request_url, headers=headers) as resp:
             resp.raise_for_status()
             return _parse_json_response(await resp.json())
 
