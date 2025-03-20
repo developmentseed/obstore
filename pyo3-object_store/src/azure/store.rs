@@ -83,9 +83,9 @@ impl PyAzureStore {
 impl PyAzureStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (container=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
+    #[pyo3(signature = (container_name=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
-        container: Option<String>,
+        container_name: Option<String>,
         prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
@@ -95,10 +95,10 @@ impl PyAzureStore {
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
         let mut config = config.unwrap_or_default();
-        if let Some(container) = container.clone() {
+        if let Some(container_name) = container_name {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
             // in sync.
-            config.insert_raising_if_exists(AzureConfigKey::ContainerName, container)?;
+            config.insert_raising_if_exists(AzureConfigKey::ContainerName, container_name)?;
         }
         let combined_config = combine_config_kwargs(Some(config), kwargs)?;
         builder = combined_config.clone().apply_config(builder);

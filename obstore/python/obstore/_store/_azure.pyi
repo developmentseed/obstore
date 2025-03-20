@@ -326,19 +326,19 @@ class AzureStore:
 
     def __init__(
         self,
-        container: str | None = None,
+        container_name: str | None = None,
         *,
         prefix: str | None = None,
         config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: AzureCredentialProvider | None = None,
-        **kwargs: Unpack[AzureConfig],
+        **kwargs: Unpack[AzureConfig],  # type: ignore[GeneralTypeIssues] (container_name key overlaps with positional arg)
     ) -> None:
         """Construct a new AzureStore.
 
         Args:
-            container: the name of the container.
+            container_name: the name of the container.
 
         Keyword Args:
             prefix: A prefix within the bucket to use for all operations.
