@@ -277,6 +277,9 @@ def _validate_url_container_account_input(
             )
 
         parsed_url = urlparse(url.rstrip("/"))
+        if parsed_url.scheme == "abfs":
+            raise ValueError("abfs urls not currently supported.")
+
         return _parse_blob_url(parsed_url)
 
     if container_name is None or account_name is None:
