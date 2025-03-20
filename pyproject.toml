@@ -56,6 +56,7 @@ ignore = [
     "PYI021", # docstring-in-stub
     "PYI051", # redundant-literal-union
     "PYI011", # typed-argument-default-in-stub
+    "S101",   # allow assert
     "TD",     # Todo comments
     "TRY003", # Avoid specifying long messages outside the exception class
 ]
@@ -69,7 +70,6 @@ ignore = [
     "E501",   # Line too long
 ]
 "tests/*" = [
-    "S101",    # assert
     "ANN201",  # Missing return type annotation for public function
     "ANN202",  # Missing return type annotation for private function `it`
     "D100",    # Missing docstring in public module

@@ -55,6 +55,7 @@ nav:
           - api/auth/boto3.md
           - api/auth/earthdata.md
           - api/auth/google.md
+          - api/auth/planetary-computer.md
       - api/copy.md
       - api/delete.md
       - api/get.md

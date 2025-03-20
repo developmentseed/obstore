@@ -33,26 +33,93 @@ _DEFAULT_SAS_TOKEN_ENDPOINT = "https://planetarycomputer.microsoft.com/api/sas/v
 
 _USER_AGENT = f"obstore-v{__version__}"
 
-__all__ = ["PlanetaryComputerCredentialProvider"]
+__all__ = [
+    "PlanetaryComputerAsyncCredentialProvider",
+    "PlanetaryComputerCredentialProvider",
+]
 
 
 class PlanetaryComputerCredentialProvider:
-    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing Planetary Computer."""  # noqa: E501
+    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing [Planetary Computer][] data resources.
+
+    This credential provider uses `requests`, and will error if that cannot be imported.
+
+    ```py
+    from obstore.store import AzureStore
+    from obstore.auth.planetary_computer import PlanetaryComputerCredentialProvider
+
+    url = "https://naipeuwest.blob.core.windows.net/naip/v002/mt/2023/mt_060cm_2023/"
+
+    # Construct an AzureStore with this credential provider.
+    #
+    # The account, container, and container prefix are passed down to AzureStore
+    # automatically.
+    store = AzureStore(credential_provider=PlanetaryComputerCredentialProvider(url))
+
+    # List some items in the container
+    items = next(store.list())
+
+    # Fetch a thumbnail
+    path = "44106/m_4410602_nw_13_060_20230712_20240103.200.jpg"
+    image_content = store.get(path).bytes()
+
+    # Write out the image content to a file in the current directory
+    with open("thumbnail.jpg", "wb") as f:
+        f.write(image_content)
+    ```
+
+    [Planetary Computer]: https://planetarycomputer.microsoft.com/
+    """  # noqa: E501
 
     config: AzureConfig
     prefix: str | None
 
     def __init__(  # noqa: PLR0913
         self,
-        url: str | None = None,
         *,
+        url: str | None = None,
         account_name: str | None = None,
         container_name: str | None = None,
         session: requests.Session | None = None,
-        sas_url: str | None = None,
         subscription_key: str | None = None,
+        sas_url: str | None = None,
     ) -> None:
-        """Construct a new PlanetaryComputerCredentialProvider."""
+        """Construct a new PlanetaryComputerCredentialProvider.
+
+        Keyword Args:
+            url: The HTTPS URL of blob storage to mount to, such as
+                `"https://daymeteuwest.blob.core.windows.net/daymet-zarr/daily"`. If not
+                provided, `account_name` and `container_name` must be provided.
+                `abfs://` URLs are not currently supported. Defaults to `None`.
+            account_name: The Azure storage account name. If `url` is not provided, both
+                this and `container_name` must be provided. Defaults to `None`.
+            container_name: The Azure storage container name. If `url` is not provided,
+                both this and `account_name` must be provided. Defaults to `None`.
+            session: The requests session to use for making requests to the Planetary
+                Computer token API. Defaults to `None`.
+            subscription_key: A Planetary Computer subscription key.
+
+                Precedence is as follows:
+
+                1. Uses the passed-in value if not `None`.
+                2. Uses the environment variable `PC_SDK_SUBSCRIPTION_KEY` if set.
+                3. Uses the value of `PC_SDK_SUBSCRIPTION_KEY` in
+                   `~/.planetarycomputer/settings.env`, if that file exists (requires
+                   `python-dotenv` as a dependency)
+                4. Defaults to `None`, which may apply request throttling.
+
+            sas_url: The URL base for requesting new Planetary Computer SAS tokens.
+
+                Precedence is as follows:
+
+                1. Uses the passed-in value if not `None`.
+                2. Uses the environment variable `PC_SDK_SAS_URL` if set.
+                3. Uses the value of `PC_SDK_SAS_URL` in
+                   `~/.planetarycomputer/settings.env`, if that file exists (requires
+                   `python-dotenv` as a dependency)
+                4. Defaults to `"https://planetarycomputer.microsoft.com/api/sas/v1/token"`
+
+        """
         import requests
         import requests.adapters
         import urllib3
@@ -117,22 +184,30 @@ class PlanetaryComputerCredentialProvider:
 
 
 class PlanetaryComputerAsyncCredentialProvider:
-    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing Planetary Computer."""  # noqa: E501
+    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing [Planetary Computer][] data resources.
+
+    [Planetary Computer]: https://planetarycomputer.microsoft.com/
+    """  # noqa: E501
 
     config: AzureConfig
     prefix: str | None
 
     def __init__(  # noqa: PLR0913
         self,
-        url: str | None = None,
         *,
+        url: str | None = None,
         account_name: str | None = None,
         container_name: str | None = None,
         session: aiohttp.ClientSession | None = None,
-        sas_url: str | None = None,
         subscription_key: str | None = None,
+        sas_url: str | None = None,
     ) -> None:
-        """Construct a new PlanetaryComputerAsyncCredentialProvider."""
+        """Construct a new PlanetaryComputerAsyncCredentialProvider.
+
+        Refer to
+        [PlanetaryComputerCredentialProvider][obstore.auth.planetary_computer.PlanetaryComputerCredentialProvider.__init__]
+        for argument explanations.
+        """
         self._settings = _Settings.load(
             subscription_key=subscription_key,
             sas_url=sas_url,

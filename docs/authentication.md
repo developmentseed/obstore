@@ -51,7 +51,7 @@ Note that many authentication variants are already supported natively.
 
 ## Credential Providers
 
-Obstore allows for passing in credential providers. These are **Python callbacks** that allow for full control over credential generation. Passing in a credential provider will override any native credentials.
+Credential providers are **Python callbacks** that allow for full control over credential generation. Passing in a credential provider will override any native credentials.
 
 ### "Official" SDK credential providers
 
