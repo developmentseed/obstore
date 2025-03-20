@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, TypedDict, Union
 from urllib.parse import ParseResult, urlparse, urlunparse
 from warnings import warn
 
@@ -33,7 +33,19 @@ _DEFAULT_SAS_TOKEN_ENDPOINT = "https://planetarycomputer.microsoft.com/api/sas/v
 
 _USER_AGENT = f"obstore-v{__version__}"
 
-__all__ = ["PlanetaryComputerCredentialProvider"]
+
+class _CollectionIdTokenRequest(TypedDict):
+    type: Literal["collection-id"]
+    collection_id: str
+
+
+class _AccountAndContainerTokenRequest(TypedDict):
+    type: Literal["account-and-container"]
+    account_name: str
+    container_name: str
+
+
+_TokenRequestInput = Union[_CollectionIdTokenRequest, _AccountAndContainerTokenRequest]
 
 
 class PlanetaryComputerCredentialProvider:
@@ -41,11 +53,13 @@ class PlanetaryComputerCredentialProvider:
 
     config: AzureConfig
     prefix: str | None
+    _token_input: _TokenRequestInput
 
     def __init__(  # noqa: PLR0913
         self,
         url: str | None = None,
         *,
+        collection_id: str | None = None,
         account_name: str | None = None,
         container_name: str | None = None,
         session: requests.Session | None = None,
@@ -92,21 +106,30 @@ class PlanetaryComputerCredentialProvider:
         else:
             self._session = session
 
-        self._account, self._container, self.prefix = (
-            _validate_url_container_account_input(
+        if collection_id:
+            self._token_input = {
+                "type": "collection-id",
+                "collection_id": collection_id,
+            }
+        else:
+            account, container, self.prefix = _validate_url_container_account_input(
                 url=url,
                 account_name=account_name,
                 container_name=container_name,
             )
-        )
-        self.config = {"account_name": self._account, "container_name": self._container}
+            self._token_input = {
+                "type": "account-and-container",
+                "account_name": account,
+                "container_name": container,
+            }
+            self.config = {
+                "account_name": account,
+                "container_name": container,
+            }
 
     def __call__(self) -> AzureSASToken:
         """Fetch a new token."""
-        token_request_url = self._settings.token_request_url(
-            account_name=self._account,
-            container_name=self._container,
-        )
+        token_request_url = self._settings.token_request_url(self._token_input)
 
         headers = {"User-Agent": _USER_AGENT}
         if self._settings.subscription_key:
@@ -196,12 +219,22 @@ def _validate_url_container_account_input(
     container_name: str | None,
 ) -> tuple[str, str, str | None]:
     if url is not None:
+        parsed_url = urlparse(url.rstrip("/"))
+        if parsed_url.scheme == "abfs":
+            if container_name is not None:
+                raise ValueError(
+                    "Cannot pass container_name when passing abfs url.",
+                )
+
+            return _parse_abfs_url(parsed_url)
+
+        assert parsed_url.scheme.startswith("http")
+
         if container_name is not None or account_name is not None:
             raise ValueError(
-                "Cannot pass container_name or account_name when passing url.",
+                "Cannot pass container_name or account_name when passing https url.",
             )
 
-        parsed_url = urlparse(url.rstrip("/"))
         return _parse_blob_url(parsed_url)
 
     if container_name is None or account_name is None:
@@ -244,6 +277,10 @@ def _parse_blob_url(parsed_url: ParseResult) -> tuple[str, str, str | None]:
     return account_name, container_name, prefix
 
 
+def _parse_abfs_url(parsed_url: ParseResult) -> tuple[str, str, str | None]:
+    pass
+
+
 def _parse_json_response(d: dict[str, str]) -> AzureSASToken:
     expires_at = datetime.fromisoformat(d["msft:expiry"].replace("Z", "+00:00"))
     return {
@@ -276,13 +313,11 @@ class _Settings:
             sas_url=sas_url or _sas_url_default(),
         )
 
-    def token_request_url(
-        self,
-        *,
-        account_name: str,
-        container_name: str,
-    ) -> str:
-        return f"{self.sas_url}/{account_name}/{container_name}"
+    def token_request_url(self, input: _TokenRequestInput) -> str:  # noqa: A002
+        if input["type"] == "account-and-container":
+            return f"{self.sas_url}/{input['account_name']}/{input['container_name']}"
+
+        return f"{self.sas_url}/{input['collection_id']}"
 
 
 def _from_env(key: str) -> str | None:
