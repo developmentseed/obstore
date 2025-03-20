@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING
 from urllib.parse import ParseResult, urlparse, urlunparse
 from warnings import warn
 
+from obstore import __version__
+
 if TYPE_CHECKING:
     import sys
 
@@ -28,6 +30,8 @@ _SETTINGS_ENV_STR = "~/.planetarycomputer/settings.env"
 _SETTINGS_ENV_FILE = Path(_SETTINGS_ENV_STR).expanduser()
 
 _DEFAULT_SAS_TOKEN_ENDPOINT = "https://planetarycomputer.microsoft.com/api/sas/v1/token"  # noqa: S105
+
+_USER_AGENT = f"obstore-v{__version__}"
 
 __all__ = ["PlanetaryComputerCredentialProvider"]
 
@@ -104,11 +108,9 @@ class PlanetaryComputerCredentialProvider:
             container_name=self._container,
         )
 
-        headers = (
-            {"Ocp-Apim-Subscription-Key": self._settings.subscription_key}
-            if self._settings.subscription_key
-            else None
-        )
+        headers = {"User-Agent": _USER_AGENT}
+        if self._settings.subscription_key:
+            headers["Ocp-Apim-Subscription-Key"] = self._settings.subscription_key
         response = self._session.get(token_request_url, headers=headers)
         response.raise_for_status()
         return _parse_json_response(response.json())
@@ -178,11 +180,10 @@ class PlanetaryComputerAsyncCredentialProvider:
             container_name=self._container,
         )
 
-        headers = (
-            {"Ocp-Apim-Subscription-Key": self._settings.subscription_key}
-            if self._settings.subscription_key
-            else None
-        )
+        headers = {"User-Agent": _USER_AGENT}
+        if self._settings.subscription_key:
+            headers["Ocp-Apim-Subscription-Key"] = self._settings.subscription_key
+
         async with self._session.get(token_request_url, headers=headers) as resp:
             resp.raise_for_status()
             return _parse_json_response(await resp.json())
