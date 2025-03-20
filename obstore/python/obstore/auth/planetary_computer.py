@@ -8,10 +8,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import ParseResult, urlparse, urlunparse
+from warnings import warn
 
 if TYPE_CHECKING:
     import sys
 
+    import aiohttp
     import requests
 
     from obstore.store import AzureConfig, AzureSASToken
@@ -86,25 +88,13 @@ class PlanetaryComputerCredentialProvider:
         else:
             self.session = session
 
-        if url is not None:
-            if container_name is not None or account_name is not None:
-                raise ValueError(
-                    "Cannot pass container_name or account_name when passing url.",
-                )
-
-            parsed_url = urlparse(url.rstrip("/"))
-            self.account, self.container, self.prefix = _parse_blob_url(parsed_url)
-        else:
-            if container_name is None or account_name is None:
-                msg = (
-                    "Must pass both container_name and account_name when url is not"
-                    " passed.",
-                )
-                raise ValueError(msg)
-
-            self.account = account_name
-            self.container = container_name
-
+        self.account, self.container, self.prefix = (
+            _validate_url_container_account_input(
+                url=url,
+                account_name=account_name,
+                container_name=container_name,
+            )
+        )
         self.config = {"account_name": self.account, "container_name": self.container}
 
     def __call__(self) -> AzureSASToken:
@@ -124,6 +114,104 @@ class PlanetaryComputerCredentialProvider:
         )
         response.raise_for_status()
         return _parse_json_response(response.json())
+
+
+class PlanetaryComputerAsyncCredentialProvider:
+    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing Planetary Computer."""  # noqa: E501
+
+    config: AzureConfig
+    prefix: str | None
+
+    def __init__(  # noqa: PLR0913
+        self,
+        url: str | None = None,
+        *,
+        account_name: str | None = None,
+        container_name: str | None = None,
+        session: aiohttp.ClientSession | None = None,
+        sas_url: str | None = None,
+        subscription_key: str | None = None,
+    ) -> None:
+        """Construct a new PlanetaryComputerAsyncCredentialProvider."""
+        self.settings = _Settings.load(
+            subscription_key=subscription_key,
+            sas_url=sas_url,
+        )
+
+        if session is None:
+            try:
+                from aiohttp_retry import ExponentialRetry, RetryClient
+
+                retry_options = ExponentialRetry(attempts=1)
+                retry_client = RetryClient(
+                    raise_for_status=False,
+                    retry_options=retry_options,
+                )
+                self.session = retry_client
+            except ImportError:
+                from aiohttp import ClientSession
+
+                # Put this after validating that we can import aiohttp
+                warn(
+                    "aiohttp_retry not installed and custom client not provided. "
+                    "Planetary Computer authentication will not be retried.",
+                    RuntimeWarning,
+                    stacklevel=3,
+                )
+
+                self.session = ClientSession()
+
+        else:
+            self.session = session
+
+        self.account, self.container, self.prefix = (
+            _validate_url_container_account_input(
+                url=url,
+                account_name=account_name,
+                container_name=container_name,
+            )
+        )
+        self.config = {"account_name": self.account, "container_name": self.container}
+
+    async def __call__(self) -> AzureSASToken:
+        """Fetch a new token."""
+        token_request_url = self.settings.token_request_url(
+            account_name=self.account,
+            container_name=self.container,
+        )
+
+        headers = (
+            {"Ocp-Apim-Subscription-Key": self.settings.subscription_key}
+            if self.settings.subscription_key
+            else None
+        )
+        async with self.session.get(token_request_url, headers=headers) as resp:
+            resp.raise_for_status()
+            return _parse_json_response(await resp.json())
+
+
+def _validate_url_container_account_input(
+    *,
+    url: str | None,
+    account_name: str | None,
+    container_name: str | None,
+) -> tuple[str, str, str | None]:
+    if url is not None:
+        if container_name is not None or account_name is not None:
+            raise ValueError(
+                "Cannot pass container_name or account_name when passing url.",
+            )
+
+        parsed_url = urlparse(url.rstrip("/"))
+        return _parse_blob_url(parsed_url)
+
+    if container_name is None or account_name is None:
+        msg = (
+            "Must pass both container_name and account_name when url is not passed.",
+        )
+        raise ValueError(msg)
+
+    return account_name, container_name, None
 
 
 def _parse_blob_url(parsed_url: ParseResult) -> tuple[str, str, str | None]:

@@ -32,6 +32,7 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "ruff>=0.11.0",
     "types-boto3[sts]>=1.36.23",
+    "aiohttp-retry>=2.9.1",
 ]
 constraint-dependencies = [
     # ensure lockfile grabs wheels for pyproj for each Python version
