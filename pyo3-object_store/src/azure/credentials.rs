@@ -12,7 +12,9 @@ use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyTuple;
 
 use crate::azure::error::Error;
+use crate::azure::store::PyAzureConfig;
 use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
+use crate::path::PyPath;
 use crate::PyObjectStoreError;
 
 struct PyAzureAccessKey {
@@ -138,9 +140,23 @@ pub struct PyAzureCredentialProvider {
     /// The provided user callback to manage credential refresh
     user_callback: PyObject,
     cache: TokenCache<Arc<AzureCredential>>,
+    /// An optional config passed down from the credential provider class
+    config: Option<PyAzureConfig>,
+    /// An optional prefix passed down from the credential provider class
+    prefix: Option<PyPath>,
 }
 
 impl PyAzureCredentialProvider {
+    /// Access the Azure config passed down from the credential provider
+    pub(crate) fn config(&self) -> Option<&PyAzureConfig> {
+        self.config.as_ref()
+    }
+
+    /// Access the store prefix passed down from the credential provider
+    pub(crate) fn prefix(&self) -> Option<&PyPath> {
+        self.prefix.as_ref()
+    }
+
     fn equals(&self, py: Python, other: &Self) -> PyResult<bool> {
         self.user_callback
             .call_method1(py, "__eq__", PyTuple::new(py, vec![&other.user_callback])?)?
@@ -154,6 +170,8 @@ impl Clone for PyAzureCredentialProvider {
         Self {
             user_callback: cloned_callback,
             cache: self.cache.clone(),
+            config: self.config.clone(),
+            prefix: self.prefix.clone(),
         }
     }
 }
@@ -176,9 +194,26 @@ impl<'py> FromPyObject<'py> for PyAzureCredentialProvider {
         if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
             cache = cache.with_min_ttl(refresh_threshold.extract()?);
         }
+
+        let config = if let Ok(config) = ob.getattr(intern!(ob.py(), "config")) {
+            config.extract()?
+        } else {
+            // Allow not having a `config` attribute
+            None
+        };
+
+        let prefix = if let Ok(prefix) = ob.getattr(intern!(ob.py(), "prefix")) {
+            prefix.extract()?
+        } else {
+            // Allow not having a `prefix` attribute
+            None
+        };
+
         Ok(Self {
             user_callback: ob.clone().unbind(),
             cache,
+            config,
+            prefix,
         })
     }
 }

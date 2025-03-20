@@ -86,7 +86,7 @@ impl PyAzureStore {
     #[pyo3(signature = (container_name=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
         container_name: Option<String>,
-        prefix: Option<PyPath>,
+        mut prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
@@ -95,6 +95,26 @@ impl PyAzureStore {
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
         let mut config = config.unwrap_or_default();
+
+        if let Some(credential_provider) = credential_provider.clone() {
+            // Apply config from credential provider onto builder
+            if let Some(config) = credential_provider.config() {
+                builder = config.clone().apply_config(builder);
+            }
+
+            if let Some(passed_down_prefix) = credential_provider.prefix() {
+                // Don't override a prefix manually passed in to AzureStore
+                //
+                // If a user wishes to override a prefix passed down by a credential provider, they
+                // can pass `prefix=""` or `prefix="/"` to the AzureStore.
+                if prefix.is_none() {
+                    prefix = Some(passed_down_prefix.clone());
+                }
+            }
+
+            builder = builder.with_credentials(Arc::new(credential_provider));
+        }
+
         if let Some(container_name) = container_name {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
             // in sync.
