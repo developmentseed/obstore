@@ -21,7 +21,8 @@ asset = collection.assets["zarr-abfs"]
     "cls",
     [PlanetaryComputerCredentialProvider, PlanetaryComputerAsyncCredentialProvider],
 )
-def test_from_asset(
+@pytest.mark.asyncio
+async def test_from_asset(
     cls: type[
         PlanetaryComputerCredentialProvider | PlanetaryComputerAsyncCredentialProvider
     ],
@@ -41,7 +42,8 @@ def test_from_asset(
     "cls",
     [PlanetaryComputerCredentialProvider, PlanetaryComputerAsyncCredentialProvider],
 )
-def test_pass_config_to_store(
+@pytest.mark.asyncio
+async def test_pass_config_to_store(
     cls: type[
         PlanetaryComputerCredentialProvider | PlanetaryComputerAsyncCredentialProvider
     ],
@@ -56,7 +58,8 @@ def test_pass_config_to_store(
     "cls",
     [PlanetaryComputerCredentialProvider, PlanetaryComputerAsyncCredentialProvider],
 )
-def test_url_account_container_params(
+@pytest.mark.asyncio
+async def test_url_account_container_params(
     cls: type[
         PlanetaryComputerCredentialProvider | PlanetaryComputerAsyncCredentialProvider
     ],
