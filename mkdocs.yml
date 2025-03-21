@@ -26,9 +26,10 @@ nav:
       - getting-started.md
       - cookbook.md
       - authentication.md
-      - integrations.md
+      - Integrations:
+          - integrations/index.md
+          - fsspec: integrations/fsspec.md
       - performance.md
-      - fsspec.md
       - Alternatives: alternatives.md
       - Troubleshooting:
           - AWS: troubleshooting/aws.md
@@ -168,6 +169,9 @@ plugins:
             - https://kylebarron.dev/arro3/latest/objects.inv
             - https://pystac.readthedocs.io/en/stable/objects.inv
             - https://requests.readthedocs.io/en/latest/objects.inv
+  - redirects:
+      redirect_maps:
+        "fsspec.md": "integrations/fsspec.md"
 
 # https://github.com/developmentseed/titiler/blob/50934c929cca2fa8d3c408d239015f8da429c6a8/docs/mkdocs.yml#L115-L140
 markdown_extensions:

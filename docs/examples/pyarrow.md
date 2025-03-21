@@ -4,7 +4,7 @@
 
 PyArrow also supports reading and writing various file formats, including Parquet, CSV, JSON, and Arrow IPC.
 
-PyArrow integration is supported [via its fsspec integration](https://arrow.apache.org/docs/python/filesystems.html#using-fsspec-compatible-filesystems-with-arrow), since Obstore [exposes an fsspec-compatible API](../fsspec.md).
+PyArrow integration is supported [via its fsspec integration](https://arrow.apache.org/docs/python/filesystems.html#using-fsspec-compatible-filesystems-with-arrow), since Obstore [exposes an fsspec-compatible API](../integrations/fsspec.md).
 
 ```py
 import pyarrow.parquet as pq

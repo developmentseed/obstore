@@ -117,7 +117,7 @@ The fsspec integration is no longer tied to a specific bucket. Instead, [`Fsspec
 
 For example, obstore's fsspec integration is now tested as working with [pyarrow](../../examples/pyarrow.md).
 
-For more information, read the [fsspec page in the user guide](../../fsspec.md).
+For more information, read the [fsspec page in the user guide](../../integrations/fsspec.md).
 
 ## Improved AWS type hinting
 
@@ -136,7 +136,7 @@ New benchmarks run on an EC2 M5 instance indicate obstore provides [2.8x higher 
 
 ## Improved documentation
 
-- [fsspec documentation](../../fsspec.md)
+- [fsspec documentation](../../integrations/fsspec.md)
 - [pyarrow integration](../../examples/pyarrow.md)
 - [authentication documentation](../../authentication.md)
 

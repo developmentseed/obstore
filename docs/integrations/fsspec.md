@@ -124,7 +124,7 @@ fs = fsspec.filesystem("s3", config=config)
 
 Then your type checker will validate that the `config` dictionary is compatible with [`S3Config`][obstore.store.S3Config]. VSCode also provides auto suggestions for parameters:
 
-![](./assets/fsspec-type-hinting.png)
+![](../assets/fsspec-type-hinting.png)
 
 !!! note
 
