@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.6.0] -
+## [0.6.0] - 2025-03-24
+
+### New Features :magic_wand:
+
+- Planetary computer credential provider by @kylebarron in https://github.com/developmentseed/obstore/pull/379
 
 ### Breaking changes :wrench:
 
@@ -10,12 +14,31 @@ No breaking changes.
 
 #### Store constructors
 
-- In the `AzureStore` constructor, the `container` positional argument was renamed to `container_name` to match the `container_name` key in `AzureConfig`.
+- In the `AzureStore` constructor, the `container` positional argument was renamed to `container_name` to match the `container_name` key in `AzureConfig`. by @kylebarron in https://github.com/developmentseed/obstore/pull/380
 
-  This is a breaking change if you had been calling `AzureStore(container="my container name")`. This is not breaking if you had been using it as a positional argument `AzureStore("my container name")` or if you had already been using `AzureStore(container_name="my container name")`.
+  This is a breaking change if you had been calling `AzureStore(container="my container name")`.
+
+  This is **not** breaking if you had been using it as a positional argument `AzureStore("my container name")` or if you had already been using `AzureStore(container_name="my container name")`.
 
   The idea here is that we want one and only one argument name for each underlying config parameter. Most of these breaking changes took place in 0.5.0, but this was overlooked.
 
+### Bug fixes :bug:
+
+- Fix import errors on Python 3.9:
+  - Fix azure auth import on Python 3.9 by @kylebarron in https://github.com/developmentseed/obstore/pull/378
+  - Fix `_buffered.pyi` for python 3.9 by @kylebarron in https://github.com/developmentseed/obstore/pull/381
+
+### Documentation :book:
+
+- Fix chunk_size typo by @kylebarron in https://github.com/developmentseed/obstore/pull/377
+- Docs: Make integrations dropdown by @kylebarron in https://github.com/developmentseed/obstore/pull/382
+- Docs: Use source order in credential provider docs by @kylebarron in https://github.com/developmentseed/obstore/pull/383
+
+### Other
+
+- Add typing extensions as runtime dependency by @kylebarron in https://github.com/developmentseed/obstore/pull/384
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.5.1...py-v0.6.0
 
 ## [0.5.1] - 2025-03-17
 
