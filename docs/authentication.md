@@ -133,7 +133,9 @@ Refer to [`obstore.auth.azure`](api/auth/azure.md).
 
 #### Microsoft Planetary Computer
 
-The Microsoft [Planetary Computer](https://planetarycomputer.microsoft.com/) hosts a multi-petabyte catalog of global environmental data. The contained data is publicly accessible, but requires the user to fetch [short-lived access tokens](https://planetarycomputer.microsoft.com/docs/concepts/sas/). But accessing and refreshing these tokens every hour can be confusing and annoying.
+The [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) hosts a multi-petabyte catalog of global environmental data.
+
+The contained data is publicly accessible, but requires the user to fetch [short-lived access tokens](https://planetarycomputer.microsoft.com/docs/concepts/sas/). But accessing and refreshing these tokens every hour can be confusing and annoying.
 
 The [`PlanetaryComputerCredentialProvider`][obstore.auth.planetary_computer.PlanetaryComputerCredentialProvider] **handles all token access and refresh automatically**.
 
