@@ -91,14 +91,21 @@ class PlanetaryComputerCredentialProvider:
         """Construct a new PlanetaryComputerCredentialProvider.
 
         Args:
-            url: The HTTPS URL of blob storage to mount to, such as
-                `"https://daymeteuwest.blob.core.windows.net/daymet-zarr/daily"`. If not
-                provided, `account_name` and `container_name` must be provided.
-                `abfs://` URLs are not currently supported. Defaults to `None`.
+            url: Either the `https` or `abfs` URL of blob storage to mount to, such as
+                `"https://daymeteuwest.blob.core.windows.net/daymet-zarr/daily"` or `"abfs://daymet-zarr/daily/hi.zarr"`.
+
+                For `abfs` URLs, `account_name` must be provided.
+
+                For `https` URLs, neither `account_name` nor `container_name` may be
+                provided.
+
+                If `url` is not provided, `account_name` and `container_name` must be
+                provided. Defaults to `None`.
 
         Keyword Args:
-            account_name: The Azure storage account name. If `url` is not provided, both
-                this and `container_name` must be provided. Defaults to `None`.
+            account_name: The Azure storage account name. Must be provided for `abfs`
+                URLs. If `url` is not provided, both this and `container_name` must be
+                provided. Defaults to `None`.
             container_name: The Azure storage container name. If `url` is not provided,
                 both this and `account_name` must be provided. Defaults to `None`.
             session: The requests session to use for making requests to the Planetary
@@ -111,7 +118,7 @@ class PlanetaryComputerCredentialProvider:
                 2. Uses the environment variable `PC_SDK_SUBSCRIPTION_KEY` if set.
                 3. Uses the value of `PC_SDK_SUBSCRIPTION_KEY` in
                    `~/.planetarycomputer/settings.env`, if that file exists (requires
-                   `python-dotenv` as a dependency)
+                   `python-dotenv` as a dependency).
                 4. Defaults to `None`, which may apply request throttling.
 
             sas_url: The URL base for requesting new Planetary Computer SAS tokens.
@@ -122,8 +129,8 @@ class PlanetaryComputerCredentialProvider:
                 2. Uses the environment variable `PC_SDK_SAS_URL` if set.
                 3. Uses the value of `PC_SDK_SAS_URL` in
                    `~/.planetarycomputer/settings.env`, if that file exists (requires
-                   `python-dotenv` as a dependency)
-                4. Defaults to `"https://planetarycomputer.microsoft.com/api/sas/v1/token"`
+                   `python-dotenv` as a dependency).
+                4. Defaults to `"https://planetarycomputer.microsoft.com/api/sas/v1/token"`.
 
         """
         self._settings = _Settings.load(
