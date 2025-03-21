@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import ParseResult, urlparse, urlunparse
 from warnings import warn
 
@@ -43,33 +43,35 @@ __all__ = [
 class PlanetaryComputerCredentialProvider:
     """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing [Planetary Computer][] data resources.
 
+    [Planetary Computer]: https://planetarycomputer.microsoft.com/
+
     This credential provider uses `requests`, and will error if that cannot be imported.
 
-    ```py
-    from obstore.store import AzureStore
-    from obstore.auth.planetary_computer import PlanetaryComputerCredentialProvider
+    Examples:
+        ```py
+        from obstore.store import AzureStore
+        from obstore.auth.planetary_computer import PlanetaryComputerCredentialProvider
 
-    url = "https://naipeuwest.blob.core.windows.net/naip/v002/mt/2023/mt_060cm_2023/"
+        url = "https://naipeuwest.blob.core.windows.net/naip/v002/mt/2023/mt_060cm_2023/"
 
-    # Construct an AzureStore with this credential provider.
-    #
-    # The account, container, and container prefix are passed down to AzureStore
-    # automatically.
-    store = AzureStore(credential_provider=PlanetaryComputerCredentialProvider(url))
+        # Construct an AzureStore with this credential provider.
+        #
+        # The account, container, and container prefix are passed down to AzureStore
+        # automatically.
+        store = AzureStore(credential_provider=PlanetaryComputerCredentialProvider(url))
 
-    # List some items in the container
-    items = next(store.list())
+        # List some items in the container
+        items = next(store.list())
 
-    # Fetch a thumbnail
-    path = "44106/m_4410602_nw_13_060_20230712_20240103.200.jpg"
-    image_content = store.get(path).bytes()
+        # Fetch a thumbnail
+        path = "44106/m_4410602_nw_13_060_20230712_20240103.200.jpg"
+        image_content = store.get(path).bytes()
 
-    # Write out the image content to a file in the current directory
-    with open("thumbnail.jpg", "wb") as f:
-        f.write(image_content)
-    ```
+        # Write out the image content to a file in the current directory
+        with open("thumbnail.jpg", "wb") as f:
+            f.write(image_content)
+        ```
 
-    [Planetary Computer]: https://planetarycomputer.microsoft.com/
     """  # noqa: E501
 
     config: AzureConfig
@@ -174,32 +176,44 @@ class PlanetaryComputerCredentialProvider:
     @classmethod
     def from_asset(
         cls,
-        asset: pystac.Asset,
+        asset: pystac.Asset | dict[str, Any],
         *,
         session: requests.Session | None = None,
         subscription_key: str | None = None,
         sas_url: str | None = None,
     ) -> Self:
-        """Create from a pystac Asset.
+        """Create from a STAC Asset.
 
         Args:
-            asset: _description_
+            asset: Planetary Computer STAC Asset.
 
         Keyword Args:
-            session: _description_. Defaults to None.
-            subscription_key: _description_. Defaults to None.
-            sas_url: _description_. Defaults to None.
+            session: The requests session, passed on as a keyword argument to
+                `__init__`.
+            subscription_key: A Planetary Computer subscription key, passed on as a
+                keyword argument to `__init__`.
+            sas_url: The URL base for requesting new Planetary Computer SAS tokens,
+                passed on as a keyword argument to `__init__`.
 
-        """
-        asset.extra_fields["xarray:storage_options"]["account_name"]
-        storage_options = asset.extra_fields.get("xarray:storage_options")
-        if isinstance(storage_options, dict):
-            account_name = storage_options.get("account_name")
-        else:
-            account_name = None
+        Examples:
+            ```py
+            import pystac_client
 
+            from obstore.auth.planetary_computer import PlanetaryComputerCredentialProvider
+
+            stac_url = "https://planetarycomputer.microsoft.com/api/stac/v1/"
+            catalog = pystac_client.Client.open(stac_url)
+
+            collection = catalog.get_collection("daymet-daily-hi")
+            asset = collection.assets["zarr-abfs"]
+
+            credential_provider = PlanetaryComputerCredentialProvider.from_asset(asset)
+            ```
+
+        """  # noqa: E501
+        url, account_name = _parse_asset(asset)
         return cls(
-            url=asset.href,
+            url=url,
             account_name=account_name,
             session=session,
             subscription_key=subscription_key,
@@ -241,6 +255,9 @@ class PlanetaryComputerAsyncCredentialProvider:
         sas_url: str | None = None,
     ) -> None:
         """Construct a new PlanetaryComputerAsyncCredentialProvider.
+
+        This credential provider uses `aiohttp`, and will error if that cannot be
+        imported.
 
         Refer to
         [PlanetaryComputerCredentialProvider][obstore.auth.planetary_computer.PlanetaryComputerCredentialProvider.__init__]
@@ -286,6 +303,30 @@ class PlanetaryComputerAsyncCredentialProvider:
         )
         self.config = {"account_name": self._account, "container_name": self._container}
 
+    @classmethod
+    def from_asset(
+        cls,
+        asset: pystac.Asset | dict[str, Any],
+        *,
+        session: aiohttp.ClientSession | None = None,
+        subscription_key: str | None = None,
+        sas_url: str | None = None,
+    ) -> Self:
+        """Create from a STAC Asset.
+
+        Refer to
+        [PlanetaryComputerCredentialProvider.from_asset][obstore.auth.planetary_computer.PlanetaryComputerCredentialProvider.from_asset]
+        for argument explanations.
+        """
+        url, account_name = _parse_asset(asset)
+        return cls(
+            url=url,
+            account_name=account_name,
+            session=session,
+            subscription_key=subscription_key,
+            sas_url=sas_url,
+        )
+
     async def __call__(self) -> AzureSASToken:
         """Fetch a new token."""
         token_request_url = self._settings.token_request_url(
@@ -300,6 +341,29 @@ class PlanetaryComputerAsyncCredentialProvider:
         async with self._session.get(token_request_url, headers=headers) as resp:
             resp.raise_for_status()
             return _parse_json_response(await resp.json())
+
+
+def _parse_asset(asset: pystac.Asset | dict[str, Any]) -> tuple[str, str | None]:
+    if (
+        asset.__class__.__module__.startswith("pystac")
+        and asset.__class__.__name__ == "Asset"
+    ):
+        d = asset.__dict__
+    else:
+        assert isinstance(asset, dict)
+        d = asset
+
+    extra_fields = d.get("extra_fields", {})
+    if (
+        isinstance(extra_fields, dict)
+        and (storage_options := extra_fields.get("xarray:storage_options"))
+        and isinstance(storage_options, dict)
+    ):
+        account_name = storage_options.get("account_name")
+    else:
+        account_name = None
+
+    return d["href"], account_name
 
 
 def _validate_url_container_account_input(
