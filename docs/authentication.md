@@ -51,7 +51,7 @@ Note that many authentication variants are already supported natively.
 
 ## Credential Providers
 
-Obstore allows for passing in credential providers. These are **Python callbacks** that allow for full control over credential generation. Passing in a credential provider will override any native credentials.
+Credential providers are **Python callbacks** that allow for full control over credential generation. Passing in a credential provider will override any native credentials.
 
 ### "Official" SDK credential providers
 
@@ -93,7 +93,7 @@ Refer to [`obstore.auth.google`](api/auth/google.md).
 
 You can use the [`AzureCredentialProvider`][obstore.auth.azure.AzureCredentialProvider] to use [`azure.identity`][] to handle credentials.
 
-``` python
+```py
 import obstore as obs
 from obstore.auth.azure import AzureCredentialProvider
 from obstore.store import AzureStore
@@ -105,7 +105,7 @@ print(obs.list(store).collect())
 
 Alternatively, you can use [`AzureAsyncCredentialProvider`][obstore.auth.azure.AzureAsyncCredentialProvider] with the async API:
 
-``` python
+```py
 import asyncio
 import obstore as obs
 from obstore.auth.azure import AzureCredentialProvider
@@ -122,6 +122,69 @@ asyncio.run(fetch_blobs())
 
 Refer to [`obstore.auth.azure`](api/auth/azure.md).
 ```
+
+### Other credential providers
+
+- [`NasaEarthdataCredentialProvider`][obstore.auth.earthdata.NasaEarthdataCredentialProvider]: A credential provider for accessing [NASA Earthdata] to be used with [S3Store][obstore.store.S3Store].
+- [`PlanetaryComputerCredentialProvider`][obstore.auth.planetary_computer.PlanetaryComputerCredentialProvider]: A credential provider for accessing [Planetary Computer] data resources to be used with [AzureStore][obstore.store.AzureStore] .
+
+[Planetary Computer]: https://planetarycomputer.microsoft.com/
+[NASA Earthdata]: https://www.earthdata.nasa.gov/
+
+#### Microsoft Planetary Computer
+
+The Microsoft [Planetary Computer](https://planetarycomputer.microsoft.com/) hosts a multi-petabyte catalog of global environmental data. The contained data is publicly accessible, but requires the user to fetch [short-lived access tokens](https://planetarycomputer.microsoft.com/docs/concepts/sas/). But accessing and refreshing these tokens every hour can be confusing and annoying.
+
+The [`PlanetaryComputerCredentialProvider`][obstore.auth.planetary_computer.PlanetaryComputerCredentialProvider] **handles all token access and refresh automatically**.
+
+As a quick example, we'll read data from the [NAIP dataset](https://planetarycomputer.microsoft.com/dataset/naip):
+
+```py
+from obstore.store import AzureStore
+from obstore.auth.planetary_computer import PlanetaryComputerCredentialProvider
+
+url = "https://naipeuwest.blob.core.windows.net/naip/v002/mt/2023/mt_060cm_2023/"
+
+# Construct an AzureStore with this credential provider.
+#
+# The account, container, and container prefix are passed down to AzureStore
+# automatically.
+store = AzureStore(credential_provider=PlanetaryComputerCredentialProvider(url))
+```
+
+Then, for example, list some items in the container (the prefix `v002/mt/2023/mt_060cm_2023` was automatically set as the prefix on the `AzureStore`):
+```py
+items = next(store.list())
+print(items[:2])
+```
+
+```py
+[{'path': '44104/m_4410401_ne_13_060_20230811_20240103.200.jpg',
+  'last_modified': datetime.datetime(2025, 1, 13, 18, 18, 1, tzinfo=datetime.timezone.utc),
+  'size': 14459,
+  'e_tag': '0x8DD33FE9DB7A24D',
+  'version': None},
+ {'path': '44104/m_4410401_ne_13_060_20230811_20240103.tif',
+  'last_modified': datetime.datetime(2025, 1, 13, 16, 39, 6, tzinfo=datetime.timezone.utc),
+  'size': 400422790,
+  'e_tag': '0x8DD33F0CC1D1752',
+  'version': None}]
+```
+
+And we can fetch an image thumbnail:
+
+```py
+path = "44106/m_4410602_nw_13_060_20230712_20240103.200.jpg"
+image_content = store.get(path).bytes()
+
+# Write out the image content to a file in the current directory
+with open("thumbnail.jpg", "wb") as f:
+    f.write(image_content)
+```
+
+And voilà:
+
+![](assets/planetary-computer-naip-thumbnail.jpg)
 
 ### Custom Authentication
 

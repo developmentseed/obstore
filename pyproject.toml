@@ -8,6 +8,7 @@ dependencies = []
 
 [tool.uv]
 dev-dependencies = [
+    "aiohttp-retry>=2.9.1",
     "aiohttp>=3.11.13",
     "arro3-core>=0.4.2",
     "azure-identity>=1.21.0",
@@ -28,6 +29,8 @@ dev-dependencies = [
     "pip>=24.2",
     "polars>=1.24.0",
     "pyarrow>=17.0.0",
+    "pystac-client>=0.8.3",
+    "pystac>=1.10.1",
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
     "ruff>=0.11.0",
@@ -55,6 +58,7 @@ ignore = [
     "PYI021", # docstring-in-stub
     "PYI051", # redundant-literal-union
     "PYI011", # typed-argument-default-in-stub
+    "S101",   # allow assert
     "TD",     # Todo comments
     "TRY003", # Avoid specifying long messages outside the exception class
 ]
@@ -68,7 +72,6 @@ ignore = [
     "E501",   # Line too long
 ]
 "tests/*" = [
-    "S101",    # assert
     "ANN201",  # Missing return type annotation for public function
     "ANN202",  # Missing return type annotation for private function `it`
     "D100",    # Missing docstring in public module

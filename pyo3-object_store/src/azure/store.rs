@@ -27,6 +27,14 @@ struct AzureConfig {
 }
 
 impl AzureConfig {
+    fn account_name(&self) -> &str {
+        self.config
+            .0
+            .get(&PyAzureConfigKey(AzureConfigKey::AccountName))
+            .expect("Account name should always exist in the config")
+            .as_ref()
+    }
+
     fn container_name(&self) -> &str {
         self.config
             .0
@@ -86,7 +94,7 @@ impl PyAzureStore {
     #[pyo3(signature = (container_name=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
         container_name: Option<String>,
-        prefix: Option<PyPath>,
+        mut prefix: Option<PyPath>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
@@ -95,22 +103,46 @@ impl PyAzureStore {
     ) -> PyObjectStoreResult<Self> {
         let mut builder = MicrosoftAzureBuilder::from_env();
         let mut config = config.unwrap_or_default();
+
         if let Some(container_name) = container_name {
             // Note: we apply the bucket to the config, not directly to the builder, so they stay
             // in sync.
             config.insert_raising_if_exists(AzureConfigKey::ContainerName, container_name)?;
         }
-        let combined_config = combine_config_kwargs(Some(config), kwargs)?;
-        builder = combined_config.clone().apply_config(builder);
+
+        let mut combined_config = combine_config_kwargs(Some(config), kwargs)?;
+
         if let Some(client_options) = client_options.clone() {
             builder = builder.with_client_options(client_options.into())
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
+
         if let Some(credential_provider) = credential_provider.clone() {
+            // Apply credential provider config onto main config
+            if let Some(credential_config) = credential_provider.config() {
+                for (key, val) in credential_config.0.iter() {
+                    // Give precedence to passed-in config values
+                    combined_config.insert_if_not_exists(key.clone(), val.clone());
+                }
+            }
+
+            if let Some(passed_down_prefix) = credential_provider.prefix() {
+                // Don't override a prefix manually passed in to AzureStore
+                //
+                // If a user wishes to override a prefix passed down by a credential provider, they
+                // can pass `prefix=""` or `prefix="/"` to the AzureStore.
+                if prefix.is_none() {
+                    prefix = Some(passed_down_prefix.clone());
+                }
+            }
+
             builder = builder.with_credentials(Arc::new(credential_provider));
         }
+
+        builder = combined_config.clone().apply_config(builder);
+
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: AzureConfig {
@@ -170,15 +202,20 @@ impl PyAzureStore {
     }
 
     fn __repr__(&self) -> String {
+        let account_name = self.config.account_name();
         let container_name = self.config.container_name();
         if let Some(prefix) = &self.config.prefix {
             format!(
-                "AzureStore(container=\"{}\", prefix=\"{}\")",
+                "AzureStore(container_name=\"{}\", account_name=\"{}\", prefix=\"{}\")",
                 container_name,
+                account_name,
                 prefix.as_ref()
             )
         } else {
-            format!("AzureStore(container=\"{}\")", container_name)
+            format!(
+                "AzureStore(container_name=\"{}\", account_name=\"{}\")",
+                container_name, account_name,
+            )
         }
     }
 

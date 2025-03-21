@@ -103,8 +103,9 @@ impl<'py> FromPyObject<'py> for PyAWSCredentialProvider {
         if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
             cache = cache.with_min_ttl(refresh_threshold.extract()?);
         }
-        let config = if let Ok(token) = ob.getattr(intern!(ob.py(), "config")) {
-            token.extract()?
+
+        let config = if let Ok(config) = ob.getattr(intern!(ob.py(), "config")) {
+            config.extract()?
         } else {
             // Allow not having a `config` attribute
             None

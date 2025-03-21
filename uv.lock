@@ -121,6 +121,18 @@ wheels = [
 ]
 
 [[package]]
+name = "aiohttp-retry"
+version = "2.9.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/61/ebda4d8e3d8cfa1fd3db0fb428db2dd7461d5742cea35178277ad180b033/aiohttp_retry-2.9.1.tar.gz", hash = "sha256:8eb75e904ed4ee5c2ec242fefe85bf04240f685391c4879d8f541d6028ff01f1", size = 13608 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1a/99/84ba7273339d0f3dfa57901b846489d2e5c2cd731470167757f1935fffbd/aiohttp_retry-2.9.1-py3-none-any.whl", hash = "sha256:66d2759d1921838256a05a3f80ad7e724936f083e35be5abb5e16eed6be6dc54", size = 9981 },
+]
+
+[[package]]
 name = "aiosignal"
 version = "1.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2525,6 +2537,84 @@ wheels = [
 ]
 
 [[package]]
+name = "pystac"
+version = "1.10.1"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.10'",
+]
+dependencies = [
+    { name = "python-dateutil", marker = "python_full_version < '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/92/c3e318971090e314ee889ae794e71d880ed446d4f16d422850350e24415c/pystac-1.10.1.tar.gz", hash = "sha256:4617fe5315a79785f79b616b8ac248ba3d4d561457c8300b34573309715808cd", size = 141507 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/19/f8df3ac83ae5a977b108d86c8a0d7e4ef98c91dceca136017bc183ef942e/pystac-1.10.1-py3-none-any.whl", hash = "sha256:a7c31b3dacc44dfc955d9da8c7351c7b5b99100254b36301a1e312709b51bf2f", size = 182890 },
+]
+
+[package.optional-dependencies]
+validation = [
+    { name = "jsonschema", marker = "python_full_version < '3.10'" },
+]
+
+[[package]]
+name = "pystac"
+version = "1.12.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
+]
+dependencies = [
+    { name = "python-dateutil", marker = "python_full_version >= '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/da/50f63a3e86c95915f28dfee7f08eb1780baeb122f4aa98e37049ed6b0849/pystac-1.12.2.tar.gz", hash = "sha256:13a9926fdc6f5a0c81a6bcf5748d3e46fd8814b888936b94fd6d8ca6caf0c20d", size = 149989 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/94/6f93e55886cae4076dfe1c5c0a768963f6faca34d7cd27a2ee6800e29387/pystac-1.12.2-py3-none-any.whl", hash = "sha256:7ab6d3d191013727d789f803869789a26e546543a27da3bf2b8abf96b8264d3f", size = 194207 },
+]
+
+[package.optional-dependencies]
+validation = [
+    { name = "jsonschema", marker = "python_full_version >= '3.10'" },
+]
+
+[[package]]
+name = "pystac-client"
+version = "0.8.3"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.10'",
+]
+dependencies = [
+    { name = "pystac", version = "1.10.1", source = { registry = "https://pypi.org/simple" }, extra = ["validation"], marker = "python_full_version < '3.10'" },
+    { name = "python-dateutil", marker = "python_full_version < '3.10'" },
+    { name = "requests", marker = "python_full_version < '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/99/ba7145ecf6a6b4ee28a053b47d7019617755b0201ae068e236dbba7c589a/pystac_client-0.8.3.tar.gz", hash = "sha256:0c47c1a1795f3c931a256fa1a512aa1a1eefa242fdf826dd456c78c8e97f4c5e", size = 42255 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/98/699965afb145d76a494a441cfb8f18ccd473ebf6d4f2df67fde0bc2a31b1/pystac_client-0.8.3-py3-none-any.whl", hash = "sha256:4b151f3ad993bd68d067b3fe525e4f49b05da3290f86fbc9b185e3f65ae1ebe5", size = 33760 },
+]
+
+[[package]]
+name = "pystac-client"
+version = "0.8.6"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
+]
+dependencies = [
+    { name = "pystac", version = "1.12.2", source = { registry = "https://pypi.org/simple" }, extra = ["validation"], marker = "python_full_version >= '3.10'" },
+    { name = "python-dateutil", marker = "python_full_version >= '3.10'" },
+    { name = "requests", marker = "python_full_version >= '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/38/58/714bdbbdd83f101f172a3253206b19661cd4f3961ced547dc3def925508a/pystac_client-0.8.6.tar.gz", hash = "sha256:83d4f4420c14b8dbb3e39ab0da00e72639903912942075d42e06737d61ab3e7d", size = 51603 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1d/7d/249eb4496b802f444cf0044e64b42ba57c8398d0952f63413c7f5bd6dfc9/pystac_client-0.8.6-py3-none-any.whl", hash = "sha256:d68df4ef6f1cd5e396b52f5b5d71360fe8288e00438857258e48fe8139f920ed", size = 41363 },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3102,6 +3192,7 @@ source = { virtual = "." }
 [package.dev-dependencies]
 dev = [
     { name = "aiohttp" },
+    { name = "aiohttp-retry" },
     { name = "arro3-core" },
     { name = "azure-identity" },
     { name = "boto3" },
@@ -3121,6 +3212,10 @@ dev = [
     { name = "pip" },
     { name = "polars" },
     { name = "pyarrow" },
+    { name = "pystac", version = "1.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pystac", version = "1.12.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "pystac-client", version = "0.8.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pystac-client", version = "0.8.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -3132,6 +3227,7 @@ dev = [
 [package.metadata.requires-dev]
 dev = [
     { name = "aiohttp", specifier = ">=3.11.13" },
+    { name = "aiohttp-retry", specifier = ">=2.9.1" },
     { name = "arro3-core", specifier = ">=0.4.2" },
     { name = "azure-identity", specifier = ">=1.21.0" },
     { name = "boto3", specifier = ">=1.35.38" },
@@ -3151,6 +3247,8 @@ dev = [
     { name = "pip", specifier = ">=24.2" },
     { name = "polars", specifier = ">=1.24.0" },
     { name = "pyarrow", specifier = ">=17.0.0" },
+    { name = "pystac", specifier = ">=1.10.1" },
+    { name = "pystac-client", specifier = ">=0.8.3" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "ruff", specifier = ">=0.11.0" },
