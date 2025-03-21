@@ -29,6 +29,7 @@ dev-dependencies = [
     "pip>=24.2",
     "polars>=1.24.0",
     "pyarrow>=17.0.0",
+    "pystac-client>=0.8.3",
     "pystac>=1.10.1",
     "pytest-asyncio>=0.24.0",
     "pytest>=8.3.3",
