@@ -77,8 +77,8 @@ class PlanetaryComputerCredentialProvider:
 
     def __init__(  # noqa: PLR0913
         self,
-        *,
         url: str | None = None,
+        *,
         account_name: str | None = None,
         container_name: str | None = None,
         session: requests.Session | None = None,
@@ -87,11 +87,13 @@ class PlanetaryComputerCredentialProvider:
     ) -> None:
         """Construct a new PlanetaryComputerCredentialProvider.
 
-        Keyword Args:
+        Args:
             url: The HTTPS URL of blob storage to mount to, such as
                 `"https://daymeteuwest.blob.core.windows.net/daymet-zarr/daily"`. If not
                 provided, `account_name` and `container_name` must be provided.
                 `abfs://` URLs are not currently supported. Defaults to `None`.
+
+        Keyword Args:
             account_name: The Azure storage account name. If `url` is not provided, both
                 this and `container_name` must be provided. Defaults to `None`.
             container_name: The Azure storage container name. If `url` is not provided,
@@ -230,8 +232,8 @@ class PlanetaryComputerAsyncCredentialProvider:
 
     def __init__(  # noqa: PLR0913
         self,
-        *,
         url: str | None = None,
+        *,
         account_name: str | None = None,
         container_name: str | None = None,
         session: aiohttp.ClientSession | None = None,
