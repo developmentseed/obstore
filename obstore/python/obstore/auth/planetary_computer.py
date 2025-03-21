@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     import sys
 
     import aiohttp
+    import aiohttp_retry
     import pystac
     import requests
 
@@ -125,42 +126,13 @@ class PlanetaryComputerCredentialProvider:
                 4. Defaults to `"https://planetarycomputer.microsoft.com/api/sas/v1/token"`
 
         """
-        import requests
-        import requests.adapters
-        import urllib3
-        import urllib3.util.retry
-
         self._settings = _Settings.load(
             subscription_key=subscription_key,
             sas_url=sas_url,
         )
 
         if session is None:
-            # Upstream docstring in case we want to expose these values publicly
-            # retry_total: The number of allowable retry attempts for REST API calls.
-            #     Use retry_total=0 to disable retries. A backoff factor to apply
-            #     between attempts.
-            # retry_backoff_factor: A backoff factor to apply between attempts
-            #     after the second try (most errors are resolved immediately by a second
-            #     try without a delay). Retry policy will sleep for:
-
-            #     ``{backoff factor} * (2 ** ({number of total retries} - 1))`` seconds.
-            #     If the backoff_factor is 0.1, then the retry will sleep for
-            #     [0.0s, 0.2s, 0.4s, ...] between retries. The default value is 0.8.
-            retry_total = 10
-            retry_backoff_factor = 0.8
-
-            session = requests.Session()
-            retry = urllib3.util.retry.Retry(
-                total=retry_total,
-                backoff_factor=retry_backoff_factor,  # type: ignore (invalid upstream typing)
-                status_forcelist=[429, 500, 502, 503, 504],
-            )
-
-            adapter = requests.adapters.HTTPAdapter(max_retries=retry)
-            session.mount("http://", adapter)
-            session.mount("https://", adapter)
-            self._session = session
+            self._session = _default_requests_session()
         else:
             self._session = session
 
@@ -269,28 +241,7 @@ class PlanetaryComputerAsyncCredentialProvider:
         )
 
         if session is None:
-            try:
-                from aiohttp_retry import ExponentialRetry, RetryClient
-
-                retry_options = ExponentialRetry(attempts=1)
-                retry_client = RetryClient(
-                    raise_for_status=False,
-                    retry_options=retry_options,
-                )
-                self._session = retry_client
-            except ImportError:
-                from aiohttp import ClientSession
-
-                # Put this after validating that we can import aiohttp
-                warn(
-                    "aiohttp_retry not installed and custom client not provided. "
-                    "Planetary Computer authentication will not be retried.",
-                    RuntimeWarning,
-                    stacklevel=3,
-                )
-
-                self._session = ClientSession()
-
+            self._session = _default_aiohttp_session()
         else:
             self._session = session
 
@@ -507,3 +458,60 @@ def _subscription_key_default() -> str | None:
 
 def _sas_url_default() -> str:
     return _from_env("PC_SDK_SAS_URL") or _DEFAULT_SAS_TOKEN_ENDPOINT
+
+
+def _default_requests_session() -> requests.Session:
+    # Upstream docstring in case we want to expose these values publicly
+    # retry_total: The number of allowable retry attempts for REST API calls.
+    #     Use retry_total=0 to disable retries. A backoff factor to apply
+    #     between attempts.
+    # retry_backoff_factor: A backoff factor to apply between attempts
+    #     after the second try (most errors are resolved immediately by a second
+    #     try without a delay). Retry policy will sleep for:
+
+    #     ``{backoff factor} * (2 ** ({number of total retries} - 1))`` seconds.
+    #     If the backoff_factor is 0.1, then the retry will sleep for
+    #     [0.0s, 0.2s, 0.4s, ...] between retries. The default value is 0.8.
+
+    import requests
+    import requests.adapters
+    import urllib3
+    import urllib3.util.retry
+
+    retry_total = 10
+    retry_backoff_factor = 0.8
+
+    session = requests.Session()
+    retry = urllib3.util.retry.Retry(
+        total=retry_total,
+        backoff_factor=retry_backoff_factor,  # type: ignore (invalid upstream typing)
+        status_forcelist=[429, 500, 502, 503, 504],
+    )
+
+    adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+
+def _default_aiohttp_session() -> aiohttp_retry.RetryClient | aiohttp.ClientSession:
+    try:
+        from aiohttp_retry import ExponentialRetry, RetryClient
+
+        retry_options = ExponentialRetry(attempts=1)
+        return RetryClient(
+            raise_for_status=False,
+            retry_options=retry_options,
+        )
+    except ImportError:
+        from aiohttp import ClientSession
+
+        # Put this after validating that we can import aiohttp
+        warn(
+            "aiohttp_retry not installed and custom client not provided. "
+            "Planetary Computer authentication will not be retried.",
+            RuntimeWarning,
+            stacklevel=3,
+        )
+
+        return ClientSession()
