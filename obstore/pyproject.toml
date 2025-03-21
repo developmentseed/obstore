@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 name = "obstore"
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["typing-extensions; python_version < '3.12'"]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
