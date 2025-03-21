@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     import sys
 
     import aiohttp
+    import pystac
     import requests
 
     from obstore.store import AzureConfig, AzureSASToken
@@ -168,6 +169,41 @@ class PlanetaryComputerCredentialProvider:
         )
         self.config = {"account_name": self._account, "container_name": self._container}
 
+    @classmethod
+    def from_asset(
+        cls,
+        asset: pystac.Asset,
+        *,
+        session: requests.Session | None = None,
+        subscription_key: str | None = None,
+        sas_url: str | None = None,
+    ) -> Self:
+        """Create from a pystac Asset.
+
+        Args:
+            asset: _description_
+
+        Keyword Args:
+            session: _description_. Defaults to None.
+            subscription_key: _description_. Defaults to None.
+            sas_url: _description_. Defaults to None.
+
+        """
+        asset.extra_fields["xarray:storage_options"]["account_name"]
+        storage_options = asset.extra_fields.get("xarray:storage_options")
+        if isinstance(storage_options, dict):
+            account_name = storage_options.get("account_name")
+        else:
+            account_name = None
+
+        return cls(
+            url=asset.href,
+            account_name=account_name,
+            session=session,
+            subscription_key=subscription_key,
+            sas_url=sas_url,
+        )
+
     def __call__(self) -> AzureSASToken:
         """Fetch a new token."""
         token_request_url = self._settings.token_request_url(
@@ -271,14 +307,24 @@ def _validate_url_container_account_input(
     container_name: str | None,
 ) -> tuple[str, str, str | None]:
     if url is not None:
-        if container_name is not None or account_name is not None:
+        if container_name is not None:
             raise ValueError(
-                "Cannot pass container_name or account_name when passing url.",
+                "Cannot pass container_name when passing url.",
             )
 
         parsed_url = urlparse(url.rstrip("/"))
         if parsed_url.scheme == "abfs":
-            raise ValueError("abfs urls not currently supported.")
+            if not account_name:
+                raise ValueError(
+                    "account_name must be passed for abfs urls.",
+                )
+
+            return _parse_abfs_url(parsed_url, account_name)
+
+        if account_name is not None:
+            raise ValueError(
+                "Cannot pass account_name when passing HTTPS blob storage url.",
+            )
 
         return _parse_blob_url(parsed_url)
 
@@ -320,6 +366,14 @@ def _parse_blob_url(parsed_url: ParseResult) -> tuple[str, str, str | None]:
         raise ValueError(msg) from failed_parse
 
     return account_name, container_name, prefix
+
+
+def _parse_abfs_url(
+    parsed_url: ParseResult,
+    account_name: str,
+) -> tuple[str, str, str | None]:
+    assert parsed_url.scheme == "abfs", "Expected abfs url in _parse_abfs_url"
+    return account_name, parsed_url.netloc, parsed_url.path.lstrip("/")
 
 
 def _parse_json_response(d: dict[str, str]) -> AzureSASToken:

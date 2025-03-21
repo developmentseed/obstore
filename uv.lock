@@ -2537,6 +2537,38 @@ wheels = [
 ]
 
 [[package]]
+name = "pystac"
+version = "1.10.1"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version < '3.10'",
+]
+dependencies = [
+    { name = "python-dateutil", marker = "python_full_version < '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/92/c3e318971090e314ee889ae794e71d880ed446d4f16d422850350e24415c/pystac-1.10.1.tar.gz", hash = "sha256:4617fe5315a79785f79b616b8ac248ba3d4d561457c8300b34573309715808cd", size = 141507 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/19/f8df3ac83ae5a977b108d86c8a0d7e4ef98c91dceca136017bc183ef942e/pystac-1.10.1-py3-none-any.whl", hash = "sha256:a7c31b3dacc44dfc955d9da8c7351c7b5b99100254b36301a1e312709b51bf2f", size = 182890 },
+]
+
+[[package]]
+name = "pystac"
+version = "1.12.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
+]
+dependencies = [
+    { name = "python-dateutil", marker = "python_full_version >= '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/da/50f63a3e86c95915f28dfee7f08eb1780baeb122f4aa98e37049ed6b0849/pystac-1.12.2.tar.gz", hash = "sha256:13a9926fdc6f5a0c81a6bcf5748d3e46fd8814b888936b94fd6d8ca6caf0c20d", size = 149989 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/94/6f93e55886cae4076dfe1c5c0a768963f6faca34d7cd27a2ee6800e29387/pystac-1.12.2-py3-none-any.whl", hash = "sha256:7ab6d3d191013727d789f803869789a26e546543a27da3bf2b8abf96b8264d3f", size = 194207 },
+]
+
+[[package]]
 name = "pytest"
 version = "8.3.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3134,6 +3166,8 @@ dev = [
     { name = "pip" },
     { name = "polars" },
     { name = "pyarrow" },
+    { name = "pystac", version = "1.10.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "pystac", version = "1.12.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -3165,6 +3199,7 @@ dev = [
     { name = "pip", specifier = ">=24.2" },
     { name = "polars", specifier = ">=1.24.0" },
     { name = "pyarrow", specifier = ">=17.0.0" },
+    { name = "pystac", specifier = ">=1.10.1" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "ruff", specifier = ">=0.11.0" },
