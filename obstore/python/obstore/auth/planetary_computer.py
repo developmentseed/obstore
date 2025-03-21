@@ -42,7 +42,7 @@ __all__ = [
 
 
 class PlanetaryComputerCredentialProvider:
-    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing [Planetary Computer][] data resources.
+    """A CredentialProvider for [AzureStore][obstore.store.AzureStore] for accessing [Planetary Computer] data resources.
 
     [Planetary Computer]: https://planetarycomputer.microsoft.com/
 
