@@ -27,6 +27,7 @@ No breaking changes.
 - Fix import errors on Python 3.9:
   - Fix azure auth import on Python 3.9 by @kylebarron in https://github.com/developmentseed/obstore/pull/378
   - Fix `_buffered.pyi` for python 3.9 by @kylebarron in https://github.com/developmentseed/obstore/pull/381
+- Define `__all__` to fix type checking import paths https://github.com/developmentseed/obstore/pull/389
 
 ### Documentation :book:
 
