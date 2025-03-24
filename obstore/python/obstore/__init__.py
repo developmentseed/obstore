@@ -1,23 +1,13 @@
 from typing import TYPE_CHECKING
 
-from . import store
-from ._obstore import *
+from . import _obstore, store
+from ._obstore import *  # noqa: F403
 from ._obstore import ___version
 
 if TYPE_CHECKING:
-    from . import _store, exceptions
-    from ._obstore import (
-        HTTP_METHOD,
-        AsyncReadableFile,
-        AsyncWritableFile,
-        Bytes,
-        BytesStream,
-        GetResult,
-        ListChunkType,
-        ListResult,
-        ListStream,
-        ReadableFile,
-        SignCapableStore,
-        WritableFile,
-    )
+    from . import exceptions  # noqa: TC004
+
 __version__: str = ___version()
+
+__all__ = ["__version__", "exceptions", "store"]
+__all__ += _obstore.__all__
