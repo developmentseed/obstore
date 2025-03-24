@@ -161,6 +161,21 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         batch_size: int | None = None,
         **kwargs: Unpack[AzureConfig],
     ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        protocol: Literal["file"],
+        *args: Any,
+        config: None = None,
+        client_options: None = None,
+        retry_config: None = None,
+        asynchronous: bool = False,
+        max_cache_size: int = 10,
+        loop: Any = None,
+        batch_size: int | None = None,
+        automatic_cleanup: bool = False,
+        mkdir: bool = False,
+    ) -> None: ...
     def __init__(  # noqa: PLR0913
         self,
         protocol: SUPPORTED_PROTOCOLS_T | str | None = None,
@@ -355,7 +370,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         range_bytes = await obs.get_range_async(store, path, start=start, end=end)
         return range_bytes.to_bytes()
 
-    async def _cat(
+    async def _cat(  # type: ignore (fsspec has bad typing)
         self,
         path: str,
         recursive: bool = False,
@@ -373,7 +388,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             raise FileNotFoundError(err_msg)
 
         # Call the original _cat only on files
-        return await super()._cat(
+        return await super()._cat(  # type: ignore (fsspec has bad typing)
             files,
             recursive=False,
             on_error=on_error,
@@ -381,7 +396,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             **_kwargs,
         )
 
-    async def _cat_ranges(  # noqa: PLR0913
+    async def _cat_ranges(  # noqa: PLR0913 # type: ignore (fsspec has bad typing)
         self,
         paths: list[str],
         starts: list[int] | int,

@@ -59,7 +59,7 @@ def test_register():
     )
 
     # Ensure a new instance of the registered store can be created
-    fs_instance = fs_class()
+    fs_instance = fs_class("s3")
     assert isinstance(
         fs_instance,
         FsspecStore,
@@ -300,7 +300,7 @@ def test_put_files(fs: FsspecStore, tmp_path: Path):
 
     # Verify file upload
     assert remote_file_path in fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
-    assert fs.cat(remote_file_path)[remote_file_path] == test_data.encode()
+    assert fs.cat(remote_file_path)[remote_file_path] == test_data.encode()  # type: ignore (fsspec)
 
     # Cleanup remote file
     fs.rm(remote_file_path)

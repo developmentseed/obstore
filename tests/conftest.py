@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import boto3
 import pytest
-import urllib3
+import requests
 from botocore import UNSIGNED
 from botocore.client import Config
 from moto.moto_server.threaded_moto_server import ThreadedMotoServer
@@ -27,7 +27,9 @@ def moto_server_uri():
     if hasattr(server, "get_host_and_port"):
         host, port = server.get_host_and_port()
     else:
-        host, port = server._server.server_address
+        s = server._server
+        assert s is not None
+        host, port = s.server_address
     uri = f"http://{host}:{port}"
     yield uri
     server.stop()
@@ -44,7 +46,7 @@ def s3(moto_server_uri: str):
     client.create_bucket(Bucket=TEST_BUCKET_NAME, ACL="public-read")
     client.put_object(Bucket=TEST_BUCKET_NAME, Key="afile", Body=b"hello world")
     yield moto_server_uri
-    urllib3.request(method="post", url=f"{moto_server_uri}/moto-api/reset")
+    requests.post(f"{moto_server_uri}/moto-api/reset", timeout=30)
 
 
 @pytest.fixture
