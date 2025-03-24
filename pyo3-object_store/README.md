@@ -58,7 +58,8 @@ We don't yet have a _great_ solution here for reusing the store builder type hin
 
 ## Version compatibility
 
-| pyo3-object_store | pyo3 | object_store |
-| ----------------- | ---- | ------------ |
-| 0.1.x             | 0.23 | 0.12         |
-| 0.2.x             | 0.24 | 0.12         |
+| pyo3-object_store | pyo3 | object_store       |
+| ----------------- | ---- | ------------------ |
+| 0.1.x             | 0.23 | 0.12               |
+| 0.2.x             | 0.24 | 0.12               |
+| 0.3.x             | 0.23 | **0.11** :warning: |
