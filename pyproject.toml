@@ -85,12 +85,6 @@ ignore = [
     "SLF001",  # Private member accessed
 ]
 
-[tool.ruff.lint.extend-per-file-ignores]
-"__init__.py" = [
-    "F401", # Allow unused imports in __init__.py files
-    "F403", # unable to detect undefined names
-]
-
 [tool.pytest.ini_options]
 addopts = "-v"
 testpaths = ["tests"]
