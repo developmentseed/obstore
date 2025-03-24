@@ -65,7 +65,7 @@ def from_url(
     **kwargs: Unpack[AzureConfig],
 ) -> ObjectStore: ...
 @overload
-def from_url(
+def from_url(  # type: ignore reportOverlappingOverload
     url: str,
     *,
     config: None = None,
