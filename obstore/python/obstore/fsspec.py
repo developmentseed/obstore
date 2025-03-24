@@ -355,7 +355,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         range_bytes = await obs.get_range_async(store, path, start=start, end=end)
         return range_bytes.to_bytes()
 
-    async def _cat(
+    async def _cat(  # type: ignore (fsspec has bad typing)
         self,
         path: str,
         recursive: bool = False,
@@ -373,7 +373,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             raise FileNotFoundError(err_msg)
 
         # Call the original _cat only on files
-        return await super()._cat(
+        return await super()._cat(  # type: ignore (fsspec has bad typing)
             files,
             recursive=False,
             on_error=on_error,
@@ -381,7 +381,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             **_kwargs,
         )
 
-    async def _cat_ranges(  # noqa: PLR0913
+    async def _cat_ranges(  # noqa: PLR0913 # type: ignore (fsspec has bad typing)
         self,
         paths: list[str],
         starts: list[int] | int,

@@ -76,9 +76,7 @@ jobs:
         run: uv run mkdocs build --strict
 
       - name: Add venv to PATH (for pyright action)
-        if: "${{ matrix.python-version == 3.11 }}"
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run pyright
-        if: "${{ matrix.python-version == 3.11 }}"
         uses: jakebailey/pyright-action@v2
