@@ -161,6 +161,21 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         batch_size: int | None = None,
         **kwargs: Unpack[AzureConfig],
     ) -> None: ...
+    @overload
+    def __init__(
+        self,
+        protocol: Literal["file"],
+        *args: Any,
+        config: None = None,
+        client_options: None = None,
+        retry_config: None = None,
+        asynchronous: bool = False,
+        max_cache_size: int = 10,
+        loop: Any = None,
+        batch_size: int | None = None,
+        automatic_cleanup: bool = False,
+        mkdir: bool = False,
+    ) -> None: ...
     def __init__(  # noqa: PLR0913
         self,
         protocol: SUPPORTED_PROTOCOLS_T | str | None = None,
