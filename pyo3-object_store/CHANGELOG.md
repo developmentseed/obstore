@@ -1,8 +1,12 @@
 # Changelog
 
+## [0.4.0] - 2025-03-24
+
+Compatibility release to use `pyo3-object_store` with `object_store` 0.11 and `pyo3` 0.24.
+
 ## [0.3.0] - 2025-03-24
 
-Compatibility release to use `pyo3-object_store` with `object_store` 0.11.
+Compatibility release to use `pyo3-object_store` with `object_store` 0.11 and `pyo3` 0.23.
 
 ### Breaking changes :wrench:
 
