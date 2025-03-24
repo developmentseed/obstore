@@ -144,7 +144,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner.get(&full_path).await
     }
 
-    async fn get_range(&self, location: &Path, range: Range<usize>) -> Result<Bytes> {
+    async fn get_range(&self, location: &Path, range: Range<u64>) -> Result<Bytes> {
         let full_path = self.full_path(location);
         self.inner.get_range(&full_path, range).await
     }
@@ -154,7 +154,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner.get_opts(&full_path, options).await
     }
 
-    async fn get_ranges(&self, location: &Path, ranges: &[Range<usize>]) -> Result<Vec<Bytes>> {
+    async fn get_ranges(&self, location: &Path, ranges: &[Range<u64>]) -> Result<Vec<Bytes>> {
         let full_path = self.full_path(location);
         self.inner.get_ranges(&full_path, ranges).await
     }
@@ -170,7 +170,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner.delete(&full_path).await
     }
 
-    fn list(&self, prefix: Option<&Path>) -> BoxStream<'_, Result<ObjectMeta>> {
+    fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
         let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         let s = self.inner.list(Some(&prefix));
         let slf_prefix = self.prefix.clone();
@@ -182,7 +182,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         &self,
         prefix: Option<&Path>,
         offset: &Path,
-    ) -> BoxStream<'_, Result<ObjectMeta>> {
+    ) -> BoxStream<'static, Result<ObjectMeta>> {
         let offset = self.full_path(offset);
         let prefix = self.full_path(prefix.unwrap_or(DEFAULT_PATH.get_or_init(Path::default)));
         let s = self.inner.list_with_offset(Some(&prefix), &offset);
