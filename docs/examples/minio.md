@@ -19,10 +19,10 @@ from obstore.store import S3Store
 
 store = S3Store(
     "test-bucket",
-    aws_endpoint="http://localhost:9000",
+    endpoint="http://localhost:9000",
     access_key_id="minioadmin",
     secret_access_key="minioadmin",
-    aws_virtual_hosted_style_request=False,
+    virtual_hosted_style_request=False,
     client_options={"allow_http": True},
 )
 
