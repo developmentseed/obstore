@@ -6,14 +6,14 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, cast
 
 import google.auth
-from google.auth._default_async import (
-    default_async,  # type: ignore (reportPrivateImportUsage)
+from google.auth._default_async import (  # type: ignore (reportPrivateImportUsage)
+    default_async,
 )
 
 if TYPE_CHECKING:
     from google.auth.credentials import Credentials
-    from google.auth.transport._aiohttp_requests import (
-        Request as AsyncRequest,  # type: ignore (reportPrivateImportUsage)
+    from google.auth.transport._aiohttp_requests import (  # type: ignore (reportPrivateImportUsage)
+        Request as AsyncRequest,
     )
     from google.auth.transport.requests import Request
 
@@ -135,8 +135,8 @@ class GoogleAsyncCredentialProvider:
                 seconds=45)` ([suggested here](https://github.com/googleapis/google-auth-library-python/blob/446c8e79b20b7c063d6aa142857a126a7efa1fc3/google/auth/_helpers.py#L26-L28)).
 
         """
-        from google.auth.transport._aiohttp_requests import (
-            Request as AsyncRequest,  # type: ignore (reportPrivateImportUsage)
+        from google.auth.transport._aiohttp_requests import (  # type: ignore (reportPrivateImportUsage)
+            Request as AsyncRequest,
         )
 
         if credentials is not None:
