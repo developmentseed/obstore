@@ -14,7 +14,6 @@ if TYPE_CHECKING:
     from collections.abc import (
         AsyncIterable,
         AsyncIterator,
-        Callable,
         Iterable,
         Iterator,
         Sequence,
@@ -660,7 +659,10 @@ def from_url(  # noqa: C901
     config: S3Config | GCSConfig | AzureConfig | None = None,
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
-    credential_provider: Callable | None = None,
+    credential_provider: S3CredentialProvider
+    | GCSCredentialProvider
+    | AzureCredentialProvider
+    | None = None,
     **kwargs: Any,
 ) -> ObjectStore:
     """Easy construction of store by URL, identifying the relevant store.
@@ -711,7 +713,7 @@ def from_url(  # noqa: C901
             config=config,  # type: ignore (config narrowing)
             client_options=client_options,
             retry_config=retry_config,
-            credential_provider=credential_provider,
+            credential_provider=credential_provider,  # type: ignore (config narrowing)
             **kwargs,
         )
     if scheme == "gcs":
@@ -720,7 +722,7 @@ def from_url(  # noqa: C901
             config=config,  # type: ignore (config narrowing)
             client_options=client_options,
             retry_config=retry_config,
-            credential_provider=credential_provider,
+            credential_provider=credential_provider,  # type: ignore (config narrowing)
             **kwargs,
         )
     if scheme == "azure":
@@ -729,7 +731,7 @@ def from_url(  # noqa: C901
             config=config,  # type: ignore (config narrowing)
             client_options=client_options,
             retry_config=retry_config,
-            credential_provider=credential_provider,
+            credential_provider=credential_provider,  # type: ignore (config narrowing)
             **kwargs,
         )
     if scheme == "http":

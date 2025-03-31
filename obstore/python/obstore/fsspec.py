@@ -55,11 +55,14 @@ if TYPE_CHECKING:
     from obstore import Attributes, Bytes, ReadableFile, WritableFile
     from obstore.store import (
         AzureConfig,
+        AzureCredentialProvider,
         ClientConfig,
         GCSConfig,
+        GCSCredentialProvider,
         ObjectStore,
         RetryConfig,
         S3Config,
+        S3CredentialProvider,
     )
 
     if sys.version_info >= (3, 11):
@@ -127,6 +130,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         config: S3Config | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: S3CredentialProvider | None = None,
         asynchronous: bool = False,
         max_cache_size: int = 10,
         loop: Any = None,
@@ -141,6 +145,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: GCSCredentialProvider | None = None,
         asynchronous: bool = False,
         max_cache_size: int = 10,
         loop: Any = None,
@@ -155,6 +160,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         config: AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: AzureCredentialProvider | None = None,
         asynchronous: bool = False,
         max_cache_size: int = 10,
         loop: Any = None,
@@ -183,6 +189,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         config: S3Config | GCSConfig | AzureConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        credential_provider: S3CredentialProvider
+        | GCSCredentialProvider
+        | AzureCredentialProvider
+        | None = None,
         asynchronous: bool = False,
         max_cache_size: int = 10,
         loop: Any = None,
@@ -195,6 +205,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             protocol: The storage protocol to use, such as "s3",
                 "gcs", or "abfs". If `None`, the default class-level protocol
                 is used. Default to None.
+            args: positional arguments passed on to the `fsspec.asyn.AsyncFileSystem`
+                constructor.
+
+        Keyword Args:
             config: Configuration for the cloud storage provider, which can be one of
                 S3Config, GCSConfig, AzureConfig,
                 or AzureConfigInput. Any of these values will be applied after checking
@@ -202,10 +216,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 applied beyond what is found in environment variables.
             client_options: Additional options for configuring the client.
             retry_config: Configuration for handling request errors.
-            args: positional arguments passed on to the `fsspec.asyn.AsyncFileSystem`
-                constructor.
-
-        Keyword Args:
+            credential_provider: A callback to provide custom credentials to the
+                underlying store classes.
             asynchronous: Set to `True` if this instance is meant to be be called using
                 the fsspec async API. This should only be set to true when running
                 within a coroutine.
@@ -243,10 +255,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 stacklevel=2,
             )
 
-        self.config = config
-        self.client_options = client_options
-        self.retry_config = retry_config
-        self.config_kwargs = kwargs
+        self._config = config
+        self._client_options = client_options
+        self._retry_config = retry_config
+        self._config_kwargs = kwargs
+        self._credential_provider = credential_provider
 
         # https://stackoverflow.com/a/68550238
         self._construct_store = lru_cache(maxsize=max_cache_size)(self._construct_store)
@@ -311,11 +324,12 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         protocol = self.protocol if isinstance(self.protocol, str) else self.protocol[0]
         return from_url(
             url=f"{protocol}://{bucket}",
-            config=self.config,
-            client_options=self.client_options,
-            retry_config=self.retry_config,
-            **self.config_kwargs,
-        )
+            config=self._config,  # type: ignore (type narrowing)
+            client_options=self._client_options,
+            retry_config=self._retry_config,
+            credential_provider=self._credential_provider,  # type: ignore (type narrowing)
+            **self._config_kwargs,
+        )  # type: ignore (can't find overload)
 
     async def _rm_file(self, path: str, **_kwargs: Any) -> None:
         bucket, path = self._split_path(path)
