@@ -13,9 +13,6 @@ catalog = pystac_client.Client.open(
     "https://planetarycomputer.microsoft.com/api/stac/v1/",
 )
 
-collection = catalog.get_collection("daymet-daily-hi")
-asset = collection.assets["zarr-abfs"]
-
 
 @pytest.mark.parametrize(
     "cls",
@@ -27,6 +24,8 @@ async def test_from_asset(
         PlanetaryComputerCredentialProvider | PlanetaryComputerAsyncCredentialProvider
     ],
 ):
+    collection = catalog.get_collection("daymet-daily-hi")
+
     abfs_asset = collection.assets["zarr-abfs"]
     cls.from_asset(abfs_asset)
 
@@ -36,6 +35,12 @@ async def test_from_asset(
     cls.from_asset(blob_asset)
 
     cls.from_asset(blob_asset.__dict__)
+
+    collection = catalog.get_collection("landsat-c2-l2")
+    gpq_asset = collection.assets["geoparquet-items"]
+    cls.from_asset(gpq_asset)
+
+    cls.from_asset(gpq_asset.__dict__)
 
 
 @pytest.mark.parametrize(

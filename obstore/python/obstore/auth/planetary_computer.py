@@ -314,7 +314,10 @@ def _parse_asset(asset: pystac.Asset | dict[str, Any]) -> tuple[str, str | None]
     extra_fields = d.get("extra_fields", {})
     if (
         isinstance(extra_fields, dict)
-        and (storage_options := extra_fields.get("xarray:storage_options"))
+        and (
+            (storage_options := extra_fields.get("xarray:storage_options"))
+            or (storage_options := extra_fields.get("table:storage_options"))
+        )
         and isinstance(storage_options, dict)
     ):
         account_name = storage_options.get("account_name")
