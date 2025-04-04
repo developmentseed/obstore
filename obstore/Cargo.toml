@@ -45,6 +45,3 @@ url = { workspace = true }
 reqwest = { version = "*", default-features = false, features = [
     "rustls-tls-native-roots",
 ] }
-
-[patch.crates-io]
-object_store = { git = 'https://github.com/kylebarron/arrow-rs-object-store', rev = "d1bd4fc8c05705c76a0145e38643bb6b2c267c11" }
