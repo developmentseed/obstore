@@ -37,3 +37,6 @@ url = "2"
 [profile.release]
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+object_store = { git = 'https://github.com/kylebarron/arrow-rs-object-store', rev = "d1bd4fc8c05705c76a0145e38643bb6b2c267c11" }
