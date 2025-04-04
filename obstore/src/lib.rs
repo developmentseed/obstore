@@ -20,11 +20,8 @@ mod utils;
 use pyo3::prelude::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-#[pyfunction]
-fn ___version() -> &'static str {
-    VERSION
-}
+const OBJECT_STORE_VERSION: &str = env!("OBJECT_STORE_VERSION");
+const OBJECT_STORE_SOURCE: &str = env!("OBJECT_STORE_SOURCE");
 
 /// Raise RuntimeWarning for debug builds
 #[pyfunction]
@@ -51,7 +48,9 @@ fn check_debug_build(_py: Python) -> PyResult<()> {
 fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     check_debug_build(py)?;
 
-    m.add_wrapped(wrap_pyfunction!(___version))?;
+    m.add("__version__", VERSION)?;
+    m.add("_object_store_version", OBJECT_STORE_VERSION)?;
+    m.add("_object_store_source", OBJECT_STORE_SOURCE)?;
 
     pyo3_object_store::register_store_module(py, m, "obstore", "_store")?;
     pyo3_object_store::register_exceptions_module(py, m, "obstore", "exceptions")?;
