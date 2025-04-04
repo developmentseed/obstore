@@ -249,7 +249,7 @@ impl<'py> FromPyObject<'py> for PutInput {
         // Check for file-like object
         else if ob.hasattr(intern!(py, "read"))? && ob.hasattr(intern!(py, "seek"))? {
             Ok(Self::Pull(PullSource::FileLike(
-                PyFileLikeObject::with_requirements(ob.clone().unbind(), true, false, true, false)?,
+                PyFileLikeObject::py_with_requirements(ob.clone(), true, false, true, false)?,
             )))
         }
         // Ensure we check _first_ for an async generator before a sync one

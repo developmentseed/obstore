@@ -41,7 +41,9 @@ from ._rename import rename, rename_async
 from ._scheme import parse_scheme
 from ._sign import HTTP_METHOD, SignCapableStore, sign, sign_async
 
-def ___version() -> str: ...
+__version__: str
+_object_store_version: str
+_object_store_source: str
 
 __all__ = [
     "HTTP_METHOD",
@@ -65,6 +67,9 @@ __all__ = [
     "SuffixRange",
     "UpdateVersion",
     "WritableFile",
+    "__version__",
+    "_object_store_source",
+    "_object_store_version",
     "_store",
     "copy",
     "copy_async",

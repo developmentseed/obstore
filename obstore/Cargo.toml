@@ -45,3 +45,6 @@ url = { workspace = true }
 reqwest = { version = "*", default-features = false, features = [
     "rustls-tls-native-roots",
 ] }
+
+[build-dependencies]
+cargo-lock = "10.1.0"
