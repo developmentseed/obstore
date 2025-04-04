@@ -105,9 +105,10 @@ def put(
             - A file-like object opened in binary read mode
             - A [`Path`][pathlib.Path] to a local file
             - A [`bytes`][] object.
-            - Any object implementing the Python [buffer
+            - An object implementing the Python [buffer
               protocol](https://docs.python.org/3/c-api/buffer.html) (includes `bytes`
-              but also `memoryview`, numpy arrays, and more).
+              but also `memoryview`, numpy arrays, and more). Note that only
+              1-dimensional, contiguous, uint8-typed buffers are supported.
             - An iterator or iterable of objects implementing the Python buffer
               protocol.
 
@@ -146,7 +147,7 @@ async def put_async(
 
     Refer to the documentation for [`put`][obstore.put]. In addition to what the
     synchronous `put` allows for the `file` parameter, this **also supports an async
-    iterator or iterable** of objects implementing the Python buffer protocol.
+    iterator or iterable** of buffers.
 
     This means, for example, you can pass the result of `get_async` directly to
     `put_async`, and the request will be streamed through Python during the put
