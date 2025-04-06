@@ -8,7 +8,7 @@ FastAPI has a [`StreamingResponse`](https://fastapi.tiangolo.com/advanced/custom
 
 !!! note
 
-    This example is also [available on Github](https://github.com/developmentseed/obstore/blob/main/examples/fastapi-example/README.md) if you'd like to test it out locally.
+    This example is also [available on Github](https://github.com/developmentseed/obstore/blob/main/examples/fastapi/README.md) if you'd like to test it out locally.
 
 First, import `fastapi` and `obstore` and create the FastAPI application.
 
