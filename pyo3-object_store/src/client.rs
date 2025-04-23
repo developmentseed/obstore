@@ -44,7 +44,7 @@ impl<'py> IntoPyObject<'py> for &PyClientConfigKey {
 }
 
 /// A wrapper around `ClientOptions` that implements [`FromPyObject`].
-#[derive(Clone, Debug, IntoPyObject, IntoPyObjectRef, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PyClientOptions {
     string_options: HashMap<PyClientConfigKey, PyConfigValue>,
     default_headers: Option<PyHeaderMap>,
@@ -74,6 +74,34 @@ impl<'py> FromPyObject<'py> for PyClientOptions {
             string_options,
             default_headers,
         })
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyClientOptions {
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = self.string_options.into_pyobject(py)?;
+        if let Some(headers) = self.default_headers {
+            dict.set_item("default_headers", headers)?;
+        }
+        Ok(dict)
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &PyClientOptions {
+    type Target = PyDict;
+    type Output = Bound<'py, PyDict>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        let dict = (&self.string_options).into_pyobject(py)?;
+        if let Some(headers) = &self.default_headers {
+            dict.set_item("default_headers", headers)?;
+        }
+        Ok(dict.clone())
     }
 }
 
