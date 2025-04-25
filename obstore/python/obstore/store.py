@@ -550,7 +550,7 @@ class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
 
     store = HTTPStore.from_url("https://api.github.com")
     resp = obs.get(store, "repos/developmentseed/obstore")
-    data = json.loads(resp.bytes())
+    data = json.loads(bytes(resp.bytes()))
     print(data["stargazers_count"])
     ```
     """
