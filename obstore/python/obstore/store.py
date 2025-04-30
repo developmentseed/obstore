@@ -551,7 +551,8 @@ class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
     store = HTTPStore.from_url("https://api.github.com")
     resp = obs.get(store, "repos/developmentseed/obstore")
 
-    # If you have orjson installed, you can load bytes without copying them via `memoryview`:
+    # If you have orjson installed, you can load bytes without copying them via
+    # `memoryview`:
     import orjson
     data = orjson.loads(memoryview(resp.bytes()))
 
