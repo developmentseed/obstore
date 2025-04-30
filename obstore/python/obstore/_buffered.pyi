@@ -68,6 +68,17 @@ class ReadableFile:
     [`get_ranges`][obstore.get_ranges], which will optimise the vectored IO.
 
     [high first-byte latencies]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import ReadableFile
+        ```
     """  # noqa: D205
 
     def close(self) -> None:
@@ -139,6 +150,17 @@ class AsyncReadableFile:
     [`get_ranges`][obstore.get_ranges], which will optimise the vectored IO.
 
     [high first-byte latencies]: https://docs.aws.amazon.com/AmazonS3/latest/userguide/optimizing-performance.html
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import AsyncReadableFile
+        ```
     """  # noqa: D205
 
     def close(self) -> None:
@@ -234,6 +256,17 @@ class WritableFile(AbstractContextManager):
 
     This implements a similar interface as a Python
     [`BufferedWriter`][io.BufferedWriter].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import WritableFile
+        ```
     """
 
     def __enter__(self) -> Self: ...
@@ -254,7 +287,19 @@ class WritableFile(AbstractContextManager):
         """Write the [bytes-like object](https://docs.python.org/3/glossary.html#term-bytes-like-object), `buffer`, and return the number of bytes written."""
 
 class AsyncWritableFile(AbstractAsyncContextManager):
-    """A buffered writable file object with **asynchronous** operations."""
+    """A buffered writable file object with **asynchronous** operations.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import AsyncWritableFile
+        ```
+    """
 
     async def __aenter__(self) -> Self: ...
     async def __aexit__(self, exc_type, exc_value, traceback) -> None: ...  # noqa: ANN001

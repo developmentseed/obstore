@@ -41,6 +41,17 @@ Attribute: TypeAlias = (
     See [Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control).
 
 Any other string key specifies a user-defined metadata field for the object.
+
+!!! warning "Not importable at runtime"
+
+    To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+    ```py
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from obstore import Attribute
+    ```
 """
 
 Attributes: TypeAlias = dict[Attribute, str]
@@ -50,4 +61,15 @@ Attributes can be specified in [`put`][obstore.put]/[`put_async`][obstore.put_as
 retrieved from [`get`][obstore.get]/[`get_async`][obstore.get_async].
 
 Unlike ObjectMeta, Attributes are not returned by listing APIs
+
+!!! warning "Not importable at runtime"
+
+    To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+    ```py
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from obstore import Attributes
+    ```
 """
