@@ -21,6 +21,17 @@ class UpdateVersion(TypedDict, total=False):
 
     Stores will use differing combinations of `e_tag` and `version` to provide
     conditional updates, and it is therefore recommended applications preserve both
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import UpdateVersion
+        ```
     """
 
     e_tag: str | None
@@ -47,10 +58,33 @@ If a string is provided, it must be one of:
 - `"create"`
 If a `dict` is provided, it must meet the criteria of
 [`UpdateVersion`][obstore.UpdateVersion].
+
+!!! warning "Not importable at runtime"
+
+    To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+    ```py
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from obstore import PutMode
+    ```
 """
 
 class PutResult(TypedDict):
-    """Result for a put request."""
+    """Result for a put request.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import PutResult
+        ```
+    """
 
     e_tag: str | None
     """

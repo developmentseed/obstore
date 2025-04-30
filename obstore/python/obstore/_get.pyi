@@ -8,13 +8,37 @@ from ._list import ObjectMeta
 from .store import ObjectStore
 
 class OffsetRange(TypedDict):
-    """Request all bytes starting from a given byte offset."""
+    """Request all bytes starting from a given byte offset.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import OffsetRange
+        ```
+    """
 
     offset: int
     """The byte offset for the offset range request."""
 
 class SuffixRange(TypedDict):
-    """Request up to the last `n` bytes."""
+    """Request up to the last `n` bytes.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import SuffixRange
+        ```
+    """
 
     suffix: int
     """The number of bytes from the suffix to request."""
@@ -23,6 +47,17 @@ class GetOptions(TypedDict, total=False):
     """Options for a get request.
 
     All options are optional.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import GetOptions
+        ```
     """
 
     if_match: str | None
@@ -124,6 +159,17 @@ class GetResult:
 
     Note that after calling `bytes`, `bytes_async`, or `stream`, you will no longer be
     able to call other methods on this object, such as the `meta` attribute.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import GetResult
+        ```
     """
 
     @property
@@ -211,6 +257,17 @@ class BytesStream:
 
         To fix this, set the `timeout` parameter in the
         [`client_options`][obstore.store.ClientConfig] passed when creating the store.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import BytesStream
+        ```
     """
 
     def __aiter__(self) -> BytesStream:
