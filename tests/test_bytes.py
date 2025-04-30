@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import pickle
 from typing import TYPE_CHECKING
 
@@ -100,8 +99,3 @@ class TestBytesSlice:
 def test_pickle():
     b = Bytes(b"hello_world")
     assert b == pickle.loads(pickle.dumps(b))
-
-
-def test_json_loads():
-    b = Bytes(b"hello world")
-    json.loads(b)

@@ -550,7 +550,13 @@ class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
 
     store = HTTPStore.from_url("https://api.github.com")
     resp = obs.get(store, "repos/developmentseed/obstore")
-    data = json.loads(bytes(resp.bytes()))
+
+    # If you have orjson, you can load bytes without copying them via `memoryview`:
+    import orjson
+    data = orjson.loads(memoryview(resp.bytes()))
+
+    # Otherwise, you'll need to copy with `bytes`, e.g. `json(bytes(resp.bytes()))`
+
     print(data["stargazers_count"])
     ```
     """
