@@ -800,6 +800,15 @@ wheels = [
 ]
 
 [[package]]
+name = "filelock"
+version = "3.18.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc5353e0b15fc1c563352101f30e24bf500207a54df9a/filelock-3.18.0.tar.gz", hash = "sha256:adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2", size = 18075 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl", hash = "sha256:c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de", size = 16215 },
+]
+
+[[package]]
 name = "flask"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1412,6 +1421,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/6e/f4/8ede7a662fabf93456b44390a5ad22630e25fb5ddaecf787251071b2e143/maturin-1.8.1-py3-none-win32.whl", hash = "sha256:d678407713f3e10df33c5b3d7a343ec0551eb7f14d8ad9ba6febeb96f4e4c75c", size = 6873556 },
     { url = "https://files.pythonhosted.org/packages/9c/22/757f093ed0e319e9648155b8c9d716765442bea5bc98ebc58ad4ad5b0524/maturin-1.8.1-py3-none-win_amd64.whl", hash = "sha256:a526f90fe0e5cb59ffb81f4ff547ddc42e823bbdeae4a31012c0893ca6dcaf46", size = 7823153 },
     { url = "https://files.pythonhosted.org/packages/a4/f5/051413e04f6da25069db5e76759ecdb8cd2a8ab4a94045b5a3bf548c66fa/maturin-1.8.1-py3-none-win_arm64.whl", hash = "sha256:e95f077fd2ddd2f048182880eed458c308571a534be3eb2add4d3dac55bf57f4", size = 6552131 },
+]
+
+[[package]]
+name = "maturin-import-hook"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "filelock" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/93/5f/9d426545c49926f4212fbe6244bc397508a29f65e35fe307835c07c0be7b/maturin_import_hook-0.2.0.tar.gz", hash = "sha256:e8a81333179faf7b5f413e44c2a1c89604fefff433679275f724950b0a632adf", size = 31071 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/48/1e88f90750a66825a5ea8fd2e26908e4e4acade0fe5a378c36d14bc0138d/maturin_import_hook-0.2.0-py3-none-any.whl", hash = "sha256:742d882213d6aa24bacf6775ce26ab96bd4ee26ceafbbbad69d60fdc98d95ec8", size = 31134 },
 ]
 
 [[package]]
@@ -3275,6 +3297,7 @@ dev = [
     { name = "griffe-inherited-docstrings" },
     { name = "ipykernel" },
     { name = "maturin" },
+    { name = "maturin-import-hook" },
     { name = "mike" },
     { name = "mkdocs" },
     { name = "mkdocs-material", extra = ["imaging"] },
@@ -3314,6 +3337,7 @@ dev = [
     { name = "griffe-inherited-docstrings", specifier = ">=1.0.1" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "maturin", specifier = ">=1.7.4" },
+    { name = "maturin-import-hook", specifier = ">=0.2.0" },
     { name = "mike", specifier = ">=2.1.3" },
     { name = "mkdocs", specifier = ">=1.6.1" },
     { name = "mkdocs-material", extras = ["imaging"], specifier = ">=9.6.3" },
