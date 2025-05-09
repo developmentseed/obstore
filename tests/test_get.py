@@ -168,3 +168,18 @@ def test_get_ranges_invalid_range():
 
     with pytest.raises(ValueError, match="Invalid range"):
         store.get_ranges(path, starts=[10, 20], lengths=[10, 0])
+
+
+def test_access_getresult_attributes_after_reading_stream():
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "data.txt"
+    store.put(path, data)
+
+    resp = store.get(path)
+
+    _buffer = resp.bytes()
+    # Validate that we can access the range _after_ consuming the buffer
+    r = resp.range
+    assert r == (0, 4400)
