@@ -13,6 +13,7 @@ use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{
     MaybePrefixedStore, PyAzureStore, PyGCSStore, PyObjectStoreError, PyObjectStoreResult,
     PyS3Store, PyUrl,
@@ -20,7 +21,6 @@ use pyo3_object_store::{
 use url::Url;
 
 use crate::path::PyPaths;
-use crate::runtime::get_runtime;
 
 #[derive(Debug)]
 pub(crate) enum SignCapableStore {
@@ -155,7 +155,7 @@ pub(crate) fn sign(
     paths: PyPaths,
     expires_in: Duration,
 ) -> PyObjectStoreResult<PySignResult> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let method = method.0;
 
     py.allow_threads(|| match paths {

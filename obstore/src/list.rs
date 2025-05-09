@@ -15,10 +15,9 @@ use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_arrow::{PyRecordBatch, PyTable};
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
-
-use crate::runtime::get_runtime;
 
 pub(crate) struct PyObjectMeta(ObjectMeta);
 
@@ -105,8 +104,8 @@ impl PyListStream {
         slf
     }
 
-    fn collect(&self, py: Python) -> PyResult<PyListIterResult> {
-        let runtime = get_runtime(py)?;
+    fn collect(&self) -> PyResult<PyListIterResult> {
+        let runtime = get_runtime();
         let stream = self.stream.clone();
         runtime.block_on(collect_stream(stream, self.return_arrow))
     }
@@ -124,8 +123,8 @@ impl PyListStream {
         )
     }
 
-    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyListIterResult> {
-        let runtime = get_runtime(py)?;
+    fn __next__(&self) -> PyResult<PyListIterResult> {
+        let runtime = get_runtime();
         let stream = self.stream.clone();
         runtime.block_on(next_stream(
             stream,
@@ -435,7 +434,7 @@ pub(crate) fn list_with_delimiter(
     prefix: Option<String>,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     py.allow_threads(|| {
         let out = runtime.block_on(list_with_delimiter_materialize(
             store.into_inner(),
