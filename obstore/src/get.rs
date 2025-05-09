@@ -135,6 +135,7 @@ impl PyGetResult {
         // Note: in the future we could avoid these clones if we stored GetResultPayload directly,
         // but it's useful to use the upstream helper methods defined on `GetResult`, like
         // `GetResult::bytes` and `GetResult::into_stream`.
+        // Once https://github.com/apache/arrow-rs-object-store/pull/353 is merged it'll be easier.
         Self {
             meta: result.meta.clone(),
             range: result.range.clone(),
