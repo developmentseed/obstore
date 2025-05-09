@@ -60,8 +60,8 @@ class AzureCredentialProvider:
         | azure.identity.VisualStudioCodeCredential
         | azure.identity.WorkloadIdentityCredential
         | None = None,
-        scopes: Iterable[str] = DEFAULT_SCOPES,
         *,
+        scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
         """Create a new AzureCredentialProvider.
@@ -70,6 +70,8 @@ class AzureCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.DefaultAzureCredential`][] will be
                 called to find default credentials.
+
+        Other Args:
             scopes: Scopes required by the access token.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
@@ -138,8 +140,8 @@ class AzureAsyncCredentialProvider:
         | azure.identity.aio.VisualStudioCodeCredential
         | azure.identity.aio.WorkloadIdentityCredential
         | None = None,
-        scopes: Iterable[str] = DEFAULT_SCOPES,
         *,
+        scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
         """Create a new AzureAsyncCredentialProvider.
@@ -148,6 +150,8 @@ class AzureAsyncCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.aio.DefaultAzureCredential`][] will be
                 called to find default credentials.
+
+        Other Args:
             scopes: Scopes required by the access token.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
