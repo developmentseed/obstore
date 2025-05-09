@@ -60,6 +60,7 @@ class AzureCredentialProvider:
         | azure.identity.VisualStudioCodeCredential
         | azure.identity.WorkloadIdentityCredential
         | None = None,
+        *,
         scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
@@ -69,6 +70,8 @@ class AzureCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.DefaultAzureCredential`][] will be
                 called to find default credentials.
+
+        Other Args:
             scopes: Scopes required by the access token.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
@@ -76,20 +79,20 @@ class AzureCredentialProvider:
         [`azure.identity.DefaultAzureCredential`]: https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.defaultazurecredential
 
         """
-        self.credential = credential or azure.identity.DefaultAzureCredential()
-        self.scopes = scopes
-        self.tenant_id = tenant_id
+        self._credential = credential or azure.identity.DefaultAzureCredential()
+        self._scopes = scopes
+        self._tenant_id = tenant_id
 
     def __call__(self) -> AzureCredential:
         """Fetch the credential."""
-        self.token = self.credential.get_token(
-            *self.scopes,
-            tenant_id=self.tenant_id,
+        token = self._credential.get_token(
+            *self._scopes,
+            tenant_id=self._tenant_id,
         )
 
         return {
-            "token": self.token.token,
-            "expires_at": datetime.fromtimestamp(self.token.expires_on, timezone.utc),
+            "token": token.token,
+            "expires_at": datetime.fromtimestamp(token.expires_on, timezone.utc),
         }
 
 
@@ -137,6 +140,7 @@ class AzureAsyncCredentialProvider:
         | azure.identity.aio.VisualStudioCodeCredential
         | azure.identity.aio.WorkloadIdentityCredential
         | None = None,
+        *,
         scopes: Iterable[str] = DEFAULT_SCOPES,
         tenant_id: str | None = None,
     ) -> None:
@@ -146,6 +150,8 @@ class AzureAsyncCredentialProvider:
             credential: Credential to use for this provider. Defaults to `None`,
                 in which case [`azure.identity.aio.DefaultAzureCredential`][] will be
                 called to find default credentials.
+
+        Other Args:
             scopes: Scopes required by the access token.
             tenant_id: Optionally specify the Azure Tenant ID which will be passed to
                 the credential's `get_token` method.
@@ -153,18 +159,18 @@ class AzureAsyncCredentialProvider:
         [`azure.identity.aio.DefaultAzureCredential`]: https://learn.microsoft.com/en-us/python/api/azure-identity/azure.identity.aio.defaultazurecredential
 
         """
-        self.credential = credential or azure.identity.aio.DefaultAzureCredential()
-        self.scopes = scopes
-        self.tenant_id = tenant_id
+        self._credential = credential or azure.identity.aio.DefaultAzureCredential()
+        self._scopes = scopes
+        self._tenant_id = tenant_id
 
     async def __call__(self) -> AzureCredential:
         """Fetch the credential."""
-        self.token = await self.credential.get_token(
-            *self.scopes,
-            tenant_id=self.tenant_id,
+        token = await self._credential.get_token(
+            *self._scopes,
+            tenant_id=self._tenant_id,
         )
 
         return {
-            "token": self.token.token,
-            "expires_at": datetime.fromtimestamp(self.token.expires_on, timezone.utc),
+            "token": token.token,
+            "expires_at": datetime.fromtimestamp(token.expires_on, timezone.utc),
         }
