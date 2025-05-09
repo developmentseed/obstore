@@ -16,12 +16,12 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
 use pyo3::{intern, IntoPyObjectExt};
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
 
 use crate::attributes::PyAttributes;
-use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
 
 pub(crate) struct PyPutMode(PutMode);
@@ -294,7 +294,6 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 #[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=5242880, max_concurrency=12))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put(
-    py: Python,
     store: PyObjectStore,
     path: String,
     mut file: PutInput,
@@ -324,7 +323,7 @@ pub(crate) fn put(
         }
     }
 
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     if use_multipart {
         runtime.block_on(put_multipart_inner(
             store.into_inner(),

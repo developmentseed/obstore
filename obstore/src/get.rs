@@ -9,13 +9,13 @@ use futures::StreamExt;
 use object_store::{Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 
 /// 10MB default chunk size
 const DEFAULT_BYTES_CHUNK_SIZE: usize = 10 * 1024 * 1024;
@@ -154,7 +154,7 @@ impl PyGetResult {
             .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
-        let runtime = get_runtime(py)?;
+        let runtime = get_runtime();
         py.allow_threads(|| {
             let bytes = runtime.block_on(get_result.bytes())?;
             Ok::<_, PyObjectStoreError>(PyBytes::new(bytes))
@@ -282,8 +282,8 @@ impl PyBytesStream {
         )
     }
 
-    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyBytesWrapper> {
-        let runtime = get_runtime(py)?;
+    fn __next__(&self) -> PyResult<PyBytesWrapper> {
+        let runtime = get_runtime();
         let stream = self.stream.clone();
         runtime.block_on(next_stream(stream, self.min_chunk_size, true))
     }
@@ -329,7 +329,7 @@ pub(crate) fn get(
     path: String,
     options: Option<PyGetOptions>,
 ) -> PyObjectStoreResult<PyGetResult> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     py.allow_threads(|| {
         let path = &path.into();
         let fut = if let Some(options) = options {
@@ -372,7 +372,7 @@ pub(crate) fn get_range(
     end: Option<u64>,
     length: Option<u64>,
 ) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let range = params_to_range(start, end, length)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_range(&path.into(), range))?;
@@ -426,7 +426,7 @@ pub(crate) fn get_ranges(
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,
 ) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let ranges = params_to_ranges(starts, ends, lengths)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;

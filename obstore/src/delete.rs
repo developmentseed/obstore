@@ -1,14 +1,14 @@
 use futures::{StreamExt, TryStreamExt};
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
 use crate::path::PyPaths;
-use crate::runtime::get_runtime;
 use crate::utils::PyNone;
 
 #[pyfunction]
 pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObjectStoreResult<()> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let store = store.into_inner();
     py.allow_threads(|| {
         match paths {

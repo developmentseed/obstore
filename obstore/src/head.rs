@@ -1,12 +1,12 @@
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 
 #[pyfunction]
 pub fn head(py: Python, store: PyObjectStore, path: String) -> PyObjectStoreResult<PyObjectMeta> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let store = store.into_inner();
 
     py.allow_threads(|| {

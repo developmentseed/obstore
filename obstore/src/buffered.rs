@@ -8,7 +8,7 @@ use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 use pyo3::{intern, IntoPyObjectExt};
-use pyo3_async_runtimes::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::{future_into_py, get_runtime};
 use pyo3_bytes::PyBytes;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Lines};
@@ -16,7 +16,6 @@ use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
 
 #[pyfunction]
@@ -28,7 +27,7 @@ pub(crate) fn open_reader(
     buffer_size: usize,
 ) -> PyObjectStoreResult<PyReadableFile> {
     let store = store.into_inner();
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let (reader, meta) =
         py.allow_threads(|| runtime.block_on(create_reader(store, path, buffer_size)))?;
     Ok(PyReadableFile::new(reader, meta, false))
@@ -105,7 +104,7 @@ impl PyReadableFile {
             let out = future_into_py(py, read(reader, size))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             let out = py.allow_threads(|| runtime.block_on(read(reader, size)))?;
             out.into_py_any(py)
         }
@@ -121,7 +120,7 @@ impl PyReadableFile {
             let out = future_into_py(py, readline(reader))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             let out = py.allow_threads(|| runtime.block_on(readline(reader)))?;
             out.into_py_any(py)
         }
@@ -135,7 +134,7 @@ impl PyReadableFile {
             let out = future_into_py(py, readlines(reader, hint))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             let out = py.allow_threads(|| runtime.block_on(readlines(reader, hint)))?;
             out.into_py_any(py)
         }
@@ -163,7 +162,7 @@ impl PyReadableFile {
             let out = future_into_py(py, seek(reader, pos))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             let out = py.allow_threads(|| runtime.block_on(seek(reader, pos)))?;
             out.into_py_any(py)
         }
@@ -184,7 +183,7 @@ impl PyReadableFile {
             let out = future_into_py(py, tell(reader))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             let out = py.allow_threads(|| runtime.block_on(tell(reader)))?;
             out.into_py_any(py)
         }
@@ -267,7 +266,7 @@ impl PyLinesReader {
     }
 
     fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<String> {
-        let runtime = get_runtime(py)?;
+        let runtime = get_runtime();
         let lines = self.0.clone();
         py.allow_threads(|| runtime.block_on(next_line(lines, false)))
     }
@@ -376,7 +375,7 @@ impl PyWritableFile {
         traceback: Option<PyObject>,
     ) -> PyResult<()> {
         let writer = self.writer.clone();
-        let runtime = get_runtime(py)?;
+        let runtime = get_runtime();
         if exc_type.is_some() {
             py.allow_threads(|| runtime.block_on(abort_writer(writer)))?;
         } else {
@@ -395,7 +394,7 @@ impl PyWritableFile {
         traceback: Option<PyObject>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let writer = self.writer.clone();
-        let runtime = get_runtime(py)?;
+        let runtime = get_runtime();
         if exc_type.is_some() {
             future_into_py(py, abort_writer(writer))
         } else {
@@ -409,7 +408,7 @@ impl PyWritableFile {
             let out = future_into_py(py, close_writer(writer))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             py.allow_threads(|| runtime.block_on(close_writer(writer)))?;
             Ok(py.None())
         }
@@ -436,7 +435,7 @@ impl PyWritableFile {
             let out = future_into_py(py, is_closed(writer))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             let out = py.allow_threads(|| runtime.block_on(is_closed(writer)))?;
             out.into_py_any(py)
         }
@@ -448,7 +447,7 @@ impl PyWritableFile {
             let out = future_into_py(py, flush(writer))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             py.allow_threads(|| runtime.block_on(flush(writer)))?;
             Ok(py.None())
         }
@@ -460,7 +459,7 @@ impl PyWritableFile {
             let out = future_into_py(py, write(writer, buffer))?;
             Ok(out.unbind())
         } else {
-            let runtime = get_runtime(py)?;
+            let runtime = get_runtime();
             let out = py.allow_threads(|| runtime.block_on(write(writer, buffer)))?;
             out.into_py_any(py)
         }

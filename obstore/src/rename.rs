@@ -1,8 +1,8 @@
 use object_store::ObjectStore;
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 
-use crate::runtime::get_runtime;
 use crate::utils::PyNone;
 
 #[pyfunction]
@@ -14,7 +14,7 @@ pub(crate) fn rename(
     to: String,
     overwrite: bool,
 ) -> PyObjectStoreResult<()> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let from_ = from_.into();
     let to = to.into();
     py.allow_threads(|| {
