@@ -157,9 +157,6 @@ class GetResult:
         print(len(buf))
     ```
 
-    Note that after calling `bytes`, `bytes_async`, or `stream`, you will no longer be
-    able to call other methods on this object, such as the `meta` attribute.
-
     !!! warning "Not importable at runtime"
 
         To use this type hint in your code, import it within a `TYPE_CHECKING` block:
@@ -174,10 +171,7 @@ class GetResult:
 
     @property
     def attributes(self) -> Attributes:
-        """Additional object attributes.
-
-        This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
-        """
+        """Additional object attributes."""
 
     def bytes(self) -> Bytes:
         """Collect the data into a `Bytes` object.
@@ -195,18 +189,13 @@ class GetResult:
 
     @property
     def meta(self) -> ObjectMeta:
-        """The ObjectMeta for this object.
-
-        This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
-        """
+        """The ObjectMeta for this object."""
 
     @property
     def range(self) -> tuple[int, int]:
         """The range of bytes returned by this request.
 
         Note that this is `(start, stop)` **not** `(start, length)`.
-
-        This must be accessed _before_ calling `stream`, `bytes`, or `bytes_async`.
         """
 
     def stream(self, min_chunk_size: int = 10 * 1024 * 1024) -> BytesStream:
