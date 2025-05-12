@@ -123,8 +123,7 @@ class GCSCredentialProvider(Protocol):
         ```
     """
 
-    @staticmethod
-    def __call__() -> GCSCredential | Coroutine[Any, Any, GCSCredential]:
+    def __call__(self) -> GCSCredential | Coroutine[Any, Any, GCSCredential]:
         """Return a `GCSCredential`."""
 
 class GCSStore:
