@@ -14,7 +14,19 @@ else:
     from typing_extensions import Self
 
 class ObjectMeta(TypedDict):
-    """The metadata that describes an object."""
+    """The metadata that describes an object.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import ObjectMeta
+        ```
+    """
 
     path: str
     """The full path to the object"""
@@ -39,6 +51,17 @@ ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  
 By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
 for improved performance when listing large buckets, you can pass `return_arrow=True`.
 Then an Arrow `RecordBatch` will be returned instead.
+
+!!! warning "Not importable at runtime"
+
+    To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+    ```py
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from obstore import ListChunkType
+    ```
 """
 
 class ListResult(TypedDict, Generic[ListChunkType]):
@@ -49,6 +72,17 @@ class ListResult(TypedDict, Generic[ListChunkType]):
     object storage's limitations.
 
     This implements [`obstore.ListResult`][].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import ListResult
+        ```
     """
 
     common_prefixes: List[str]
@@ -62,6 +96,17 @@ class ListStream(Generic[ListChunkType]):
     async fashion.
 
     This implements [`obstore.ListStream`][].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import ListStream
+        ```
     """  # noqa: D205
 
     def __aiter__(self) -> Self:
