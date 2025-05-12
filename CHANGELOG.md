@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Breaking changes :wrench:
+
+- `obstore.auth.AzureCredentialProvider` (and `obstore.auth.AzureAsyncCredentialProvider`) removed some attributes that were previously accidentally public. Also, `scopes` and `tenant_id` parameters in the `__init__` of those two classes are now keyword-only parameters.
+
 ## [0.6.0] - 2025-03-24
 
 ### New Features :magic_wand:

@@ -451,8 +451,7 @@ class S3CredentialProvider(Protocol):
         ```
     """
 
-    @staticmethod
-    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]:
+    def __call__(self) -> S3Credential | Coroutine[Any, Any, S3Credential]:
         """Return an `S3Credential`."""
 
 class S3Store:

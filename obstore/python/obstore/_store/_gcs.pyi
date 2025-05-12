@@ -74,6 +74,14 @@ class GCSConfig(TypedDict, total=False):
     **Environment variable**: `GOOGLE_APPLICATION_CREDENTIALS`.
     """
 
+    skip_signature: bool
+    """If `True`, GCSStore will not fetch credentials and will not sign requests.
+
+    This can be useful when interacting with public GCS buckets that deny authorized requests.
+
+    **Environment variable**: `GOOGLE_SKIP_SIGNATURE`.
+    """
+
 class GCSCredential(TypedDict):
     """A Google Cloud Storage Credential.
 
@@ -115,8 +123,7 @@ class GCSCredentialProvider(Protocol):
         ```
     """
 
-    @staticmethod
-    def __call__() -> GCSCredential | Coroutine[Any, Any, GCSCredential]:
+    def __call__(self) -> GCSCredential | Coroutine[Any, Any, GCSCredential]:
         """Return a `GCSCredential`."""
 
 class GCSStore:
