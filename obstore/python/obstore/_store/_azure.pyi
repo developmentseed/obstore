@@ -313,8 +313,7 @@ class AzureCredentialProvider(Protocol):
         ```
     """
 
-    @staticmethod
-    def __call__() -> AzureCredential | Coroutine[Any, Any, AzureCredential]:
+    def __call__(self) -> AzureCredential | Coroutine[Any, Any, AzureCredential]:
         """Return an `AzureCredential`."""
 
 class AzureStore:
