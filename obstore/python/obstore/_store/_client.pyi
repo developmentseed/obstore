@@ -56,6 +56,8 @@ class ClientConfig(TypedDict, total=False):
     """Timeout for only the connect phase of a Client"""
     default_content_type: str
     """default `CONTENT_TYPE` for uploads"""
+    default_headers: dict[str, str] | dict[str, bytes]
+    """default headers to be sent with each request"""
     http1_only: bool
     """Only use http1 connections."""
     http2_keep_alive_interval: str
