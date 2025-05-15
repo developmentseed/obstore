@@ -461,8 +461,11 @@ fn validate_buffer(buf: &PyBuffer<u8>) -> PyResult<()> {
         return Err(PyValueError::new_err("Buffer is not C contiguous"));
     }
 
-    if buf.strides().iter().any(|s| *s != 0) {
-        return Err(PyValueError::new_err("Non-zero strides not supported."));
+    if buf.strides().iter().any(|s| *s != 1) {
+        return Err(PyValueError::new_err(format!(
+            "strides other than 1 not supported, got: {:?} ",
+            buf.strides()
+        )));
     }
 
     Ok(())
