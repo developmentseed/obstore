@@ -28,6 +28,18 @@ uv run maturin develop -m obstore/Cargo.toml --release
 
 to compile `obstore` with release optimizations turned on.
 
+### Maturin import hook
+
+Run
+```
+uv run python -m maturin_import_hook site install
+```
+
+to ensure that obstore is automatically recompiled if changed whenever you
+import `obstore` in Python.
+
+See [import hook docs](https://www.maturin.rs/import_hook) for more information.
+
 ### Tests
 
 All obstore tests should go into the top-level `tests` directory.
