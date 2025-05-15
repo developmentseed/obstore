@@ -104,10 +104,10 @@ impl PyListStream {
         slf
     }
 
-    fn collect(&self) -> PyResult<PyListIterResult> {
+    fn collect(&self, py: Python) -> PyResult<PyListIterResult> {
         let runtime = get_runtime();
         let stream = self.stream.clone();
-        runtime.block_on(collect_stream(stream, self.return_arrow))
+        py.allow_threads(|| runtime.block_on(collect_stream(stream, self.return_arrow)))
     }
 
     fn collect_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
@@ -123,15 +123,17 @@ impl PyListStream {
         )
     }
 
-    fn __next__(&self) -> PyResult<PyListIterResult> {
+    fn __next__(&self, py: Python) -> PyResult<PyListIterResult> {
         let runtime = get_runtime();
         let stream = self.stream.clone();
-        runtime.block_on(next_stream(
-            stream,
-            self.chunk_size,
-            true,
-            self.return_arrow,
-        ))
+        py.allow_threads(|| {
+            runtime.block_on(next_stream(
+                stream,
+                self.chunk_size,
+                true,
+                self.return_arrow,
+            ))
+        })
     }
 }
 

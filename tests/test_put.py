@@ -1,9 +1,10 @@
 import itertools
+from tempfile import TemporaryDirectory
 
 import pytest
 
 from obstore.exceptions import AlreadyExistsError
-from obstore.store import MemoryStore
+from obstore.store import LocalStore, MemoryStore
 
 
 def test_put_non_multipart():
@@ -93,3 +94,18 @@ def test_put_sync_iterable():
     store.put(path, iterator)
 
     assert store.get(path).bytes() == data
+
+
+def test_put_sync_iterable_local_store():
+    """Issue #450."""
+    with TemporaryDirectory() as tmpdir:
+        store = LocalStore(tmpdir)
+
+        b = b"the quick brown fox jumps over the lazy dog,"
+        iterator = itertools.repeat(b, 50_000)
+        data = b * 50_000
+        path = "big-data.txt"
+
+        store.put(path, iterator)
+
+        assert store.get(path).bytes() == data
