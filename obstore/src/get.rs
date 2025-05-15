@@ -282,10 +282,10 @@ impl PyBytesStream {
         )
     }
 
-    fn __next__(&self) -> PyResult<PyBytesWrapper> {
+    fn __next__(&self, py: Python) -> PyResult<PyBytesWrapper> {
         let runtime = get_runtime();
         let stream = self.stream.clone();
-        runtime.block_on(next_stream(stream, self.min_chunk_size, true))
+        py.allow_threads(|| runtime.block_on(next_stream(stream, self.min_chunk_size, true)))
     }
 }
 

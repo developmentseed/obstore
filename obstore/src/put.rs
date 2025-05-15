@@ -294,6 +294,7 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 #[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=5242880, max_concurrency=12))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put(
+    py: Python,
     store: PyObjectStore,
     path: String,
     mut file: PutInput,
@@ -324,26 +325,28 @@ pub(crate) fn put(
     }
 
     let runtime = get_runtime();
-    if use_multipart {
-        runtime.block_on(put_multipart_inner(
-            store.into_inner(),
-            &path.into(),
-            file,
-            chunk_size,
-            max_concurrency,
-            attributes,
-            tags,
-        ))
-    } else {
-        runtime.block_on(put_inner(
-            store.into_inner(),
-            &path.into(),
-            file,
-            attributes,
-            tags,
-            mode,
-        ))
-    }
+    py.allow_threads(|| {
+        if use_multipart {
+            runtime.block_on(put_multipart_inner(
+                store.into_inner(),
+                &path.into(),
+                file,
+                chunk_size,
+                max_concurrency,
+                attributes,
+                tags,
+            ))
+        } else {
+            runtime.block_on(put_inner(
+                store.into_inner(),
+                &path.into(),
+                file,
+                attributes,
+                tags,
+                mode,
+            ))
+        }
+    })
 }
 
 #[pyfunction]
