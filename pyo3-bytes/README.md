@@ -65,3 +65,4 @@ an idea, create an issue to discuss.
 | ---------- | ---- |
 | 0.1.x      | 0.23 |
 | 0.2.x      | 0.24 |
+| 0.3.x      | 0.25 |
