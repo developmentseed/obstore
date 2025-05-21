@@ -1,4 +1,10 @@
-- case: accepts_get
+- case: assignable_to_sync_store
+  parametrized:
+    - store: AzureStore
+    - store: GCSStore
+    - store: LocalStore
+    - store: MemoryStore
+    - store: S3Store
   main: |
     from typing import Protocol
 
@@ -16,8 +22,7 @@
     )
     from typing_extensions import assert_type
 
-    from obstore.store import AzureStore, GCSStore, LocalStore, MemoryStore, S3Store
-
+    from obstore.store import {{ store }}
 
     class SyncStore(
         Copy,
@@ -33,26 +38,54 @@
         Protocol,
     ): ...
 
-
-    def memory_store_implements_sync_store(store: MemoryStore) -> None:
-        accepts_sync_store(store)
-
-
-    def azure_store_implements_sync_store(store: AzureStore) -> None:
-        accepts_sync_store(store)
-
-
-    def gcs_store_implements_sync_store(store: GCSStore) -> None:
-        accepts_sync_store(store)
-
-
-    def local_store_implements_sync_store(store: LocalStore) -> None:
-        accepts_sync_store(store)
-
-
-    def s3_store_implements_sync_store(store: S3Store) -> None:
-        accepts_sync_store(store)
-
-
     def accepts_sync_store(store: SyncStore) -> None:
         assert_type(store, SyncStore)
+
+    def assignable_to_sync_store(store: {{ store }}) -> None:
+        accepts_sync_store(store)
+
+- case: assignable_to_async_store
+  parametrized:
+    - store: AzureStore
+    - store: GCSStore
+    - store: LocalStore
+    - store: MemoryStore
+    - store: S3Store
+  main: |
+    from typing import Protocol
+
+    from obspec import (
+        CopyAsync,
+        DeleteAsync,
+        GetAsync,
+        GetRangeAsync,
+        GetRangesAsync,
+        HeadAsync,
+        ListAsync,
+        ListWithDelimiterAsync,
+        PutAsync,
+        RenameAsync,
+    )
+    from typing_extensions import assert_type
+
+    from obstore.store import {{ store }}
+
+    class AsyncStore(
+        CopyAsync,
+        DeleteAsync,
+        GetAsync,
+        GetRangeAsync,
+        GetRangesAsync,
+        HeadAsync,
+        ListAsync,
+        ListWithDelimiterAsync,
+        PutAsync,
+        RenameAsync,
+        Protocol,
+    ): ...
+
+    def accepts_async_store(store: AsyncStore) -> None:
+        assert_type(store, AsyncStore)
+
+    def assignable_to_async_store(store: {{ store }}) -> None:
+        accepts_async_store(store)

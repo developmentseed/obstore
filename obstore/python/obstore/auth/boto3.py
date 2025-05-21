@@ -105,6 +105,8 @@ class Boto3CredentialProvider:
         """Fetch credentials."""
         expires_at = datetime.now(timezone.utc) + self.ttl
         frozen_credentials = self.credentials.get_frozen_credentials()
+        assert frozen_credentials.access_key is not None, "Access key is None"
+        assert frozen_credentials.secret_key is not None, "Secret key is None"
         return {
             "access_key_id": frozen_credentials.access_key,
             "secret_access_key": frozen_credentials.secret_key,

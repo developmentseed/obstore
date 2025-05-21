@@ -326,6 +326,61 @@ class _ObjectStoreMixin:
         )
 
     @overload
+    def list_async(
+        self,
+        prefix: str | None = None,
+        *,
+        offset: str | None = None,
+        chunk_size: int = 50,
+        return_arrow: Literal[True],
+    ) -> ListStream[RecordBatch]: ...
+    @overload
+    def list_async(
+        self,
+        prefix: str | None = None,
+        *,
+        offset: str | None = None,
+        chunk_size: int = 50,
+        return_arrow: Literal[False] = False,
+    ) -> ListStream[Sequence[ObjectMeta]]: ...
+    def list_async(
+        self,
+        prefix: str | None = None,
+        *,
+        offset: str | None = None,
+        chunk_size: int = 50,
+        return_arrow: bool = False,
+    ) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]:
+        """List all the objects with the given prefix.
+
+        Refer to the documentation for [list][obstore.list].
+
+        !!! note
+
+            This is an alias for `list`, provided to match the `ListAsync` protocol in
+            obspec. There is no difference in functionality between this and the `list`
+            method.
+        """
+        # Splitting these fixes the typing issue with the `return_arrow` parameter, by
+        # converting from a bool to a Literal[True] or Literal[False]
+        if return_arrow:
+            return obs.list(  # type: ignore[call-overload]
+                self,  # type: ignore[arg-type]
+                prefix,
+                offset=offset,
+                chunk_size=chunk_size,
+                return_arrow=return_arrow,
+            )
+
+        return obs.list(  # type: ignore[call-overload]
+            self,  # type: ignore[arg-type]
+            prefix,
+            offset=offset,
+            chunk_size=chunk_size,
+            return_arrow=return_arrow,
+        )
+
+    @overload
     def list_with_delimiter(
         self,
         prefix: str | None = None,
