@@ -814,7 +814,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [
@@ -1976,8 +1976,8 @@ wheels = [
 
 [[package]]
 name = "obspec"
-version = "0.1.0b4"
-source = { git = "https://github.com/developmentseed/obspec#320807f93f2963a737ecfc38c1c3bbe147e60986" }
+version = "0.1.0b5"
+source = { git = "https://github.com/developmentseed/obspec#7f6de1a6719d61efb0d7665b3138fcab5fde70fb" }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
