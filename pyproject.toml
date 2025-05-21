@@ -42,6 +42,7 @@ dev-dependencies = [
     "ruff>=0.11.0",
     "tqdm>=4.67.1",
     "types-boto3[s3,sts]>=1.36.23",
+    "types-requests>=2.31.0.6",
 ]
 constraint-dependencies = [
     # ensure lockfile grabs wheels for pyproj for each Python version
