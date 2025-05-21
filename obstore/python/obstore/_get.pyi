@@ -101,7 +101,7 @@ class GetOptions(TypedDict, total=False):
     <https://datatracker.ietf.org/doc/html/rfc9110#section-13.1.4>
     """
 
-    range: tuple[int, int] | list[int] | OffsetRange | SuffixRange
+    range: tuple[int, int] | Sequence[int] | OffsetRange | SuffixRange
     """
     Request transfer of only the specified range of bytes
     otherwise returning [`NotModifiedError`][obstore.exceptions.NotModifiedError].

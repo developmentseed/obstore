@@ -1,4 +1,3 @@
-import pandas as pd
 import polars as pl
 import pyarrow as pa
 import pytest
@@ -139,4 +138,4 @@ def test_list_as_arrow_to_polars():
 
     stream = store.list(return_arrow=True, chunk_size=10)
     _pl_df = pl.DataFrame(next(stream))
-    _df = pa.record_batch(next(stream)).to_pandas(types_mapper=pd.ArrowDtype)
+    _df = pa.record_batch(next(stream))

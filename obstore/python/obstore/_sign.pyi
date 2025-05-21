@@ -27,7 +27,7 @@ SignCapableStore: TypeAlias = AzureStore | GCSStore | S3Store
 """ObjectStore instances that are capable of signing."""
 
 @overload
-def sign(  # type: ignore # noqa: PGH003
+def sign(
     store: SignCapableStore,
     method: HTTP_METHOD,
     paths: str,
@@ -39,13 +39,13 @@ def sign(
     method: HTTP_METHOD,
     paths: Sequence[str],
     expires_in: timedelta,
-) -> list[str]: ...
-def sign(
+) -> Sequence[str]: ...
+def sign(  # type: ignore[misc] # docstring in pyi file
     store: SignCapableStore,
     method: HTTP_METHOD,
     paths: str | Sequence[str],
     expires_in: timedelta,
-) -> str | list[str]:
+) -> str | Sequence[str]:
     """Create a signed URL.
 
     Given the intended `method` and `paths` to use and the desired length of time for
@@ -78,13 +78,13 @@ async def sign_async(
     method: HTTP_METHOD,
     paths: Sequence[str],
     expires_in: timedelta,
-) -> list[str]: ...
-async def sign_async(
+) -> Sequence[str]: ...
+async def sign_async(  # type: ignore[misc] # docstring in pyi file
     store: SignCapableStore,
     method: HTTP_METHOD,
     paths: str | Sequence[str],
     expires_in: timedelta,
-) -> str | list[str]:
+) -> str | Sequence[str]:
     """Call `sign` asynchronously.
 
     Refer to the documentation for [sign][obstore.sign].
