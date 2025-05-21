@@ -6,16 +6,16 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
-use object_store::{GetOptions, GetRange, GetResult, ObjectStore};
+use object_store::{Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
 use crate::list::PyObjectMeta;
-use crate::runtime::get_runtime;
 
 /// 10MB default chunk size
 const DEFAULT_BYTES_CHUNK_SIZE: usize = 10 * 1024 * 1024;
@@ -98,8 +98,6 @@ impl From<PySuffixRange> for GetRange {
 
 pub(crate) struct PyGetRange(GetRange);
 
-// TODO: think of a better API here so that the distinction between each of these is easy to
-// understand.
 // Allowed input:
 // - [usize, usize] to refer to a bounded range from start to end (exclusive)
 // - {"offset": usize} to request all bytes starting from a given byte offset
@@ -118,12 +116,32 @@ impl<'py> FromPyObject<'py> for PyGetRange {
     }
 }
 
+/// Note that we clone the [ObjectMeta], byte range, and [Attributes] from the [`GetResult`] so
+/// that we can access them from Python even after the result has been disposed.
 #[pyclass(name = "GetResult", frozen)]
-pub(crate) struct PyGetResult(std::sync::Mutex<Option<GetResult>>);
+pub(crate) struct PyGetResult {
+    /// The [`ObjectMeta`] for this object
+    meta: ObjectMeta,
+    /// The range of bytes returned by this request
+    range: Range<u64>,
+    /// Additional object attributes
+    attributes: Attributes,
+    /// The underlying result
+    result: std::sync::Mutex<Option<GetResult>>,
+}
 
 impl PyGetResult {
     fn new(result: GetResult) -> Self {
-        Self(std::sync::Mutex::new(Some(result)))
+        // Note: in the future we could avoid these clones if we stored GetResultPayload directly,
+        // but it's useful to use the upstream helper methods defined on `GetResult`, like
+        // `GetResult::bytes` and `GetResult::into_stream`.
+        // Once https://github.com/apache/arrow-rs-object-store/pull/353 is merged it'll be easier.
+        Self {
+            meta: result.meta.clone(),
+            range: result.range.clone(),
+            attributes: result.attributes.clone(),
+            result: std::sync::Mutex::new(Some(result)),
+        }
     }
 }
 
@@ -131,12 +149,12 @@ impl PyGetResult {
 impl PyGetResult {
     fn bytes(&self, py: Python) -> PyObjectStoreResult<PyBytes> {
         let get_result = self
-            .0
+            .result
             .lock()
             .unwrap()
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
-        let runtime = get_runtime(py)?;
+        let runtime = get_runtime();
         py.allow_threads(|| {
             let bytes = runtime.block_on(get_result.bytes())?;
             Ok::<_, PyObjectStoreError>(PyBytes::new(bytes))
@@ -145,7 +163,7 @@ impl PyGetResult {
 
     fn bytes_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let get_result = self
-            .0
+            .result
             .lock()
             .unwrap()
             .take()
@@ -161,36 +179,23 @@ impl PyGetResult {
 
     #[getter]
     fn attributes(&self) -> PyResult<PyAttributes> {
-        let inner = self.0.lock().unwrap();
-        let inner = inner
-            .as_ref()
-            .ok_or(PyValueError::new_err("Result has already been disposed."))?;
-        Ok(PyAttributes::new(inner.attributes.clone()))
+        Ok(PyAttributes::new(self.attributes.clone()))
     }
 
     #[getter]
     fn meta(&self) -> PyResult<PyObjectMeta> {
-        let inner = self.0.lock().unwrap();
-        let inner = inner
-            .as_ref()
-            .ok_or(PyValueError::new_err("Result has already been disposed."))?;
-        Ok(PyObjectMeta::new(inner.meta.clone()))
+        Ok(PyObjectMeta::new(self.meta.clone()))
     }
 
     #[getter]
     fn range(&self) -> PyResult<(u64, u64)> {
-        let inner = self.0.lock().unwrap();
-        let range = &inner
-            .as_ref()
-            .ok_or(PyValueError::new_err("Result has already been disposed."))?
-            .range;
-        Ok((range.start, range.end))
+        Ok((self.range.start, self.range.end))
     }
 
     #[pyo3(signature = (min_chunk_size = DEFAULT_BYTES_CHUNK_SIZE))]
     fn stream(&self, min_chunk_size: usize) -> PyResult<PyBytesStream> {
         let get_result = self
-            .0
+            .result
             .lock()
             .unwrap()
             .take()
@@ -277,10 +282,10 @@ impl PyBytesStream {
         )
     }
 
-    fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<PyBytesWrapper> {
-        let runtime = get_runtime(py)?;
+    fn __next__(&self, py: Python) -> PyResult<PyBytesWrapper> {
+        let runtime = get_runtime();
         let stream = self.stream.clone();
-        runtime.block_on(next_stream(stream, self.min_chunk_size, true))
+        py.allow_threads(|| runtime.block_on(next_stream(stream, self.min_chunk_size, true)))
     }
 }
 
@@ -324,7 +329,7 @@ pub(crate) fn get(
     path: String,
     options: Option<PyGetOptions>,
 ) -> PyObjectStoreResult<PyGetResult> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     py.allow_threads(|| {
         let path = &path.into();
         let fut = if let Some(options) = options {
@@ -367,7 +372,7 @@ pub(crate) fn get_range(
     end: Option<u64>,
     length: Option<u64>,
 ) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let range = params_to_range(start, end, length)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_range(&path.into(), range))?;
@@ -421,7 +426,7 @@ pub(crate) fn get_ranges(
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,
 ) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
-    let runtime = get_runtime(py)?;
+    let runtime = get_runtime();
     let ranges = params_to_ranges(starts, ends, lengths)?;
     py.allow_threads(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(&path.into(), &ranges))?;

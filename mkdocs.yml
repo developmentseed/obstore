@@ -12,10 +12,12 @@ extra:
   social:
     - icon: "fontawesome/brands/github"
       link: "https://github.com/developmentseed"
-    - icon: "fontawesome/brands/twitter"
-      link: "https://twitter.com/developmentseed"
+    - icon: "fontawesome/brands/bluesky"
+      link: "https://bsky.app/profile/developmentseed.org"
     - icon: "fontawesome/brands/linkedin"
       link: "https://www.linkedin.com/company/development-seed"
+    - icon: "material/web"
+      link: "https://developmentseed.org/"
   version:
     alias: true
     provider: mike

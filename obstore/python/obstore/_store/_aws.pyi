@@ -451,8 +451,7 @@ class S3CredentialProvider(Protocol):
         ```
     """
 
-    @staticmethod
-    def __call__() -> S3Credential | Coroutine[Any, Any, S3Credential]:
+    def __call__(self) -> S3Credential | Coroutine[Any, Any, S3Credential]:
         """Return an `S3Credential`."""
 
 class S3Store:
@@ -474,7 +473,7 @@ class S3Store:
     set in the environment.
     """
 
-    def __init__(
+    def __init__(  # type: ignore[misc] # Overlap between argument names and ** TypedDict items: "bucket"
         self,
         bucket: str | None = None,
         *,
@@ -483,7 +482,7 @@ class S3Store:
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: S3CredentialProvider | None = None,
-        **kwargs: Unpack[S3Config],  # type: ignore[GeneralTypeIssues] (bucket key overlaps with positional arg)
+        **kwargs: Unpack[S3Config],  # type: ignore # noqa: PGH003 (bucket key overlaps with positional arg)
     ) -> None:
         """Create a new S3Store.
 

@@ -68,7 +68,7 @@ jobs:
 
       - name: Run python tests
         run: |
-          uv run pytest tests
+          uv run pytest tests --mypy-only-local-stub
 
       # Ensure docs build without warnings
       - name: Check docs

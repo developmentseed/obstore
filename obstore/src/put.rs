@@ -16,12 +16,12 @@ use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
 use pyo3::{intern, IntoPyObjectExt};
+use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
 
 use crate::attributes::PyAttributes;
-use crate::runtime::get_runtime;
 use crate::tags::PyTagSet;
 
 pub(crate) struct PyPutMode(PutMode);
@@ -324,27 +324,29 @@ pub(crate) fn put(
         }
     }
 
-    let runtime = get_runtime(py)?;
-    if use_multipart {
-        runtime.block_on(put_multipart_inner(
-            store.into_inner(),
-            &path.into(),
-            file,
-            chunk_size,
-            max_concurrency,
-            attributes,
-            tags,
-        ))
-    } else {
-        runtime.block_on(put_inner(
-            store.into_inner(),
-            &path.into(),
-            file,
-            attributes,
-            tags,
-            mode,
-        ))
-    }
+    let runtime = get_runtime();
+    py.allow_threads(|| {
+        if use_multipart {
+            runtime.block_on(put_multipart_inner(
+                store.into_inner(),
+                &path.into(),
+                file,
+                chunk_size,
+                max_concurrency,
+                attributes,
+                tags,
+            ))
+        } else {
+            runtime.block_on(put_inner(
+                store.into_inner(),
+                &path.into(),
+                file,
+                attributes,
+                tags,
+                mode,
+            ))
+        }
+    })
 }
 
 #[pyfunction]

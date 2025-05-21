@@ -11,12 +11,13 @@
 [pypi-img]: https://img.shields.io/pypi/dm/obstore
 [pypi-link]: https://pypi.org/project/obstore/
 
-The simplest, highest-throughput [^1] Python interface to [S3][s3], [GCS][gcs], [Azure Storage][azure_storage], & other S3-compliant APIs, powered by Rust.
+The simplest, highest-throughput [^1] Python interface to [Amazon S3][s3], [Google Cloud Storage][gcs], [Azure Storage][azure_storage], & other S3-compliant APIs, powered by Rust.
 
 [s3]: https://aws.amazon.com/s3/
 [gcs]: https://cloud.google.com/storage
 [azure_storage]: https://learn.microsoft.com/en-us/azure/storage/common/storage-introduction
 
+- **One interface** for all backends with **no required Python dependencies**.
 - Sync and async API with **full type hinting**.
 - **Streaming downloads** with configurable chunking.
 - **Streaming uploads** from files or async or sync iterators.
@@ -24,7 +25,6 @@ The simplest, highest-throughput [^1] Python interface to [S3][s3], [GCS][gcs], 
 - Automatic [**multipart uploads**](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html) for large file objects.
 - Automatic **credential refresh** before expiration.
 - File-like object API and [fsspec](https://github.com/fsspec/filesystem_spec) integration.
-- Easy to install with **no required Python dependencies**.
 - Optionally return list results in [Apache Arrow](https://arrow.apache.org/) format, which is faster and more memory-efficient than materializing Python `dict`s.
 - Zero-copy data exchange between Rust and Python via the [buffer protocol](https://jakevdp.github.io/blog/2014/05/05/introduction-to-the-python-buffer-protocol/).
 

@@ -2,7 +2,7 @@
 
 import sys
 from datetime import datetime
-from typing import Generic, List, Literal, TypedDict, TypeVar, overload
+from typing import Generic, Literal, Sequence, TypedDict, TypeVar, overload
 
 from arro3.core import RecordBatch, Table
 
@@ -14,7 +14,19 @@ else:
     from typing_extensions import Self
 
 class ObjectMeta(TypedDict):
-    """The metadata that describes an object."""
+    """The metadata that describes an object.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import ObjectMeta
+        ```
+    """
 
     path: str
     """The full path to the object"""
@@ -33,12 +45,29 @@ class ObjectMeta(TypedDict):
     version: str | None
     """A version indicator for this object"""
 
-ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  # noqa: PYI001
+ListChunkType = TypeVar(  # noqa: PYI001, PLC0105
+    "ListChunkType",
+    Sequence[ObjectMeta],
+    RecordBatch,
+    Table,
+    covariant=True,
+)
 """The data structure used for holding list results.
 
 By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
 for improved performance when listing large buckets, you can pass `return_arrow=True`.
 Then an Arrow `RecordBatch` will be returned instead.
+
+!!! warning "Not importable at runtime"
+
+    To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+    ```py
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+    if TYPE_CHECKING:
+        from obstore import ListChunkType
+    ```
 """
 
 class ListResult(TypedDict, Generic[ListChunkType]):
@@ -49,9 +78,20 @@ class ListResult(TypedDict, Generic[ListChunkType]):
     object storage's limitations.
 
     This implements [`obstore.ListResult`][].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import ListResult
+        ```
     """
 
-    common_prefixes: List[str]
+    common_prefixes: Sequence[str]
     """Prefixes that are common (like directories)"""
 
     objects: ListChunkType
@@ -62,6 +102,17 @@ class ListStream(Generic[ListChunkType]):
     async fashion.
 
     This implements [`obstore.ListStream`][].
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import ListStream
+        ```
     """  # noqa: D205
 
     def __aiter__(self) -> Self:
@@ -97,6 +148,14 @@ def list(
     *,
     offset: str | None = None,
     chunk_size: int = 50,
+) -> ListStream[Sequence[ObjectMeta]]: ...
+@overload
+def list(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    offset: str | None = None,
+    chunk_size: int = 50,
     return_arrow: Literal[True],
 ) -> ListStream[RecordBatch]: ...
 @overload
@@ -106,16 +165,25 @@ def list(
     *,
     offset: str | None = None,
     chunk_size: int = 50,
-    return_arrow: Literal[False] = False,
-) -> ListStream[List[ObjectMeta]]: ...
+    return_arrow: Literal[False],
+) -> ListStream[Sequence[ObjectMeta]]: ...
+@overload
 def list(
     store: ObjectStore,
     prefix: str | None = None,
     *,
     offset: str | None = None,
     chunk_size: int = 50,
+    return_arrow: bool,
+) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]: ...
+def list(  # type: ignore[misc] # docstring in pyi file
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    offset: str | None = None,
+    chunk_size: int = 50,
     return_arrow: bool = False,
-) -> ListStream[RecordBatch] | ListStream[List[ObjectMeta]]:
+) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]:
     """List all the objects with the given prefix.
 
     Prefixes are evaluated on a path segment basis, i.e. `foo/bar/` is a prefix of
@@ -219,13 +287,13 @@ def list_with_delimiter(
     prefix: str | None = None,
     *,
     return_arrow: Literal[False] = False,
-) -> ListResult[List[ObjectMeta]]: ...
-def list_with_delimiter(
+) -> ListResult[Sequence[ObjectMeta]]: ...
+def list_with_delimiter(  # type: ignore[misc] # docstring in pyi file
     store: ObjectStore,
     prefix: str | None = None,
     *,
     return_arrow: bool = False,
-) -> ListResult[Table] | ListResult[List[ObjectMeta]]:
+) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
     """List objects with the given prefix and an implementation specific
     delimiter.
 
@@ -270,13 +338,13 @@ async def list_with_delimiter_async(
     prefix: str | None = None,
     *,
     return_arrow: Literal[False] = False,
-) -> ListResult[List[ObjectMeta]]: ...
-async def list_with_delimiter_async(
+) -> ListResult[Sequence[ObjectMeta]]: ...
+async def list_with_delimiter_async(  # type: ignore[misc] # docstring in pyi file
     store: ObjectStore,
     prefix: str | None = None,
     *,
     return_arrow: bool = False,
-) -> ListResult[Table] | ListResult[List[ObjectMeta]]:
+) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
     """Call `list_with_delimiter` asynchronously.
 
     Refer to the documentation for

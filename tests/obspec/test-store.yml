@@ -1,0 +1,91 @@
+- case: assignable_to_sync_store
+  parametrized:
+    - store: AzureStore
+    - store: GCSStore
+    - store: LocalStore
+    - store: MemoryStore
+    - store: S3Store
+  main: |
+    from typing import Protocol
+
+    from obspec import (
+        Copy,
+        Delete,
+        Get,
+        GetRange,
+        GetRanges,
+        Head,
+        List,
+        ListWithDelimiter,
+        Put,
+        Rename,
+    )
+    from typing_extensions import assert_type
+
+    from obstore.store import {{ store }}
+
+    class SyncStore(
+        Copy,
+        Delete,
+        Get,
+        GetRange,
+        GetRanges,
+        Head,
+        List,
+        ListWithDelimiter,
+        Put,
+        Rename,
+        Protocol,
+    ): ...
+
+    def accepts_sync_store(store: SyncStore) -> None:
+        assert_type(store, SyncStore)
+
+    def assignable_to_sync_store(store: {{ store }}) -> None:
+        accepts_sync_store(store)
+
+- case: assignable_to_async_store
+  parametrized:
+    - store: AzureStore
+    - store: GCSStore
+    - store: LocalStore
+    - store: MemoryStore
+    - store: S3Store
+  main: |
+    from typing import Protocol
+
+    from obspec import (
+        CopyAsync,
+        DeleteAsync,
+        GetAsync,
+        GetRangeAsync,
+        GetRangesAsync,
+        HeadAsync,
+        ListAsync,
+        ListWithDelimiterAsync,
+        PutAsync,
+        RenameAsync,
+    )
+    from typing_extensions import assert_type
+
+    from obstore.store import {{ store }}
+
+    class AsyncStore(
+        CopyAsync,
+        DeleteAsync,
+        GetAsync,
+        GetRangeAsync,
+        GetRangesAsync,
+        HeadAsync,
+        ListAsync,
+        ListWithDelimiterAsync,
+        PutAsync,
+        RenameAsync,
+        Protocol,
+    ): ...
+
+    def accepts_async_store(store: AsyncStore) -> None:
+        assert_type(store, AsyncStore)
+
+    def assignable_to_async_store(store: {{ store }}) -> None:
+        accepts_async_store(store)

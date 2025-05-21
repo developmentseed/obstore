@@ -313,8 +313,7 @@ class AzureCredentialProvider(Protocol):
         ```
     """
 
-    @staticmethod
-    def __call__() -> AzureCredential | Coroutine[Any, Any, AzureCredential]:
+    def __call__(self) -> AzureCredential | Coroutine[Any, Any, AzureCredential]:
         """Return an `AzureCredential`."""
 
 class AzureStore:
@@ -324,7 +323,7 @@ class AzureStore:
     [`AzureConfig`][obstore.store.AzureConfig] for valid environment variables.
     """
 
-    def __init__(
+    def __init__(  # type: ignore[misc] # Overlap between argument names and ** TypedDict items: "container_name"
         self,
         container_name: str | None = None,
         *,
@@ -333,7 +332,7 @@ class AzureStore:
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: AzureCredentialProvider | None = None,
-        **kwargs: Unpack[AzureConfig],  # type: ignore[GeneralTypeIssues] (container_name key overlaps with positional arg)
+        **kwargs: Unpack[AzureConfig],  # type: ignore # noqa: PGH003 (container_name key overlaps with positional arg)
     ) -> None:
         """Construct a new AzureStore.
 

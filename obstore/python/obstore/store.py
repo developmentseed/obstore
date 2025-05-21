@@ -100,7 +100,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [copy][obstore.copy].
         """
         return obs.copy(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             from_,
             to,
             overwrite=overwrite,
@@ -118,7 +118,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [copy][obstore.copy].
         """
         return await obs.copy_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             from_,
             to,
             overwrite=overwrite,
@@ -130,7 +130,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [delete][obstore.delete].
         """
         return obs.delete(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             paths,
         )
 
@@ -140,7 +140,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [delete][obstore.delete].
         """
         return await obs.delete_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             paths,
         )
 
@@ -155,7 +155,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [get][obstore.get].
         """
         return obs.get(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             options=options,
         )
@@ -171,7 +171,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [get][obstore.get].
         """
         return await obs.get_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             options=options,
         )
@@ -189,7 +189,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [get_range][obstore.get_range].
         """
         return obs.get_range(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             start=start,
             end=end,
@@ -209,7 +209,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [get_range][obstore.get_range].
         """
         return await obs.get_range_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             start=start,
             end=end,
@@ -229,7 +229,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [get_ranges][obstore.get_ranges].
         """
         return obs.get_ranges(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             starts=starts,
             ends=ends,
@@ -249,7 +249,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [get_ranges][obstore.get_ranges].
         """
         return await obs.get_ranges_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             starts=starts,
             ends=ends,
@@ -262,7 +262,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [head][obstore.head].
         """
         return obs.head(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
         )
 
@@ -272,7 +272,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [head_async][obstore.head_async].
         """
         return await obs.head_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
         )
 
@@ -293,7 +293,7 @@ class _ObjectStoreMixin:
         offset: str | None = None,
         chunk_size: int = 50,
         return_arrow: Literal[False] = False,
-    ) -> ListStream[list[ObjectMeta]]: ...
+    ) -> ListStream[Sequence[ObjectMeta]]: ...
     def list(
         self,
         prefix: str | None = None,
@@ -301,7 +301,7 @@ class _ObjectStoreMixin:
         offset: str | None = None,
         chunk_size: int = 50,
         return_arrow: bool = False,
-    ) -> ListStream[RecordBatch] | ListStream[list[ObjectMeta]]:
+    ) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]:
         """List all the objects with the given prefix.
 
         Refer to the documentation for [list][obstore.list].
@@ -309,16 +309,71 @@ class _ObjectStoreMixin:
         # Splitting these fixes the typing issue with the `return_arrow` parameter, by
         # converting from a bool to a Literal[True] or Literal[False]
         if return_arrow:
-            return obs.list(
-                self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            return obs.list(  # type: ignore[call-overload]
+                self,  # type: ignore[arg-type]
                 prefix,
                 offset=offset,
                 chunk_size=chunk_size,
                 return_arrow=return_arrow,
             )
 
-        return obs.list(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+        return obs.list(  # type: ignore[call-overload]
+            self,  # type: ignore[arg-type]
+            prefix,
+            offset=offset,
+            chunk_size=chunk_size,
+            return_arrow=return_arrow,
+        )
+
+    @overload
+    def list_async(
+        self,
+        prefix: str | None = None,
+        *,
+        offset: str | None = None,
+        chunk_size: int = 50,
+        return_arrow: Literal[True],
+    ) -> ListStream[RecordBatch]: ...
+    @overload
+    def list_async(
+        self,
+        prefix: str | None = None,
+        *,
+        offset: str | None = None,
+        chunk_size: int = 50,
+        return_arrow: Literal[False] = False,
+    ) -> ListStream[Sequence[ObjectMeta]]: ...
+    def list_async(
+        self,
+        prefix: str | None = None,
+        *,
+        offset: str | None = None,
+        chunk_size: int = 50,
+        return_arrow: bool = False,
+    ) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]:
+        """List all the objects with the given prefix.
+
+        Refer to the documentation for [list][obstore.list].
+
+        !!! note
+
+            This is an alias for `list`, provided to match the `ListAsync` protocol in
+            obspec. There is no difference in functionality between this and the `list`
+            method.
+        """
+        # Splitting these fixes the typing issue with the `return_arrow` parameter, by
+        # converting from a bool to a Literal[True] or Literal[False]
+        if return_arrow:
+            return obs.list(  # type: ignore[call-overload]
+                self,  # type: ignore[arg-type]
+                prefix,
+                offset=offset,
+                chunk_size=chunk_size,
+                return_arrow=return_arrow,
+            )
+
+        return obs.list(  # type: ignore[call-overload]
+            self,  # type: ignore[arg-type]
             prefix,
             offset=offset,
             chunk_size=chunk_size,
@@ -338,13 +393,13 @@ class _ObjectStoreMixin:
         prefix: str | None = None,
         *,
         return_arrow: Literal[False] = False,
-    ) -> ListResult[list[ObjectMeta]]: ...
+    ) -> ListResult[Sequence[ObjectMeta]]: ...
     def list_with_delimiter(
         self,
         prefix: str | None = None,
         *,
         return_arrow: bool = False,
-    ) -> ListResult[Table] | ListResult[list[ObjectMeta]]:
+    ) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
         """List objects with the given prefix and an implementation specific
         delimiter.
 
@@ -354,14 +409,14 @@ class _ObjectStoreMixin:
         # Splitting these fixes the typing issue with the `return_arrow` parameter, by
         # converting from a bool to a Literal[True] or Literal[False]
         if return_arrow:
-            return obs.list_with_delimiter(
-                self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            return obs.list_with_delimiter(  # type: ignore[call-overload]
+                self,  # type: ignore[arg-type]
                 prefix,
                 return_arrow=return_arrow,
             )
 
-        return obs.list_with_delimiter(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+        return obs.list_with_delimiter(  # type: ignore[call-overload]
+            self,  # type: ignore[arg-type]
             prefix,
             return_arrow=return_arrow,
         )
@@ -379,13 +434,13 @@ class _ObjectStoreMixin:
         prefix: str | None = None,
         *,
         return_arrow: Literal[False] = False,
-    ) -> ListResult[list[ObjectMeta]]: ...
+    ) -> ListResult[Sequence[ObjectMeta]]: ...
     async def list_with_delimiter_async(
         self,
         prefix: str | None = None,
         *,
         return_arrow: bool = False,
-    ) -> ListResult[Table] | ListResult[list[ObjectMeta]]:
+    ) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
         """Call `list_with_delimiter` asynchronously.
 
         Refer to the documentation for
@@ -394,14 +449,14 @@ class _ObjectStoreMixin:
         # Splitting these fixes the typing issue with the `return_arrow` parameter, by
         # converting from a bool to a Literal[True] or Literal[False]
         if return_arrow:
-            return await obs.list_with_delimiter_async(
-                self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            return await obs.list_with_delimiter_async(  # type: ignore[call-overload]
+                self,  # type: ignore[arg-type]
                 prefix,
                 return_arrow=return_arrow,
             )
 
-        return await obs.list_with_delimiter_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+        return await obs.list_with_delimiter_async(  # type: ignore[call-overload]
+            self,  # type: ignore[arg-type]
             prefix,
             return_arrow=return_arrow,
         )
@@ -423,7 +478,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [put][obstore.put].
         """
         return obs.put(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             file,
             attributes=attributes,
@@ -473,7 +528,7 @@ class _ObjectStoreMixin:
         ```
         """
         return await obs.put_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             path,
             file,
             attributes=attributes,
@@ -490,7 +545,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [rename][obstore.rename].
         """
         return obs.rename(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             from_,
             to,
             overwrite=overwrite,
@@ -508,7 +563,7 @@ class _ObjectStoreMixin:
         Refer to the documentation for [rename][obstore.rename].
         """
         return await obs.rename_async(
-            self,  # type: ignore (Argument of type "Self@_ObjectStoreMixin" cannot be assigned to parameter "store")
+            self,  # type: ignore[arg-type]
             from_,
             to,
             overwrite=overwrite,
@@ -550,7 +605,14 @@ class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
 
     store = HTTPStore.from_url("https://api.github.com")
     resp = obs.get(store, "repos/developmentseed/obstore")
-    data = json.loads(resp.bytes())
+
+    # If you have orjson installed, you can load bytes without copying them via
+    # `memoryview`:
+    import orjson
+    data = orjson.loads(memoryview(resp.bytes()))
+
+    # Otherwise, you'll need to copy with `bytes`, e.g. `json(bytes(resp.bytes()))`
+
     print(data["stargazers_count"])
     ```
     """
@@ -644,7 +706,7 @@ def from_url(
     **kwargs: Unpack[AzureConfig],
 ) -> ObjectStore: ...
 @overload
-def from_url(  # type: ignore (parameter overlap)
+def from_url(
     url: str,
     *,
     config: None = None,
@@ -710,28 +772,28 @@ def from_url(  # noqa: C901
     if scheme == "s3":
         return S3Store.from_url(
             url,
-            config=config,  # type: ignore (config narrowing)
+            config=config,  # type: ignore[arg-type]
             client_options=client_options,
             retry_config=retry_config,
-            credential_provider=credential_provider,  # type: ignore (config narrowing)
+            credential_provider=credential_provider,  # type: ignore[arg-type]
             **kwargs,
         )
     if scheme == "gcs":
         return GCSStore.from_url(
             url,
-            config=config,  # type: ignore (config narrowing)
+            config=config,  # type: ignore[arg-type]
             client_options=client_options,
             retry_config=retry_config,
-            credential_provider=credential_provider,  # type: ignore (config narrowing)
+            credential_provider=credential_provider,  # type: ignore[arg-type]
             **kwargs,
         )
     if scheme == "azure":
         return AzureStore.from_url(
             url,
-            config=config,  # type: ignore (config narrowing)
+            config=config,  # type: ignore[arg-type]
             client_options=client_options,
             retry_config=retry_config,
-            credential_provider=credential_provider,  # type: ignore (config narrowing)
+            credential_provider=credential_provider,  # type: ignore[arg-type]
             **kwargs,
         )
     if scheme == "http":
