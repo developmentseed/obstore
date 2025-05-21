@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from obstore.auth.boto3 import Boto3CredentialProvider
 from obstore.exceptions import BaseError, UnknownConfigurationKeyError
 from obstore.store import from_url
 
@@ -55,3 +56,8 @@ def test_http():
 
     with pytest.raises(BaseError):
         from_url(url, bucket="test")
+
+
+def test_credential_provider_to_http_store_raises():
+    with pytest.raises(BaseError):
+        from_url("http://mydomain/path", credential_provider=Boto3CredentialProvider())
