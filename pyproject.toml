@@ -40,8 +40,7 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "python-dotenv>=1.0.1",
     "ruff>=0.11.0",
-    "tqdm>=4.67.1", # used in example but added here for pyright CI
-    "types-boto3[s3,sts]>=1.36.23",
+    "tqdm>=4.67.1",
 ]
 constraint-dependencies = [
     # ensure lockfile grabs wheels for pyproj for each Python version

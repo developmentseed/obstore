@@ -416,18 +416,6 @@ wheels = [
 ]
 
 [[package]]
-name = "botocore-stubs"
-version = "1.38.19"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "types-awscrt" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/43/70/6204c97f8d8362364f11c16085566abdcaa114c264d3a4d709ff697b203b/botocore_stubs-1.38.19.tar.gz", hash = "sha256:84f67a42bb240a8ea0c5fe4f05d497cc411177db600bc7012182e499ac24bf19", size = 42269, upload-time = "2025-05-19T20:18:13.556Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b4/ce/28b143452c22b678678d832bf8b41218e3d319bf94062b48c28fe5d81163/botocore_stubs-1.38.19-py3-none-any.whl", hash = "sha256:66fd7d231c21134a12acbe313ef7a6b152cbf9bfd7bfa12a62f8c33e94737e26", size = 65603, upload-time = "2025-05-19T20:18:10.445Z" },
-]
-
-[[package]]
 name = "cachetools"
 version = "5.5.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3360,7 +3348,6 @@ dev = [
     { name = "python-dotenv" },
     { name = "ruff" },
     { name = "tqdm" },
-    { name = "types-boto3", extra = ["s3", "sts"] },
 ]
 
 [package.metadata]
@@ -3400,7 +3387,6 @@ dev = [
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "ruff", specifier = ">=0.11.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
-    { name = "types-boto3", extras = ["s3", "sts"], specifier = ">=1.36.23" },
 ]
 
 [[package]]
@@ -3501,70 +3487,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/eb/79/72064e6a701c2183016abbbfedaba506d81e30e232a68c9f0d6f6fcd1574/traitlets-5.14.3.tar.gz", hash = "sha256:9ed0579d3502c94b4b3732ac120375cda96f923114522847de4b3bb98b96b6b7", size = 161621, upload-time = "2024-04-19T11:11:49.746Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/c0/8f5d070730d7836adc9c9b6408dec68c6ced86b304a9b26a14df072a6e8c/traitlets-5.14.3-py3-none-any.whl", hash = "sha256:b74e89e397b1ed28cc831db7aea759ba6640cb3de13090ca145426688ff1ac4f", size = 85359, upload-time = "2024-04-19T11:11:46.763Z" },
-]
-
-[[package]]
-name = "types-awscrt"
-version = "0.27.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/36/6c/583522cfb3c330e92e726af517a91c13247e555e021791a60f1b03c6ff16/types_awscrt-0.27.2.tar.gz", hash = "sha256:acd04f57119eb15626ab0ba9157fc24672421de56e7bd7b9f61681fedee44e91", size = 16304, upload-time = "2025-05-16T03:10:08.712Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/82/1ee2e5c9d28deac086ab3a6ff07c8bc393ef013a083f546c623699881715/types_awscrt-0.27.2-py3-none-any.whl", hash = "sha256:49a045f25bbd5ad2865f314512afced933aed35ddbafc252e2268efa8a787e4e", size = 37761, upload-time = "2025-05-16T03:10:07.466Z" },
-]
-
-[[package]]
-name = "types-boto3"
-version = "1.38.20"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "botocore-stubs" },
-    { name = "types-s3transfer" },
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f4/95/c3a0eeaef3092b07e39fe1f09dc007da11c8722a178050001330fed2e671/types_boto3-1.38.20.tar.gz", hash = "sha256:69dcd9ebd26b12f8389e70dc58497ab8c94bcaba502d35d8b81e975a9b2d6e4f", size = 99483, upload-time = "2025-05-20T23:30:14.891Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/d7/feae23248daf00991f2c632dc4c7bf5361865908fb2b789b7c2a81947a58/types_boto3-1.38.20-py3-none-any.whl", hash = "sha256:882337100719ffc139de8dd09f735f4effe04eb5e9151d276bbd04d9219bb27f", size = 68584, upload-time = "2025-05-20T23:30:11.301Z" },
-]
-
-[package.optional-dependencies]
-s3 = [
-    { name = "types-boto3-s3" },
-]
-sts = [
-    { name = "types-boto3-sts" },
-]
-
-[[package]]
-name = "types-boto3-s3"
-version = "1.38.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/3e/0fe84b4d8f602f8fa6ae27effc1aef870ba10ef75014d958ce4ecb11850d/types_boto3_s3-1.38.0.tar.gz", hash = "sha256:739e38b45f01b0c85d4d7c281fbb092d1afb445cf90ccf6da51b792053a47176", size = 73337, upload-time = "2025-04-22T21:31:21.675Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4c/a8/acd40e99bb5137addd19c483bcdd6b0d3d679eb3c24513c686c0874f85d8/types_boto3_s3-1.38.0-py3-none-any.whl", hash = "sha256:0b3df16b7a1a4806202d32c12569f7b0634f2a3ffd1c2a240bf5e6b70b93f3b5", size = 80115, upload-time = "2025-04-22T21:31:19.941Z" },
-]
-
-[[package]]
-name = "types-boto3-sts"
-version = "1.38.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/51/d8/395e920356ec718625c0098cacf847c9bc6d816bd25213270934749c4b9d/types_boto3_sts-1.38.0.tar.gz", hash = "sha256:97a8472d8c675e59d8053cf6b073df56aff4709f04ef7bd89a317c690186a4ff", size = 16586, upload-time = "2025-04-22T21:33:26.427Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/c2/97a40f9353aebfa56382e206e867ee6d9e93404c68e38704524d4de02c35/types_boto3_sts-1.38.0-py3-none-any.whl", hash = "sha256:1d6b1f4709fd2168f4a00b60338d50dd6850b2d27b5531d12184d36bc6cb2abd", size = 20114, upload-time = "2025-04-22T21:33:24.256Z" },
-]
-
-[[package]]
-name = "types-s3transfer"
-version = "0.12.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fb/d5/830e9efe91a26601a2bebde6f299239d2d26e542f5d4b3bc7e8c23c81a3f/types_s3transfer-0.12.0.tar.gz", hash = "sha256:f8f59201481e904362873bf0be3267f259d60ad946ebdfcb847d092a1fa26f98", size = 14096, upload-time = "2025-04-23T00:38:19.131Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/43/6097275152463ac9bacf1e00aab30bc6682bf45f6a031be8bf029c030ba2/types_s3transfer-0.12.0-py3-none-any.whl", hash = "sha256:101bbc5b7f00b71512374df881f480fc6bf63c948b5098ab024bf3370fbfb0e8", size = 19553, upload-time = "2025-04-23T00:38:17.865Z" },
 ]
 
 [[package]]
