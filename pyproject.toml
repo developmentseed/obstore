@@ -41,6 +41,7 @@ dev-dependencies = [
     "python-dotenv>=1.0.1",
     "ruff>=0.11.0",
     "tqdm>=4.67.1",
+    "types-boto3[sts]>=1.36.23",
 ]
 constraint-dependencies = [
     # ensure lockfile grabs wheels for pyproj for each Python version
