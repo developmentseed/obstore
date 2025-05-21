@@ -2,7 +2,7 @@
 
 import sys
 from datetime import datetime
-from typing import Generic, List, Literal, TypedDict, TypeVar, overload
+from typing import Generic, Literal, Sequence, TypedDict, TypeVar, overload
 
 from arro3.core import RecordBatch, Table
 
@@ -45,7 +45,13 @@ class ObjectMeta(TypedDict):
     version: str | None
     """A version indicator for this object"""
 
-ListChunkType = TypeVar("ListChunkType", List[ObjectMeta], RecordBatch, Table)  # noqa: PYI001
+ListChunkType = TypeVar(  # noqa: PYI001
+    "ListChunkType",
+    Sequence[ObjectMeta],
+    RecordBatch,
+    Table,
+    covariant=True,
+)
 """The data structure used for holding list results.
 
 By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
@@ -85,7 +91,7 @@ class ListResult(TypedDict, Generic[ListChunkType]):
         ```
     """
 
-    common_prefixes: List[str]
+    common_prefixes: Sequence[str]
     """Prefixes that are common (like directories)"""
 
     objects: ListChunkType
@@ -152,7 +158,7 @@ def list(
     offset: str | None = None,
     chunk_size: int = 50,
     return_arrow: Literal[False] = False,
-) -> ListStream[List[ObjectMeta]]: ...
+) -> ListStream[Sequence[ObjectMeta]]: ...
 def list(
     store: ObjectStore,
     prefix: str | None = None,
@@ -160,7 +166,7 @@ def list(
     offset: str | None = None,
     chunk_size: int = 50,
     return_arrow: bool = False,
-) -> ListStream[RecordBatch] | ListStream[List[ObjectMeta]]:
+) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]:
     """List all the objects with the given prefix.
 
     Prefixes are evaluated on a path segment basis, i.e. `foo/bar/` is a prefix of
@@ -264,13 +270,13 @@ def list_with_delimiter(
     prefix: str | None = None,
     *,
     return_arrow: Literal[False] = False,
-) -> ListResult[List[ObjectMeta]]: ...
+) -> ListResult[Sequence[ObjectMeta]]: ...
 def list_with_delimiter(
     store: ObjectStore,
     prefix: str | None = None,
     *,
     return_arrow: bool = False,
-) -> ListResult[Table] | ListResult[List[ObjectMeta]]:
+) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
     """List objects with the given prefix and an implementation specific
     delimiter.
 
@@ -315,13 +321,13 @@ async def list_with_delimiter_async(
     prefix: str | None = None,
     *,
     return_arrow: Literal[False] = False,
-) -> ListResult[List[ObjectMeta]]: ...
+) -> ListResult[Sequence[ObjectMeta]]: ...
 async def list_with_delimiter_async(
     store: ObjectStore,
     prefix: str | None = None,
     *,
     return_arrow: bool = False,
-) -> ListResult[Table] | ListResult[List[ObjectMeta]]:
+) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
     """Call `list_with_delimiter` asynchronously.
 
     Refer to the documentation for

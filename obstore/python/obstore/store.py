@@ -293,7 +293,7 @@ class _ObjectStoreMixin:
         offset: str | None = None,
         chunk_size: int = 50,
         return_arrow: Literal[False] = False,
-    ) -> ListStream[list[ObjectMeta]]: ...
+    ) -> ListStream[Sequence[ObjectMeta]]: ...
     def list(
         self,
         prefix: str | None = None,
@@ -301,7 +301,7 @@ class _ObjectStoreMixin:
         offset: str | None = None,
         chunk_size: int = 50,
         return_arrow: bool = False,
-    ) -> ListStream[RecordBatch] | ListStream[list[ObjectMeta]]:
+    ) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]:
         """List all the objects with the given prefix.
 
         Refer to the documentation for [list][obstore.list].
@@ -338,13 +338,13 @@ class _ObjectStoreMixin:
         prefix: str | None = None,
         *,
         return_arrow: Literal[False] = False,
-    ) -> ListResult[list[ObjectMeta]]: ...
+    ) -> ListResult[Sequence[ObjectMeta]]: ...
     def list_with_delimiter(
         self,
         prefix: str | None = None,
         *,
         return_arrow: bool = False,
-    ) -> ListResult[Table] | ListResult[list[ObjectMeta]]:
+    ) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
         """List objects with the given prefix and an implementation specific
         delimiter.
 
@@ -379,13 +379,13 @@ class _ObjectStoreMixin:
         prefix: str | None = None,
         *,
         return_arrow: Literal[False] = False,
-    ) -> ListResult[list[ObjectMeta]]: ...
+    ) -> ListResult[Sequence[ObjectMeta]]: ...
     async def list_with_delimiter_async(
         self,
         prefix: str | None = None,
         *,
         return_arrow: bool = False,
-    ) -> ListResult[Table] | ListResult[list[ObjectMeta]]:
+    ) -> ListResult[Table] | ListResult[Sequence[ObjectMeta]]:
         """Call `list_with_delimiter` asynchronously.
 
         Refer to the documentation for

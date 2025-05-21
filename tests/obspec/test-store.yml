@@ -1,0 +1,58 @@
+- case: accepts_get
+  main: |
+    from typing import Protocol
+
+    from obspec import (
+        Copy,
+        Delete,
+        Get,
+        GetRange,
+        GetRanges,
+        Head,
+        List,
+        ListWithDelimiter,
+        Put,
+        Rename,
+    )
+    from typing_extensions import assert_type
+
+    from obstore.store import AzureStore, GCSStore, LocalStore, MemoryStore, S3Store
+
+
+    class SyncStore(
+        Copy,
+        Delete,
+        Get,
+        GetRange,
+        GetRanges,
+        Head,
+        List,
+        ListWithDelimiter,
+        Put,
+        Rename,
+        Protocol,
+    ): ...
+
+
+    def memory_store_implements_sync_store(store: MemoryStore) -> None:
+        accepts_sync_store(store)
+
+
+    def azure_store_implements_sync_store(store: AzureStore) -> None:
+        accepts_sync_store(store)
+
+
+    def gcs_store_implements_sync_store(store: GCSStore) -> None:
+        accepts_sync_store(store)
+
+
+    def local_store_implements_sync_store(store: LocalStore) -> None:
+        accepts_sync_store(store)
+
+
+    def s3_store_implements_sync_store(store: S3Store) -> None:
+        accepts_sync_store(store)
+
+
+    def accepts_sync_store(store: SyncStore) -> None:
+        assert_type(store, SyncStore)
