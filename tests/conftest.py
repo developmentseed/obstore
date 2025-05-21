@@ -18,7 +18,7 @@ TEST_BUCKET_NAME = "test"
 
 
 # See docs here: https://docs.getmoto.org/en/latest/docs/server_mode.html
-@pytest.fixture
+@pytest.fixture(scope="session")
 def moto_server_uri():
     """Fixture to run a mocked AWS server for testing."""
     # Note: pass `port=0` to get a random free port.
@@ -46,6 +46,11 @@ def s3(moto_server_uri: str):
     client.create_bucket(Bucket=TEST_BUCKET_NAME, ACL="public-read")
     client.put_object(Bucket=TEST_BUCKET_NAME, Key="afile", Body=b"hello world")
     yield moto_server_uri
+    objects = client.list_objects_v2(Bucket=TEST_BUCKET_NAME)
+    for name in objects.get("Contents", []):
+        key = name.get("Key")
+        assert key is not None
+        client.delete_object(Bucket=TEST_BUCKET_NAME, Key=key)
     requests.post(f"{moto_server_uri}/moto-api/reset", timeout=30)
 
 

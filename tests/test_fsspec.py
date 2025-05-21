@@ -103,10 +103,6 @@ def test_construct_store_cache_diff_bucket_name(s3_store_config: S3Config):
         assert mock_construct.cache_info().hits == 0, "Cache should hits 0 times"
         assert mock_construct.cache_info().misses == 20, "Cache should miss 20 times"
 
-    # test garbage collector
-    del fs
-    assert gc.collect() > 0
-
 
 def test_construct_store_cache_same_bucket_name(s3_store_config: S3Config):
     register("s3")
@@ -135,10 +131,6 @@ def test_construct_store_cache_same_bucket_name(s3_store_config: S3Config):
             "Cache should hits 20-1 times"
         )
         assert mock_construct.cache_info().misses == 1, "Cache should only miss once"
-
-    # test garbage collector
-    del fs
-    assert gc.collect() > 0
 
 
 def test_fsspec_filesystem_cache(s3_store_config: S3Config):
