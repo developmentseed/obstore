@@ -12,7 +12,7 @@ dev-dependencies = [
     "aiohttp>=3.11.13",
     "arro3-core>=0.4.2",
     "azure-identity>=1.21.0",
-    "boto3>=1.35.38",
+    "boto3>=1.38.21",
     "fastapi>=0.115.12", # used in example but added here for pyright CI
     "fsspec>=2024.10.0",
     "google-auth>=2.38.0",
@@ -29,7 +29,7 @@ dev-dependencies = [
     "mkdocstrings>=0.27.0",
     "moto[s3,server]>=5.1.1",
     "mypy>=1.15.0",
-    "obspec>=0.1.0b4",
+    "obspec>=0.1.0b5",
     "pip>=24.2",
     "polars>=1.30.0",
     "pyarrow>=17.0.0",
@@ -41,7 +41,7 @@ dev-dependencies = [
     "python-dotenv>=1.0.1",
     "ruff>=0.11.0",
     "tqdm>=4.67.1", # used in example but added here for pyright CI
-    "types-boto3[sts]>=1.36.23",
+    "types-boto3[s3,sts]>=1.36.23",
 ]
 constraint-dependencies = [
     # ensure lockfile grabs wheels for pyproj for each Python version
