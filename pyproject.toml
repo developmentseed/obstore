@@ -13,7 +13,7 @@ dev-dependencies = [
     "arro3-core>=0.4.2",
     "azure-identity>=1.21.0",
     "boto3>=1.35.38",
-    "fastapi>=0.115.12",                  # used in example but added here for pyright CI
+    "fastapi>=0.115.12", # used in example but added here for pyright CI
     "fsspec>=2024.10.0",
     "google-auth>=2.38.0",
     "griffe-inherited-docstrings>=1.0.1",
@@ -40,7 +40,7 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "python-dotenv>=1.0.1",
     "ruff>=0.11.0",
-    "tqdm>=4.67.1",                       # used in example but added here for pyright CI
+    "tqdm>=4.67.1", # used in example but added here for pyright CI
     "types-boto3[sts]>=1.36.23",
 ]
 constraint-dependencies = [
@@ -51,6 +51,9 @@ constraint-dependencies = [
 
 [tool.uv.workspace]
 members = ["examples/fastapi-example"]
+
+[tool.uv.sources]
+obspec = { git = "https://github.com/developmentseed/obspec" }
 
 [tool.ruff]
 target-version = "py39"

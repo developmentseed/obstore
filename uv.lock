@@ -1959,24 +1959,9 @@ wheels = [
 [[package]]
 name = "obspec"
 version = "0.1.0b4"
-source = { directory = "../obspec" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "griffe", specifier = ">=1.7.3" },
-    { name = "ipykernel", specifier = ">=6.29.5" },
-    { name = "mike", specifier = ">=2.1.3" },
-    { name = "mkdocs", specifier = ">=1.6.1" },
-    { name = "mkdocs-material", extras = ["imaging"], specifier = ">=9.6.14" },
-    { name = "mkdocstrings", specifier = ">=0.29.1" },
-    { name = "mkdocstrings-python", specifier = ">=1.16.10" },
-    { name = "mypy", specifier = ">=1.15.0" },
-    { name = "pip", specifier = ">=24.2" },
-    { name = "pytest", specifier = ">=8.3.3" },
-    { name = "pytest-mypy-plugins", specifier = ">=3.2.0" },
-    { name = "ruff", specifier = ">=0.11.10" },
+source = { git = "https://github.com/developmentseed/obspec#82e657fe414a08cd27a4fc96db3613273e8fd48d" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 
 [[package]]
@@ -3422,7 +3407,7 @@ dev = [
     { name = "mkdocstrings-python", specifier = ">=1.13.0" },
     { name = "moto", extras = ["s3", "server"], specifier = ">=5.1.1" },
     { name = "mypy", specifier = ">=1.15.0" },
-    { name = "obspec", directory = "../obspec" },
+    { name = "obspec", git = "https://github.com/developmentseed/obspec" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pip", specifier = ">=24.2" },
     { name = "polars", specifier = ">=1.24.0" },
