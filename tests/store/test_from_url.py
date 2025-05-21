@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
-from obstore.auth.boto3 import Boto3CredentialProvider
 from obstore.exceptions import BaseError, UnknownConfigurationKeyError
 from obstore.store import from_url
+
+if TYPE_CHECKING:
+    from obstore.store import S3Credential
 
 
 def test_local():
@@ -59,5 +64,8 @@ def test_http():
 
 
 def test_credential_provider_to_http_store_raises():
+    def s3_credential_provider() -> S3Credential:
+        return {"access_key_id": "", "secret_access_key": "", "expires_at": None}
+
     with pytest.raises(BaseError):
-        from_url("http://mydomain/path", credential_provider=Boto3CredentialProvider())
+        from_url("http://mydomain/path", credential_provider=s3_credential_provider)
