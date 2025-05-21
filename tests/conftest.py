@@ -48,7 +48,9 @@ def s3(moto_server_uri: str):
     yield moto_server_uri
     objects = client.list_objects_v2(Bucket=TEST_BUCKET_NAME)
     for name in objects.get("Contents", []):
-        client.delete_object(Bucket=TEST_BUCKET_NAME, Key=name["Key"])
+        key = name.get("Key")
+        assert key is not None
+        client.delete_object(Bucket=TEST_BUCKET_NAME, Key=key)
     requests.post(f"{moto_server_uri}/moto-api/reset", timeout=30)
 
 
