@@ -3360,7 +3360,7 @@ dev = [
     { name = "python-dotenv" },
     { name = "ruff" },
     { name = "tqdm" },
-    { name = "types-boto3", extra = ["sts"] },
+    { name = "types-boto3", extra = ["s3", "sts"] },
 ]
 
 [package.metadata]
@@ -3400,7 +3400,7 @@ dev = [
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "ruff", specifier = ">=0.11.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
-    { name = "types-boto3", extras = ["sts"], specifier = ">=1.36.23" },
+    { name = "types-boto3", extras = ["s3", "sts"], specifier = ">=1.36.23" },
 ]
 
 [[package]]
@@ -3527,8 +3527,23 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+s3 = [
+    { name = "types-boto3-s3" },
+]
 sts = [
     { name = "types-boto3-sts" },
+]
+
+[[package]]
+name = "types-boto3-s3"
+version = "1.38.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b5/3e/0fe84b4d8f602f8fa6ae27effc1aef870ba10ef75014d958ce4ecb11850d/types_boto3_s3-1.38.0.tar.gz", hash = "sha256:739e38b45f01b0c85d4d7c281fbb092d1afb445cf90ccf6da51b792053a47176", size = 73337, upload-time = "2025-04-22T21:31:21.675Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4c/a8/acd40e99bb5137addd19c483bcdd6b0d3d679eb3c24513c686c0874f85d8/types_boto3_s3-1.38.0-py3-none-any.whl", hash = "sha256:0b3df16b7a1a4806202d32c12569f7b0634f2a3ffd1c2a240bf5e6b70b93f3b5", size = 80115, upload-time = "2025-04-22T21:31:19.941Z" },
 ]
 
 [[package]]
