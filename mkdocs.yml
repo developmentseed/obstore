@@ -28,6 +28,7 @@ nav:
       - getting-started.md
       - cookbook.md
       - authentication.md
+      - obspec.md
       - Integrations:
           - integrations/index.md
           - fsspec: integrations/fsspec.md
