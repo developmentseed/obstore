@@ -797,7 +797,7 @@ def from_url(  # noqa: C901
             **kwargs,
         )
     if scheme == "http":
-        if config or kwargs:
+        if config or kwargs or credential_provider:
             msg = "HTTPStore does not accept any configuration"
             raise BaseError(msg)
 
@@ -813,6 +813,9 @@ def from_url(  # noqa: C901
             automatic_cleanup = kwargs.pop("automatic_cleanup")
         if "mkdir" in kwargs:
             mkdir = kwargs.pop("mkdir")
+        if credential_provider:
+            msg = "LocalStore does not accept a credential provider"
+            raise BaseError(msg)
 
         return LocalStore.from_url(
             url,
