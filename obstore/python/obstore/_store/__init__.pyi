@@ -65,7 +65,7 @@ def from_url(
     **kwargs: Unpack[AzureConfig],
 ) -> ObjectStore: ...
 @overload
-def from_url(  # type: ignore reportOverlappingOverload
+def from_url(
     url: str,
     *,
     config: None = None,
@@ -74,7 +74,7 @@ def from_url(  # type: ignore reportOverlappingOverload
     automatic_cleanup: bool = False,
     mkdir: bool = False,
 ) -> ObjectStore: ...
-def from_url(
+def from_url(  # type: ignore[misc] # docstring in pyi file
     url: str,
     *,
     config: S3Config | GCSConfig | AzureConfig | None = None,

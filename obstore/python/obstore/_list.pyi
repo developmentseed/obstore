@@ -45,7 +45,7 @@ class ObjectMeta(TypedDict):
     version: str | None
     """A version indicator for this object"""
 
-ListChunkType = TypeVar(  # noqa: PYI001
+ListChunkType = TypeVar(  # noqa: PYI001, PLC0105
     "ListChunkType",
     Sequence[ObjectMeta],
     RecordBatch,
@@ -148,6 +148,14 @@ def list(
     *,
     offset: str | None = None,
     chunk_size: int = 50,
+) -> ListStream[Sequence[ObjectMeta]]: ...
+@overload
+def list(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    offset: str | None = None,
+    chunk_size: int = 50,
     return_arrow: Literal[True],
 ) -> ListStream[RecordBatch]: ...
 @overload
@@ -157,9 +165,18 @@ def list(
     *,
     offset: str | None = None,
     chunk_size: int = 50,
-    return_arrow: Literal[False] = False,
+    return_arrow: Literal[False],
 ) -> ListStream[Sequence[ObjectMeta]]: ...
+@overload
 def list(
+    store: ObjectStore,
+    prefix: str | None = None,
+    *,
+    offset: str | None = None,
+    chunk_size: int = 50,
+    return_arrow: bool,
+) -> ListStream[RecordBatch] | ListStream[Sequence[ObjectMeta]]: ...
+def list(  # type: ignore[misc] # docstring in pyi file
     store: ObjectStore,
     prefix: str | None = None,
     *,
@@ -271,7 +288,7 @@ def list_with_delimiter(
     *,
     return_arrow: Literal[False] = False,
 ) -> ListResult[Sequence[ObjectMeta]]: ...
-def list_with_delimiter(
+def list_with_delimiter(  # type: ignore[misc] # docstring in pyi file
     store: ObjectStore,
     prefix: str | None = None,
     *,
@@ -322,7 +339,7 @@ async def list_with_delimiter_async(
     *,
     return_arrow: Literal[False] = False,
 ) -> ListResult[Sequence[ObjectMeta]]: ...
-async def list_with_delimiter_async(
+async def list_with_delimiter_async(  # type: ignore[misc] # docstring in pyi file
     store: ObjectStore,
     prefix: str | None = None,
     *,
