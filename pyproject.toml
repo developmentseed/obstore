@@ -94,7 +94,7 @@ ignore = [
 ]
 
 [tool.pyright]
-exclude = ["examples/*"]
+exclude = ["examples/**"]
 
 [tool.pytest.ini_options]
 addopts = "-v"
