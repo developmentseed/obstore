@@ -40,6 +40,7 @@ nav:
       - examples/minio.md
       - examples/pyarrow.md
       - examples/tqdm.md
+      - examples/zarr.md
   - Blog:
       - blog/index.md
   - API Reference:
