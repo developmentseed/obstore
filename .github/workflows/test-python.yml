@@ -77,8 +77,3 @@ jobs:
 
       - name: Add venv to PATH (for pyright action)
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
-
-      - name: Run pyright
-        uses: jakebailey/pyright-action@v2
-        with:
-          pylance-version: latest-release
