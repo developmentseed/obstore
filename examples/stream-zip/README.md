@@ -1,0 +1,1 @@
+# Obstore stream-zip example
