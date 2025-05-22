@@ -93,6 +93,9 @@ ignore = [
     "SLF001",  # Private member accessed
 ]
 
+[tool.pyright]
+exclude = ["examples/*"]
+
 [tool.pytest.ini_options]
 addopts = "-v"
 testpaths = ["tests"]
