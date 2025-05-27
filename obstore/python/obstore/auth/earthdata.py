@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from typing import TYPE_CHECKING
@@ -50,7 +51,7 @@ class NasaEarthdataCredentialProvider:
 
     Examples:
         ```py
-        import obstore.store
+        import obstore
         from obstore.auth.earthdata import NasaEarthdataCredentialProvider
 
         # Obtain an S3 credentials URL and an S3 data/download URL, typically
@@ -180,7 +181,12 @@ def _get_with_token(
         headers={"Authorization": f"Bearer {token}"},
     ) as r:
         r.raise_for_status()
-        _translate_redirect_as_unauthorized(r)
+
+        if r.is_redirect:
+            # We were redirected; basic auth creds are invalid or not found via netrc
+            r.status_code = 401
+            r.reason = "Unauthorized"
+            r.raise_for_status()
 
         return r.json()
 
@@ -205,19 +211,15 @@ def _get_with_basic_auth(
 
     with session.get(location, auth=auth) as r:
         r.raise_for_status()
-        _translate_redirect_as_unauthorized(r)
 
-        return r.json()
-
-
-def _translate_redirect_as_unauthorized(r: requests.Response) -> requests.Response:
-    if r.is_redirect:
-        # We were redirected; basic auth creds are invalid or not found via netrc
-        r.status_code = 401
-        r.reason = "Unauthorized"
-        r.raise_for_status()
-
-    return r
+        try:
+            return r.json()
+        except json.JSONDecodeError:
+            # Content is not JSON; basic auth creds are invalid or not found via netrc
+            r.status_code = 401
+            r.reason = "Unauthorized"
+            r.raise_for_status()
+            return {}  # Never reached, but necessary for type checking
 
 
 class NasaEarthdataAsyncCredentialProvider:
@@ -235,7 +237,7 @@ class NasaEarthdataAsyncCredentialProvider:
 
     Examples:
         ```py
-        import obstore.store
+        import obstore
         from obstore.auth.earthdata import NasaEarthdataCredentialProvider
 
         # Obtain an S3 credentials URL and an S3 data/download URL, typically
@@ -354,7 +356,14 @@ async def _get_with_token_async(
         headers={"Authorization": f"Bearer {token}"},
     ) as r:
         r.raise_for_status()
-        _translate_aiohttp_redirect_as_unauthorized(r)
+
+        temporary_redirect_status = 307
+
+        if r.status == temporary_redirect_status:
+            # We were redirected; basic auth creds are invalid or not found via netrc
+            r.status = 401
+            r.reason = "Unauthorized"
+            r.raise_for_status()
 
         return await r.json(content_type=None)
 
@@ -379,23 +388,15 @@ async def _get_with_basic_auth_async(
 
     async with session.get(location, auth=auth) as r:
         r.raise_for_status()
-        _translate_aiohttp_redirect_as_unauthorized(r)
 
-        return await r.json(content_type=None)
-
-
-def _translate_aiohttp_redirect_as_unauthorized(
-    r: aiohttp.ClientResponse,
-) -> aiohttp.ClientResponse:
-    temporary_redirect_status = 307
-
-    if r.status == temporary_redirect_status:
-        # We were redirected; basic auth creds are invalid or not found via netrc
-        r.status = 401
-        r.reason = "Unauthorized"
-        r.raise_for_status()
-
-    return r
+        try:
+            return await r.json(content_type=None)
+        except json.JSONDecodeError:
+            # Content is not JSON; basic auth creds are invalid or not found via netrc
+            r.status = 401
+            r.reason = "Unauthorized"
+            r.raise_for_status()
+            return {}  # Never reached, but necessary for type checking
 
 
 def _default_host() -> str:
