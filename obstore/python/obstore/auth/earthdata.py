@@ -5,69 +5,139 @@
 
 from __future__ import annotations
 
-import json
+import os
 from datetime import datetime
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
+
+from obstore.auth._http import default_aiohttp_session, default_requests_session
 
 if TYPE_CHECKING:
+    from collections.abc import Coroutine, Mapping
+    from typing import Any, Callable
+
+    import aiohttp
+    import aiohttp_retry
+    import requests
+
     from obstore.store import S3Config, S3Credential
 
-CREDENTIALS_API = "https://archive.podaac.earthdata.nasa.gov/s3credentials"
+
+EARTHDATA_HOST_OPS = "urs.earthdata.nasa.gov"
+EARTHDATA_HOST_UAT = "uat.urs.earthdata.nasa.gov"
+
+
+__all__ = [
+    "EARTHDATA_HOST_OPS",
+    "EARTHDATA_HOST_UAT",
+    "NasaEarthdataAsyncCredentialProvider",
+    "NasaEarthdataCredentialProvider",
+]
 
 
 class NasaEarthdataCredentialProvider:
-    """A credential provider for accessing [NASA Earthdata] to be used with [S3Store][obstore.store.S3Store].
+    """An [S3Store][obstore.store.S3Store] credential provider for accessing [NASA Earthdata] data resources.
 
     This credential provider uses `requests`, and will error if that cannot be imported.
 
-    NASA Earthdata supports public [in-region direct S3
-    access](https://archive.podaac.earthdata.nasa.gov/s3credentialsREADME). This
+    NASA Earthdata supports public [in-region direct S3 access]. This
     credential provider automatically manages the S3 credentials.
 
     !!! note
 
-        Note that you must be in the same AWS region (`us-west-2`) to use the
+        You must be in the same AWS region (`us-west-2`) to use the
         credentials returned from this provider.
 
-    **Example**:
+    Examples:
+        ```py
+        import obstore.store
+        from obstore.auth.earthdata import NasaEarthdataCredentialProvider
 
-    ```py
-    from obstore.auth.earthdata import NasaEarthdataCredentialProvider
-    from obstore.store import S3Store
+        # Obtain an S3 credentials URL and an S3 data/download URL, typically
+        # via metadata returned from a NASA CMR collection or granule query.
+        credentials_url = "https://data.ornldaac.earthdata.nasa.gov/s3credentials"
+        data_url = "s3://ornl-cumulus-prod-protected/gedi/GEDI_L4A_AGB_Density_V2_1/data/GEDI04_A_2024332225741_O33764_03_T01289_02_004_01_V002.h5"
+        data_prefix_url, filename = data_url.rsplit("/", 1)
 
-    credential_provider = NasaEarthdataCredentialProvider(username="...", password="...")
-    store = S3Store("bucket_name", credential_provider=credential_provider)
-    ```
+        # Since no Earthdata credentials are specified, environment variables or netrc
+        # will be used to locate them in order to obtain S3 credentials from the URL.
+        credential_provider = NasaEarthdataCredentialProvider(credentials_url)
+        store = obstore.store.from_url(data_prefix_url, credential_provider=credential_provider)
+        result = obstore.get(store, filename)
+
+        # Download the file by streaming chunks
+        with open(filename, "wb") as f:
+            for chunk in iter(result):
+                f.write(chunk)
+        ```
 
     [NASA Earthdata]: https://www.earthdata.nasa.gov/
+    [in-region direct S3 access]: https://archive.podaac.earthdata.nasa.gov/s3credentialsREADME
+
     """  # noqa: E501
 
     config: S3Config
 
     def __init__(
         self,
-        username: str,
-        password: str,
+        credentials_url: str,
+        *,
+        host: str | None = None,
+        auth: str | tuple[str, str] | None = None,
+        session: requests.Session | None = None,
     ) -> None:
-        """Create a new NasaEarthdataCredentialProvider.
+        """Construct a new NasaEarthdataCredentialProvider.
 
         Args:
-            username: Username to NASA Earthdata.
-            password: Password to NASA Earthdata.
+            credentials_url: Endpoint for obtaining S3 credentials from a NASA DAAC
+                hosting data of interest.  NASA Earthdata credentials are required for
+                obtaining S3 credentials from this endpoint.
+
+        Keyword Args:
+            host: Hostname for NASA Earthdata authentication.
+
+                Precedence is as follows:
+
+                1. Uses the specified value, if not `None`.
+                2. Uses the environment variable `EARTHDATA_HOST`, if set.
+                3. Uses the NASA Earthdata Operational host: [EARTHDATA_HOST_OPS][]
+
+            auth: Authentication information; can be a NASA Earthdata token (`str`),
+                NASA Earthdata username/password (tuple), or `None`.  Defaults to
+                `None`, in which case, environment variables are used, if set.
+
+                Precedence is as follows:
+
+                1. Uses the specified value, if not `None`.
+                2. Uses the environment variable `EARTHDATA_TOKEN`, if set.
+                3. Uses the environment variables `EARTHDATA_USERNAME` and
+                   `EARTHDATA_PASSWORD`, if both are set.
+                4. Uses netrc to locate a username and password for `host`.
+                   Uses the environment variable `NETRC`, if set, to locate a
+                   netrc file; otherwise, uses the default netrc file location
+                   (`~/.netrc` on non-Windows OS or `~/_netrc` on Windows).
+
+            session: The requests session to use for making requests to obtain S3
+                credentials. Defaults to `None`, in which case a default session
+                is created internally.  In this case, use this credential
+                provider's `close` method to release resources when you are
+                finished with it.
 
         """
-        import requests
-
-        # Pass region default
         self.config = {"region": "us-west-2"}
-        self.session = requests.Session()
-        self.session.auth = (username, password)
+        self._session = session or default_requests_session()
+        # Avoid closing a user-supplied session (the user is responsible for that)
+        self._close = None if session else self._session.close
+        self._get_credentials = _make_get_credentials(
+            credentials_url,
+            host or _default_host(),
+            auth or _default_auth(),
+        )
 
     def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        resp = self.session.get(CREDENTIALS_API, allow_redirects=True, timeout=15)
-        auth_resp = self.session.get(resp.url, allow_redirects=True, timeout=15)
-        creds = auth_resp.json()
+        creds = self._get_credentials(self._session)
+
         return {
             "access_key_id": creds["accessKeyId"],
             "secret_access_key": creds["secretAccessKey"],
@@ -79,73 +149,144 @@ class NasaEarthdataCredentialProvider:
         """Close the underlying session.
 
         You should call this method after you've finished all obstore calls to close the
-        underlying [requests.Session][].
+        underlying [requests.Session][].  If you supplied your own session object,
+        it will not be closed.
         """
-        self.session.close()
+        if self._close:
+            self._session = None  # type: ignore[assignment]
+            self._close()
+
+
+def _make_get_credentials(
+    credentials_url: str,
+    host: str,
+    auth: str | tuple[str, str] | None,
+) -> Callable[[requests.Session], Mapping[str, str]]:
+    if isinstance(auth, str):
+        return lambda session: _get_with_token(session, credentials_url, auth)
+    return lambda session: _get_with_basic_auth(session, credentials_url, host, auth)
+
+
+def _get_with_token(
+    session: requests.Session,
+    credentials_url: str,
+    token: str,
+) -> Mapping[str, str]:
+    with session.get(
+        credentials_url,
+        allow_redirects=False,
+        headers={"Authorization": f"Bearer {token}"},
+    ) as r:
+        r.raise_for_status()
+
+        if r.is_redirect:
+            # We were redirected, indicating that the bearer token was not valid
+            r.status_code = 401
+            r.reason = "Unauthorized"
+            r.raise_for_status()
+
+        return r.json()
+
+
+def _get_with_basic_auth(
+    session: requests.Session,
+    credentials_url: str,
+    host: str,
+    basic_auth: tuple[str, str] | None,
+) -> Mapping[str, str]:
+    with session.get(credentials_url, allow_redirects=False) as r:
+        r.raise_for_status()
+        location = r.headers["location"]
+
+    # We were redirected, so we must use basic auth credentials with the
+    # redirect location.  If the host of the redirect is the same host we have
+    # creds for, pass them along; otherwise, netrc will be used (implicitly),
+    # if the session's trust_env attribute is set to True (default).
+
+    redirect_host = str(urlparse(location).hostname)
+    auth = basic_auth if redirect_host == host else None
+
+    with session.get(location, auth=auth) as r:
+        r.raise_for_status()
+        return r.json()
 
 
 class NasaEarthdataAsyncCredentialProvider:
-    """An async credential provider for accessing [NASA Earthdata] to be used with [S3Store][obstore.store.S3Store].
-
-    This credential provider should be preferred over the synchronous
-    [NasaEarthdataCredentialProvider][obstore.auth.earthdata.NasaEarthdataCredentialProvider]
-    whenever you're using async obstore methods.
+    """A credential provider for accessing [NASA Earthdata] to be used with an [S3Store][obstore.store.S3Store].
 
     This credential provider uses `aiohttp`, and will error if that cannot be imported.
 
-    NASA Earthdata supports public [in-region direct S3
-    access](https://archive.podaac.earthdata.nasa.gov/s3credentialsREADME). This
+    NASA Earthdata supports public [in-region direct S3 access]. This
     credential provider automatically manages the S3 credentials.
 
     !!! note
 
-        Note that you must be in the same AWS region (`us-west-2`) to use the
+        You must be in the same AWS region (`us-west-2`) to use the
         credentials returned from this provider.
 
-    **Example**:
+    Examples:
+        ```py
+        import obstore.store
+        from obstore.auth.earthdata import NasaEarthdataCredentialProvider
 
-    ```py
-    from obstore.auth.earthdata import NasaEarthdataAsyncCredentialProvider
-    from obstore.store import S3Store
+        # Obtain an S3 credentials URL and an S3 data/download URL, typically
+        # via metadata returned from a NASA CMR collection or granule query.
+        credentials_url = "https://data.ornldaac.earthdata.nasa.gov/s3credentials"
+        data_url = "s3://ornl-cumulus-prod-protected/gedi/GEDI_L4A_AGB_Density_V2_1/data/GEDI04_A_2024332225741_O33764_03_T01289_02_004_01_V002.h5"
+        data_prefix_url, filename = data_url.rsplit("/", 1)
 
-    credential_provider = NasaEarthdataAsyncCredentialProvider(
-        username="...",
-        password="...",
-    )
-    store = S3Store("bucket_name", credential_provider=credential_provider)
-    ```
+        # Since no Earthdata credentials are specified, environment variables or netrc
+        # will be used to locate them in order to obtain S3 credentials from the URL.
+        credential_provider = NasaEarthdataAsyncCredentialProvider(credentials_url)
+        store = obstore.store.from_url(data_prefix_url, credential_provider=credential_provider)
+        result = await obstore.get_async(store, filename)
+
+        # Download the file by streaming chunks
+        with open(filename, "wb") as f:
+            async for chunk in aiter(result):
+                f.write(chunk)
+        ```
 
     [NASA Earthdata]: https://www.earthdata.nasa.gov/
+    [in-region direct S3 access]: https://archive.podaac.earthdata.nasa.gov/s3credentialsREADME
+
     """  # noqa: E501
 
     config: S3Config
 
     def __init__(
         self,
-        username: str,
-        password: str,
+        credentials_url: str,
+        *,
+        host: str | None = None,
+        auth: str | tuple[str, str] | None = None,
+        session: aiohttp.ClientSession | aiohttp_retry.RetryClient | None = None,
     ) -> None:
-        """Create a new NasaEarthdataAsyncCredentialProvider.
+        """Construct a new NasaEarthdataAsyncCredentialProvider.
 
-        Args:
-            username: Username to NASA Earthdata.
-            password: Password to NASA Earthdata.
+        This credential provider uses `aiohttp`, and will error if that cannot be
+        imported.
+
+        Refer to
+        [NasaEarthdataCredentialProvider][obstore.auth.earthdata.NasaEarthdataCredentialProvider.__init__]
+        for argument explanations.
 
         """
-        from aiohttp import BasicAuth, ClientSession
-
-        # Pass region default
         self.config = {"region": "us-west-2"}
-        self.session = ClientSession(auth=BasicAuth(username, password))
+
+        self._session = session or default_aiohttp_session()
+        # Avoid closing a user-supplied session (the user is responsible for that)
+        self._close = None if session else self._session.close
+        self._get_credentials_async = _make_get_credentials_async(
+            credentials_url,
+            host or _default_host(),
+            auth or _default_auth(),
+        )
 
     async def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        async with self.session.get(CREDENTIALS_API, allow_redirects=True) as resp:
-            auth_url = resp.url
-        async with self.session.get(auth_url, allow_redirects=True) as auth_resp:
-            # Note: We parse the JSON manually instead of using `resp.json()` because
-            # the response mimetype is incorrectly set to text/html.
-            creds = json.loads(await auth_resp.text())
+        creds = await self._get_credentials_async(self._session)
+
         return {
             "access_key_id": creds["accessKeyId"],
             "secret_access_key": creds["secretAccessKey"],
@@ -154,9 +295,98 @@ class NasaEarthdataAsyncCredentialProvider:
         }
 
     async def close(self) -> None:
-        """Close the underlying session.
+        """Close the underlying session, if it was not supplied by the user.
 
         You should call this method after you've finished all obstore calls to close the
-        underlying [aiohttp.ClientSession][].
+        underlying [aiohttp.ClientSession][].  If you supplied your own session object,
+        it will not be closed.
         """
-        await self.session.close()
+        if self._close:
+            self._session = None  # type: ignore[assignment]
+            await self._close()
+
+
+def _make_get_credentials_async(
+    credentials_url: str,
+    host: str,
+    auth: str | tuple[str, str] | None,
+) -> Callable[
+    [aiohttp.ClientSession | aiohttp_retry.RetryClient],
+    Coroutine[Any, Any, Mapping[str, str]],
+]:
+    import aiohttp
+
+    async def get_with_token(
+        session: aiohttp.ClientSession | aiohttp_retry.RetryClient,
+    ) -> Mapping[str, str]:
+        return await _get_with_token_async(session, credentials_url, auth)  # type: ignore[arg-type]
+
+    async def get_with_basic_auth(
+        session: aiohttp.ClientSession | aiohttp_retry.RetryClient,
+    ) -> Mapping[str, str]:
+        return await _get_with_basic_auth_async(session, credentials_url, host, bauth)
+
+    bauth = aiohttp.BasicAuth(*auth) if isinstance(auth, tuple) else None
+
+    return get_with_token if isinstance(auth, str) else get_with_basic_auth
+
+
+async def _get_with_token_async(
+    session: aiohttp.ClientSession | aiohttp_retry.RetryClient,
+    credentials_url: str,
+    token: str,
+) -> Mapping[str, str]:
+    async with session.get(
+        credentials_url,
+        allow_redirects=False,
+        headers={"Authorization": f"Bearer {token}"},
+    ) as r:
+        r.raise_for_status()
+        temporary_redirect_status = 307
+
+        if r.status == temporary_redirect_status:
+            # We were redirected, indicating that the bearer token was not valid
+            r.status = 401
+            r.reason = "Unauthorized"
+            r.raise_for_status()
+
+        return await r.json(content_type=None)
+
+
+async def _get_with_basic_auth_async(
+    session: aiohttp.ClientSession | aiohttp_retry.RetryClient,
+    credentials_url: str,
+    host: str,
+    basic_auth: aiohttp.BasicAuth | None,
+) -> Mapping[str, str]:
+    async with session.get(credentials_url, allow_redirects=False) as r:
+        r.raise_for_status()
+        location = r.headers["location"]
+
+    # We were redirected, so we must use basic auth credentials with the
+    # redirect location.  If the host of the redirect is the same host we have
+    # creds for, pass them along; otherwise, netrc will be used (implicitly),
+    # if the session's trust_env attribute is set to True (default).
+
+    redirect_host = str(urlparse(location).hostname)
+    auth = basic_auth if redirect_host == host else None
+
+    async with session.get(location, auth=auth) as r:
+        r.raise_for_status()
+        return await r.json(content_type=None)
+
+
+def _default_host() -> str:
+    return os.environ.get("EARTHDATA_HOST", EARTHDATA_HOST_OPS)
+
+
+def _default_auth() -> str | tuple[str, str] | None:
+    if token := os.environ.get("EARTHDATA_TOKEN"):
+        return token
+
+    if (username := os.environ.get("EARTHDATA_USERNAME")) and (
+        password := os.environ.get("EARTHDATA_PASSWORD")
+    ):
+        return (username, password)
+
+    return None

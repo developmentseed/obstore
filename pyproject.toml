@@ -59,7 +59,6 @@ obspec = { git = "https://github.com/developmentseed/obspec" }
 [tool.ruff]
 target-version = "py39"
 
-
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
@@ -97,5 +96,16 @@ ignore = [
 exclude = ["examples/**"]
 
 [tool.pytest.ini_options]
-addopts = "-v"
+addopts = "-v --mypy-only-local-stub"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+markers = [
+    "network: mark the test as requiring a network connection",
+]
+
+[tool.mypy]
+files = ["obstore/python"]
+
+[[tool.mypy.overrides]]
+module = ["fsspec.*"]
+ignore_missing_imports = true
