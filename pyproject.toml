@@ -63,6 +63,8 @@ target-version = "py39"
 select = ["ALL"]
 ignore = [
     "D104",   # Missing docstring in public package
+    "D203",   # 1 blank line required before class docstring (conflicts with D211)
+    "D213",   # Multi-line docstring summary should start at the second line (conflicts with D212)
     "EM101",
     "FIX002", # Line contains TODO, consider resolving the issue
     "INP001", # File is part of an implicit namespace package.

@@ -63,12 +63,15 @@ class NasaEarthdataCredentialProvider:
         # will be used to locate them in order to obtain S3 credentials from the URL.
         credential_provider = NasaEarthdataCredentialProvider(credentials_url)
         store = obstore.store.from_url(data_prefix_url, credential_provider=credential_provider)
-        result = obstore.get(store, filename)
 
         # Download the file by streaming chunks
-        with open(filename, "wb") as f:
-            for chunk in iter(result):
-                f.write(chunk)
+        try:
+            result = obstore.get(store, filename)
+            with open(filename, "wb") as f:
+                for chunk in iter(result):
+                    f.write(chunk)
+        finally:
+            credential_provider.close()
         ```
 
     [NASA Earthdata]: https://www.earthdata.nasa.gov/
@@ -125,7 +128,7 @@ class NasaEarthdataCredentialProvider:
 
         """
         self.config = {"region": "us-west-2"}
-        self._session = session or default_requests_session()
+        self._session: requests.Session | None = session or default_requests_session()
         # Avoid closing a user-supplied session (the user is responsible for that)
         self._close = None if session else self._session.close
         self._get_credentials = _make_get_credentials(
@@ -136,14 +139,13 @@ class NasaEarthdataCredentialProvider:
 
     def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        creds = self._get_credentials(self._session)
+        if self._session is None:
+            msg = "credential provider was closed"
+            raise ValueError(msg)
 
-        return {
-            "access_key_id": creds["accessKeyId"],
-            "secret_access_key": creds["secretAccessKey"],
-            "token": creds["sessionToken"],
-            "expires_at": datetime.fromisoformat(creds["expiration"]),
-        }
+        metadata = self._get_credentials(self._session)
+
+        return _metadata_to_s3_credential(metadata)
 
     def close(self) -> None:
         """Close the underlying session.
@@ -153,7 +155,7 @@ class NasaEarthdataCredentialProvider:
         it will not be closed.
         """
         if self._close:
-            self._session = None  # type: ignore[assignment]
+            self._session = None
             self._close()
 
 
@@ -178,12 +180,7 @@ def _get_with_token(
         headers={"Authorization": f"Bearer {token}"},
     ) as r:
         r.raise_for_status()
-
-        if r.is_redirect:
-            # We were redirected, indicating that the bearer token was not valid
-            r.status_code = 401
-            r.reason = "Unauthorized"
-            r.raise_for_status()
+        _translate_redirect_as_unauthorized(r)
 
         return r.json()
 
@@ -208,7 +205,19 @@ def _get_with_basic_auth(
 
     with session.get(location, auth=auth) as r:
         r.raise_for_status()
+        _translate_redirect_as_unauthorized(r)
+
         return r.json()
+
+
+def _translate_redirect_as_unauthorized(r: requests.Response) -> requests.Response:
+    if r.is_redirect:
+        # We were redirected; basic auth creds are invalid or not found via netrc
+        r.status_code = 401
+        r.reason = "Unauthorized"
+        r.raise_for_status()
+
+    return r
 
 
 class NasaEarthdataAsyncCredentialProvider:
@@ -239,12 +248,15 @@ class NasaEarthdataAsyncCredentialProvider:
         # will be used to locate them in order to obtain S3 credentials from the URL.
         credential_provider = NasaEarthdataAsyncCredentialProvider(credentials_url)
         store = obstore.store.from_url(data_prefix_url, credential_provider=credential_provider)
-        result = await obstore.get_async(store, filename)
 
         # Download the file by streaming chunks
-        with open(filename, "wb") as f:
-            async for chunk in aiter(result):
-                f.write(chunk)
+        try:
+            result = await obstore.get_async(store, filename)
+            with open(filename, "wb") as f:
+                async for chunk in aiter(result):
+                    f.write(chunk)
+        finally:
+            await credential_provider.close()
         ```
 
     [NASA Earthdata]: https://www.earthdata.nasa.gov/
@@ -273,8 +285,9 @@ class NasaEarthdataAsyncCredentialProvider:
 
         """
         self.config = {"region": "us-west-2"}
-
-        self._session = session or default_aiohttp_session()
+        self._session: aiohttp.ClientSession | aiohttp_retry.RetryClient | None = (
+            session or default_aiohttp_session()
+        )
         # Avoid closing a user-supplied session (the user is responsible for that)
         self._close = None if session else self._session.close
         self._get_credentials_async = _make_get_credentials_async(
@@ -285,14 +298,13 @@ class NasaEarthdataAsyncCredentialProvider:
 
     async def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        creds = await self._get_credentials_async(self._session)
+        if self._session is None:
+            msg = "credential provider was closed"
+            raise ValueError(msg)
 
-        return {
-            "access_key_id": creds["accessKeyId"],
-            "secret_access_key": creds["secretAccessKey"],
-            "token": creds["sessionToken"],
-            "expires_at": datetime.fromisoformat(creds["expiration"]),
-        }
+        metadata = await self._get_credentials_async(self._session)
+
+        return _metadata_to_s3_credential(metadata)
 
     async def close(self) -> None:
         """Close the underlying session, if it was not supplied by the user.
@@ -302,7 +314,7 @@ class NasaEarthdataAsyncCredentialProvider:
         it will not be closed.
         """
         if self._close:
-            self._session = None  # type: ignore[assignment]
+            self._session = None
             await self._close()
 
 
@@ -342,13 +354,7 @@ async def _get_with_token_async(
         headers={"Authorization": f"Bearer {token}"},
     ) as r:
         r.raise_for_status()
-        temporary_redirect_status = 307
-
-        if r.status == temporary_redirect_status:
-            # We were redirected, indicating that the bearer token was not valid
-            r.status = 401
-            r.reason = "Unauthorized"
-            r.raise_for_status()
+        _translate_aiohttp_redirect_as_unauthorized(r)
 
         return await r.json(content_type=None)
 
@@ -373,7 +379,23 @@ async def _get_with_basic_auth_async(
 
     async with session.get(location, auth=auth) as r:
         r.raise_for_status()
+        _translate_aiohttp_redirect_as_unauthorized(r)
+
         return await r.json(content_type=None)
+
+
+def _translate_aiohttp_redirect_as_unauthorized(
+    r: aiohttp.ClientResponse,
+) -> aiohttp.ClientResponse:
+    temporary_redirect_status = 307
+
+    if r.status == temporary_redirect_status:
+        # We were redirected; basic auth creds are invalid or not found via netrc
+        r.status = 401
+        r.reason = "Unauthorized"
+        r.raise_for_status()
+
+    return r
 
 
 def _default_host() -> str:
@@ -390,3 +412,12 @@ def _default_auth() -> str | tuple[str, str] | None:
         return (username, password)
 
     return None
+
+
+def _metadata_to_s3_credential(metadata: Mapping[str, str]) -> S3Credential:
+    return {
+        "access_key_id": metadata["accessKeyId"],
+        "secret_access_key": metadata["secretAccessKey"],
+        "token": metadata["sessionToken"],
+        "expires_at": datetime.fromisoformat(metadata["expiration"]),
+    }
