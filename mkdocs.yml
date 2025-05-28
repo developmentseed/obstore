@@ -39,6 +39,7 @@ nav:
       - examples/fastapi.md
       - examples/minio.md
       - examples/pyarrow.md
+      - examples/stream-zip.md
       - examples/tqdm.md
       - examples/zarr.md
   - Blog:

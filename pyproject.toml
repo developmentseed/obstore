@@ -29,7 +29,7 @@ dev-dependencies = [
     "mkdocstrings>=0.27.0",
     "moto[s3,server]>=5.1.1",
     "mypy>=1.15.0",
-    "obspec>=0.1.0b5",
+    "obspec>=0.1.0b6",
     "pip>=24.2",
     "polars>=1.30.0",
     "pyarrow>=17.0.0",
@@ -52,9 +52,6 @@ constraint-dependencies = [
 
 [tool.uv.workspace]
 members = ["examples/fastapi-example"]
-
-[tool.uv.sources]
-obspec = { git = "https://github.com/developmentseed/obspec" }
 
 [tool.ruff]
 target-version = "py39"
