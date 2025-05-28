@@ -67,7 +67,7 @@ class NasaEarthdataCredentialProvider:
 
     Examples:
         ```py
-        import obstore
+        from obstore.store import S3Store
         from obstore.auth.earthdata import NasaEarthdataCredentialProvider
 
         # Obtain an S3 credentials URL and an S3 data/download URL, typically
@@ -84,7 +84,7 @@ class NasaEarthdataCredentialProvider:
         # obtain S3 credentials from the URL.
         cp = NasaEarthdataCredentialProvider(credentials_url)
 
-        store = obstore.store.from_url(data_prefix_url, credential_provider=cp)
+        store = S3Store.from_url(data_prefix_url, credential_provider=cp)
 
         # Download the file by streaming chunks
         try:
