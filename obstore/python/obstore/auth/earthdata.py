@@ -29,19 +29,15 @@ if TYPE_CHECKING:
     from obstore.store import S3Config, S3Credential
 
 
-EARTHDATA_HOST_OPS = "urs.earthdata.nasa.gov"
-"""Hostname of the NASA Earthdata Login Operational (OPS) system.
+DEFAULT_EARTHDATA_HOST = "urs.earthdata.nasa.gov"
+"""Hostname of the NASA Earthdata Login primary operational (OPS) system.
 
 This is the default host used during credential authorization.
 """
 
-EARTHDATA_HOST_UAT = "uat.urs.earthdata.nasa.gov"
-"""Hostname of the NASA Earthdata Login User-Acceptance Testing (UAT) system."""
-
 
 __all__ = [
-    "EARTHDATA_HOST_OPS",
-    "EARTHDATA_HOST_UAT",
+    "DEFAULT_EARTHDATA_HOST",
     "NasaEarthdataAsyncCredentialProvider",
     "NasaEarthdataCredentialProvider",
 ]
@@ -123,8 +119,8 @@ class NasaEarthdataCredentialProvider:
 
                 1. Uses the specified value, if not `None`.
                 2. Uses the environment variable `EARTHDATA_HOST`, if set.
-                3. Uses the NASA Earthdata Operational host:
-                   [EARTHDATA_HOST_OPS][obstore.auth.earthdata.EARTHDATA_HOST_OPS]
+                3. Uses the NASA Earthdata operational host:
+                   [DEFAULT_EARTHDATA_HOST][obstore.auth.earthdata.DEFAULT_EARTHDATA_HOST]
 
             auth: Authentication information; can be a NASA Earthdata token (`str`),
                 NASA Earthdata username/password (tuple), or `None`.  Defaults to
@@ -396,7 +392,7 @@ class NasaEarthdataAsyncCredentialProvider:
 
 
 def _read_host_from_env() -> str:
-    return os.environ.get("EARTHDATA_HOST", EARTHDATA_HOST_OPS)
+    return os.environ.get("EARTHDATA_HOST", DEFAULT_EARTHDATA_HOST)
 
 
 def _read_auth_from_env() -> str | tuple[str, str] | None:
