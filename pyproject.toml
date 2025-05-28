@@ -56,11 +56,12 @@ members = ["examples/fastapi-example"]
 [tool.ruff]
 target-version = "py39"
 
-
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
     "D104",   # Missing docstring in public package
+    "D203",   # 1 blank line required before class docstring (conflicts with D211)
+    "D213",   # Multi-line docstring summary should start at the second line (conflicts with D212)
     "EM101",
     "FIX002", # Line contains TODO, consider resolving the issue
     "INP001", # File is part of an implicit namespace package.
@@ -94,5 +95,16 @@ ignore = [
 exclude = ["examples/**"]
 
 [tool.pytest.ini_options]
-addopts = "-v"
+addopts = "-v --mypy-only-local-stub"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+markers = [
+    "network: mark the test as requiring a network connection",
+]
+
+[tool.mypy]
+files = ["obstore/python"]
+
+[[tool.mypy.overrides]]
+module = ["fsspec.*"]
+ignore_missing_imports = true
