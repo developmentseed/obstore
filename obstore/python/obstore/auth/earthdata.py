@@ -200,7 +200,7 @@ class NasaEarthdataCredentialProvider:
 
             if r.is_redirect:
                 # We were redirected; basic auth creds are invalid or not given/found
-                _raise_unauthorized(r)
+                _raise_unauthorized_requests(r)
 
             return r.json()
 
@@ -224,7 +224,7 @@ class NasaEarthdataCredentialProvider:
                 return r.json()
             except json.JSONDecodeError:
                 # Content is not JSON; basic auth creds are invalid or not given/found
-                _raise_unauthorized(r)
+                _raise_unauthorized_requests(r)
 
     def close(self) -> None:
         """Release resources created by this credential provider."""
@@ -362,7 +362,7 @@ class NasaEarthdataAsyncCredentialProvider:
 
             if r.status == temporary_redirect_status:
                 # We were redirected; token is invalid
-                _raise_unauthorized(r)
+                _raise_unauthorized_aiohttp(r)
 
             return await r.json(content_type=None)
 
@@ -387,7 +387,7 @@ class NasaEarthdataAsyncCredentialProvider:
                 return await r.json(content_type=None)
             except json.JSONDecodeError:
                 # Content is not JSON; basic auth creds are invalid or not given/found
-                _raise_unauthorized(r)
+                _raise_unauthorized_aiohttp(r)
 
     async def close(self) -> None:
         """Release resources created by this credential provider."""
@@ -412,15 +412,23 @@ def _default_auth() -> str | tuple[str, str] | None:
     return None
 
 
-def _raise_unauthorized(
-    r: requests.Response | aiohttp.ClientResponse,
+def _raise_unauthorized_requests(
+    r: requests.Response,
 ) -> Never:
-    import requests
+    r.status_code = 401
 
-    if isinstance(r, requests.Response):
-        r.status_code = 401
-    else:
-        r.status = 401
+    r.reason = "Unauthorized"
+    r.raise_for_status()
+
+    # Required for type checkers since they cannot tell that the call to
+    # raise_for_status above will always raise.
+    raise AssertionError from None
+
+
+def _raise_unauthorized_aiohttp(
+    r: aiohttp.ClientResponse,
+) -> Never:
+    r.status = 401
 
     r.reason = "Unauthorized"
     r.raise_for_status()
