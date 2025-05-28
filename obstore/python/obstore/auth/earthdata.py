@@ -153,11 +153,9 @@ class NasaEarthdataCredentialProvider:
         # Avoid closing a user-supplied session (the user is responsible for that)
         self._close = None if session else self._session.close
 
-        auth = auth or _read_auth_from_env()
-        self._token = auth if isinstance(auth, str) else None
-        self._basic_auth = auth if isinstance(auth, tuple) else None
+        self._auth = auth or _read_auth_from_env()
         self._credentials_url = credentials_url
-        self._host = host or _default_host()
+        self._host = host or _read_host_from_env()
 
     @property
     def session(self) -> requests.Session:
@@ -182,10 +180,10 @@ class NasaEarthdataCredentialProvider:
 
     def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        if self._token is not None:
-            credentials = self._refresh_with_token(self._token)
+        if isinstance(self._auth, str):
+            credentials = self._refresh_with_token(self._auth)
         else:
-            credentials = self._refresh_with_basic_auth()
+            credentials = self._refresh_with_basic_auth(self._auth)
 
         return _parse_credentials(credentials)
 
@@ -203,7 +201,10 @@ class NasaEarthdataCredentialProvider:
 
             return r.json()
 
-    def _refresh_with_basic_auth(self) -> Mapping[str, str]:
+    def _refresh_with_basic_auth(
+        self,
+        auth: tuple[str, str] | None,
+    ) -> Mapping[str, str]:
         with self.session.get(self._credentials_url, allow_redirects=False) as r:
             r.raise_for_status()
             location = r.headers["location"]
@@ -214,7 +215,7 @@ class NasaEarthdataCredentialProvider:
         # if the session's trust_env attribute is set to True (default).
 
         redirect_host = str(urlparse(location).hostname)
-        auth = self._basic_auth if redirect_host == self._host else None
+        auth = auth if redirect_host == self._host else None
 
         with self.session.get(location, auth=auth) as r:
             r.raise_for_status()
@@ -312,10 +313,9 @@ class NasaEarthdataAsyncCredentialProvider:
         self._close = None if session else self._session.close
 
         auth = auth or _read_auth_from_env()
-        self._token = auth if isinstance(auth, str) else None
-        self._basic_auth = aiohttp.BasicAuth(*auth) if isinstance(auth, tuple) else None
+        self._auth = aiohttp.BasicAuth(*auth) if isinstance(auth, tuple) else auth
         self._credentials_url = credentials_url
-        self._host = host or _default_host()
+        self._host = host or _read_host_from_env()
 
     @property
     def session(self) -> aiohttp.ClientSession | aiohttp_retry.RetryClient:
@@ -340,10 +340,10 @@ class NasaEarthdataAsyncCredentialProvider:
 
     async def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        if self._token is not None:
-            credentials = await self._refresh_with_token(self._token)
+        if isinstance(self._auth, str):
+            credentials = await self._refresh_with_token(self._auth)
         else:
-            credentials = await self._refresh_with_basic_auth()
+            credentials = await self._refresh_with_basic_auth(self._auth)
 
         return _parse_credentials(credentials)
 
@@ -362,7 +362,10 @@ class NasaEarthdataAsyncCredentialProvider:
 
             return await r.json(content_type=None)
 
-    async def _refresh_with_basic_auth(self) -> Mapping[str, str]:
+    async def _refresh_with_basic_auth(
+        self,
+        auth: aiohttp.BasicAuth | None,
+    ) -> Mapping[str, str]:
         async with self.session.get(
             self._credentials_url,
             allow_redirects=False,
@@ -376,7 +379,7 @@ class NasaEarthdataAsyncCredentialProvider:
         # if the session's trust_env attribute is set to True (default).
 
         redirect_host = str(urlparse(location).hostname)
-        auth = self._basic_auth if redirect_host == self._host else None
+        auth = auth if redirect_host == self._host else None
 
         async with self.session.get(location, auth=auth, raise_for_status=True) as r:
             try:
@@ -392,7 +395,7 @@ class NasaEarthdataAsyncCredentialProvider:
             await self._close()
 
 
-def _default_host() -> str:
+def _read_host_from_env() -> str:
     return os.environ.get("EARTHDATA_HOST", EARTHDATA_HOST_OPS)
 
 
@@ -408,11 +411,8 @@ def _read_auth_from_env() -> str | tuple[str, str] | None:
     return None
 
 
-def _raise_unauthorized_requests(
-    r: requests.Response,
-) -> Never:
+def _raise_unauthorized_requests(r: requests.Response) -> Never:
     r.status_code = 401
-
     r.reason = "Unauthorized"
     r.raise_for_status()
 
@@ -421,11 +421,8 @@ def _raise_unauthorized_requests(
     raise AssertionError from None
 
 
-def _raise_unauthorized_aiohttp(
-    r: aiohttp.ClientResponse,
-) -> Never:
+def _raise_unauthorized_aiohttp(r: aiohttp.ClientResponse) -> Never:
     r.status = 401
-
     r.reason = "Unauthorized"
     r.raise_for_status()
 
