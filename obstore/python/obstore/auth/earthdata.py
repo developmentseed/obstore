@@ -99,6 +99,7 @@ class NasaEarthdataCredentialProvider:
     """  # noqa: E501
 
     config: S3Config
+    _session: requests.Session | None
 
     def __init__(
         self,
@@ -148,20 +149,15 @@ class NasaEarthdataCredentialProvider:
 
         """
         self.config = {"region": "us-west-2"}
-        self._session: requests.Session | None = session or default_requests_session()
+        self._session = session or default_requests_session()
         # Avoid closing a user-supplied session (the user is responsible for that)
         self._close = None if session else self._session.close
 
-        auth = auth or _default_auth()
+        auth = auth or _read_auth_from_env()
         self._token = auth if isinstance(auth, str) else None
         self._basic_auth = auth if isinstance(auth, tuple) else None
         self._credentials_url = credentials_url
         self._host = host or _default_host()
-        self._refresh_metadata = (
-            self._refresh_with_token
-            if self._token is not None
-            else self._refresh_with_basic_auth
-        )
 
     @property
     def session(self) -> requests.Session:
@@ -186,15 +182,18 @@ class NasaEarthdataCredentialProvider:
 
     def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        metadata = self._refresh_metadata()
+        if self._token is not None:
+            credentials = self._refresh_with_token(self._token)
+        else:
+            credentials = self._refresh_with_basic_auth()
 
-        return _metadata_to_s3_credential(metadata)
+        return _parse_credentials(credentials)
 
-    def _refresh_with_token(self) -> Mapping[str, str]:
+    def _refresh_with_token(self, token: str) -> Mapping[str, str]:
         with self.session.get(
             self._credentials_url,
             allow_redirects=False,
-            headers={"Authorization": f"Bearer {self._token}"},
+            headers={"Authorization": f"Bearer {token}"},
         ) as r:
             r.raise_for_status()
 
@@ -285,6 +284,7 @@ class NasaEarthdataAsyncCredentialProvider:
     """  # noqa: E501
 
     config: S3Config
+    _session: aiohttp.ClientSession | aiohttp_retry.RetryClient | None
 
     def __init__(
         self,
@@ -307,22 +307,15 @@ class NasaEarthdataAsyncCredentialProvider:
         import aiohttp
 
         self.config = {"region": "us-west-2"}
-        self._session: aiohttp.ClientSession | aiohttp_retry.RetryClient | None = (
-            session or default_aiohttp_session()
-        )
+        self._session = session or default_aiohttp_session()
         # Avoid closing a user-supplied session (the user is responsible for that)
         self._close = None if session else self._session.close
 
-        auth = auth or _default_auth()
+        auth = auth or _read_auth_from_env()
         self._token = auth if isinstance(auth, str) else None
         self._basic_auth = aiohttp.BasicAuth(*auth) if isinstance(auth, tuple) else None
         self._credentials_url = credentials_url
         self._host = host or _default_host()
-        self._refresh_metadata = (
-            self._refresh_with_token
-            if self._token is not None
-            else self._refresh_with_basic_auth
-        )
 
     @property
     def session(self) -> aiohttp.ClientSession | aiohttp_retry.RetryClient:
@@ -347,15 +340,18 @@ class NasaEarthdataAsyncCredentialProvider:
 
     async def __call__(self) -> S3Credential:
         """Request updated credentials."""
-        metadata = await self._refresh_metadata()
+        if self._token is not None:
+            credentials = await self._refresh_with_token(self._token)
+        else:
+            credentials = await self._refresh_with_basic_auth()
 
-        return _metadata_to_s3_credential(metadata)
+        return _parse_credentials(credentials)
 
-    async def _refresh_with_token(self) -> Mapping[str, str]:
+    async def _refresh_with_token(self, token: str) -> Mapping[str, str]:
         async with self.session.get(
             self._credentials_url,
             allow_redirects=False,
-            headers={"Authorization": f"Bearer {self._token}"},
+            headers={"Authorization": f"Bearer {token}"},
             raise_for_status=True,
         ) as r:
             temporary_redirect_status = 307
@@ -400,7 +396,7 @@ def _default_host() -> str:
     return os.environ.get("EARTHDATA_HOST", EARTHDATA_HOST_OPS)
 
 
-def _default_auth() -> str | tuple[str, str] | None:
+def _read_auth_from_env() -> str | tuple[str, str] | None:
     if token := os.environ.get("EARTHDATA_TOKEN"):
         return token
 
@@ -438,10 +434,10 @@ def _raise_unauthorized_aiohttp(
     raise AssertionError from None
 
 
-def _metadata_to_s3_credential(metadata: Mapping[str, str]) -> S3Credential:
+def _parse_credentials(credentials: Mapping[str, str]) -> S3Credential:
     return {
-        "access_key_id": metadata["accessKeyId"],
-        "secret_access_key": metadata["secretAccessKey"],
-        "token": metadata["sessionToken"],
-        "expires_at": datetime.fromisoformat(metadata["expiration"]),
+        "access_key_id": credentials["accessKeyId"],
+        "secret_access_key": credentials["secretAccessKey"],
+        "token": credentials["sessionToken"],
+        "expires_at": datetime.fromisoformat(credentials["expiration"]),
     }
