@@ -29,7 +29,7 @@ indexmap = "2"
 object_store = "0.12.1"
 pyo3 = { version = "0.25", features = ["macros", "indexmap"] }
 pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
-pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "45814c59dc803e8d6e53484cbb777b75a7caa4f2" }
+pyo3-file = "0.13"
 thiserror = "1"
 tokio = "1.40"
 url = "2"
