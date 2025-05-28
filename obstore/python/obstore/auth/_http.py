@@ -10,8 +10,11 @@ if TYPE_CHECKING:
 
 
 def default_requests_session() -> requests.Session:
-    # Upstream docstring in case we want to expose these values publicly
-    #
+    import requests
+    import requests.adapters
+    import urllib3
+    import urllib3.util.retry
+
     # retry_total: The number of allowable retry attempts for REST API calls.
     #     Use retry_total=0 to disable retries. A backoff factor to apply
     #     between attempts.
@@ -22,12 +25,6 @@ def default_requests_session() -> requests.Session:
     #     ``{backoff factor} * (2 ** ({number of total retries} - 1))`` seconds.
     #     If the backoff_factor is 0.1, then the retry will sleep for
     #     [0.0s, 0.2s, 0.4s, ...] between retries. The default value is 0.8.
-
-    import requests
-    import requests.adapters
-    import urllib3
-    import urllib3.util.retry
-
     retry_total = 10
     retry_backoff_factor = 0.8
 
