@@ -15,7 +15,7 @@ Install [uv](https://docs.astral.sh/uv/) and [Rust](https://www.rust-lang.org/to
 From the top-level directory, run
 
 ```
-uv run maturin develop -m obstore/Cargo.toml
+uv run maturin dev -m obstore/Cargo.toml
 ```
 
 this will compile `obstore` and add it to the uv-managed Python environment.
@@ -23,7 +23,7 @@ this will compile `obstore` and add it to the uv-managed Python environment.
 If you wish to do any benchmarking, run
 
 ```
-uv run maturin develop -m obstore/Cargo.toml --release
+uv run maturin dev -m obstore/Cargo.toml --release
 ```
 
 to compile `obstore` with release optimizations turned on.
