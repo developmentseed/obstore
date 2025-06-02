@@ -170,8 +170,12 @@ impl PyAzureStore {
         // prefix.
         let (_, prefix) =
             ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
-        let prefix: Option<String> = if prefix.parts().count() != 0 {
-            Some(prefix.into())
+        let prefix: Option<String> = if prefix.parts().count() > 1 {
+            // Skip the first part of the prefix, which is the container name
+            // https://github.com/apache/arrow-rs-object-store/issues/398
+            // https://github.com/developmentseed/obstore/issues/477
+            let path = object_store::path::Path::from_iter(prefix.parts().skip(1));
+            Some(path.into())
         } else {
             None
         };
