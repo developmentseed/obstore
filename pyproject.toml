@@ -59,18 +59,19 @@ target-version = "py39"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D104",   # Missing docstring in public package
-    "D203",   # 1 blank line required before class docstring (conflicts with D211)
-    "D213",   # Multi-line docstring summary should start at the second line (conflicts with D212)
+    "D104",    # Missing docstring in public package
+    "D203",    # 1 blank line required before class docstring (conflicts with D211)
+    "D213",    # Multi-line docstring summary should start at the second line (conflicts with D212)
     "EM101",
-    "FIX002", # Line contains TODO, consider resolving the issue
-    "INP001", # File is part of an implicit namespace package.
-    "PYI021", # docstring-in-stub
-    "PYI051", # redundant-literal-union
-    "PYI011", # typed-argument-default-in-stub
-    "S101",   # allow assert
-    "TD",     # Todo comments
-    "TRY003", # Avoid specifying long messages outside the exception class
+    "FIX002",  # Line contains TODO, consider resolving the issue
+    "INP001",  # File is part of an implicit namespace package.
+    "PLC0415", # `import` should be at the top-level of a file
+    "PYI021",  # docstring-in-stub
+    "PYI051",  # redundant-literal-union
+    "PYI011",  # typed-argument-default-in-stub
+    "S101",    # allow assert
+    "TD",      # Todo comments
+    "TRY003",  # Avoid specifying long messages outside the exception class
 ]
 
 [tool.ruff.lint.per-file-ignores]
