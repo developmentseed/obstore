@@ -28,7 +28,7 @@ directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
-# ruff: noqa: ANN401, EM102, PTH123, FBT001, FBT002, S101
+# ruff: noqa: ANN401, EM102, PTH123, FBT001, FBT002
 
 from __future__ import annotations
 
