@@ -360,6 +360,8 @@ def _validate_url_container_account_input(
         )
         raise ValueError(msg)
 
+    assert isinstance(account_name, str), "account_name must be a string"
+    assert isinstance(container_name, str), "container_name must be a string"
     return account_name, container_name, None
 
 
