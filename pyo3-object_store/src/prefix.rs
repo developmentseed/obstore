@@ -11,8 +11,8 @@ use std::sync::OnceLock;
 
 use object_store::path::Path;
 use object_store::{
-    GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta, ObjectStore, PutMultipartOpts,
-    PutOptions, PutPayload, PutResult, Result,
+    GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta, ObjectStore,
+    PutMultipartOptions, PutOptions, PutPayload, PutResult, Result,
 };
 
 static DEFAULT_PATH: OnceLock<Path> = OnceLock::new();
@@ -133,7 +133,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     async fn put_multipart_opts(
         &self,
         location: &Path,
-        opts: PutMultipartOpts,
+        opts: PutMultipartOptions,
     ) -> Result<Box<dyn MultipartUpload>> {
         let full_path = self.full_path(location);
         self.inner.put_multipart_opts(&full_path, opts).await
