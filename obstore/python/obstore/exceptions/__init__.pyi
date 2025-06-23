@@ -10,7 +10,11 @@ else:
     from typing_extensions import deprecated
 
 class BaseError(Exception):
-    """The base exception class."""
+    """The base exception class.
+
+    !!! note
+        Some operations also raise a built-in `ValueError` or `FileNotFoundError`.
+    """
 
 class GenericError(BaseError):
     """A fallback error type when no variant matches."""
