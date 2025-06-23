@@ -2,12 +2,20 @@
 # pylance isn't able to find that. So this is an exceptions module with only
 # `__init__.pyi` to work around pylance's bug.
 
+import sys
+
+if sys.version_info >= (3, 13):
+    from warnings import deprecated
+else:
+    from typing_extensions import deprecated
+
 class BaseError(Exception):
     """The base exception class."""
 
 class GenericError(BaseError):
     """A fallback error type when no variant matches."""
 
+@deprecated("builtins.FileNotFoundError is emitted instead.")
 class NotFoundError(BaseError):
     """Error when the object is not found at given location."""
 
