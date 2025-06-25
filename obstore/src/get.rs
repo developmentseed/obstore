@@ -177,6 +177,14 @@ impl PyGetResult {
         })
     }
 
+    fn buffer(&self, py: Python) -> PyObjectStoreResult<PyBytes> {
+        self.bytes(py)
+    }
+
+    fn buffer_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
+        self.bytes_async(py)
+    }
+
     #[getter]
     fn attributes(&self) -> PyResult<PyAttributes> {
         Ok(PyAttributes::new(self.attributes.clone()))
