@@ -1981,10 +1981,14 @@ wheels = [
 
 [[package]]
 name = "obspec"
-version = "0.1.0b6"
-source = { git = "https://github.com/developmentseed/obspec#ed31776800c5c9ca30a7ede59ec7f49ec459e877" }
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.12'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e2/94/7a9ad6927cac6ec7680e11772fb692145a05a93bafd80b84f6f0ef12f4e7/obspec-0.1.0.tar.gz", hash = "sha256:b189781a53f82ef8d6abf0c9e77fd4c46ac9f244d5a91eb35ee61c2e2b204a4a", size = 117254, upload-time = "2025-06-25T05:24:00.002Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/69/96feeac84ce0b871567225c78515f3b557c023e72ed9b4f1833f3662bd6b/obspec-0.1.0-py3-none-any.whl", hash = "sha256:307f0fa2c2998b324ecf0eed6a2a89049a4c40c9b1fa2b5e1af28f0ee72136b3", size = 15231, upload-time = "2025-06-25T05:23:58.735Z" },
 ]
 
 [[package]]
@@ -3395,7 +3399,7 @@ dev = [
     { name = "mkdocstrings-python", specifier = ">=1.13.0" },
     { name = "moto", extras = ["s3", "server"], specifier = ">=5.1.1" },
     { name = "mypy", specifier = ">=1.15.0" },
-    { name = "obspec", git = "https://github.com/developmentseed/obspec" },
+    { name = "obspec", specifier = ">=0.1.0" },
     { name = "pip", specifier = ">=24.2" },
     { name = "polars", specifier = ">=1.30.0" },
     { name = "pyarrow", specifier = ">=17.0.0" },
