@@ -2,9 +2,45 @@
 
 ## Unreleased
 
+## [0.7.0] - 2025-06-25
+
+### New Features :magic_wand:
+
+- Support anonymous GCS connections by @kylebarron in https://github.com/developmentseed/obstore/pull/404
+- Support default headers in client options by @kylebarron in https://github.com/developmentseed/obstore/pull/427
+- Validate that obstore implements the obspec API by @kylebarron in https://github.com/developmentseed/obstore/pull/461
+- Allow passing credential providers in to fsspec wrapper by @kylebarron in https://github.com/developmentseed/obstore/pull/396
+- feat: Improve NASA Earthdata credential providers by @chuckwondo in https://github.com/developmentseed/obstore/pull/472
+- feat: Deprecate custom NotFoundError in favor of built-in FileNotFoundError by @kylebarron in https://github.com/developmentseed/obstore/pull/487
+
 ### Breaking changes :wrench:
 
-- `obstore.auth.AzureCredentialProvider` (and `obstore.auth.AzureAsyncCredentialProvider`) removed some attributes that were previously accidentally public. Also, `scopes` and `tenant_id` parameters in the `__init__` of those two classes are now keyword-only parameters.
+- `obstore.auth.AzureCredentialProvider` (and `obstore.auth.AzureAsyncCredentialProvider`) removed some attributes that were previously accidentally public. Also, `scopes` and `tenant_id` parameters in the `__init__` of those two classes are now keyword-only parameters. by @kylebarron in https://github.com/developmentseed/obstore/pull/442
+
+### Bug fixes :bug:
+
+- Remove `@staticmethod` from credential provider type annotations by @kylebarron in https://github.com/developmentseed/obstore/pull/446
+- Enable accessing `meta`, `range`, and `attributes` after reading `GetResult` payload by @kylebarron in https://github.com/developmentseed/obstore/pull/440
+- Ensure we always release the GIL before calling `tokio::Runtime::block_on` by @kylebarron in https://github.com/developmentseed/obstore/pull/451
+- fix: AzureStore creation by HTTPS url by @kylebarron in https://github.com/developmentseed/obstore/pull/481
+
+### Documentation :book:
+
+- docs: Add Zarr example to docs by @kylebarron in https://github.com/developmentseed/obstore/pull/468
+- docs: stream-zip example by @kylebarron in https://github.com/developmentseed/obstore/pull/470
+- fix: docs for json.loads(bytes) by @gadomski in https://github.com/developmentseed/obstore/pull/432
+
+### Other
+
+- Include `object_store` version and source in Python dist by @kylebarron in https://github.com/developmentseed/obstore/pull/408
+
+### New Contributors
+
+- @emmanuel-ferdman made their first contribution in https://github.com/developmentseed/obstore/pull/410
+- @gadomski made their first contribution in https://github.com/developmentseed/obstore/pull/432
+- @chuckwondo made their first contribution in https://github.com/developmentseed/obstore/pull/454
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.6.0...py-v0.7.0
 
 ## [0.6.0] - 2025-03-24
 
