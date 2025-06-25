@@ -13,7 +13,7 @@ dev-dependencies = [
     "arro3-core>=0.4.2",
     "azure-identity>=1.21.0",
     "boto3>=1.38.21",
-    "fastapi>=0.115.12", # used in example but added here for pyright CI
+    "fastapi>=0.115.12",                  # used in example but added here for pyright CI
     "fsspec>=2024.10.0",
     "google-auth>=2.38.0",
     "griffe-inherited-docstrings>=1.0.1",
@@ -29,7 +29,7 @@ dev-dependencies = [
     "mkdocstrings>=0.27.0",
     "moto[s3,server]>=5.1.1",
     "mypy>=1.15.0",
-    "obspec>=0.1.0b5",
+    "obspec>=0.1.0",
     "pip>=24.2",
     "polars>=1.30.0",
     "pyarrow>=17.0.0",
@@ -39,7 +39,7 @@ dev-dependencies = [
     "pytest-mypy-plugins>=3.2.0",
     "pytest>=8.3.3",
     "python-dotenv>=1.0.1",
-    "ruff>=0.11.0",
+    "ruff>=0.12.0",
     "tqdm>=4.67.1",
     "types-boto3[s3,sts]>=1.36.23",
     "types-requests>=2.31.0.6",
@@ -53,25 +53,25 @@ constraint-dependencies = [
 [tool.uv.workspace]
 members = ["examples/fastapi-example"]
 
-[tool.uv.sources]
-obspec = { git = "https://github.com/developmentseed/obspec" }
-
 [tool.ruff]
 target-version = "py39"
-
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D104",   # Missing docstring in public package
+    "D104",    # Missing docstring in public package
+    "D203",    # 1 blank line required before class docstring (conflicts with D211)
+    "D213",    # Multi-line docstring summary should start at the second line (conflicts with D212)
     "EM101",
-    "FIX002", # Line contains TODO, consider resolving the issue
-    "PYI021", # docstring-in-stub
-    "PYI051", # redundant-literal-union
-    "PYI011", # typed-argument-default-in-stub
-    "S101",   # allow assert
-    "TD",     # Todo comments
-    "TRY003", # Avoid specifying long messages outside the exception class
+    "FIX002",  # Line contains TODO, consider resolving the issue
+    "INP001",  # File is part of an implicit namespace package.
+    "PLC0415", # `import` should be at the top-level of a file
+    "PYI021",  # docstring-in-stub
+    "PYI051",  # redundant-literal-union
+    "PYI011",  # typed-argument-default-in-stub
+    "S101",    # allow assert
+    "TD",      # Todo comments
+    "TRY003",  # Avoid specifying long messages outside the exception class
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -92,6 +92,18 @@ ignore = [
     "SLF001",  # Private member accessed
 ]
 
+[tool.pyright]
+exclude = ["examples/**"]
+
 [tool.pytest.ini_options]
-addopts = "-v"
+addopts = "-v --mypy-only-local-stub"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+markers = ["network: mark the test as requiring a network connection"]
+
+[tool.mypy]
+files = ["obstore/python"]
+
+[[tool.mypy.overrides]]
+module = ["fsspec.*"]
+ignore_missing_imports = true

@@ -2,6 +2,12 @@
 
 [MinIO](https://github.com/minio/minio) is a high-performance, S3 compatible object store, open sourced under GNU AGPLv3 license. It's often used for testing or self-hosting S3-compatible storage.
 
+## Example
+
+!!! note
+
+    This example is also [available on Github](https://github.com/developmentseed/obstore/blob/main/examples/minio/README.md) if you'd like to test it out locally.
+
 We can run minio locally using docker:
 
 ```shell

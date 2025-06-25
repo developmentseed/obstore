@@ -1,0 +1,16 @@
+[project]
+name = "zarr-example"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.10.1",
+    "obstore>=0.6.0",
+    "pystac-client>=0.8.6",
+    "xarray>=2025.3.0",
+    "zarr>=3.0.8",
+]
+
+[dependency-groups]
+dev = ["ipykernel>=6.29.5"]

@@ -1,4 +1,4 @@
-# ruff: noqa: A001, UP006, UP035
+# ruff: noqa: A001, UP035
 
 import sys
 from datetime import datetime

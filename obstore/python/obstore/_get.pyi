@@ -187,6 +187,20 @@ class GetResult:
         memory by passing to [`bytes`][].
         """
 
+    def buffer(self) -> Bytes:
+        """Collect the data into a `Bytes` object.
+
+        This is an alias of the [`bytes()`][obstore.GetResult.bytes] method to comply
+        with the [`obspec.Get`][] protocol.
+        """
+
+    async def buffer_async(self) -> Bytes:
+        """Collect the data into a `Bytes` object.
+
+        This is an alias of the [`bytes_async()`][obstore.GetResult.bytes_async] method
+        to comply with the [`obspec.GetAsync`][] protocol.
+        """
+
     @property
     def meta(self) -> ObjectMeta:
         """The ObjectMeta for this object."""

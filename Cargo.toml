@@ -26,10 +26,10 @@ chrono = "0.4.38"
 futures = "0.3.31"
 http = "1.2"
 indexmap = "2"
-object_store = "0.12.1"
+object_store = "0.12.2"
 pyo3 = { version = "0.25", features = ["macros", "indexmap"] }
 pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
-pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "45814c59dc803e8d6e53484cbb777b75a7caa4f2" }
+pyo3-file = "0.13"
 thiserror = "1"
 tokio = "1.40"
 url = "2"
@@ -37,3 +37,6 @@ url = "2"
 [profile.release]
 lto = true
 codegen-units = 1
+
+[patch.crates-io]
+object_store = { git = "https://github.com/apache/arrow-rs-object-store", rev = "f422dce1528ee2a089d8061af639c3f2a9cd43af" }

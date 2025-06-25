@@ -40,7 +40,9 @@ nav:
       - examples/fastapi.md
       - examples/minio.md
       - examples/pyarrow.md
+      - examples/stream-zip.md
       - examples/tqdm.md
+      - examples/zarr.md
   - Blog:
       - blog/index.md
   - API Reference:
@@ -159,11 +161,12 @@ plugins:
             extensions:
               - griffe_inherited_docstrings
 
-          import:
+          inventories:
             - https://arrow.apache.org/docs/objects.inv
             - https://azuresdkdocs.z19.web.core.windows.net/python/azure-identity/latest/objects.inv
             - https://boto3.amazonaws.com/v1/documentation/api/latest/objects.inv
             - https://botocore.amazonaws.com/v1/documentation/api/latest/objects.inv
+            - https://developmentseed.org/obspec/latest/objects.inv
             - https://docs.aiohttp.org/en/stable/objects.inv
             - https://docs.pola.rs/api/python/stable/objects.inv
             - https://docs.python.org/3/objects.inv

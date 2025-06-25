@@ -68,7 +68,7 @@ jobs:
 
       - name: Run python tests
         run: |
-          uv run pytest tests --mypy-only-local-stub
+          uv run pytest
 
       # Ensure docs build without warnings
       - name: Check docs
@@ -77,8 +77,3 @@ jobs:
 
       - name: Add venv to PATH (for pyright action)
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
-
-      - name: Run pyright
-        uses: jakebailey/pyright-action@v2
-        with:
-          pylance-version: latest-release
