@@ -65,7 +65,7 @@ impl<'py> FromPyObject<'py> for PyClientOptions {
                 if &key == "default_headers" {
                     default_headers = Some(value.extract::<PyHeaderMap>()?);
                 } else {
-                    return Err(PyValueError::new_err(format!("Invalid key: {}.", key)));
+                    return Err(PyValueError::new_err(format!("Invalid key: {key}.")));
                 }
             }
         }

@@ -129,8 +129,7 @@ impl<'py> FromPyObject<'py> for PyMethod {
             "CONNECT" => Method::CONNECT,
             other => {
                 return Err(PyValueError::new_err(format!(
-                    "Unsupported HTTP method {}",
-                    other
+                    "Unsupported HTTP method {other}"
                 )))
             }
         };

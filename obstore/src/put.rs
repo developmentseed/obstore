@@ -34,8 +34,7 @@ impl<'py> FromPyObject<'py> for PyPutMode {
                 "create" => Ok(Self(PutMode::Create)),
                 "overwrite" => Ok(Self(PutMode::Overwrite)),
                 _ => Err(PyValueError::new_err(format!(
-                    "Unexpected input for PutMode: {}",
-                    s
+                    "Unexpected input for PutMode: {s}"
                 ))),
             }
         } else {

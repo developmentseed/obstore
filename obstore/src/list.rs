@@ -415,7 +415,7 @@ pub(crate) fn list(
             "\nInstall with `pip install arro3-core`."
         );
         py.import(intern!(py, "arro3.core"))
-            .map_err(|err| PyImportError::new_err(format!("{}\n\n{}", msg, err)))?;
+            .map_err(|err| PyImportError::new_err(format!("{msg}\n\n{err}")))?;
     }
 
     let store = store.into_inner().clone();

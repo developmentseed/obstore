@@ -192,7 +192,7 @@ impl PyS3Store {
                 prefix.as_ref()
             )
         } else {
-            format!("S3Store(bucket=\"{}\")", bucket)
+            format!("S3Store(bucket=\"{bucket}\")")
         }
     }
 

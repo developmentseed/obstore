@@ -178,7 +178,7 @@ impl PyGCSStore {
                 prefix.as_ref()
             )
         } else {
-            format!("GCSStore(bucket=\"{}\")", bucket)
+            format!("GCSStore(bucket=\"{bucket}\")")
         }
     }
 

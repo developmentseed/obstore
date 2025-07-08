@@ -159,8 +159,7 @@ fn print_with_debug(err: &object_store::Error) -> String {
 impl<'a, 'py> From<DowncastError<'a, 'py>> for PyObjectStoreError {
     fn from(other: DowncastError<'a, 'py>) -> Self {
         Self::PyErr(PyValueError::new_err(format!(
-            "Could not downcast: {}",
-            other
+            "Could not downcast: {other}",
         )))
     }
 }

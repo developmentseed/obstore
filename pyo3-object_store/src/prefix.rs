@@ -27,7 +27,7 @@ pub struct MaybePrefixedStore<T: ObjectStore> {
 impl<T: ObjectStore> std::fmt::Display for MaybePrefixedStore<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(prefix) = self.prefix.as_ref() {
-            write!(f, "PrefixObjectStore({})", prefix)
+            write!(f, "PrefixObjectStore({prefix})")
         } else {
             write!(f, "ObjectStore")
         }

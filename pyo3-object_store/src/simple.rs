@@ -104,7 +104,7 @@ pub fn from_url(
             let store: PyMemoryStore = Arc::new(InMemory::new()).into();
             Ok(store.into_py_any(py)?)
         }
-        scheme => Err(GenericError::new_err(format!("Unknown URL scheme {:?}", scheme,)).into()),
+        scheme => Err(GenericError::new_err(format!("Unknown URL scheme {scheme:?}")).into()),
     }
 }
 
@@ -115,8 +115,7 @@ fn raise_if_config_passed(
 ) -> PyObjectStoreResult<()> {
     if config.is_some() || kwargs.is_some() {
         return Err(GenericError::new_err(format!(
-            "Cannot pass config or keyword parameters for scheme {:?}",
-            scheme,
+            "Cannot pass config or keyword parameters for scheme {scheme:?}"
         ))
         .into());
     }
