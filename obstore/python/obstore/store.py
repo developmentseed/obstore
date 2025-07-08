@@ -9,7 +9,11 @@ from obstore._obstore import _store
 from obstore._obstore import parse_scheme as _parse_scheme
 from obstore.exceptions import BaseError
 
+# Re-export
+Path = _store.Path
+
 if TYPE_CHECKING:
+    import pathlib
     import sys
     from collections.abc import (
         AsyncIterable,
@@ -18,7 +22,6 @@ if TYPE_CHECKING:
         Iterator,
         Sequence,
     )
-    from pathlib import Path
     from typing import IO, Any, Literal
 
     from arro3.core import RecordBatch, Table
@@ -84,6 +87,7 @@ __all__ = [
     "HTTPStore",
     "LocalStore",
     "MemoryStore",
+    "Path",
     "RetryConfig",
     "S3Config",
     "S3Credential",
@@ -146,7 +150,7 @@ class _ObjectStoreMixin:
 
     def get(
         self,
-        path: str,
+        path: str | Path,
         *,
         options: GetOptions | None = None,
     ) -> GetResult:
@@ -162,7 +166,7 @@ class _ObjectStoreMixin:
 
     async def get_async(
         self,
-        path: str,
+        path: str | Path,
         *,
         options: GetOptions | None = None,
     ) -> GetResult:
@@ -178,7 +182,7 @@ class _ObjectStoreMixin:
 
     def get_range(
         self,
-        path: str,
+        path: str | Path,
         *,
         start: int,
         end: int | None = None,
@@ -198,7 +202,7 @@ class _ObjectStoreMixin:
 
     async def get_range_async(
         self,
-        path: str,
+        path: str | Path,
         *,
         start: int,
         end: int | None = None,
@@ -218,7 +222,7 @@ class _ObjectStoreMixin:
 
     def get_ranges(
         self,
-        path: str,
+        path: str | Path,
         *,
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
@@ -238,7 +242,7 @@ class _ObjectStoreMixin:
 
     async def get_ranges_async(
         self,
-        path: str,
+        path: str | Path,
         *,
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
@@ -256,7 +260,7 @@ class _ObjectStoreMixin:
             lengths=lengths,
         )
 
-    def head(self, path: str) -> ObjectMeta:
+    def head(self, path: str | Path) -> ObjectMeta:
         """Return the metadata for the specified location.
 
         Refer to the documentation for [head][obstore.head].
@@ -266,7 +270,7 @@ class _ObjectStoreMixin:
             path,
         )
 
-    async def head_async(self, path: str) -> ObjectMeta:
+    async def head_async(self, path: str | Path) -> ObjectMeta:
         """Call `head` asynchronously.
 
         Refer to the documentation for [head_async][obstore.head_async].
@@ -463,8 +467,13 @@ class _ObjectStoreMixin:
 
     def put(  # noqa: PLR0913
         self,
-        path: str,
-        file: IO[bytes] | Path | bytes | Buffer | Iterator[Buffer] | Iterable[Buffer],
+        path: str | Path,
+        file: IO[bytes]
+        | pathlib.Path
+        | bytes
+        | Buffer
+        | Iterator[Buffer]
+        | Iterable[Buffer],
         *,
         attributes: Attributes | None = None,
         tags: dict[str, str] | None = None,
@@ -491,9 +500,9 @@ class _ObjectStoreMixin:
 
     async def put_async(  # noqa: PLR0913
         self,
-        path: str,
+        path: str | Path,
         file: IO[bytes]
-        | Path
+        | pathlib.Path
         | bytes
         | Buffer
         | AsyncIterator[Buffer]

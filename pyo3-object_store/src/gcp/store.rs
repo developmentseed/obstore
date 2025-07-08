@@ -15,7 +15,7 @@ use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStor
 use crate::gcp::credentials::PyGcpCredentialProvider;
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
-use crate::{MaybePrefixedStore, PyUrl};
+use crate::{MaybePrefixedStore, PyPathInput, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct GCSConfig {
@@ -86,13 +86,14 @@ impl PyGCSStore {
     #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
         bucket: Option<String>,
-        prefix: Option<PyPath>,
+        prefix: Option<PyPathInput>,
         config: Option<PyGoogleConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyGcpCredentialProvider>,
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
+        let prefix = prefix.map(|p| p.into());
         let mut builder = GoogleCloudStorageBuilder::from_env();
         let mut config = config.unwrap_or_default();
         if let Some(bucket) = bucket.clone() {
@@ -183,8 +184,8 @@ impl PyGCSStore {
     }
 
     #[getter]
-    fn prefix(&self) -> Option<&PyPath> {
-        self.config.prefix.as_ref()
+    fn prefix(&self) -> Option<PyPath> {
+        self.config.prefix.clone()
     }
 
     #[getter]

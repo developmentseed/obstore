@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Protocol, TypedDict
 
 from ._client import ClientConfig
+from ._path import Path
 from ._retry import RetryConfig
 
 if sys.version_info >= (3, 11):
@@ -141,7 +142,7 @@ class GCSStore:
         self,
         bucket: str | None = None,
         *,
-        prefix: str | None = None,
+        prefix: str | Path | None = None,
         config: GCSConfig | None = None,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
@@ -203,7 +204,7 @@ class GCSStore:
     def __eq__(self, value: object) -> bool: ...
     def __getnewargs_ex__(self): ...
     @property
-    def prefix(self) -> str | None:
+    def prefix(self) -> Path | None:
         """Get the prefix applied to all operations in this store, if any."""
     @property
     def config(self) -> GCSConfig:

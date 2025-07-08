@@ -10,7 +10,7 @@ use pyo3::types::PyString;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::{future_into_py, get_runtime};
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPathInput};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Lines};
 use tokio::sync::Mutex;
 
@@ -23,7 +23,7 @@ use crate::tags::PyTagSet;
 pub(crate) fn open_reader(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     buffer_size: usize,
 ) -> PyObjectStoreResult<PyReadableFile> {
     let store = store.into_inner();
@@ -38,7 +38,7 @@ pub(crate) fn open_reader(
 pub(crate) fn open_reader_async(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     buffer_size: usize,
 ) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
@@ -50,7 +50,7 @@ pub(crate) fn open_reader_async(
 
 async fn create_reader(
     store: Arc<dyn ObjectStore>,
-    path: String,
+    path: PyPathInput,
     capacity: usize,
 ) -> PyObjectStoreResult<(BufReader, ObjectMeta)> {
     let meta = store
@@ -287,7 +287,7 @@ async fn next_line(reader: Arc<Mutex<Lines<BufReader>>>, r#async: bool) -> PyRes
 #[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12))]
 pub(crate) fn open_writer(
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     attributes: Option<PyAttributes>,
     buffer_size: usize,
     tags: Option<PyTagSet>,
@@ -303,7 +303,7 @@ pub(crate) fn open_writer(
 #[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12))]
 pub(crate) fn open_writer_async(
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     attributes: Option<PyAttributes>,
     buffer_size: usize,
     tags: Option<PyTagSet>,
@@ -317,7 +317,7 @@ pub(crate) fn open_writer_async(
 
 fn create_writer(
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     attributes: Option<PyAttributes>,
     capacity: usize,
     tags: Option<PyTagSet>,

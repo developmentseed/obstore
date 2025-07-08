@@ -17,7 +17,7 @@ use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStor
 use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
-use crate::PyUrl;
+use crate::{PyPathInput, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct S3Config {
@@ -88,13 +88,14 @@ impl PyS3Store {
     #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
         bucket: Option<String>,
-        prefix: Option<PyPath>,
+        prefix: Option<PyPathInput>,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
+        let prefix = prefix.map(|p| p.into());
         let mut builder = AmazonS3Builder::from_env();
         let mut config = config.unwrap_or_default();
 
@@ -197,8 +198,8 @@ impl PyS3Store {
     }
 
     #[getter]
-    fn prefix(&self) -> Option<&PyPath> {
-        self.config.prefix.as_ref()
+    fn prefix(&self) -> Option<PyPath> {
+        self.config.prefix.clone()
     }
 
     #[getter]

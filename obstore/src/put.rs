@@ -19,7 +19,7 @@ use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreResult, PyPathInput};
 
 use crate::attributes::PyAttributes;
 use crate::tags::PyTagSet;
@@ -296,7 +296,7 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 pub(crate) fn put(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     mut file: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
@@ -355,7 +355,7 @@ pub(crate) fn put(
 pub(crate) fn put_async(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     mut file: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,

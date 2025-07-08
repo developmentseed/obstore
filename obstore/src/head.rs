@@ -1,11 +1,15 @@
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::get_runtime;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPathInput};
 
 use crate::list::PyObjectMeta;
 
 #[pyfunction]
-pub fn head(py: Python, store: PyObjectStore, path: String) -> PyObjectStoreResult<PyObjectMeta> {
+pub fn head(
+    py: Python,
+    store: PyObjectStore,
+    path: PyPathInput,
+) -> PyObjectStoreResult<PyObjectMeta> {
     let runtime = get_runtime();
     let store = store.into_inner();
 
@@ -16,7 +20,7 @@ pub fn head(py: Python, store: PyObjectStore, path: String) -> PyObjectStoreResu
 }
 
 #[pyfunction]
-pub fn head_async(py: Python, store: PyObjectStore, path: String) -> PyResult<Bound<PyAny>> {
+pub fn head_async(py: Python, store: PyObjectStore, path: PyPathInput) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner().clone();
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let meta = store

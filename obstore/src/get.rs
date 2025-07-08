@@ -11,7 +11,7 @@ use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPathInput};
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
@@ -334,7 +334,7 @@ impl<'py> IntoPyObject<'py> for PyBytesWrapper {
 pub(crate) fn get(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     options: Option<PyGetOptions>,
 ) -> PyObjectStoreResult<PyGetResult> {
     let runtime = get_runtime();
@@ -355,7 +355,7 @@ pub(crate) fn get(
 pub(crate) fn get_async(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     options: Option<PyGetOptions>,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
@@ -375,7 +375,7 @@ pub(crate) fn get_async(
 pub(crate) fn get_range(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     start: u64,
     end: Option<u64>,
     length: Option<u64>,
@@ -393,7 +393,7 @@ pub(crate) fn get_range(
 pub(crate) fn get_range_async(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     start: u64,
     end: Option<u64>,
     length: Option<u64>,
@@ -429,7 +429,7 @@ fn params_to_range(
 pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     starts: Vec<u64>,
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,
@@ -447,7 +447,7 @@ pub(crate) fn get_ranges(
 pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPathInput,
     starts: Vec<u64>,
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,

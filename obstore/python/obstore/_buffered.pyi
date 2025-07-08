@@ -4,7 +4,7 @@ from contextlib import AbstractAsyncContextManager, AbstractContextManager
 from ._attributes import Attributes
 from ._bytes import Bytes
 from ._list import ObjectMeta
-from ._store import ObjectStore
+from ._store import ObjectStore, Path
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -18,7 +18,7 @@ else:
 
 def open_reader(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     buffer_size: int = 1024 * 1024,
 ) -> ReadableFile:
@@ -38,7 +38,7 @@ def open_reader(
 
 async def open_reader_async(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     buffer_size: int = 1024 * 1024,
 ) -> AsyncReadableFile:
@@ -213,7 +213,7 @@ class AsyncReadableFile:
 
 def open_writer(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     attributes: Attributes | None = None,
     buffer_size: int = 10 * 1024 * 1024,
@@ -239,7 +239,7 @@ def open_writer(
 
 def open_writer_async(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     attributes: Attributes | None = None,
     buffer_size: int = 10 * 1024 * 1024,

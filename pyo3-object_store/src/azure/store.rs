@@ -15,7 +15,7 @@ use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
-use crate::{MaybePrefixedStore, PyUrl};
+use crate::{MaybePrefixedStore, PyPathInput, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct AzureConfig {
@@ -94,13 +94,14 @@ impl PyAzureStore {
     #[pyo3(signature = (container_name=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
     fn new(
         container_name: Option<String>,
-        mut prefix: Option<PyPath>,
+        prefix: Option<PyPathInput>,
         config: Option<PyAzureConfig>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAzureCredentialProvider>,
         kwargs: Option<PyAzureConfig>,
     ) -> PyObjectStoreResult<Self> {
+        let mut prefix = prefix.map(|p| p.into());
         let mut builder = MicrosoftAzureBuilder::from_env();
         let mut config = config.unwrap_or_default();
 
@@ -220,8 +221,8 @@ impl PyAzureStore {
     }
 
     #[getter]
-    fn prefix(&self) -> Option<&PyPath> {
-        self.config.prefix.as_ref()
+    fn prefix(&self) -> Option<PyPath> {
+        self.config.prefix.clone()
     }
 
     #[getter]

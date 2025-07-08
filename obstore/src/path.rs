@@ -1,6 +1,7 @@
 use object_store::path::Path;
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
+use pyo3_object_store::PyPathInput;
 
 pub(crate) enum PyPaths {
     One(Path),
@@ -10,9 +11,9 @@ pub(crate) enum PyPaths {
 
 impl<'py> FromPyObject<'py> for PyPaths {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(path) = ob.extract::<String>() {
+        if let Ok(path) = ob.extract::<PyPathInput>() {
             Ok(Self::One(path.into()))
-        } else if let Ok(paths) = ob.extract::<Vec<String>>() {
+        } else if let Ok(paths) = ob.extract::<Vec<PyPathInput>>() {
             Ok(Self::Many(
                 paths.into_iter().map(|path| path.into()).collect(),
             ))

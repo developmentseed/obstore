@@ -5,7 +5,7 @@ from typing import TypedDict
 from ._attributes import Attributes
 from ._bytes import Bytes
 from ._list import ObjectMeta
-from .store import ObjectStore
+from .store import ObjectStore, Path
 
 class OffsetRange(TypedDict):
     """Request all bytes starting from a given byte offset.
@@ -289,7 +289,7 @@ class BytesStream:
 
 def get(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     options: GetOptions | None = None,
 ) -> GetResult:
@@ -307,7 +307,7 @@ def get(
 
 async def get_async(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     options: GetOptions | None = None,
 ) -> GetResult:
@@ -318,7 +318,7 @@ async def get_async(
 
 def get_range(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     start: int,
     end: int | None = None,
@@ -348,7 +348,7 @@ def get_range(
 
 async def get_range_async(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     start: int,
     end: int | None = None,
@@ -361,7 +361,7 @@ async def get_range_async(
 
 def get_ranges(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     starts: Sequence[int],
     ends: Sequence[int] | None = None,
@@ -392,7 +392,7 @@ def get_ranges(
 
 async def get_ranges_async(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     *,
     starts: Sequence[int],
     ends: Sequence[int] | None = None,
