@@ -213,8 +213,7 @@ impl PyAzureStore {
             )
         } else {
             format!(
-                "AzureStore(container_name=\"{}\", account_name=\"{}\")",
-                container_name, account_name,
+                "AzureStore(container_name=\"{container_name}\", account_name=\"{account_name}\")"
             )
         }
     }

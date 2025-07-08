@@ -44,7 +44,7 @@ pub fn register_store_module(
     parent_module_str: &str,
     sub_module_str: &str,
 ) -> PyResult<()> {
-    let full_module_string = format!("{}.{}", parent_module_str, sub_module_str);
+    let full_module_string = format!("{parent_module_str}.{sub_module_str}");
 
     let child_module = PyModule::new(parent_module.py(), sub_module_str)?;
 
@@ -102,7 +102,7 @@ pub fn register_exceptions_module(
     parent_module_str: &str,
     sub_module_str: &str,
 ) -> PyResult<()> {
-    let full_module_string = format!("{}.{}", parent_module_str, sub_module_str);
+    let full_module_string = format!("{parent_module_str}.{sub_module_str}");
 
     let child_module = PyModule::new(parent_module.py(), sub_module_str)?;
 
