@@ -8,7 +8,7 @@ fn main() {
     let lockfile_location = get_lockfile_location().unwrap();
     let (version, source) = read_lockfile(&lockfile_location);
 
-    println!("cargo:rustc-env=OBJECT_STORE_VERSION={}", version);
+    println!("cargo:rustc-env=OBJECT_STORE_VERSION={version}");
     println!(
         "cargo:rustc-env=OBJECT_STORE_SOURCE={}",
         source.map(|s| s.to_string()).unwrap_or("".to_string())

@@ -152,8 +152,7 @@ impl PyReadableFile {
             2 => SeekFrom::End(offset as _),
             other => {
                 return Err(PyIOError::new_err(format!(
-                    "Invalid value for whence in seek: {}",
-                    other
+                    "Invalid value for whence in seek: {other}"
                 )))
             }
         };

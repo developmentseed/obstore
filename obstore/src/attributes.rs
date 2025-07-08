@@ -32,7 +32,7 @@ fn attribute_to_string(attribute: &Attribute) -> Cow<'static, str> {
         Attribute::ContentType => Cow::Borrowed("Content-Type"),
         Attribute::CacheControl => Cow::Borrowed("Cache-Control"),
         Attribute::Metadata(x) => x.clone(),
-        other => panic!("Unexpected attribute: {:?}", other),
+        other => panic!("Unexpected attribute: {other:?}"),
     }
 }
 
