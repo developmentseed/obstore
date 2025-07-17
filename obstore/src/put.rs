@@ -8,7 +8,7 @@ use bytes::Bytes;
 use indexmap::IndexMap;
 use object_store::path::Path;
 use object_store::{
-    ObjectStore, PutMode, PutMultipartOpts, PutOptions, PutPayload, PutResult, UpdateVersion,
+    ObjectStore, PutMode, PutMultipartOptions, PutOptions, PutPayload, PutResult, UpdateVersion,
     WriteMultipart,
 };
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
@@ -436,7 +436,7 @@ async fn put_multipart_inner(
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
 ) -> PyObjectStoreResult<PyPutResult> {
-    let mut opts = PutMultipartOpts::default();
+    let mut opts = PutMultipartOptions::default();
 
     if let Some(attributes) = attributes {
         opts.attributes = attributes.into_inner();
