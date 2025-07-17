@@ -10,6 +10,8 @@ use std::ops::Range;
 use std::sync::OnceLock;
 
 use object_store::path::Path;
+// Remove when updating to object_store 0.13
+#[allow(deprecated)]
 use object_store::{
     GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta, ObjectStore, PutMultipartOpts,
     PutOptions, PutPayload, PutResult, Result,
@@ -130,6 +132,8 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner.put_multipart(&full_path).await
     }
 
+    // Remove when updating to object_store 0.13
+    #[allow(deprecated)]
     async fn put_multipart_opts(
         &self,
         location: &Path,
