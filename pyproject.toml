@@ -93,7 +93,15 @@ ignore = [
 ]
 
 [tool.pyright]
-exclude = ["examples/**"]
+exclude = [
+    "**/__pycache__",
+    "examples",
+    ".venv",
+]
+executionEnvironments = [
+  { root = "./", extraPaths = ["./obstore/python"] },  # Tests.
+  { root = "./obstore/python" }
+]
 
 [tool.pytest.ini_options]
 addopts = "-v --mypy-only-local-stub"
