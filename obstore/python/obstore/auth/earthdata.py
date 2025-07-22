@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     import sys
     from collections.abc import Mapping
 
-    if sys.version_info >= (3, 10):
+    if sys.version_info >= (3, 11):
         from typing import Never
     else:
         from typing_extensions import Never
