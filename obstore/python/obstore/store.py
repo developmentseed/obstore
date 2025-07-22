@@ -5,8 +5,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Union, overload
 
 import obstore as obs
-from obstore._obstore import _store
-from obstore._obstore import parse_scheme as _parse_scheme
+from obstore._obstore import _store  # pyright:ignore[reportMissingModuleSource]
+from obstore._obstore import (  # pyright:ignore[reportMissingModuleSource]
+    parse_scheme as _parse_scheme,
+)
 from obstore.exceptions import BaseError
 
 if TYPE_CHECKING:
@@ -32,7 +34,10 @@ if TYPE_CHECKING:
         PutMode,
         PutResult,
     )
-    from obstore._obstore import Bytes, GetResult
+    from obstore._obstore import (  # pyright:ignore[reportMissingModuleSource]
+        Bytes,
+        GetResult,
+    )
     from obstore._store import (
         AzureAccessKey,  # noqa: TC004
         AzureBearerToken,  # noqa: TC004

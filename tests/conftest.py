@@ -29,7 +29,8 @@ def moto_server_uri():
     else:
         s = server._server
         assert s is not None
-        host, port = s.server_address
+        # An AF_INET6 socket address has 4 components.
+        host, port = s.server_address[:2]
     uri = f"http://{host}:{port}"
     yield uri
     server.stop()
