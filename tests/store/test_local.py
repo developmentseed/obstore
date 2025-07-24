@@ -1,13 +1,14 @@
+import pathlib
 import pickle
-from pathlib import Path
 
 import pytest
 
 import obstore as obs
+import obstore.store
 from obstore.exceptions import GenericError
 from obstore.store import LocalStore
 
-HERE = Path()
+HERE = pathlib.Path()
 
 
 def test_local_store():
@@ -45,7 +46,7 @@ def test_local_from_url():
         store = LocalStore.from_url(url)
 
 
-def test_create_prefix(tmp_path: Path):
+def test_create_prefix(tmp_path: pathlib.Path):
     tmpdir = tmp_path / "abc"
     assert not tmpdir.exists()
     LocalStore(tmpdir, mkdir=True)
@@ -56,15 +57,15 @@ def test_create_prefix(tmp_path: Path):
     assert tmpdir.exists()
 
 
-def test_prefix_property(tmp_path: Path):
+def test_prefix_property(tmp_path: pathlib.Path):
     store = LocalStore(tmp_path)
     assert store.prefix == tmp_path
-    assert isinstance(store.prefix, Path)
+    assert isinstance(store.prefix, pathlib.Path)
     # Can pass it back to the store init
     LocalStore(store.prefix)
 
 
-def test_pickle(tmp_path: Path):
+def test_pickle(tmp_path: pathlib.Path):
     store = LocalStore(tmp_path)
     obs.put(store, "path.txt", b"foo")
     new_store: LocalStore = pickle.loads(pickle.dumps(store))
@@ -78,3 +79,17 @@ def test_eq():
     assert store == store  # noqa: PLR0124
     assert store == store2
     assert store != store3
+
+
+def test_local_store_percent_encoded(tmp_path: pathlib.Path):
+    with (tmp_path / "hello%20world.txt").open("w") as f:
+        f.write("Hello, World!")
+
+    store = LocalStore(tmp_path)
+    # Fails with default string encoding
+    with pytest.raises(FileNotFoundError):
+        store.head("hello world.txt")
+
+    # Works with percent-encoded path
+    obstore_path = obstore.store.Path.parse("hello%20world.txt")
+    store.head(obstore_path)
