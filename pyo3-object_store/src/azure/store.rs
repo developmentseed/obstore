@@ -405,10 +405,10 @@ fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Resul
     };
 
     match parsed.scheme() {
-        "az" | "adl" | "azure" => {
+        "adl" | "azure" => {
             config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
         }
-        "abfs" | "abfss" => {
+        "az" | "abfs" | "abfss" => {
             // abfs(s) might refer to the fsspec convention abfs://<container>/<path>
             // or the convention for the hadoop driver abfs[s]://<file_system>@<account_name>.dfs.core.windows.net/<path>
             if parsed.username().is_empty() {
