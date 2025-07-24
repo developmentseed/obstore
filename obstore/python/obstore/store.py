@@ -738,9 +738,14 @@ def from_url(  # noqa: C901
     `url`. E.g. passing `"s3://bucket/path"` will defer to
     [`S3Store.from_url`][obstore.store.S3Store.from_url].
 
+    Any path on the URL will be assigned as the `prefix` for the store. So if you pass
+    `s3://bucket/path/to/directory`, the store will be created with a prefix of
+    `path/to/directory`, and all further operations will use paths relative to that
+    prefix.
+
     Supported formats:
 
-    - `file:///path/to/my/file` -> [`LocalStore`][obstore.store.LocalStore]
+    - `file:///path/` -> [`LocalStore`][obstore.store.LocalStore]
     - `memory:///` -> [`MemoryStore`][obstore.store.MemoryStore]
     - `s3://bucket/path` -> [`S3Store`][obstore.store.S3Store] (also supports `s3a`)
     - `gs://bucket/path` -> [`GCSStore`][obstore.store.GCSStore]
