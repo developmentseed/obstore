@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## [0.7.1] - 2025-07-24
+
+### What's Changed
+
+- chore: Bump object_store to 0.12.3 by @kylebarron in https://github.com/developmentseed/obstore/pull/501. [From upstream changelog](https://github.com/apache/arrow-rs-object-store/blob/v0.12.3/CHANGELOG.md):
+  - Retry on 429s and equivalents (https://github.com/apache/arrow-rs-object-store/issues/309)
+  - Support `container@account.dfs.core.windows.net/path` URL style for `az` protocol (https://github.com/apache/arrow-rs-object-store/issues/285)
+
+### Documentation :book:
+
+- docs: Add Cloudflare R2 example by @kylebarron in https://github.com/developmentseed/obstore/pull/504
+- docs: Improve documentation about URL path handling in `from_url` class methods by @kylebarron in https://github.com/developmentseed/obstore/pull/512
+- docs: Clarify that `return_arrow` is only a performance optimization by @kylebarron in https://github.com/developmentseed/obstore/pull/513
+
+### Other
+
+- fix: fix pyright config by @pjonsson in https://github.com/developmentseed/obstore/pull/505
+- ci: reinstate pyright check by @pjonsson in https://github.com/developmentseed/obstore/pull/510
+
+## New Contributors
+
+- @pjonsson made their first contribution in https://github.com/developmentseed/obstore/pull/505
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.7.0...py-v0.7.1
+
 ## [0.7.0] - 2025-06-25
 
 ### New Features :magic_wand:
