@@ -366,6 +366,11 @@ class AzureStore:
     ) -> Self:
         """Construct a new AzureStore with values populated from a well-known storage URL.
 
+        Any path on the URL will be assigned as the `prefix` for the store. So if you
+        pass `https://<account>.blob.core.windows.net/<container>/path/to/directory`,
+        the store will be created with a prefix of `path/to/directory`, and all further
+        operations will use paths relative to that prefix.
+
         The supported url schemes are:
 
         - `abfs[s]://<container>/<path>` (according to [fsspec](https://github.com/fsspec/adlfs))

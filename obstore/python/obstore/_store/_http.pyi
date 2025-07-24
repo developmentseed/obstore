@@ -20,6 +20,11 @@ class HTTPStore:
     ) -> None:
         """Construct a new HTTPStore from a URL.
 
+        Any path on the URL will be assigned as the `prefix` for the store. So if you
+        pass `https://example.com/path/to/directory`, the store will be created with a
+        prefix of `path/to/directory`, and all further operations will use paths
+        relative to that prefix.
+
         Args:
             url: The base URL to use for the store.
 
