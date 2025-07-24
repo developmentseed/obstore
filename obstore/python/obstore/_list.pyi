@@ -56,7 +56,9 @@ ListChunkType = TypeVar(  # noqa: PYI001, PLC0105
 
 By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
 for improved performance when listing large buckets, you can pass `return_arrow=True`.
-Then an Arrow `RecordBatch` will be returned instead.
+Then an [Arrow `RecordBatch`][arro3.core.RecordBatch] will be returned instead, with
+columns containing the same information as would be contained in the Python
+[`ObjectMeta`][obstore.ObjectMeta].
 
 !!! warning "Not importable at runtime"
 
@@ -219,9 +221,11 @@ def list(  # type: ignore[misc] # docstring in pyi file
         break
     ```
 
-    Return large list results as [Arrow](https://arrow.apache.org/). This is most useful
-    with large list operations. In this case you may want to increase the `chunk_size`
-    parameter.
+    Return large list results as [Arrow](https://arrow.apache.org/). This is only a
+    performance optimization; it returns the same information in columnar table form.
+    This is most useful with large list operations (you may also want to
+    increase the `chunk_size` parameter to increase the number of items per emitted
+    record batch).
 
     ```py
     stream = obs.list(store, chunk_size=1000, return_arrow=True)
@@ -262,9 +266,11 @@ def list(  # type: ignore[misc] # docstring in pyi file
             [`collect`][obstore.ListStream.collect] and
             [`collect_async`][obstore.ListStream.collect_async] methods of
             `ListStream`.
-        return_arrow: If `True`, return each batch of list items as an Arrow
-            `RecordBatch`, not as a list of Python `dict`s. Arrow removes serialization
-            overhead between Rust and Python and so this can be significantly faster for
+        return_arrow: If `True`, return each batch of list items as an
+            [Apache Arrow](https://arrow.apache.org/) `RecordBatch` instead of a list of
+            Python `dict`s. This is a performance optimization. Arrow removes
+            serialization overhead between Rust and Python and so setting
+            `return_arrow=True` can significantly reduce Python interpreter overhead for
             large list operations. Defaults to `False`.
 
             If this is `True`, the `arro3-core` Python package must be installed.
@@ -312,9 +318,11 @@ def list_with_delimiter(  # type: ignore[misc] # docstring in pyi file
         prefix: The prefix within ObjectStore to use for listing. Defaults to None.
 
     Keyword Args:
-        return_arrow: If `True`, return list results as an Arrow
-            `Table`, not as a list of Python `dict`s. Arrow removes serialization
-            overhead between Rust and Python and so this can be significantly faster for
+        return_arrow: If `True`, return each batch of list items as an
+            [Apache Arrow](https://arrow.apache.org/) `RecordBatch` instead of a list of
+            Python `dict`s. This is a performance optimization. Arrow removes
+            serialization overhead between Rust and Python and so setting
+            `return_arrow=True` can significantly reduce Python interpreter overhead for
             large list operations. Defaults to `False`.
 
             If this is `True`, the `arro3-core` Python package must be installed.
