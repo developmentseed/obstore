@@ -33,6 +33,7 @@ integration.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 import warnings
 from collections import defaultdict
 from functools import lru_cache
@@ -591,6 +592,12 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
         return BufferedFile(self, path, mode, **kwargs)
 
+    def modified(self, path: str) -> datetime:
+        """Return the modified timestamp of a file as a `datetime.datetime`."""
+        bucket, path_no_bucket = self._split_path(path)
+        store = self._construct_store(bucket)
+        head = obs.head(store, path_no_bucket)
+        return head["last_modified"]
 
 class BufferedFile(fsspec.spec.AbstractBufferedFile):
     """A buffered readable or writable file.
