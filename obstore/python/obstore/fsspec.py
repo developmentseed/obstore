@@ -33,7 +33,6 @@ integration.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 import warnings
 from collections import defaultdict
 from functools import lru_cache
@@ -51,6 +50,7 @@ from obstore.store import from_url
 if TYPE_CHECKING:
     import sys
     from collections.abc import Coroutine, Iterable
+    from datetime import datetime
     from typing import Any
 
     from obstore import Attributes, Bytes, ReadableFile, WritableFile
