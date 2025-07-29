@@ -599,6 +599,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         head = obs.head(store, path_no_bucket)
         return head["last_modified"]
 
+
 class BufferedFile(fsspec.spec.AbstractBufferedFile):
     """A buffered readable or writable file.
 
