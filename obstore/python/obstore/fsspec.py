@@ -50,6 +50,7 @@ from obstore.store import from_url
 if TYPE_CHECKING:
     import sys
     from collections.abc import Coroutine, Iterable
+    from datetime import datetime
     from typing import Any
 
     from obstore import Attributes, Bytes, ReadableFile, WritableFile
@@ -590,6 +591,13 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             raise ValueError(err_msg)
 
         return BufferedFile(self, path, mode, **kwargs)
+
+    def modified(self, path: str) -> datetime:
+        """Return the modified timestamp of a file as a `datetime.datetime`."""
+        bucket, path_no_bucket = self._split_path(path)
+        store = self._construct_store(bucket)
+        head = obs.head(store, path_no_bucket)
+        return head["last_modified"]
 
 
 class BufferedFile(fsspec.spec.AbstractBufferedFile):
