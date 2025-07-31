@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [0.7.2] - 2025-07-31
+
+### What's Changed
+
+- feat(fsspec): `FsspecStore.modified()` by @keen85 in https://github.com/developmentseed/obstore/pull/517
+
+### New Contributors
+
+- @keen85 made their first contribution in https://github.com/developmentseed/obstore/pull/517
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.7.1...py-v0.7.2
+
 ## [0.7.1] - 2025-07-24
 
 ### What's Changed
@@ -21,7 +33,7 @@
 - fix: fix pyright config by @pjonsson in https://github.com/developmentseed/obstore/pull/505
 - ci: reinstate pyright check by @pjonsson in https://github.com/developmentseed/obstore/pull/510
 
-## New Contributors
+### New Contributors
 
 - @pjonsson made their first contribution in https://github.com/developmentseed/obstore/pull/505
 
