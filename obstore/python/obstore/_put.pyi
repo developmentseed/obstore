@@ -1,10 +1,10 @@
+import pathlib
 import sys
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
-from pathlib import Path
 from typing import IO, Literal, TypedDict
 
 from ._attributes import Attributes
-from .store import ObjectStore
+from .store import ObjectStore, Path
 
 if sys.version_info >= (3, 10):
     from typing import TypeAlias
@@ -97,8 +97,13 @@ class PutResult(TypedDict):
 
 def put(
     store: ObjectStore,
-    path: str,
-    file: IO[bytes] | Path | bytes | Buffer | Iterator[Buffer] | Iterable[Buffer],
+    path: str | Path,
+    file: IO[bytes]
+    | pathlib.Path
+    | bytes
+    | Buffer
+    | Iterator[Buffer]
+    | Iterable[Buffer],
     *,
     attributes: Attributes | None = None,
     tags: dict[str, str] | None = None,
@@ -160,9 +165,9 @@ def put(
 
 async def put_async(
     store: ObjectStore,
-    path: str,
+    path: str | Path,
     file: IO[bytes]
-    | Path
+    | pathlib.Path
     | bytes
     | Buffer
     | AsyncIterator[Buffer]

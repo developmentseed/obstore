@@ -1,7 +1,7 @@
 # TODO: move to reusable types package
+import pathlib
 import sys
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any, overload
 
 from ._aws import S3Config as S3Config
@@ -21,6 +21,7 @@ from ._gcs import GCSCredential as GCSCredential
 from ._gcs import GCSCredentialProvider as GCSCredentialProvider
 from ._gcs import GCSStore as GCSStore
 from ._http import HTTPStore as HTTPStore
+from ._path import Path as Path
 from ._retry import BackoffConfig as BackoffConfig
 from ._retry import RetryConfig as RetryConfig
 
@@ -140,7 +141,7 @@ class LocalStore:
 
     def __init__(
         self,
-        prefix: str | Path | None = None,
+        prefix: str | pathlib.Path | Path | None = None,
         *,
         automatic_cleanup: bool = False,
         mkdir: bool = False,
@@ -186,7 +187,7 @@ class LocalStore:
     def __eq__(self, value: object) -> bool: ...
     def __getnewargs_ex__(self): ...
     @property
-    def prefix(self) -> Path | None:
+    def prefix(self) -> pathlib.Path | None:
         """Get the prefix applied to all operations in this store, if any."""
 
 class MemoryStore:

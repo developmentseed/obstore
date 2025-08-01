@@ -1,7 +1,7 @@
 from ._list import ObjectMeta
-from .store import ObjectStore
+from .store import ObjectStore, Path
 
-def head(store: ObjectStore, path: str) -> ObjectMeta:
+def head(store: ObjectStore, path: str | Path) -> ObjectMeta:
     """Return the metadata for the specified location.
 
     Args:
@@ -13,7 +13,7 @@ def head(store: ObjectStore, path: str) -> ObjectMeta:
 
     """
 
-async def head_async(store: ObjectStore, path: str) -> ObjectMeta:
+async def head_async(store: ObjectStore, path: str | Path) -> ObjectMeta:
     """Call `head` asynchronously.
 
     Refer to the documentation for [head][obstore.head].
