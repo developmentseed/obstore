@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## [0.7.3] - 2025-08-01
+
+### What's Changed
+
+- fix: Fix conversion from python string to Rust Attribute #520
+- chore: Bump arrow to 56
+
 ## [0.7.2] - 2025-07-31
 
 ### What's Changed
