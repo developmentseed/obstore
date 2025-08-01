@@ -12,14 +12,14 @@ pub(crate) struct PyAttribute(Attribute);
 
 impl<'py> FromPyObject<'py> for PyAttribute {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?.to_ascii_lowercase();
-        match s.as_str() {
+        let s = ob.extract::<PyBackedStr>()?;
+        match s.to_ascii_lowercase().as_str() {
             "content-disposition" | "contentdisposition" => Ok(Self(Attribute::ContentDisposition)),
-            "Content-Encoding" | "ContentEncoding" => Ok(Self(Attribute::ContentEncoding)),
-            "Content-Language" | "ContentLanguage" => Ok(Self(Attribute::ContentLanguage)),
-            "Content-Type" | "ContentType" => Ok(Self(Attribute::ContentType)),
-            "Cache-Control" | "CacheControl" => Ok(Self(Attribute::CacheControl)),
-            _ => Ok(Self(Attribute::Metadata(Cow::Owned(s)))),
+            "content-encoding" | "contentencoding" => Ok(Self(Attribute::ContentEncoding)),
+            "content-language" | "contentlanguage" => Ok(Self(Attribute::ContentLanguage)),
+            "content-type" | "contenttype" => Ok(Self(Attribute::ContentType)),
+            "cache-control" | "cachecontrol" => Ok(Self(Attribute::CacheControl)),
+            _ => Ok(Self(Attribute::Metadata(Cow::Owned(s.to_string())))),
         }
     }
 }
