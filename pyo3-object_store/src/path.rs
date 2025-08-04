@@ -10,9 +10,8 @@ pub struct PyPath(Path);
 
 impl<'py> FromPyObject<'py> for PyPath {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let path = Path::parse(ob.extract::<PyBackedStr>()?).map_err(|err| {
-            PyValueError::new_err(format!("Could not parse path: {}", err.to_string()))
-        })?;
+        let path = Path::parse(ob.extract::<PyBackedStr>()?)
+            .map_err(|err| PyValueError::new_err(format!("Could not parse path: {err}")))?;
         Ok(Self(path))
     }
 }
