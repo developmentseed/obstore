@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [0.8.0] - 2025-08-07
+
+### What's Changed
+
+- **Breaking:** Don't double percent-encode paths by @kylebarron in https://github.com/developmentseed/obstore/pull/524
+  - This changes the internals from using [`Path` "encoding"](https://docs.rs/object_store/latest/object_store/path/struct.Path.html#encode) to [`Path` "parsing"](https://docs.rs/object_store/latest/object_store/path/struct.Path.html#parse). This avoids issues where paths could be unintentionally double-encoded. But this means that the user must ensure that paths are valid.
+- fix: Only SHA256 is supported for S3 checksum algorithm by @kylebarron in https://github.com/developmentseed/obstore/pull/527
+
 ## [0.7.3] - 2025-08-01
 
 ### What's Changed
