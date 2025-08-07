@@ -1,13 +1,25 @@
 use object_store::path::Path;
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyString;
 
+/// A Python-facing wrapper around a [`Path`].
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct PyPath(Path);
+pub struct PyPath(Path);
 
 impl<'py> FromPyObject<'py> for PyPath {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract::<String>()?.into()))
+        let path = Path::parse(ob.extract::<PyBackedStr>()?)
+            .map_err(|err| PyValueError::new_err(format!("Could not parse path: {err}")))?;
+        Ok(Self(path))
+    }
+}
+
+impl PyPath {
+    /// Consume self and return the underlying [`Path`].
+    pub fn into_inner(self) -> Path {
+        self.0
     }
 }
 

@@ -78,3 +78,20 @@ def test_eq():
     assert store == store  # noqa: PLR0124
     assert store == store2
     assert store != store3
+
+
+def test_local_store_percent_encoded(tmp_path: Path):
+    fname1 = "hello%20world.txt"
+    content1 = b"Hello, World!"
+    with (tmp_path / fname1).open("wb") as f:
+        f.write(content1)
+
+    store = LocalStore(tmp_path)
+    assert store.get(fname1).bytes() == content1
+
+    fname2 = "hello world.txt"
+    content2 = b"Hello, World! (with spaces)"
+    with (tmp_path / fname2).open("wb") as f:
+        f.write(content2)
+
+    assert store.get(fname2).bytes() == content2

@@ -19,7 +19,7 @@ use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreResult};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreResult, PyPath};
 
 use crate::attributes::PyAttributes;
 use crate::tags::PyTagSet;
@@ -295,7 +295,7 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 pub(crate) fn put(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPath,
     mut file: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
@@ -328,7 +328,7 @@ pub(crate) fn put(
         if use_multipart {
             runtime.block_on(put_multipart_inner(
                 store.into_inner(),
-                &path.into(),
+                path.as_ref(),
                 file,
                 chunk_size,
                 max_concurrency,
@@ -338,7 +338,7 @@ pub(crate) fn put(
         } else {
             runtime.block_on(put_inner(
                 store.into_inner(),
-                &path.into(),
+                path.as_ref(),
                 file,
                 attributes,
                 tags,
@@ -354,7 +354,7 @@ pub(crate) fn put(
 pub(crate) fn put_async(
     py: Python,
     store: PyObjectStore,
-    path: String,
+    path: PyPath,
     mut file: PutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
@@ -380,7 +380,7 @@ pub(crate) fn put_async(
         let result = if use_multipart {
             put_multipart_inner(
                 store.into_inner(),
-                &path.into(),
+                path.as_ref(),
                 file,
                 chunk_size,
                 max_concurrency,
@@ -391,7 +391,7 @@ pub(crate) fn put_async(
         } else {
             put_inner(
                 store.into_inner(),
-                &path.into(),
+                path.as_ref(),
                 file,
                 attributes,
                 tags,
