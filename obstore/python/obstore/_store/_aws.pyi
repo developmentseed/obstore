@@ -59,13 +59,7 @@ S3Regions: TypeAlias = Literal[
 ]
 """AWS regions."""
 
-S3ChecksumAlgorithm: TypeAlias = Literal[
-    "CRC64NVME",
-    "CRC32",
-    "CRC32C",
-    "SHA1",
-    "SHA256",
-]
+S3ChecksumAlgorithm: TypeAlias = Literal["SHA256"]
 """S3 Checksum algorithms
 
 From https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html#using-additional-checksums
