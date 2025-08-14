@@ -8,7 +8,7 @@
 [pypi_link]: https://pypi.org/project/obstore/
 [conda_version_badge]: https://img.shields.io/conda/vn/conda-forge/obstore.svg
 [conda_version]: https://prefix.dev/channels/conda-forge/packages/obstore
-[pypi-img]: https://img.shields.io/pypi/dm/obstore
+[pypi-img]: https://static.pepy.tech/badge/obstore/month
 [pypi-link]: https://pypi.org/project/obstore/
 
 The simplest, highest-throughput [^1] Python interface to [Amazon S3][s3], [Google Cloud Storage][gcs], [Azure Storage][azure_storage], & other S3-compliant APIs, powered by Rust.
