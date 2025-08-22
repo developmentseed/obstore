@@ -1,6 +1,6 @@
 import pytest
 
-from obstore.exceptions import BaseError
+from obstore.exceptions import BaseError, GenericError
 from obstore.store import GCSStore
 
 
@@ -19,3 +19,11 @@ def test_eq():
     assert store == store  # noqa: PLR0124
     assert store == store2
     assert store != store3
+
+
+def test_application_credentials():
+    # The application_credentials parameter should be correctly passed down
+    # Finalizing the GCSBuilder should try to load and parse those credentials, which
+    # should error here.
+    with pytest.raises(GenericError, match="source: OpenCredentials"):
+        GCSStore("bucket", application_credentials="path/to/creds.json")
