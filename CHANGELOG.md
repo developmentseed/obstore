@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## [0.8.1] - 2025-08-22
+
+## What's Changed
+
+- fix: Fix passing down `application_credentials` to GCSStore by @kylebarron in https://github.com/developmentseed/obstore/pull/541
+- fix: earthdata token refresh when not redirected by @chuckwondo in https://github.com/developmentseed/obstore/pull/539
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.8.0...py-v0.8.1
+
 ## [0.8.0] - 2025-08-07
 
 ### What's Changed
