@@ -214,6 +214,11 @@ pub struct PyGoogleConfigKey(GoogleConfigKey);
 impl<'py> FromPyObject<'py> for PyGoogleConfigKey {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let s = ob.extract::<PyBackedStr>()?.to_lowercase();
+        // https://github.com/apache/arrow-rs-object-store/pull/467
+        if s == "application_credentials" {
+            return Ok(Self(GoogleConfigKey::ApplicationCredentials));
+        }
+
         let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
