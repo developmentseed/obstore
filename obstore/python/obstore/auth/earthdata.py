@@ -199,11 +199,16 @@ class NasaEarthdataCredentialProvider:
 
     def _refresh_with_basic_auth(
         self,
-        auth: tuple[str, str] | None,
+        auth: tuple[str, str] | None = None,
     ) -> Mapping[str, str]:
         with self.session.get(self._credentials_url, allow_redirects=False) as r:
             r.raise_for_status()
-            location = r.headers["location"]
+
+            if (location := self.session.get_redirect_target(r)) is None:
+                # We were NOT redirected, indicating that we requested a refresh
+                # prior to expiry of our previous token, so we simply received
+                # a new token directly.
+                return r.json()
 
         # We were redirected, so we must use basic auth credentials with the
         # redirect location.  If the host of the redirect is the same host we have
@@ -250,7 +255,7 @@ class NasaEarthdataAsyncCredentialProvider:
     Examples:
         ```py
         import obstore
-        from obstore.auth.earthdata import NasaEarthdataCredentialProvider
+        from obstore.auth.earthdata import NasaEarthdataAsyncCredentialProvider
 
         # Obtain an S3 credentials URL and an S3 data/download URL, typically
         # via metadata returned from a NASA CMR collection or granule query.
@@ -360,14 +365,18 @@ class NasaEarthdataAsyncCredentialProvider:
 
     async def _refresh_with_basic_auth(
         self,
-        auth: aiohttp.BasicAuth | None,
+        auth: aiohttp.BasicAuth | None = None,
     ) -> Mapping[str, str]:
         async with self.session.get(
             self._credentials_url,
             allow_redirects=False,
             raise_for_status=True,
         ) as r:
-            location = r.headers["location"]
+            if (location := r.headers.get("location")) is None:
+                # We were NOT redirected, indicating that we requested a refresh
+                # prior to expiry of our previous token, so we simply received
+                # a new token directly.
+                return await r.json(content_type=None)
 
         # We were redirected, so we must use basic auth credentials with the
         # redirect location.  If the host of the redirect is the same host we have
