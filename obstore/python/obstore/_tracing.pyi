@@ -8,7 +8,9 @@ def init_log(
     suffix: str | None = None,
     max_log_files: int | None = None,
     rotation: Literal["minutely", "hourly", "daily", "never"] = "never",
-    level: str | None = None,
+    level: Literal["trace", "debug", "info", "warn", "error", "off"]
+    | str
+    | None = None,
 ) -> None:
     """Initialize Rust-level tracing to log to files in the specified directory.
 
