@@ -7,7 +7,7 @@ use pyo3::{intern, IntoPyObjectExt};
 
 use crate::error::PyObjectStoreResult;
 use crate::retry::PyRetryConfig;
-use crate::{PyClientOptions, PyUrl};
+use crate::{InstrumentedObjectStore, PyClientOptions, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct HTTPConfig {
@@ -38,20 +38,20 @@ impl HTTPConfig {
 pub struct PyHttpStore {
     // Note: we don't need to wrap this in a MaybePrefixedStore because the HttpStore manages its
     // own prefix.
-    store: Arc<HttpStore>,
+    store: Arc<InstrumentedObjectStore<HttpStore>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
     config: HTTPConfig,
 }
 
-impl AsRef<Arc<HttpStore>> for PyHttpStore {
-    fn as_ref(&self) -> &Arc<HttpStore> {
+impl AsRef<Arc<InstrumentedObjectStore<HttpStore>>> for PyHttpStore {
+    fn as_ref(&self) -> &Arc<InstrumentedObjectStore<HttpStore>> {
         &self.store
     }
 }
 
 impl PyHttpStore {
     /// Consume self and return the underlying [`HttpStore`].
-    pub fn into_inner(self) -> Arc<HttpStore> {
+    pub fn into_inner(self) -> Arc<InstrumentedObjectStore<HttpStore>> {
         self.store
     }
 }
@@ -73,7 +73,7 @@ impl PyHttpStore {
             builder = builder.with_retry(retry_config.into())
         }
         Ok(Self {
-            store: Arc::new(builder.build()?),
+            store: Arc::new(InstrumentedObjectStore::new(builder.build()?, "HTTPStore")),
             config: HTTPConfig {
                 url,
                 client_options,
