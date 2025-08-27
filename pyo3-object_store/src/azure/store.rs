@@ -15,7 +15,7 @@ use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
-use crate::{MaybePrefixedStore, PyUrl};
+use crate::{InstrumentedObjectStore, MaybePrefixedStore, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct AzureConfig {
@@ -69,20 +69,20 @@ impl AzureConfig {
 #[derive(Debug, Clone)]
 #[pyclass(name = "AzureStore", frozen, subclass)]
 pub struct PyAzureStore {
-    store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
+    store: Arc<InstrumentedObjectStore<MaybePrefixedStore<MicrosoftAzure>>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
     config: AzureConfig,
 }
 
-impl AsRef<Arc<MaybePrefixedStore<MicrosoftAzure>>> for PyAzureStore {
-    fn as_ref(&self) -> &Arc<MaybePrefixedStore<MicrosoftAzure>> {
+impl AsRef<Arc<InstrumentedObjectStore<MaybePrefixedStore<MicrosoftAzure>>>> for PyAzureStore {
+    fn as_ref(&self) -> &Arc<InstrumentedObjectStore<MaybePrefixedStore<MicrosoftAzure>>> {
         &self.store
     }
 }
 
 impl PyAzureStore {
     /// Consume self and return the underlying [`MicrosoftAzure`].
-    pub fn into_inner(self) -> Arc<MaybePrefixedStore<MicrosoftAzure>> {
+    pub fn into_inner(self) -> Arc<InstrumentedObjectStore<MaybePrefixedStore<MicrosoftAzure>>> {
         self.store
     }
 }
@@ -144,7 +144,10 @@ impl PyAzureStore {
         builder = combined_config.clone().apply_config(builder);
 
         Ok(Self {
-            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
+            store: Arc::new(InstrumentedObjectStore::new(
+                MaybePrefixedStore::new(builder.build()?, prefix.clone()),
+                "AzureStore",
+            )),
             config: AzureConfig {
                 prefix,
                 config: combined_config,

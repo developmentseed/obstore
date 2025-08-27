@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
-use object_store::{ObjectStore, ObjectStoreScheme};
+use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyDict, PyString, PyTuple, PyType};
@@ -74,12 +74,6 @@ impl AsRef<Arc<InstrumentedObjectStore<MaybePrefixedStore<AmazonS3>>>> for PyS3S
         &self.store
     }
 }
-
-// impl AsRef<MaybePrefixedStore<AmazonS3>> for PyS3Store {
-//     fn as_ref(&self) -> &MaybePrefixedStore<AmazonS3> {
-//         &self.store.inner()
-//     }
-// }
 
 impl PyS3Store {
     /// Consume self and return the underlying [`AmazonS3`].

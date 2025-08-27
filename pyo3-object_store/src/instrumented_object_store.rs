@@ -53,6 +53,7 @@ impl<T: ObjectStore> InstrumentedObjectStore<T> {
         }
     }
 
+    /// Returns a reference to the inner `ObjectStore`.
     pub fn inner(&self) -> &T {
         &self.inner
     }

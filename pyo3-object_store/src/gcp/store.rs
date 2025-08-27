@@ -15,7 +15,7 @@ use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStor
 use crate::gcp::credentials::PyGcpCredentialProvider;
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
-use crate::{MaybePrefixedStore, PyUrl};
+use crate::{InstrumentedObjectStore, MaybePrefixedStore, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct GCSConfig {
@@ -61,20 +61,22 @@ impl GCSConfig {
 #[derive(Debug, Clone)]
 #[pyclass(name = "GCSStore", frozen, subclass)]
 pub struct PyGCSStore {
-    store: Arc<MaybePrefixedStore<GoogleCloudStorage>>,
+    store: Arc<InstrumentedObjectStore<MaybePrefixedStore<GoogleCloudStorage>>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
     config: GCSConfig,
 }
 
-impl AsRef<Arc<MaybePrefixedStore<GoogleCloudStorage>>> for PyGCSStore {
-    fn as_ref(&self) -> &Arc<MaybePrefixedStore<GoogleCloudStorage>> {
+impl AsRef<Arc<InstrumentedObjectStore<MaybePrefixedStore<GoogleCloudStorage>>>> for PyGCSStore {
+    fn as_ref(&self) -> &Arc<InstrumentedObjectStore<MaybePrefixedStore<GoogleCloudStorage>>> {
         &self.store
     }
 }
 
 impl PyGCSStore {
     /// Consume self and return the underlying [`GoogleCloudStorage`].
-    pub fn into_inner(self) -> Arc<MaybePrefixedStore<GoogleCloudStorage>> {
+    pub fn into_inner(
+        self,
+    ) -> Arc<InstrumentedObjectStore<MaybePrefixedStore<GoogleCloudStorage>>> {
         self.store
     }
 }
@@ -112,7 +114,10 @@ impl PyGCSStore {
             builder = builder.with_credentials(Arc::new(credential_provider));
         }
         Ok(Self {
-            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
+            store: Arc::new(InstrumentedObjectStore::new(
+                MaybePrefixedStore::new(builder.build()?, prefix.clone()),
+                "GCSStore",
+            )),
             config: GCSConfig {
                 prefix,
                 config: combined_config,
