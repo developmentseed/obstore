@@ -85,10 +85,10 @@ pub(crate) fn init_log(
         .with(filter)
         .with(
             tracing_subscriber::fmt::layer()
+                .json()
                 .with_writer(nb_writer)
                 .with_ansi(false) // plain text in files
                 .with_target(true) // include module path (useful in prod)
-                .compact(),
         )
         .try_init().map_err(|err| PyValueError::new_err(format!(
             "Error initializing tracing subscriber: {err}. This usually means tracing was already initialized by another library or a previous call to init_log.")))?;
