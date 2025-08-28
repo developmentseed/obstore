@@ -16,12 +16,14 @@ def test_tracing(s3_store: S3Store):
             "show_ansi": False,
             "show_target": False,
             "show_level": False,
+            "level": "trace",
         }
         stdout_config = {
             "format": "pretty",
             "show_ansi": True,
             "show_target": True,
             "show_level": True,
+            "level": "debug",
         }
         init_log(stderr=stderr_config, stdout=stdout_config, level="trace")
 

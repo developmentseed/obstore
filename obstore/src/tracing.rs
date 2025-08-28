@@ -47,10 +47,10 @@ pub(crate) fn init_log(
     let mut layers: Vec<Box<dyn Layer<Registry> + Send + Sync>> = Vec::new();
 
     if let Some(stderr_config) = stderr {
-        layers.push(create_log_layer(stderr_config, std::io::stderr));
+        layers.push(create_log_layer(stderr_config, std::io::stderr)?);
     }
     if let Some(stdout_config) = stdout {
-        layers.push(create_log_layer(stdout_config, std::io::stdout));
+        layers.push(create_log_layer(stdout_config, std::io::stdout)?);
     }
     if let Some(file_config) = file {
         let appender = file_config.file.create_appender()?;
@@ -61,7 +61,7 @@ pub(crate) fn init_log(
             // Guard is already set - this might cause issues with the current call
             // But we'll proceed anyway since the subscriber might still work
         }
-        let file_layer = create_log_layer(file_config.into(), nb_writer);
+        let file_layer = create_log_layer(file_config.into(), nb_writer)?;
         layers.push(file_layer);
     }
 
@@ -165,6 +165,8 @@ pub(crate) struct FileLogConfig {
     show_filename: Option<bool>,
     #[pyo3(default)]
     show_line_number: Option<bool>,
+    #[pyo3(default)]
+    level: Option<String>,
 }
 
 impl From<FileLogConfig> for LogLayerConfig {
@@ -178,6 +180,7 @@ impl From<FileLogConfig> for LogLayerConfig {
             show_level: file_log_config.show_level,
             show_filename: file_log_config.show_filename,
             show_line_number: file_log_config.show_line_number,
+            level: file_log_config.level,
         }
     }
 }
@@ -200,12 +203,14 @@ pub(crate) struct LogLayerConfig {
     show_filename: Option<bool>,
     #[pyo3(default)]
     show_line_number: Option<bool>,
+    #[pyo3(default)]
+    level: Option<String>,
 }
 
 fn create_log_layer<W2: for<'writer> MakeWriter<'writer> + Send + Sync + 'static>(
     config: LogLayerConfig,
     writer: W2,
-) -> Box<dyn Layer<Registry> + Send + Sync> {
+) -> PyResult<Box<dyn Layer<Registry> + Send + Sync>> {
     let mut configured_layer = tracing_subscriber::fmt::layer().with_writer(writer);
 
     if let Some(show_ansi) = config.show_ansi {
@@ -230,9 +235,19 @@ fn create_log_layer<W2: for<'writer> MakeWriter<'writer> + Send + Sync + 'static
         configured_layer = configured_layer.with_line_number(show_line_number);
     }
 
-    match config.format {
+    let base_layer = match config.format {
         LogFormat::Compact => configured_layer.compact().boxed(),
         LogFormat::Pretty => configured_layer.pretty().boxed(),
         LogFormat::Json => configured_layer.json().boxed(),
+    };
+
+    // Apply per-layer filter if specified
+    if let Some(level_spec) = config.level {
+        let filter = EnvFilter::try_new(&level_spec).map_err(|err| {
+            PyValueError::new_err(format!("Invalid level filter '{}': {}", level_spec, err))
+        })?;
+        Ok(base_layer.with_filter(filter).boxed())
+    } else {
+        Ok(base_layer)
     }
 }
