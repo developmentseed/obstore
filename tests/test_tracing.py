@@ -13,13 +13,15 @@ def test_tracing(s3_store: S3Store):
 
         stderr_config = {
             "format": "json",
-            "show_target": True,
-            "show_level": True,
+            "show_ansi": False,
+            "show_target": False,
+            "show_level": False,
         }
         stdout_config = {
             "format": "pretty",
-            "show_target": False,
-            "show_level": False,
+            "show_ansi": True,
+            "show_target": True,
+            "show_level": True,
         }
         init_log(stderr=stderr_config, stdout=stdout_config, level="trace")
 

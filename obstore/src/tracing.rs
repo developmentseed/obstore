@@ -152,7 +152,7 @@ pub(crate) struct FileLogConfig {
     file: FileConfig,
     format: LogFormat,
     #[pyo3(default)]
-    ansi: Option<bool>,
+    show_ansi: Option<bool>,
     #[pyo3(default)]
     show_target: Option<bool>,
     #[pyo3(default)]
@@ -171,7 +171,7 @@ impl From<FileLogConfig> for LogLayerConfig {
     fn from(file_log_config: FileLogConfig) -> Self {
         LogLayerConfig {
             format: file_log_config.format,
-            ansi: file_log_config.ansi,
+            show_ansi: file_log_config.show_ansi,
             show_target: file_log_config.show_target,
             show_thread_names: file_log_config.show_thread_names,
             show_thread_ids: file_log_config.show_thread_ids,
@@ -187,7 +187,7 @@ impl From<FileLogConfig> for LogLayerConfig {
 pub(crate) struct LogLayerConfig {
     format: LogFormat,
     #[pyo3(default)]
-    ansi: Option<bool>,
+    show_ansi: Option<bool>,
     #[pyo3(default)]
     show_target: Option<bool>,
     #[pyo3(default)]
@@ -208,8 +208,8 @@ fn create_log_layer<W2: for<'writer> MakeWriter<'writer> + Send + Sync + 'static
 ) -> Box<dyn Layer<Registry> + Send + Sync> {
     let mut configured_layer = tracing_subscriber::fmt::layer().with_writer(writer);
 
-    if let Some(ansi) = config.ansi {
-        configured_layer = configured_layer.with_ansi(ansi);
+    if let Some(show_ansi) = config.show_ansi {
+        configured_layer = configured_layer.with_ansi(show_ansi);
     }
     if let Some(show_target) = config.show_target {
         configured_layer = configured_layer.with_target(show_target);
