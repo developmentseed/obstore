@@ -40,7 +40,7 @@ from ._put import PutMode, PutResult, UpdateVersion, put, put_async
 from ._rename import rename, rename_async
 from ._scheme import parse_scheme
 from ._sign import HTTP_METHOD, SignCapableStore, sign, sign_async
-from ._tracing import init_log
+from ._tracing import Logger, init_log
 
 __version__: str
 _object_store_version: str
@@ -59,6 +59,7 @@ __all__ = [
     "ListChunkType",
     "ListResult",
     "ListStream",
+    "Logger",
     "ObjectMeta",
     "OffsetRange",
     "PutMode",

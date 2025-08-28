@@ -1,5 +1,27 @@
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
+
+class Logger:
+    def __init__(
+        self,
+        dir: Path | str,  # noqa: A002
+        prefix: str,
+        *,
+        suffix: str | None = None,
+        max_log_files: int | None = None,
+        rotation: Literal["minutely", "hourly", "daily", "never"] = "never",
+        level: Literal["trace", "debug", "info", "warn", "error", "off"]
+        | str
+        | None = None,
+    ) -> None: ...
+    def __enter__(self) -> Self: ...
+    def __exit__(
+        self,
+        exc_type: object,
+        exc_value: object,
+        traceback: object,
+    ) -> None: ...
+    def flush(self) -> None: ...
 
 def init_log(
     dir: Path | str,  # noqa: A002

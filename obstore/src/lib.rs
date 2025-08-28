@@ -91,6 +91,7 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
 
     // Tracing
     m.add_function(wrap_pyfunction!(tracing::init_log, m)?)?;
+    m.add_class::<tracing::PyLogger>()?;
 
     Ok(())
 }
