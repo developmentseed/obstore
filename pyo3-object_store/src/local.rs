@@ -1,8 +1,9 @@
 use std::fs::create_dir_all;
 use std::sync::Arc;
 
+use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use object_store::local::LocalFileSystem;
-use object_store::ObjectStoreScheme;
+use object_store::{ListResult, ObjectStore, ObjectStoreScheme};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple, PyType};
@@ -141,5 +142,68 @@ impl PyLocalStore {
         } else {
             Ok(py.None())
         }
+    }
+}
+
+/// A custom implementation of PaginatedListStore for LocalFileSystem
+///
+/// PaginatedListStore is not implemented in upstream for LocalFileSystem because there's no way to
+/// get a stable offset in local FS APIs.
+/// https://github.com/apache/arrow-rs-object-store/issues/388
+///
+/// Instead, we collect _all_ results and filter them in memory with the provided substring.
+#[async_trait::async_trait]
+impl PaginatedListStore for PyLocalStore {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        _opts: PaginatedListOptions,
+    ) -> object_store::Result<PaginatedListResult> {
+        // Split a path like "some/prefix/abc" into (Some(Path("some/prefix")), Some("abc"))
+        // This allows us to do a substring prefix match after the / delimiter
+        let (list_path, list_prefix_match): (Option<object_store::path::Path>, Option<String>) =
+            if let Some(list_prefix) = prefix {
+                if let Some((list_path, list_prefix_match)) = list_prefix.rsplit_once('/') {
+                    // There's a / in the prefix, so we assume the part before the last / is a
+                    // path, and the end is a substring match
+                    (
+                        Some(object_store::path::Path::parse(list_path)?),
+                        Some(list_prefix_match.to_string()),
+                    )
+                } else {
+                    // No / in prefix, so we assume it's a substring
+                    (None, Some(list_prefix.to_string()))
+                }
+            } else {
+                (None, None)
+            };
+
+        let list_result = self.store.list_with_delimiter(list_path.as_ref()).await?;
+
+        // Filter list result to include only results with the given prefix after the / delimiter
+        let filtered_list_result = if let Some(list_prefix_match) = list_prefix_match {
+            let filtered_common_prefixes = list_result
+                .common_prefixes
+                .into_iter()
+                .filter(|p| p.as_ref().starts_with(&list_prefix_match))
+                .collect();
+            let filtered_objects = list_result
+                .objects
+                .into_iter()
+                .filter(|obj| obj.location.as_ref().starts_with(&list_prefix_match))
+                .collect();
+            ListResult {
+                common_prefixes: filtered_common_prefixes,
+                objects: filtered_objects,
+            }
+        } else {
+            list_result
+        };
+
+        Ok(PaginatedListResult {
+            result: filtered_list_result,
+            // Local FS does not support pagination
+            page_token: None,
+        })
     }
 }
