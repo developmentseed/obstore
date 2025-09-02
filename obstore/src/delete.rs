@@ -10,7 +10,7 @@ use crate::utils::PyNone;
 pub(crate) fn delete(py: Python, store: PyObjectStore, paths: PyPaths) -> PyObjectStoreResult<()> {
     let runtime = get_runtime();
     let store = store.into_inner();
-    py.allow_threads(|| {
+    py.detach(|| {
         match paths {
             PyPaths::One(path) => {
                 runtime.block_on(store.delete(&path))?;

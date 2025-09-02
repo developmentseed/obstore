@@ -27,8 +27,8 @@ itertools = "0.14.0"
 object_store = { version = "0.12", features = ["aws", "azure", "gcp", "http"] }
 # This is already an object_store dependency
 percent-encoding = "2.1"
-pyo3 = { version = "0.25", features = ["chrono", "indexmap"] }
-pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
+pyo3 = { version = "0.26", features = ["chrono", "indexmap"] }
+pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
 serde = "1"
 thiserror = "1"
 tokio = { version = "1.40", features = ["rt-multi-thread"] }

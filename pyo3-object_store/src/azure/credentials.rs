@@ -138,7 +138,7 @@ fn split_sas(sas: &str) -> Result<Vec<(String, String)>, object_store::Error> {
 #[derive(Debug)]
 pub struct PyAzureCredentialProvider {
     /// The provided user callback to manage credential refresh
-    user_callback: PyObject,
+    user_callback: Py<PyAny>,
     cache: TokenCache<Arc<AzureCredential>>,
     /// An optional config passed down from the credential provider class
     config: Option<PyAzureConfig>,
@@ -166,7 +166,7 @@ impl PyAzureCredentialProvider {
 
 impl Clone for PyAzureCredentialProvider {
     fn clone(&self) -> Self {
-        let cloned_callback = Python::with_gil(|py| self.user_callback.clone_ref(py));
+        let cloned_callback = Python::attach(|py| self.user_callback.clone_ref(py));
         Self {
             user_callback: cloned_callback,
             cache: self.cache.clone(),
@@ -178,7 +178,7 @@ impl Clone for PyAzureCredentialProvider {
 
 impl PartialEq for PyAzureCredentialProvider {
     fn eq(&self, other: &Self) -> bool {
-        Python::with_gil(|py| self.equals(py, other)).unwrap_or(false)
+        Python::attach(|py| self.equals(py, other)).unwrap_or(false)
     }
 }
 
@@ -239,7 +239,7 @@ impl<'py> IntoPyObject<'py> for PyAzureCredentialProvider {
 }
 
 enum PyCredentialProviderResult {
-    Async(PyObject),
+    Async(Py<PyAny>),
     Sync(PyAzureCredential),
 }
 
@@ -248,11 +248,11 @@ impl PyCredentialProviderResult {
         match self {
             Self::Sync(credentials) => Ok(credentials),
             Self::Async(coroutine) => {
-                let future = Python::with_gil(|py| {
+                let future = Python::attach(|py| {
                     pyo3_async_runtimes::tokio::into_future(coroutine.bind(py).clone())
                 })?;
                 let result = future.await?;
-                Python::with_gil(|py| result.extract(py))
+                Python::attach(|py| result.extract(py))
             }
         }
     }
@@ -270,7 +270,7 @@ impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
 
 impl PyAzureCredentialProvider {
     async fn call(&self) -> PyResult<PyAzureCredential> {
-        let call_result = Python::with_gil(|py| {
+        let call_result = Python::attach(|py| {
             self.user_callback
                 .call0(py)?
                 .extract::<PyCredentialProviderResult>(py)

@@ -28,8 +28,7 @@ pub(crate) fn open_reader(
 ) -> PyObjectStoreResult<PyReadableFile> {
     let store = store.into_inner();
     let runtime = get_runtime();
-    let (reader, meta) =
-        py.allow_threads(|| runtime.block_on(create_reader(store, path, buffer_size)))?;
+    let (reader, meta) = py.detach(|| runtime.block_on(create_reader(store, path, buffer_size)))?;
     Ok(PyReadableFile::new(reader, meta, false))
 }
 
@@ -98,45 +97,42 @@ impl PyReadableFile {
     }
 
     #[pyo3(signature = (size = None, /))]
-    fn read<'py>(&'py self, py: Python<'py>, size: Option<usize>) -> PyResult<PyObject> {
+    fn read<'py>(&'py self, py: Python<'py>, size: Option<usize>) -> PyResult<Bound<'py, PyAny>> {
         let reader = self.reader.clone();
         if self.r#async {
-            let out = future_into_py(py, read(reader, size))?;
-            Ok(out.unbind())
+            future_into_py(py, read(reader, size))
         } else {
             let runtime = get_runtime();
-            let out = py.allow_threads(|| runtime.block_on(read(reader, size)))?;
-            out.into_py_any(py)
+            let out = py.detach(|| runtime.block_on(read(reader, size)))?;
+            out.into_bound_py_any(py)
         }
     }
 
-    fn readall<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
+    fn readall<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         self.read(py, None)
     }
 
-    fn readline<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
+    fn readline<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let reader = self.reader.clone();
         if self.r#async {
-            let out = future_into_py(py, readline(reader))?;
-            Ok(out.unbind())
+            future_into_py(py, readline(reader))
         } else {
             let runtime = get_runtime();
-            let out = py.allow_threads(|| runtime.block_on(readline(reader)))?;
-            out.into_py_any(py)
+            let out = py.detach(|| runtime.block_on(readline(reader)))?;
+            out.into_bound_py_any(py)
         }
         // TODO: should raise at EOF when read_line returns 0?
     }
 
     #[pyo3(signature = (hint = -1))]
-    fn readlines<'py>(&'py self, py: Python<'py>, hint: i64) -> PyResult<PyObject> {
+    fn readlines<'py>(&'py self, py: Python<'py>, hint: i64) -> PyResult<Bound<'py, PyAny>> {
         let reader = self.reader.clone();
         if self.r#async {
-            let out = future_into_py(py, readlines(reader, hint))?;
-            Ok(out.unbind())
+            future_into_py(py, readlines(reader, hint))
         } else {
             let runtime = get_runtime();
-            let out = py.allow_threads(|| runtime.block_on(readlines(reader, hint)))?;
-            out.into_py_any(py)
+            let out = py.detach(|| runtime.block_on(readlines(reader, hint)))?;
+            out.into_bound_py_any(py)
         }
     }
 
@@ -144,7 +140,12 @@ impl PyReadableFile {
         signature = (offset, whence=0, /),
         text_signature = "(offset, whence=os.SEEK_SET, /)")
     ]
-    fn seek<'py>(&'py self, py: Python<'py>, offset: i64, whence: usize) -> PyResult<PyObject> {
+    fn seek<'py>(
+        &'py self,
+        py: Python<'py>,
+        offset: i64,
+        whence: usize,
+    ) -> PyResult<Bound<'py, PyAny>> {
         let reader = self.reader.clone();
         let pos = match whence {
             0 => SeekFrom::Start(offset as _),
@@ -158,12 +159,11 @@ impl PyReadableFile {
         };
 
         if self.r#async {
-            let out = future_into_py(py, seek(reader, pos))?;
-            Ok(out.unbind())
+            future_into_py(py, seek(reader, pos))
         } else {
             let runtime = get_runtime();
-            let out = py.allow_threads(|| runtime.block_on(seek(reader, pos)))?;
-            out.into_py_any(py)
+            let out = py.detach(|| runtime.block_on(seek(reader, pos)))?;
+            out.into_bound_py_any(py)
         }
     }
 
@@ -176,15 +176,14 @@ impl PyReadableFile {
         self.meta.size
     }
 
-    fn tell<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
+    fn tell<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let reader = self.reader.clone();
         if self.r#async {
-            let out = future_into_py(py, tell(reader))?;
-            Ok(out.unbind())
+            future_into_py(py, tell(reader))
         } else {
             let runtime = get_runtime();
-            let out = py.allow_threads(|| runtime.block_on(tell(reader)))?;
-            out.into_py_any(py)
+            let out = py.detach(|| runtime.block_on(tell(reader)))?;
+            out.into_bound_py_any(py)
         }
     }
 }
@@ -267,7 +266,7 @@ impl PyLinesReader {
     fn __next__<'py>(&'py self, py: Python<'py>) -> PyResult<String> {
         let runtime = get_runtime();
         let lines = self.0.clone();
-        py.allow_threads(|| runtime.block_on(next_line(lines, false)))
+        py.detach(|| runtime.block_on(next_line(lines, false)))
     }
 }
 
@@ -366,19 +365,19 @@ impl PyWritableFile {
 
     #[allow(unused_variables)]
     #[pyo3(signature = (exc_type, exc_value, traceback))]
-    fn __exit__(
-        &self,
-        py: Python,
-        exc_type: Option<PyObject>,
-        exc_value: Option<PyObject>,
-        traceback: Option<PyObject>,
+    fn __exit__<'py>(
+        &'py self,
+        py: Python<'py>,
+        exc_type: Option<Bound<'py, PyAny>>,
+        exc_value: Option<Bound<'py, PyAny>>,
+        traceback: Option<Bound<'py, PyAny>>,
     ) -> PyResult<()> {
         let writer = self.writer.clone();
         let runtime = get_runtime();
         if exc_type.is_some() {
-            py.allow_threads(|| runtime.block_on(abort_writer(writer)))?;
+            py.detach(|| runtime.block_on(abort_writer(writer)))?;
         } else {
-            py.allow_threads(|| runtime.block_on(close_writer(writer)))?;
+            py.detach(|| runtime.block_on(close_writer(writer)))?;
         }
         Ok(())
     }
@@ -388,9 +387,9 @@ impl PyWritableFile {
     fn __aexit__<'py>(
         &'py self,
         py: Python<'py>,
-        exc_type: Option<PyObject>,
-        exc_value: Option<PyObject>,
-        traceback: Option<PyObject>,
+        exc_type: Option<Bound<'py, PyAny>>,
+        exc_value: Option<Bound<'py, PyAny>>,
+        traceback: Option<Bound<'py, PyAny>>,
     ) -> PyResult<Bound<'py, PyAny>> {
         let writer = self.writer.clone();
         let runtime = get_runtime();
@@ -401,15 +400,14 @@ impl PyWritableFile {
         }
     }
 
-    fn close<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
+    fn close<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let writer = self.writer.clone();
         if self.r#async {
-            let out = future_into_py(py, close_writer(writer))?;
-            Ok(out.unbind())
+            future_into_py(py, close_writer(writer))
         } else {
             let runtime = get_runtime();
-            py.allow_threads(|| runtime.block_on(close_writer(writer)))?;
-            Ok(py.None())
+            py.detach(|| runtime.block_on(close_writer(writer)))?;
+            py.None().into_bound_py_any(py)
         }
     }
 
@@ -428,39 +426,36 @@ impl PyWritableFile {
     /// Thus we need to use async to open the mutex. We could add a second layer of mutex, where
     /// the top-level mutex is a `std::sync::Mutex`, but I assume that two levels of mutexes would
     /// be detrimental for performance.
-    fn closed<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
+    fn closed<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let writer = self.writer.clone();
         if self.r#async {
-            let out = future_into_py(py, is_closed(writer))?;
-            Ok(out.unbind())
+            future_into_py(py, is_closed(writer))
         } else {
             let runtime = get_runtime();
-            let out = py.allow_threads(|| runtime.block_on(is_closed(writer)))?;
-            out.into_py_any(py)
+            let out = py.detach(|| runtime.block_on(is_closed(writer)))?;
+            out.into_bound_py_any(py)
         }
     }
 
-    fn flush<'py>(&'py self, py: Python<'py>) -> PyResult<PyObject> {
+    fn flush<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         let writer = self.writer.clone();
         if self.r#async {
-            let out = future_into_py(py, flush(writer))?;
-            Ok(out.unbind())
+            future_into_py(py, flush(writer))
         } else {
             let runtime = get_runtime();
-            py.allow_threads(|| runtime.block_on(flush(writer)))?;
-            Ok(py.None())
+            py.detach(|| runtime.block_on(flush(writer)))?;
+            py.None().into_bound_py_any(py)
         }
     }
 
-    fn write<'py>(&'py self, py: Python<'py>, buffer: PyBytes) -> PyResult<PyObject> {
+    fn write<'py>(&'py self, py: Python<'py>, buffer: PyBytes) -> PyResult<Bound<'py, PyAny>> {
         let writer = self.writer.clone();
         if self.r#async {
-            let out = future_into_py(py, write(writer, buffer))?;
-            Ok(out.unbind())
+            future_into_py(py, write(writer, buffer))
         } else {
             let runtime = get_runtime();
-            let out = py.allow_threads(|| runtime.block_on(write(writer, buffer)))?;
-            out.into_py_any(py)
+            let out = py.detach(|| runtime.block_on(write(writer, buffer)))?;
+            out.into_bound_py_any(py)
         }
     }
 }

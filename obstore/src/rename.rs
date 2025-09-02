@@ -17,7 +17,7 @@ pub(crate) fn rename(
     let runtime = get_runtime();
     let from_ = from_.into();
     let to = to.into();
-    py.allow_threads(|| {
+    py.detach(|| {
         let fut = if overwrite {
             store.as_ref().rename(&from_, &to)
         } else {

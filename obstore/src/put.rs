@@ -106,14 +106,14 @@ impl Seek for PullSource {
 pub(crate) enum SyncPushSource {
     /// A Python Iterator: An object with a __next__ method that returns a buffer protocol object
     /// (anything that can be extracted into `PyBytes`)
-    Iterator(PyObject),
+    Iterator(Py<PyAny>),
 }
 
 impl SyncPushSource {
     fn next_chunk(&mut self) -> PyObjectStoreResult<Option<Bytes>> {
         match self {
             Self::Iterator(iter) => {
-                Python::with_gil(|py| match iter.call_method0(py, intern!(py, "__next__")) {
+                Python::attach(|py| match iter.call_method0(py, intern!(py, "__next__")) {
                     Ok(item) => {
                         let buf = item.extract::<PyBytes>(py)?;
                         Ok(Some(buf.into_inner()))
@@ -167,16 +167,16 @@ impl AsyncPushSource {
             Self::AsyncIterator(iter) => {
                 // Note: we have to acquire the GIL once to create the future and a separate time
                 // to extract the result of the future.
-                let future = Python::with_gil(|py| {
+                let future = Python::attach(|py| {
                     let coroutine = iter.bind(py).call_method0(intern!(py, "__anext__"))?;
                     pyo3_async_runtimes::tokio::into_future(coroutine)
                 })?;
 
-                // This await needs to happen outside of Python::with_gil because you can't use
+                // This await needs to happen outside of Python::attach because you can't use
                 // await in a sync closure
                 let future_result = future.await;
 
-                Python::with_gil(|py| match future_result {
+                Python::attach(|py| match future_result {
                     Ok(result) => {
                         let buf = result.extract::<PyBytes>(py)?;
                         Ok(Some(buf.into_inner()))
@@ -324,7 +324,7 @@ pub(crate) fn put(
     }
 
     let runtime = get_runtime();
-    py.allow_threads(|| {
+    py.detach(|| {
         if use_multipart {
             runtime.block_on(put_multipart_inner(
                 store.into_inner(),
