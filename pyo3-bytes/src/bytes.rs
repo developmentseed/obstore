@@ -161,11 +161,11 @@ impl PyBytes {
         buf
     }
 
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         let py_bytes = self.to_bytes(py);
-        let args = PyTuple::new(py, vec![py_bytes])?.into_py_any(py)?;
-        let kwargs = PyDict::new(py);
-        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
+        let args = PyTuple::new(py, vec![py_bytes])?.into_bound_py_any(py)?;
+        let kwargs = PyDict::new(py).into_bound_py_any(py)?;
+        PyTuple::new(py, [args, kwargs])
     }
 
     /// The number of bytes in this Bytes
@@ -419,33 +419,14 @@ impl<'py> FromPyObject<'py> for PyBytes {
 ///
 /// This also implements AsRef<[u8]> because that is required for Bytes::from_owner
 #[derive(Debug)]
-struct PyBytesWrapper(Option<PyBuffer<u8>>);
-
-impl Drop for PyBytesWrapper {
-    #[allow(unsafe_code)]
-    fn drop(&mut self) {
-        // Only call the underlying Drop of PyBuffer if the Python interpreter is still
-        // initialized. Sometimes the Drop can attempt to happen after the Python interpreter was
-        // already finalized.
-        // https://github.com/kylebarron/arro3/issues/230
-        let is_initialized = unsafe { ffi::Py_IsInitialized() };
-        if let Some(val) = self.0.take() {
-            if is_initialized == 0 {
-                std::mem::forget(val);
-            } else {
-                drop(val);
-            }
-        }
-    }
-}
+struct PyBytesWrapper(PyBuffer<u8>);
 
 impl AsRef<[u8]> for PyBytesWrapper {
     #[allow(unsafe_code)]
     fn as_ref(&self) -> &[u8] {
-        let buffer = self.0.as_ref().expect("Buffer already disposed");
-        let len = buffer.item_count();
+        let len = self.0.item_count();
 
-        let ptr = NonNull::new(buffer.buf_ptr() as _).expect("Expected buffer ptr to be non null");
+        let ptr = NonNull::new(self.0.buf_ptr() as _).expect("Expected buffer ptr to be non null");
 
         // Safety:
         //
@@ -475,7 +456,7 @@ impl<'py> FromPyObject<'py> for PyBytesWrapper {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         let buffer = ob.extract::<PyBuffer<u8>>()?;
         validate_buffer(&buffer)?;
-        Ok(Self(Some(buffer)))
+        Ok(Self(buffer))
     }
 }
 

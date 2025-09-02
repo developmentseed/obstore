@@ -1624,6 +1624,8 @@ dependencies = [
 [[package]]
 name = "pyo3-bytes"
 version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "562fca6e381598ecb2c7b8f99df129400d85a94d1dfd04341560aa6c57e96760"
 dependencies = [
  "bytes",
  "pyo3",
