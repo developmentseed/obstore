@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0] - 2025-09-02
+
+### Breaking changes :wrench:
+
+- Don't percent-encode paths. The implementation of `FromPyObject` for `PyPath` now uses `Path::parse` instead of `Path::from` under the hood. #524
+- Bump to pyo3 0.26.
+
 ## [0.5.0] - 2025-05-19
 
 - Bump to pyo3 0.25.
