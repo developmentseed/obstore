@@ -107,7 +107,7 @@ impl PyListStream {
     fn collect(&self, py: Python) -> PyResult<PyListIterResult> {
         let runtime = get_runtime();
         let stream = self.stream.clone();
-        py.allow_threads(|| runtime.block_on(collect_stream(stream, self.return_arrow)))
+        py.detach(|| runtime.block_on(collect_stream(stream, self.return_arrow)))
     }
 
     fn collect_async<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
@@ -126,7 +126,7 @@ impl PyListStream {
     fn __next__(&self, py: Python) -> PyResult<PyListIterResult> {
         let runtime = get_runtime();
         let stream = self.stream.clone();
-        py.allow_threads(|| {
+        py.detach(|| {
             runtime.block_on(next_stream(
                 stream,
                 self.chunk_size,
@@ -437,7 +437,7 @@ pub(crate) fn list_with_delimiter(
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
     let runtime = get_runtime();
-    py.allow_threads(|| {
+    py.detach(|| {
         let out = runtime.block_on(list_with_delimiter_materialize(
             store.into_inner(),
             prefix.map(|s| s.into()).as_ref(),

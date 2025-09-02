@@ -56,7 +56,7 @@ impl<'py> FromPyObject<'py> for PyAwsCredential {
 #[derive(Debug)]
 pub struct PyAWSCredentialProvider {
     /// The provided user callback to manage credential refresh
-    user_callback: PyObject,
+    user_callback: Py<PyAny>,
     cache: TokenCache<Arc<AwsCredential>>,
     /// An optional config passed down from the credential provider class
     config: Option<PyAmazonS3Config>,
@@ -77,7 +77,7 @@ impl PyAWSCredentialProvider {
 
 impl Clone for PyAWSCredentialProvider {
     fn clone(&self) -> Self {
-        let cloned_callback = Python::with_gil(|py| self.user_callback.clone_ref(py));
+        let cloned_callback = Python::attach(|py| self.user_callback.clone_ref(py));
         Self {
             user_callback: cloned_callback,
             cache: self.cache.clone(),
@@ -88,7 +88,7 @@ impl Clone for PyAWSCredentialProvider {
 
 impl PartialEq for PyAWSCredentialProvider {
     fn eq(&self, other: &Self) -> bool {
-        Python::with_gil(|py| self.equals(py, other)).unwrap_or(false)
+        Python::attach(|py| self.equals(py, other)).unwrap_or(false)
     }
 }
 
@@ -141,7 +141,7 @@ impl<'py> IntoPyObject<'py> for &PyAWSCredentialProvider {
 
 /// Note: This is copied across providers at the moment
 enum PyCredentialProviderResult {
-    Async(PyObject),
+    Async(Py<PyAny>),
     Sync(PyAwsCredential),
 }
 
@@ -150,11 +150,11 @@ impl PyCredentialProviderResult {
         match self {
             Self::Sync(credentials) => Ok(credentials),
             Self::Async(coroutine) => {
-                let future = Python::with_gil(|py| {
+                let future = Python::attach(|py| {
                     pyo3_async_runtimes::tokio::into_future(coroutine.bind(py).clone())
                 })?;
                 let result = future.await?;
-                Python::with_gil(|py| result.extract(py))
+                Python::attach(|py| result.extract(py))
             }
         }
     }
@@ -175,7 +175,7 @@ impl PyAWSCredentialProvider {
     ///
     /// This is separate from `fetch_token` below so that it can return a `PyResult`.
     async fn call(&self) -> PyResult<PyAwsCredential> {
-        let call_result = Python::with_gil(|py| {
+        let call_result = Python::attach(|py| {
             self.user_callback
                 .call0(py)?
                 .extract::<PyCredentialProviderResult>(py)

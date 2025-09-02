@@ -46,7 +46,7 @@ impl<'py> FromPyObject<'py> for PyGcpCredential {
 #[derive(Debug)]
 pub struct PyGcpCredentialProvider {
     /// The provided user callback to manage credential refresh
-    user_callback: PyObject,
+    user_callback: Py<PyAny>,
     /// The provided user callback to manage credential refresh
     cache: TokenCache<Arc<GcpCredential>>,
 }
@@ -61,7 +61,7 @@ impl PyGcpCredentialProvider {
 
 impl Clone for PyGcpCredentialProvider {
     fn clone(&self) -> Self {
-        let cloned_callback = Python::with_gil(|py| self.user_callback.clone_ref(py));
+        let cloned_callback = Python::attach(|py| self.user_callback.clone_ref(py));
         Self {
             user_callback: cloned_callback,
             cache: self.cache.clone(),
@@ -71,7 +71,7 @@ impl Clone for PyGcpCredentialProvider {
 
 impl PartialEq for PyGcpCredentialProvider {
     fn eq(&self, other: &Self) -> bool {
-        Python::with_gil(|py| self.equals(py, other)).unwrap_or(false)
+        Python::attach(|py| self.equals(py, other)).unwrap_or(false)
     }
 }
 
@@ -118,7 +118,7 @@ impl<'py> IntoPyObject<'py> for PyGcpCredentialProvider {
 
 /// Note: This is copied across providers at the moment
 enum PyCredentialProviderResult {
-    Async(PyObject),
+    Async(Py<PyAny>),
     Sync(PyGcpCredential),
 }
 
@@ -127,11 +127,11 @@ impl PyCredentialProviderResult {
         match self {
             Self::Sync(credentials) => Ok(credentials),
             Self::Async(coroutine) => {
-                let future = Python::with_gil(|py| {
+                let future = Python::attach(|py| {
                     pyo3_async_runtimes::tokio::into_future(coroutine.bind(py).clone())
                 })?;
                 let result = future.await?;
-                Python::with_gil(|py| result.extract(py))
+                Python::attach(|py| result.extract(py))
             }
         }
     }
@@ -152,7 +152,7 @@ impl PyGcpCredentialProvider {
     ///
     /// This is separate from `fetch_token` below so that it can return a `PyResult`.
     async fn call(&self) -> PyResult<PyGcpCredential> {
-        let call_result = Python::with_gil(|py| {
+        let call_result = Python::attach(|py| {
             self.user_callback
                 .call0(py)?
                 .extract::<PyCredentialProviderResult>(py)
