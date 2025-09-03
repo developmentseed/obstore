@@ -13,6 +13,10 @@ rust-version = "1.75"
 # Include the Python type hints as part of the cargo distribution
 include = ["src", "type-hints", "README.md", "LICENSE"]
 
+[features]
+default = ["external-store-warning"]
+external-store-warning = []
+
 [dependencies]
 async-trait = "0.1.85"
 bytes = "1"
