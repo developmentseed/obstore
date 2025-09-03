@@ -206,15 +206,17 @@ impl<'py> FromPyObject<'py> for PyExternalObjectStore {
     fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
         match ob.extract() {
             Ok(inner) => {
-                let py = ob.py();
+                #[cfg(feature = "external-store-warning")]
+                {
+                    let py = ob.py();
 
-                let warnings_mod = py.import(intern!(py, "warnings"))?;
-                let warning = PyRuntimeWarning::new_err(
+                    let warnings_mod = py.import(intern!(py, "warnings"))?;
+                    let warning = PyRuntimeWarning::new_err(
                     "Successfully reconstructed a store defined in another Python module. Connection pooling will not be shared across store instances.",
                 );
-                let args = PyTuple::new(py, vec![warning])?;
-                warnings_mod.call_method1(intern!(py, "warn"), args)?;
-
+                    let args = PyTuple::new(py, vec![warning])?;
+                    warnings_mod.call_method1(intern!(py, "warn"), args)?;
+                }
                 Ok(Self(inner))
             }
             Err(err) => Err(err),
