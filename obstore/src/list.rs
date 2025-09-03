@@ -8,16 +8,68 @@ use arrow::datatypes::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
+use object_store::list::PaginatedListStore;
 use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
-use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
+use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
+use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
-use pyo3::{intern, IntoPyObjectExt};
+use pyo3::{intern, IntoPyObjectExt, PyTypeInfo};
 use pyo3_arrow::{PyRecordBatch, PyTable};
 use pyo3_async_runtimes::tokio::get_runtime;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{
+    PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyObjectStore,
+    PyObjectStoreError, PyObjectStoreResult, PyS3Store,
+};
 use tokio::sync::Mutex;
+
+enum MaybePaginatedListStore {
+    SupportsPagination(Arc<dyn PaginatedListStore>),
+    NoPagination(Arc<dyn ObjectStore>),
+}
+
+impl<'py> FromPyObject<'py> for MaybePaginatedListStore {
+    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+        if let Ok(store) = ob.downcast::<PyS3Store>() {
+            Ok(Self::SupportsPagination(store.get().as_ref().clone()))
+        } else if let Ok(store) = ob.downcast::<PyAzureStore>() {
+            Ok(Self::SupportsPagination(store.get().as_ref().clone()))
+        } else if let Ok(store) = ob.downcast::<PyGCSStore>() {
+            Ok(Self::SupportsPagination(store.get().as_ref().clone()))
+        } else if let Ok(store) = ob.downcast::<PyHttpStore>() {
+            Ok(Self::NoPagination(store.get().as_ref().clone()))
+        } else if let Ok(store) = ob.downcast::<PyLocalStore>() {
+            Ok(Self::NoPagination(store.get().as_ref().clone()))
+        } else if let Ok(store) = ob.downcast::<PyMemoryStore>() {
+            Ok(Self::NoPagination(store.get().as_ref().clone()))
+        } else {
+            let py = ob.py();
+            // Check for object-store instance from other library
+            let cls_name = ob
+                .getattr(intern!(py, "__class__"))?
+                .getattr(intern!(py, "__name__"))?
+                .extract::<PyBackedStr>()?;
+            if [
+                PyAzureStore::NAME,
+                PyGCSStore::NAME,
+                PyHttpStore::NAME,
+                PyLocalStore::NAME,
+                PyMemoryStore::NAME,
+                PyS3Store::NAME,
+            ]
+            .contains(&cls_name.as_ref())
+            {
+                return Err(PyValueError::new_err("You must use an object store instance exported from **the same library** as this function. They cannot be used across libraries.\nThis is because object store instances are compiled with a specific version of Rust and Python." ));
+            }
+
+            Err(PyValueError::new_err(format!(
+                "Expected an object store instance, got {}",
+                ob.repr()?
+            )))
+        }
+    }
+}
 
 pub(crate) struct PyObjectMeta(ObjectMeta);
 
