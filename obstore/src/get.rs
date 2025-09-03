@@ -155,7 +155,7 @@ impl PyGetResult {
             .take()
             .ok_or(PyValueError::new_err("Result has already been disposed."))?;
         let runtime = get_runtime();
-        py.allow_threads(|| {
+        py.detach(|| {
             let bytes = runtime.block_on(get_result.bytes())?;
             Ok::<_, PyObjectStoreError>(PyBytes::new(bytes))
         })
@@ -293,7 +293,7 @@ impl PyBytesStream {
     fn __next__(&self, py: Python) -> PyResult<PyBytesWrapper> {
         let runtime = get_runtime();
         let stream = self.stream.clone();
-        py.allow_threads(|| runtime.block_on(next_stream(stream, self.min_chunk_size, true)))
+        py.detach(|| runtime.block_on(next_stream(stream, self.min_chunk_size, true)))
     }
 }
 
@@ -338,7 +338,7 @@ pub(crate) fn get(
     options: Option<PyGetOptions>,
 ) -> PyObjectStoreResult<PyGetResult> {
     let runtime = get_runtime();
-    py.allow_threads(|| {
+    py.detach(|| {
         let path = &path.as_ref();
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
@@ -382,7 +382,7 @@ pub(crate) fn get_range(
 ) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
     let runtime = get_runtime();
     let range = params_to_range(start, end, length)?;
-    py.allow_threads(|| {
+    py.detach(|| {
         let out = runtime.block_on(store.as_ref().get_range(path.as_ref(), range))?;
         Ok::<_, PyObjectStoreError>(pyo3_bytes::PyBytes::new(out))
     })
@@ -436,7 +436,7 @@ pub(crate) fn get_ranges(
 ) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
     let runtime = get_runtime();
     let ranges = params_to_ranges(starts, ends, lengths)?;
-    py.allow_threads(|| {
+    py.detach(|| {
         let out = runtime.block_on(store.as_ref().get_ranges(path.as_ref(), &ranges))?;
         Ok::<_, PyObjectStoreError>(out.into_iter().map(|buf| buf.into()).collect())
     })

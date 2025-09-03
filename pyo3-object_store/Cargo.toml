@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-object_store"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
 description = "object_store integration for pyo3."
@@ -12,6 +12,10 @@ categories = []
 rust-version = "1.75"
 # Include the Python type hints as part of the cargo distribution
 include = ["src", "type-hints", "README.md", "LICENSE"]
+
+[features]
+default = ["external-store-warning"]
+external-store-warning = []
 
 [dependencies]
 async-trait = "0.1.85"
@@ -27,8 +31,8 @@ itertools = "0.14.0"
 object_store = { version = "0.12", features = ["aws", "azure", "gcp", "http"] }
 # This is already an object_store dependency
 percent-encoding = "2.1"
-pyo3 = { version = "0.25", features = ["chrono", "indexmap"] }
-pyo3-async-runtimes = { version = "0.25", features = ["tokio-runtime"] }
+pyo3 = { version = "0.26", features = ["chrono", "indexmap"] }
+pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
 serde = "1"
 thiserror = "1"
 tokio = { version = "1.40", features = ["rt-multi-thread"] }
