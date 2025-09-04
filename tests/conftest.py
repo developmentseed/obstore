@@ -112,10 +112,17 @@ def minio_bucket() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
         stacklevel=1,
     )
 
-    port = find_available_port()
     username = "minioadmin"
     password = "minioadmin"  # noqa: S105
     bucket = "test-bucket"
+    port = find_available_port()
+    console_port = find_available_port()
+
+    print(f"Using ports: {port=}, {console_port=}")  # noqa: T201
+    print(  # noqa: T201
+        f"Log on to MinIO console at http://localhost:{console_port} with "
+        f"{username=} and {password=}",
+    )
 
     warnings.warn(
         "Starting MinIO container...",
@@ -124,12 +131,15 @@ def minio_bucket() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
     )
     minio_container = docker_client.containers.run(
         "quay.io/minio/minio",
-        "server /data",
+        "server /data --console-address :9001",
         detach=True,
-        ports={f"{port}/tcp": port},
+        ports={
+            "9000/tcp": port,
+            "9001/tcp": console_port,
+        },
         environment={
-            "MINIO_ACCESS_KEY": username,
-            "MINIO_SECRET_KEY": password,
+            "MINIO_ROOT_USER": username,
+            "MINIO_ROOT_PASSWORD": password,
         },
     )
     warnings.warn(
