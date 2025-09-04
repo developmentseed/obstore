@@ -4,7 +4,7 @@ use std::sync::Arc;
 use arrow::array::{
     ArrayRef, RecordBatch, StringBuilder, TimestampMicrosecondBuilder, UInt64Builder,
 };
-use arrow::datatypes::{DataType, Field, Schema, SchemaRef, TimeUnit};
+use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
@@ -14,7 +14,8 @@ use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::{intern, IntoPyObjectExt};
-use pyo3_arrow::{PyRecordBatch, PyTable};
+use pyo3_arrow::export::{Arro3RecordBatch, Arro3Table};
+use pyo3_arrow::PyTable;
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
 use tokio::sync::Mutex;
@@ -139,7 +140,7 @@ impl PyListStream {
 
 #[derive(IntoPyObject)]
 enum PyListIterResult {
-    Arrow(PyRecordBatchWrapper),
+    Arrow(Arro3RecordBatch),
     Native(Vec<PyObjectMeta>),
 }
 
@@ -158,7 +159,9 @@ async fn next_stream(
                 if metas.len() >= chunk_size {
                     match return_arrow {
                         true => {
-                            return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+                            return Ok(PyListIterResult::Arrow(
+                                object_meta_to_arrow(&metas).into(),
+                            ));
                         }
                         false => {
                             return Ok(PyListIterResult::Native(metas));
@@ -179,7 +182,9 @@ async fn next_stream(
                 } else {
                     match return_arrow {
                         true => {
-                            return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+                            return Ok(PyListIterResult::Arrow(
+                                object_meta_to_arrow(&metas).into(),
+                            ));
                         }
                         false => {
                             return Ok(PyListIterResult::Native(metas));
@@ -205,65 +210,13 @@ async fn collect_stream(
             Some(Err(e)) => return Err(PyObjectStoreError::from(e).into()),
             None => match return_arrow {
                 true => {
-                    return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas)));
+                    return Ok(PyListIterResult::Arrow(object_meta_to_arrow(&metas).into()));
                 }
                 false => {
                     return Ok(PyListIterResult::Native(metas));
                 }
             },
         };
-    }
-}
-
-struct PyRecordBatchWrapper(PyRecordBatch);
-
-impl PyRecordBatchWrapper {
-    fn new(batch: RecordBatch) -> Self {
-        Self(PyRecordBatch::new(batch))
-    }
-
-    fn into_table(self) -> PyResult<PyTableWrapper> {
-        let batch = self.0.into_inner();
-        let schema = batch.schema();
-        PyTableWrapper::new(vec![batch], schema)
-    }
-}
-
-impl<'py> IntoPyObject<'py> for PyRecordBatchWrapper {
-    type Target = PyAny;
-    type Output = Bound<'py, PyAny>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        py.import(intern!(py, "arro3.core")).map_err(|_| {
-            PyImportError::new_err(
-                "Could not import arro3.core. Install with\npip install arro3-core",
-            )
-        })?;
-        self.0.into_arro3(py)
-    }
-}
-
-struct PyTableWrapper(PyTable);
-
-impl PyTableWrapper {
-    fn new(batches: Vec<RecordBatch>, schema: SchemaRef) -> PyResult<Self> {
-        Ok(Self(PyTable::try_new(batches, schema)?))
-    }
-}
-
-impl<'py> IntoPyObject<'py> for PyTableWrapper {
-    type Target = PyAny;
-    type Output = Bound<'py, PyAny>;
-    type Error = PyErr;
-
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        py.import(intern!(py, "arro3.core")).map_err(|_| {
-            PyImportError::new_err(
-                "Could not import arro3.core. Install with\npip install arro3-core",
-            )
-        })?;
-        self.0.into_arro3(py)
     }
 }
 
@@ -304,7 +257,7 @@ fn object_meta_capacities(metas: &[PyObjectMeta]) -> ObjectMetaCapacity {
     capacity
 }
 
-fn object_meta_to_arrow(metas: &[PyObjectMeta]) -> PyRecordBatchWrapper {
+fn object_meta_to_arrow(metas: &[PyObjectMeta]) -> RecordBatch {
     let capacity = object_meta_capacities(metas);
 
     let mut location = StringBuilder::with_capacity(metas.len(), capacity.location);
@@ -344,8 +297,7 @@ fn object_meta_to_arrow(metas: &[PyObjectMeta]) -> PyRecordBatchWrapper {
         Arc::new(version.finish()),
     ];
     // This unwrap is ok because we know the RecordBatch is valid.
-    let batch = RecordBatch::try_new(schema.into(), columns).unwrap();
-    PyRecordBatchWrapper::new(batch)
+    RecordBatch::try_new(schema.into(), columns).unwrap()
 }
 
 pub(crate) struct PyListResult {
@@ -385,9 +337,9 @@ impl<'py> IntoPyObject<'py> for PyListResult {
             .map(PyObjectMeta)
             .collect::<Vec<_>>();
         let objects = if self.return_arrow {
-            object_meta_to_arrow(&objects)
-                .into_table()?
-                .into_bound_py_any(py)
+            let batch = object_meta_to_arrow(&objects);
+            let schema = batch.schema();
+            Arro3Table::from(PyTable::try_new(vec![batch], schema).unwrap()).into_bound_py_any(py)
         } else {
             objects.into_bound_py_any(py)
         }?;
