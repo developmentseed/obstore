@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from obstore.store import ClientConfig, S3Config
 
-TEST_BUCKET_NAME = "test"
+TEST_BUCKET_NAME = "test-bucket"
 
 
 # See docs here: https://docs.getmoto.org/en/latest/docs/server_mode.html
@@ -99,7 +99,7 @@ def find_available_port() -> int:
 
 
 @pytest.fixture(scope="session")
-def minio_bucket() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
+def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
     warnings.warn(
         "Creating Docker client...",
         UserWarning,
@@ -158,7 +158,7 @@ def minio_bucket() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
         secret_key=password,
         secure=False,
     )
-    minio_client.make_bucket(bucket)
+    minio_client.make_bucket(TEST_BUCKET_NAME)
 
     s3_config: S3Config = {
         "bucket": bucket,
@@ -173,6 +173,19 @@ def minio_bucket() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
 
     minio_container.stop()
     minio_container.remove()
+
+
+@pytest.fixture
+def minio_bucket(
+    minio_config: tuple[S3Config, ClientConfig],
+) -> Generator[tuple[S3Config, ClientConfig], Any, None]:
+    yield minio_config
+
+    # Remove all files from bucket
+    store = S3Store(config=minio_config[0], client_options=minio_config[1])
+    objects = store.list().collect()
+    paths = [obj["path"] for obj in objects]
+    store.delete(paths)
 
 
 @pytest.fixture
