@@ -13,6 +13,7 @@ dev-dependencies = [
     "arro3-core>=0.4.2",
     "azure-identity>=1.21.0",
     "boto3>=1.38.21",
+    "docker>=7.1.0",
     "fastapi>=0.115.12",                  # used in example but added here for pyright CI
     "fsspec>=2024.10.0",
     "google-auth>=2.38.0",
@@ -22,6 +23,7 @@ dev-dependencies = [
     "maturin-import-hook>=0.2.0",
     "maturin>=1.7.4",
     "mike>=2.1.3",
+    "minio>=7.2.16",
     "mkdocs-material[imaging]>=9.6.3",
     "mkdocs-redirects>=1.2.2",
     "mkdocs>=1.6.1",
@@ -93,14 +95,10 @@ ignore = [
 ]
 
 [tool.pyright]
-exclude = [
-    "**/__pycache__",
-    "examples",
-    ".venv",
-]
+exclude = ["**/__pycache__", "examples", ".venv"]
 executionEnvironments = [
-  { root = "./", extraPaths = ["./obstore/python"] },  # Tests.
-  { root = "./obstore/python" }
+    { root = "./", extraPaths = ["./obstore/python"] }, # Tests.
+    { root = "./obstore/python" },
 ]
 
 [tool.pytest.ini_options]
