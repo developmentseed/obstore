@@ -5,14 +5,10 @@ import time
 import warnings
 from typing import TYPE_CHECKING, Any
 
-import boto3
 import docker
 import pytest
 import requests
-from botocore import UNSIGNED
-from botocore.client import Config
 from minio import Minio
-from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 from requests.exceptions import RequestException
 
 from obstore.store import S3Store
@@ -23,64 +19,6 @@ if TYPE_CHECKING:
     from obstore.store import ClientConfig, S3Config
 
 TEST_BUCKET_NAME = "test-bucket"
-
-
-# See docs here: https://docs.getmoto.org/en/latest/docs/server_mode.html
-@pytest.fixture(scope="session")
-def moto_server_uri():
-    """Fixture to run a mocked AWS server for testing."""
-    # Note: pass `port=0` to get a random free port.
-    server = ThreadedMotoServer(ip_address="localhost", port=0)
-    server.start()
-    if hasattr(server, "get_host_and_port"):
-        host, port = server.get_host_and_port()
-    else:
-        s = server._server
-        assert s is not None
-        # An AF_INET6 socket address has 4 components.
-        host, port = s.server_address[:2]
-    uri = f"http://{host}:{port}"
-    yield uri
-    server.stop()
-
-
-@pytest.fixture
-def s3(moto_server_uri: str):
-    client = boto3.client(
-        "s3",
-        config=Config(signature_version=UNSIGNED),
-        region_name="us-east-1",
-        endpoint_url=moto_server_uri,
-    )
-    client.create_bucket(Bucket=TEST_BUCKET_NAME, ACL="public-read")
-    client.put_object(Bucket=TEST_BUCKET_NAME, Key="afile", Body=b"hello world")
-    yield moto_server_uri
-    objects = client.list_objects_v2(Bucket=TEST_BUCKET_NAME)
-    for name in objects.get("Contents", []):
-        key = name.get("Key")
-        assert key is not None
-        client.delete_object(Bucket=TEST_BUCKET_NAME, Key=key)
-    requests.post(f"{moto_server_uri}/moto-api/reset", timeout=30)
-
-
-@pytest.fixture
-def s3_store(s3: str):
-    return S3Store.from_url(
-        f"s3://{TEST_BUCKET_NAME}/",
-        endpoint=s3,
-        region="us-east-1",
-        skip_signature=True,
-        client_options={"allow_http": True},
-    )
-
-
-@pytest.fixture
-def s3_store_config(s3: str) -> S3Config:
-    return {
-        "endpoint": s3,
-        "region": "us-east-1",
-        "skip_signature": True,
-    }
 
 
 def find_available_port() -> int:
@@ -114,7 +52,6 @@ def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
 
     username = "minioadmin"
     password = "minioadmin"  # noqa: S105
-    bucket = "test-bucket"
     port = find_available_port()
     console_port = find_available_port()
 
@@ -161,7 +98,7 @@ def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
     minio_client.make_bucket(TEST_BUCKET_NAME)
 
     s3_config: S3Config = {
-        "bucket": bucket,
+        "bucket": TEST_BUCKET_NAME,
         "endpoint": endpoint,
         "access_key_id": username,
         "secret_access_key": password,
