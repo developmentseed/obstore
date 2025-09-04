@@ -29,7 +29,6 @@ dev-dependencies = [
     "mkdocs>=1.6.1",
     "mkdocstrings-python>=1.13.0",
     "mkdocstrings>=0.27.0",
-    "moto[s3,server]>=5.1.1",
     "mypy>=1.15.0",
     "obspec>=0.1.0",
     "pip>=24.2",
