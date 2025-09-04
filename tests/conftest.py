@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import socket
 import time
+import warnings
 from typing import TYPE_CHECKING, Any
 
 import boto3
@@ -99,14 +100,28 @@ def find_available_port() -> int:
 
 @pytest.fixture(scope="session")
 def minio_bucket() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
-    port = find_available_port()
+    warnings.warn(
+        "Creating Docker client...",
+        UserWarning,
+        stacklevel=1,
+    )
     docker_client = docker.from_env()
+    warnings.warn(
+        "Finished creating Docker client...",
+        UserWarning,
+        stacklevel=1,
+    )
 
-    port = 9000
+    port = find_available_port()
     username = "minioadmin"
     password = "minioadmin"  # noqa: S105
-    bucket = "minio_bucket"
+    bucket = "test-bucket"
 
+    warnings.warn(
+        "Starting MinIO container...",
+        UserWarning,
+        stacklevel=1,
+    )
     minio_container = docker_client.containers.run(
         "quay.io/minio/minio",
         "server /data",
@@ -117,13 +132,18 @@ def minio_bucket() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
             "MINIO_SECRET_KEY": password,
         },
     )
+    warnings.warn(
+        "Finished starting MinIO container...",
+        UserWarning,
+        stacklevel=1,
+    )
 
     # Wait for MinIO to be ready
     endpoint = f"http://localhost:{port}"
     wait_for_minio(endpoint, timeout=30)
 
     minio_client = Minio(
-        endpoint,
+        f"localhost:{port}",
         access_key=username,
         secret_key=password,
         secure=False,
@@ -151,7 +171,7 @@ def minio_store(minio_bucket: tuple[S3Config, ClientConfig]) -> S3Store:
     return S3Store(config=minio_bucket[0], client_options=minio_bucket[1])
 
 
-def wait_for_minio(endpoint: str, timeout: int = 30):
+def wait_for_minio(endpoint: str, timeout: int):
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
