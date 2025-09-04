@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 
 import pytest
 
-import obstore as obs
 from obstore.exceptions import BaseError, UnauthenticatedError
 from obstore.store import S3Store, from_url
 
@@ -16,8 +15,10 @@ from obstore.store import S3Store, from_url
     reason="Moto doesn't seem to support Python 3.9",
 )
 @pytest.mark.asyncio
-async def test_list_async(s3_store: S3Store):
-    list_result = await obs.list(s3_store).collect_async()
+async def test_list_async(minio_store: S3Store):
+    await minio_store.put_async("afile", b"hello world")
+
+    list_result = await minio_store.list().collect_async()
     assert any("afile" in x["path"] for x in list_result)
 
 
@@ -26,8 +27,10 @@ async def test_list_async(s3_store: S3Store):
     reason="Moto doesn't seem to support Python 3.9",
 )
 @pytest.mark.asyncio
-async def test_get_async(s3_store: S3Store):
-    resp = await obs.get_async(s3_store, "afile")
+async def test_get_async(minio_store: S3Store):
+    await minio_store.put_async("afile", b"hello world")
+
+    resp = await minio_store.get_async("afile")
     buf = await resp.bytes_async()
     assert buf == b"hello world"
 
@@ -78,7 +81,7 @@ async def test_from_url():
         region="us-west-2",
         skip_signature=True,
     )
-    _meta = await obs.head_async(store, "2024-01-01_performance_fixed_tiles.parquet")
+    _meta = await store.head_async("2024-01-01_performance_fixed_tiles.parquet")
 
 
 def test_pickle():
@@ -88,7 +91,7 @@ def test_pickle():
         skip_signature=True,
     )
     restored = pickle.loads(pickle.dumps(store))
-    _objects = next(obs.list(restored))
+    _objects = next(restored.list())
 
 
 def test_config_round_trip():
@@ -120,7 +123,7 @@ def test_invalid_credential_provider():
 
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):
-        obs.list(store).collect()
+        store.list().collect()
 
 
 @pytest.mark.asyncio
@@ -130,7 +133,7 @@ async def test_invalid_credential_provider_async():
 
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):
-        await obs.list(store).collect_async()
+        await store.list().collect_async()
 
 
 def test_eq():
