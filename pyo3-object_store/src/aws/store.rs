@@ -14,6 +14,7 @@ use crate::aws::credentials::PyAWSCredentialProvider;
 use crate::client::PyClientOptions;
 use crate::config::PyConfigValue;
 use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStoreResult};
+use crate::instrumented_object_store::InstrumentedObjectStore;
 use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
@@ -63,20 +64,20 @@ impl S3Config {
 #[derive(Debug, Clone)]
 #[pyclass(name = "S3Store", frozen, subclass)]
 pub struct PyS3Store {
-    store: Arc<MaybePrefixedStore<AmazonS3>>,
+    store: Arc<InstrumentedObjectStore<MaybePrefixedStore<AmazonS3>>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
     config: S3Config,
 }
 
-impl AsRef<Arc<MaybePrefixedStore<AmazonS3>>> for PyS3Store {
-    fn as_ref(&self) -> &Arc<MaybePrefixedStore<AmazonS3>> {
+impl AsRef<Arc<InstrumentedObjectStore<MaybePrefixedStore<AmazonS3>>>> for PyS3Store {
+    fn as_ref(&self) -> &Arc<InstrumentedObjectStore<MaybePrefixedStore<AmazonS3>>> {
         &self.store
     }
 }
 
 impl PyS3Store {
     /// Consume self and return the underlying [`AmazonS3`].
-    pub fn into_inner(self) -> Arc<MaybePrefixedStore<AmazonS3>> {
+    pub fn into_inner(self) -> Arc<InstrumentedObjectStore<MaybePrefixedStore<AmazonS3>>> {
         self.store
     }
 }
@@ -126,8 +127,9 @@ impl PyS3Store {
 
         builder = combined_config.clone().apply_config(builder);
 
+        let store = MaybePrefixedStore::new(builder.build()?, prefix.clone());
         Ok(Self {
-            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
+            store: Arc::new(InstrumentedObjectStore::new(store, "S3Store")),
             config: S3Config {
                 prefix,
                 config: combined_config,

@@ -1,5 +1,6 @@
 // Except for explicit areas where we enable unsafe
 #![deny(unsafe_code)]
+#![cfg_attr(not(test), warn(unused_crate_dependencies))]
 
 mod attributes;
 mod buffered;
@@ -14,9 +15,12 @@ mod rename;
 mod scheme;
 mod signer;
 mod tags;
+mod tracing;
 mod utils;
 
 use pyo3::prelude::*;
+// We declare a dependency on reqwest to opt-in to using rustls as the TLS provider
+use reqwest as _;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const OBJECT_STORE_VERSION: &str = env!("OBJECT_STORE_VERSION");
@@ -84,6 +88,9 @@ fn _obstore(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(scheme::parse_scheme))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign_async))?;
     m.add_wrapped(wrap_pyfunction!(signer::sign))?;
+
+    // Tracing
+    m.add_function(wrap_pyfunction!(tracing::init_log, m)?)?;
 
     Ok(())
 }
