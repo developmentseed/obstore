@@ -95,3 +95,14 @@ def test_local_store_percent_encoded(tmp_path: Path):
         f.write(content2)
 
     assert store.get(fname2).bytes() == content2
+
+
+def test_head(tmp_path: Path):
+    store = LocalStore(tmp_path)
+    store.put("freshly_created/some.txt", b"foo")
+
+    # ✅ works fine
+    assert store.head("freshly_created/some.txt")["path"] == "freshly_created/some.txt"
+
+    # 🛑 fails on windows
+    assert store.head("freshly_created")["path"] == "freshly_created"
