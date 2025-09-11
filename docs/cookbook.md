@@ -20,7 +20,7 @@ list_stream = obs.list(store, prefix)
 # Print info
 for batch in list_stream:
     for meta in batch:
-        print(f"Name: {meta.path}, size: {meta.size}")
+        print(f"Name: {meta["path"]}, size: {meta["size"]}")
 ```
 
 ## List objects as Arrow
