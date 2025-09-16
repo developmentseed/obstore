@@ -9,7 +9,7 @@ use pyo3::types::{PyDict, PyTuple, PyType};
 use pyo3::{intern, IntoPyObjectExt};
 
 use crate::error::PyObjectStoreResult;
-use crate::PyUrl;
+use crate::{InstrumentedObjectStore, PyUrl};
 
 #[derive(Clone, Debug, PartialEq)]
 struct LocalConfig {
@@ -32,19 +32,19 @@ impl LocalConfig {
 #[derive(Debug, Clone)]
 #[pyclass(name = "LocalStore", frozen, subclass)]
 pub struct PyLocalStore {
-    store: Arc<LocalFileSystem>,
+    store: Arc<InstrumentedObjectStore<LocalFileSystem>>,
     config: LocalConfig,
 }
 
-impl AsRef<Arc<LocalFileSystem>> for PyLocalStore {
-    fn as_ref(&self) -> &Arc<LocalFileSystem> {
+impl AsRef<Arc<InstrumentedObjectStore<LocalFileSystem>>> for PyLocalStore {
+    fn as_ref(&self) -> &Arc<InstrumentedObjectStore<LocalFileSystem>> {
         &self.store
     }
 }
 
 impl PyLocalStore {
     /// Consume self and return the underlying [`LocalFileSystem`].
-    pub fn into_inner(self) -> Arc<LocalFileSystem> {
+    pub fn into_inner(self) -> Arc<InstrumentedObjectStore<LocalFileSystem>> {
         self.store
     }
 }
@@ -68,7 +68,7 @@ impl PyLocalStore {
         };
         let fs = fs.with_automatic_cleanup(automatic_cleanup);
         Ok(Self {
-            store: Arc::new(fs),
+            store: Arc::new(InstrumentedObjectStore::new(fs, "LocalStore")),
             config: LocalConfig {
                 prefix,
                 automatic_cleanup,
