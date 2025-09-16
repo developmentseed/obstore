@@ -177,7 +177,7 @@ def test_split_path(fs: FsspecStore):
     assert fs._split_path("data-bucket/") == ("data-bucket", "")
 
     # url format, wrong protocol
-    with pytest.raises(ValueError, match="Expected protocol to be s3. Got gs"):
+    with pytest.raises(ValueError, match=r"Expected protocol to be s3. Got gs"):
         fs._split_path("gs://data-bucket/")
 
     # in url format, without bucket
