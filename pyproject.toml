@@ -93,6 +93,9 @@ ignore = [
     "SLF001",  # Private member accessed
 ]
 
+[tool.ruff.lint.isort]
+known-first-party = ["obstore"]
+
 [tool.pyright]
 exclude = ["**/__pycache__", "examples", ".venv"]
 executionEnvironments = [
