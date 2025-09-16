@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use itertools::Itertools;
 use object_store::aws::{AmazonS3, AmazonS3Builder, AmazonS3ConfigKey};
+use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -419,4 +420,15 @@ fn parse_url(
     };
 
     Ok(config)
+}
+
+#[async_trait::async_trait]
+impl PaginatedListStore for PyS3Store {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> object_store::Result<PaginatedListResult> {
+        self.store.list_paginated(prefix, opts).await
+    }
 }
