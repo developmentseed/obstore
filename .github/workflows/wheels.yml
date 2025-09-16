@@ -120,7 +120,7 @@ jobs:
       # Seems to be this question: https://stackoverflow.com/questions/78557803/python-with-rust-cannot-open-input-file-python3-lib
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.14
+          python-version: 3.13
           architecture: ${{ matrix.platform.target }}
       - name: Build wheels
         uses: PyO3/maturin-action@v1
