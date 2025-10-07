@@ -28,7 +28,12 @@ humantime = "2.1"
 http = "1"
 # This is already an object_store dependency
 itertools = "0.14.0"
-object_store = { version = "0.12", features = ["aws", "azure", "gcp", "http"] }
+object_store = { version = "0.12.4", features = [
+    "aws",
+    "azure",
+    "gcp",
+    "http",
+] }
 # This is already an object_store dependency
 percent-encoding = "2.1"
 pyo3 = { version = "0.26", features = ["chrono", "indexmap"] }
