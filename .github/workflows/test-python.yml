@@ -79,7 +79,7 @@ jobs:
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run pyright
-        uses: jakebailey/pyright-action@2
+        uses: jakebailey/pyright-action@v2
         with:
           # Restore pylance-version: latest-release
           # once it uses >1.1.405
