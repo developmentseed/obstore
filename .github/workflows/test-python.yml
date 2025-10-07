@@ -79,6 +79,10 @@ jobs:
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run pyright
-        uses: jakebailey/pyright-action@b5d50e5cde6547546a5c4ac92e416a8c2c1a1dfe # v2.3.2
+        uses: jakebailey/pyright-action@2
         with:
-          pylance-version: latest-release
+          # Restore pylance-version: latest-release
+          # once it uses >1.1.405
+          # https://github.com/microsoft/pyright/issues/10906
+          version: 1.1.406
+          # pylance-version: latest-release
