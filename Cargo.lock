@@ -1386,7 +1386,8 @@ dependencies = [
 [[package]]
 name = "object_store"
 version = "0.12.4"
-source = "git+https://github.com/alamb/arrow-rs-object-store.git?branch=alamb/prepare_0.12.4#b80c66640b6f2318f7d774a2928724ef07eae113"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c1be0c6c22ec0817cdc77d3842f721a17fd30ab6965001415b5402a74e6b740"
 dependencies = [
  "async-trait",
  "base64",

@@ -28,7 +28,7 @@ humantime = "2.1"
 http = "1"
 # This is already an object_store dependency
 itertools = "0.14.0"
-object_store = { git = "https://github.com/alamb/arrow-rs-object-store.git", branch = "alamb/prepare_0.12.4", features = [
+object_store = { version = "0.12.4", features = [
     "aws",
     "azure",
     "gcp",
