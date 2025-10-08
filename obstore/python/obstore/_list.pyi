@@ -45,13 +45,9 @@ class ObjectMeta(TypedDict):
     version: str | None
     """A version indicator for this object"""
 
-ListChunkType = TypeVar(  # noqa: PYI001, PLC0105
-    "ListChunkType",
-    Sequence[ObjectMeta],
-    RecordBatch,
-    Table,
-    covariant=True,
-)
+# We removed constraints here so that ListStream types work even when arro3-core is not
+# installed. https://github.com/developmentseed/obstore/issues/572
+ListChunkType = TypeVar("ListChunkType", covariant=True)  # noqa: PYI001, PLC0105
 """The data structure used for holding list results.
 
 By default, listing APIs return a `list` of [`ObjectMeta`][obstore.ObjectMeta]. However
