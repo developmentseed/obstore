@@ -1,9 +1,12 @@
+import tempfile
+from pathlib import Path
+
 import polars as pl
 import pyarrow as pa
 import pytest
 from arro3.core import RecordBatch, Table
 
-from obstore.store import MemoryStore
+from obstore.store import LocalStore, MemoryStore
 
 
 def test_list():
@@ -128,6 +131,64 @@ async def test_list_with_delimiter_async():
     assert objects.num_rows == 2
     assert objects["path"][0].as_py() == "a/file1.txt"
     assert objects["path"][1].as_py() == "a/file2.txt"
+
+
+def test_list_substring_filtering():
+    store = MemoryStore()
+
+    # Add files with various patterns
+    store.put("data/file1.txt", b"foo")
+    store.put("data/test_file.txt", b"bar")
+    store.put("data/another.csv", b"baz")
+    store.put("data/test_data.json", b"qux")
+    store.put("logs/test_log.txt", b"log")
+
+    # Test substring filtering for files containing "test"
+    result = store.list("data/test").collect()
+    paths = [item["path"] for item in result]
+
+    # Should match files with "test" in the filename within data/ directory
+    assert "data/test_file.txt" in paths
+    assert "data/test_data.json" in paths
+    assert "data/file1.txt" not in paths
+    assert "data/another.csv" not in paths
+    assert "logs/test_log.txt" not in paths
+
+    # Test with arrow format
+    stream = store.list("data/test", return_arrow=True)
+    batch = stream.collect()
+    assert isinstance(batch, RecordBatch)
+    assert batch.num_rows == 2
+
+
+def test_list_substring_filtering_local_store():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir_path = Path(temp_dir)
+        store = LocalStore(temp_dir_path)
+
+        # Create directory structure
+        data_dir = temp_dir_path / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write test files
+        with (data_dir / "file1.txt").open("w") as f:
+            f.write("foo")
+        with (data_dir / "test_file.txt").open("w") as f:
+            f.write("bar")
+        with (data_dir / "another.csv").open("w") as f:
+            f.write("baz")
+        with (data_dir / "test_data.json").open("w") as f:
+            f.write("qux")
+
+        # Test substring filtering for files containing "test"
+        result = store.list("data/test").collect()
+        paths = [item["path"] for item in result]
+
+        # Should match files with "test" in the filename within data/ directory
+        assert "data/test_file.txt" in paths
+        assert "data/test_data.json" in paths
+        assert "data/file1.txt" not in paths
+        assert "data/another.csv" not in paths
 
 
 def test_list_as_arrow_to_polars():

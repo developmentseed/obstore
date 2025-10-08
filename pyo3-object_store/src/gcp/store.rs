@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use object_store::gcp::{GoogleCloudStorage, GoogleCloudStorageBuilder, GoogleConfigKey};
+use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use object_store::ObjectStoreScheme;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
@@ -373,4 +374,15 @@ fn parse_url(config: Option<PyGoogleConfig>, parsed: &Url) -> object_store::Resu
     }
 
     Ok(config)
+}
+
+#[async_trait::async_trait]
+impl PaginatedListStore for PyGCSStore {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> object_store::Result<PaginatedListResult> {
+        self.store.list_paginated(prefix, opts).await
+    }
 }
