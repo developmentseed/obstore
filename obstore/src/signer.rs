@@ -172,7 +172,7 @@ pub(crate) fn sign(
     let runtime = get_runtime();
     let method = method.0;
 
-    py.allow_threads(|| match paths {
+    py.detach(|| match paths {
         PyPaths::One(path) => {
             let url = runtime.block_on(store.signed_url(method, &path, expires_in))?;
             Ok(PySignResult::One(PyUrl::new(url)))

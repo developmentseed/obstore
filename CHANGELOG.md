@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## [0.8.2] - 2025-09-16
+
+### What's Changed
+
+- Added sdist and wheels for Python 3.14 (except Windows) @kylebarron in https://github.com/developmentseed/obstore/pull/561 and https://github.com/developmentseed/obstore/pull/563
+- test: Set up minio-based testing, replace moto by @kylebarron in https://github.com/developmentseed/obstore/pull/553
+- chore: Bump ruff to 0.13 by @kylebarron in https://github.com/developmentseed/obstore/pull/562
+- docs: Use dictionary syntax for list properties by @mdsumner in https://github.com/developmentseed/obstore/pull/558
+
+### New Contributors
+
+- @mdsumner made their first contribution in https://github.com/developmentseed/obstore/pull/558
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.8.1...py-v0.8.2
+
 ## [0.8.1] - 2025-08-22
 
 ## What's Changed

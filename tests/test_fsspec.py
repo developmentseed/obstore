@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gc
 import os
-import sys
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -17,20 +16,16 @@ from tests.conftest import TEST_BUCKET_NAME
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from obstore.store import S3Config
-
-
-if sys.version_info < (3, 10):
-    pytest.skip("Moto doesn't seem to support Python 3.9", allow_module_level=True)
+    from obstore.store import ClientConfig, S3Config
 
 
 @pytest.fixture
-def fs(s3_store_config: S3Config):
+def fs(minio_bucket: tuple[S3Config, ClientConfig]):
     register("s3")
     return fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
     )
 
 
@@ -76,12 +71,14 @@ def test_register():
     assert issubclass(fsspec.get_filesystem_class("abfs"), FsspecStore)
 
 
-def test_construct_store_cache_diff_bucket_name(s3_store_config: S3Config):
+def test_construct_store_cache_diff_bucket_name(
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
     register("s3")
     fs: FsspecStore = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
         asynchronous=True,
         max_cache_size=5,
     )
@@ -104,12 +101,14 @@ def test_construct_store_cache_diff_bucket_name(s3_store_config: S3Config):
         assert mock_construct.cache_info().misses == 20, "Cache should miss 20 times"
 
 
-def test_construct_store_cache_same_bucket_name(s3_store_config: S3Config):
+def test_construct_store_cache_same_bucket_name(
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
     register("s3")
     fs = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
         asynchronous=True,
         max_cache_size=5,
     )
@@ -133,20 +132,22 @@ def test_construct_store_cache_same_bucket_name(s3_store_config: S3Config):
         assert mock_construct.cache_info().misses == 1, "Cache should only miss once"
 
 
-def test_fsspec_filesystem_cache(s3_store_config: S3Config):
+def test_fsspec_filesystem_cache(
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
     """Test caching behavior of fsspec.filesystem with the _Cached metaclass."""
     register("s3")
 
     # call fsspec.filesystem() multiple times with the same parameters
     fs1 = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
     )
     fs2 = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
     )
 
     # Same parameters should return the same instance
@@ -157,8 +158,8 @@ def test_fsspec_filesystem_cache(s3_store_config: S3Config):
     # Changing parameters should create a new instance
     fs3 = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
         asynchronous=True,
     )
     assert fs1 is not fs3, (
@@ -176,7 +177,7 @@ def test_split_path(fs: FsspecStore):
     assert fs._split_path("data-bucket/") == ("data-bucket", "")
 
     # url format, wrong protocol
-    with pytest.raises(ValueError, match="Expected protocol to be s3. Got gs"):
+    with pytest.raises(ValueError, match=r"Expected protocol to be s3. Got gs"):
         fs._split_path("gs://data-bucket/")
 
     # in url format, without bucket
@@ -195,103 +196,151 @@ def test_split_path(fs: FsspecStore):
     assert file_fs._split_path("/data-bucket/") == ("", "/data-bucket/")
 
 
-def test_list(fs: FsspecStore):
-    out = fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
-    assert out == [f"{TEST_BUCKET_NAME}/afile"]
-    fs.pipe_file(f"{TEST_BUCKET_NAME}/dir/bfile", b"data")
-    out = fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
-    assert out == [f"{TEST_BUCKET_NAME}/afile", f"{TEST_BUCKET_NAME}/dir"]
-    out = fs.ls(f"{TEST_BUCKET_NAME}", detail=True)
-    assert out[0]["type"] == "file"
-    assert out[1]["type"] == "directory"
+def test_list(
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
+    bucket = minio_bucket[0].get("bucket")
+    assert bucket is not None
 
-
-@pytest.mark.asyncio
-async def test_list_async(s3_store_config: S3Config):
     register("s3")
     fs = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
-        asynchronous=True,
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
     )
 
-    out = await fs._ls(f"{TEST_BUCKET_NAME}", detail=False)
-    assert out == [f"{TEST_BUCKET_NAME}/afile"]
-    await fs._pipe_file(f"{TEST_BUCKET_NAME}/dir/bfile", b"data")
-    out = await fs._ls(f"{TEST_BUCKET_NAME}", detail=False)
-    assert out == [f"{TEST_BUCKET_NAME}/afile", f"{TEST_BUCKET_NAME}/dir"]
-    out = await fs._ls(f"{TEST_BUCKET_NAME}", detail=True)
+    fs.pipe_file(f"{bucket}/afile", b"hello world")
+
+    out = fs.ls(f"{bucket}", detail=False, refresh=True)
+    assert out == [f"{bucket}/afile"]
+    fs.pipe_file(f"{bucket}/dir/bfile", b"data")
+    out = fs.ls(f"{bucket}", detail=False, refresh=True)
+    assert out == [f"{bucket}/afile", f"{bucket}/dir"]
+    out = fs.ls(f"{bucket}", detail=True, refresh=True)
     assert out[0]["type"] == "file"
     assert out[1]["type"] == "directory"
 
 
-def test_info(fs: FsspecStore):
-    fs.pipe_file(f"{TEST_BUCKET_NAME}/dir/afile", b"data")
+@pytest.mark.asyncio
+async def test_list_async(
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
+        asynchronous=True,
+    )
+
+    bucket = minio_bucket[0].get("bucket")
+    assert bucket is not None
+
+    await fs._pipe_file(f"{bucket}/afile", b"hello world")
+
+    out = await fs._ls(f"{bucket}", detail=False, refresh=True)
+    assert out == [f"{bucket}/afile"]
+    await fs._pipe_file(f"{bucket}/dir/bfile", b"data")
+    out = await fs._ls(f"{bucket}", detail=False, refresh=True)
+    assert out == [f"{bucket}/afile", f"{bucket}/dir"]
+    out = await fs._ls(f"{bucket}", detail=True, refresh=True)
+    assert out[0]["type"] == "file"
+    assert out[1]["type"] == "directory"
+
+
+def test_info(minio_bucket: tuple[S3Config, ClientConfig]):
+    register("s3")
+    fs = fsspec.filesystem("s3", config=minio_bucket[0], client_options=minio_bucket[1])
+
+    bucket = minio_bucket[0].get("bucket")
+    assert bucket is not None
+
+    fs.pipe_file(f"{bucket}/dir/afile", b"data")
 
     # info for directory
-    out = fs.info(f"{TEST_BUCKET_NAME}/dir")
+    out = fs.info(f"{bucket}/dir")
     assert out == {
-        "name": f"{TEST_BUCKET_NAME}/dir",
+        "name": f"{bucket}/dir",
         "type": "directory",
         "size": 0,
     }
 
     # info for file not exist
     with pytest.raises(FileNotFoundError):
-        fs.info(f"{TEST_BUCKET_NAME}/dir/bfile")
+        fs.info(f"{bucket}/dir/bfile")
 
     # info for directory not exist
     with pytest.raises(FileNotFoundError):
-        fs.info(f"{TEST_BUCKET_NAME}/dir_1/")
+        fs.info(f"{bucket}/dir_1/")
 
     # also test with isdir
-    assert fs.isdir(f"{TEST_BUCKET_NAME}/dir")
-    assert not fs.isdir(f"{TEST_BUCKET_NAME}/dir/afile")
-    assert not fs.isdir(f"{TEST_BUCKET_NAME}/dir/bfile")
-    assert not fs.isdir(f"{TEST_BUCKET_NAME}/dir_1/")
+    assert fs.isdir(f"{bucket}/dir")
+    assert not fs.isdir(f"{bucket}/dir/afile")
+    assert not fs.isdir(f"{bucket}/dir/bfile")
+    assert not fs.isdir(f"{bucket}/dir_1/")
 
 
 @pytest.mark.asyncio
-async def test_info_async(fs: FsspecStore):
-    await fs._pipe_file(f"{TEST_BUCKET_NAME}/dir/afile", b"data")
+async def test_info_async(minio_bucket: tuple[S3Config, ClientConfig]):
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
+        asynchronous=True,
+    )
+
+    bucket = minio_bucket[0].get("bucket")
+    assert bucket is not None
+
+    await fs._pipe_file(f"{bucket}/dir/afile", b"data")
 
     # info for directory
-    out = await fs._info(f"{TEST_BUCKET_NAME}/dir")
+    out = await fs._info(f"{bucket}/dir")
     assert out == {
-        "name": f"{TEST_BUCKET_NAME}/dir",
+        "name": f"{bucket}/dir",
         "type": "directory",
         "size": 0,
     }
 
     # info for file not exist
     with pytest.raises(FileNotFoundError):
-        await fs._info(f"{TEST_BUCKET_NAME}/dir/bfile")
+        await fs._info(f"{bucket}/dir/bfile")
 
     # info for directory not exist
     with pytest.raises(FileNotFoundError):
-        await fs._info(f"{TEST_BUCKET_NAME}/dir_1/")
+        await fs._info(f"{bucket}/dir_1/")
 
     # also test with isdir
-    assert await fs._isdir(f"{TEST_BUCKET_NAME}/dir")
-    assert not await fs._isdir(f"{TEST_BUCKET_NAME}/dir/afile")
-    assert not await fs._isdir(f"{TEST_BUCKET_NAME}/dir/bfile")
-    assert not await fs._isdir(f"{TEST_BUCKET_NAME}/dir_1/")
+    assert await fs._isdir(f"{bucket}/dir")
+    assert not await fs._isdir(f"{bucket}/dir/afile")
+    assert not await fs._isdir(f"{bucket}/dir/bfile")
+    assert not await fs._isdir(f"{bucket}/dir_1/")
 
 
-def test_put_files(fs: FsspecStore, tmp_path: Path):
+def test_put_files(minio_bucket: tuple[S3Config, ClientConfig], tmp_path: Path):
     """Test put new file to S3 synchronously."""
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
+    )
+
+    bucket = minio_bucket[0].get("bucket")
+    assert bucket is not None
+
     test_data = "Hello, World!"
     local_file_path = tmp_path / "test_file.txt"
     local_file_path.write_text(test_data)
 
     assert local_file_path.read_text() == test_data
-    remote_file_path = f"{TEST_BUCKET_NAME}/uploaded_test_file.txt"
+    remote_file_path = f"{bucket}/uploaded_test_file.txt"
 
     fs.put(str(local_file_path), remote_file_path)
 
     # Verify file upload
-    assert remote_file_path in fs.ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert remote_file_path in fs.ls(f"{bucket}", detail=False, refresh=True)
     assert fs.cat(remote_file_path)[remote_file_path] == test_data.encode()  # type: ignore (fsspec)
 
     # Cleanup remote file
@@ -299,13 +348,16 @@ def test_put_files(fs: FsspecStore, tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_put_files_async(s3_store_config: S3Config, tmp_path: Path):
+async def test_put_files_async(
+    minio_bucket: tuple[S3Config, ClientConfig],
+    tmp_path: Path,
+):
     """Test put new file to S3 asynchronously."""
     register("s3")
     fs = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
         asynchronous=True,
     )
 
@@ -319,7 +371,11 @@ async def test_put_files_async(s3_store_config: S3Config, tmp_path: Path):
     await fs._put(str(local_file_path), remote_file_path)
 
     # Verify file upload
-    assert remote_file_path in await fs._ls(f"{TEST_BUCKET_NAME}", detail=False)
+    assert remote_file_path in await fs._ls(
+        f"{TEST_BUCKET_NAME}",
+        detail=False,
+        refresh=True,
+    )
     out = await fs._cat([remote_file_path])
     assert out[remote_file_path] == test_data.encode()
 
@@ -328,13 +384,13 @@ async def test_put_files_async(s3_store_config: S3Config, tmp_path: Path):
 
 
 @pytest.mark.network
-def test_remote_parquet(s3_store_config: S3Config):
+def test_remote_parquet(minio_bucket: tuple[S3Config, ClientConfig]):
     register(["https", "s3"])
     fs = fsspec.filesystem("https")
     fs_s3 = fsspec.filesystem(
         "s3",
-        config=s3_store_config,
-        client_options={"allow_http": True},
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
     )
 
     url = "github.com/opengeospatial/geoparquet/raw/refs/heads/main/examples/example.parquet"  # noqa: E501
@@ -351,7 +407,7 @@ def test_remote_parquet(s3_store_config: S3Config):
     # Write the table to s3
     pq.write_table(table, write_parquet_path, filesystem=fs_s3)
 
-    out = fs_s3.ls(f"{TEST_BUCKET_NAME}", detail=False)
+    out = fs_s3.ls(f"{TEST_BUCKET_NAME}", detail=False, refresh=True)
     assert f"{TEST_BUCKET_NAME}/test.parquet" in out
 
     # Read Parquet file from s3 and verify its contents
@@ -361,28 +417,40 @@ def test_remote_parquet(s3_store_config: S3Config):
     ), "Parquet file contents from s3 do not match the original file"
 
 
-def test_multi_file_ops(fs: FsspecStore):
+def test_multi_file_ops(minio_bucket: tuple[S3Config, ClientConfig]):
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
+    )
+
+    bucket = minio_bucket[0].get("bucket")
+    assert bucket is not None
+
+    fs.pipe_file(f"{bucket}/afile", b"hello world")
+
     data = {
-        f"{TEST_BUCKET_NAME}/dir/test1": b"test data1",
-        f"{TEST_BUCKET_NAME}/dir/test2": b"test data2",
+        f"{bucket}/dir/test1": b"test data1",
+        f"{bucket}/dir/test2": b"test data2",
     }
     fs.pipe(data)
     out = fs.cat(list(data))
     assert out == data
-    out = fs.cat(f"{TEST_BUCKET_NAME}/dir", recursive=True)
+    out = fs.cat(f"{bucket}/dir", recursive=True)
     assert out == data
-    fs.cp(f"{TEST_BUCKET_NAME}/dir", f"{TEST_BUCKET_NAME}/dir2", recursive=True)
-    out = fs.find(f"{TEST_BUCKET_NAME}", detail=False)
+    fs.cp(f"{bucket}/dir", f"{bucket}/dir2", recursive=True)
+    out = fs.find(f"{bucket}", detail=False)
     assert out == [
-        f"{TEST_BUCKET_NAME}/afile",
-        f"{TEST_BUCKET_NAME}/dir/test1",
-        f"{TEST_BUCKET_NAME}/dir/test2",
-        f"{TEST_BUCKET_NAME}/dir2/test1",
-        f"{TEST_BUCKET_NAME}/dir2/test2",
+        f"{bucket}/afile",
+        f"{bucket}/dir/test1",
+        f"{bucket}/dir/test2",
+        f"{bucket}/dir2/test1",
+        f"{bucket}/dir2/test2",
     ]
-    fs.rm([f"{TEST_BUCKET_NAME}/dir", f"{TEST_BUCKET_NAME}/dir2"], recursive=True)
-    out = fs.find(f"{TEST_BUCKET_NAME}", detail=False)
-    assert out == [f"{TEST_BUCKET_NAME}/afile"]
+    fs.rm([f"{bucket}/dir", f"{bucket}/dir2"], recursive=True)
+    out = fs.find(f"{bucket}", detail=False)
+    assert out == [f"{bucket}/afile"]
 
 
 def test_cat_ranges_one(fs: FsspecStore):

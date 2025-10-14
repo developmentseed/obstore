@@ -17,8 +17,8 @@ struct HTTPConfig {
 }
 
 impl HTTPConfig {
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args = PyTuple::new(py, vec![self.url.clone()])?.into_py_any(py)?;
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let args = PyTuple::new(py, vec![self.url.clone()])?.into_bound_py_any(py)?;
         let kwargs = PyDict::new(py);
 
         if let Some(client_options) = &self.client_options {
@@ -28,7 +28,7 @@ impl HTTPConfig {
             kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
         }
 
-        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
+        PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
     }
 }
 
@@ -84,20 +84,20 @@ impl PyHttpStore {
 
     #[classmethod]
     #[pyo3(signature = (url, *, client_options=None, retry_config=None))]
-    pub(crate) fn from_url(
-        cls: &Bound<PyType>,
-        py: Python,
+    pub(crate) fn from_url<'py>(
+        cls: &Bound<'py, PyType>,
+        py: Python<'py>,
         url: PyUrl,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
-    ) -> PyObjectStoreResult<PyObject> {
+    ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
         // Note: we pass **back** through Python so that if cls is a subclass, we instantiate the
         // subclass
         let kwargs = PyDict::new(py);
         kwargs.set_item("url", url)?;
         kwargs.set_item("client_options", client_options)?;
         kwargs.set_item("retry_config", retry_config)?;
-        Ok(cls.call((), Some(&kwargs))?.unbind())
+        Ok(cls.call((), Some(&kwargs))?)
     }
 
     fn __eq__(&self, other: &Bound<PyAny>) -> bool {
@@ -109,7 +109,7 @@ impl PyHttpStore {
             .unwrap_or(false)
     }
 
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         self.config.__getnewargs_ex__(py)
     }
 

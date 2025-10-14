@@ -19,12 +19,12 @@ struct LocalConfig {
 }
 
 impl LocalConfig {
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args = PyTuple::new(py, vec![self.prefix.clone()])?.into_py_any(py)?;
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let args = PyTuple::new(py, vec![self.prefix.clone()])?.into_bound_py_any(py)?;
         let kwargs = PyDict::new(py);
         kwargs.set_item(intern!(py, "automatic_cleanup"), self.automatic_cleanup)?;
         kwargs.set_item(intern!(py, "mkdir"), self.mkdir)?;
-        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
+        PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
     }
 }
 
@@ -79,12 +79,12 @@ impl PyLocalStore {
 
     #[classmethod]
     #[pyo3(signature = (url, *, automatic_cleanup=false, mkdir=false))]
-    pub(crate) fn from_url(
-        cls: &Bound<PyType>,
+    pub(crate) fn from_url<'py>(
+        cls: &Bound<'py, PyType>,
         url: PyUrl,
         automatic_cleanup: bool,
         mkdir: bool,
-    ) -> PyObjectStoreResult<PyObject> {
+    ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
         let url = url.into_inner();
         let (scheme, path) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
 
@@ -104,7 +104,7 @@ impl PyLocalStore {
         kwargs.set_item("prefix", full_path)?;
         kwargs.set_item("automatic_cleanup", automatic_cleanup)?;
         kwargs.set_item("mkdir", mkdir)?;
-        Ok(cls.call((), Some(&kwargs))?.unbind())
+        Ok(cls.call((), Some(&kwargs))?)
     }
 
     fn __eq__(&self, other: &Bound<PyAny>) -> bool {
@@ -116,7 +116,7 @@ impl PyLocalStore {
             .unwrap_or(false)
     }
 
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         self.config.__getnewargs_ex__(py)
     }
 
@@ -129,17 +129,15 @@ impl PyLocalStore {
     }
 
     #[getter]
-    fn prefix(&self, py: Python) -> PyResult<PyObject> {
+    fn prefix<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
         // Note: returning a std::path::Path or std::path::PathBuf converts back to a Python _str_
         // not a Python _pathlib.Path_.
         // So we manually convert to a pathlib.Path
         if let Some(prefix) = &self.config.prefix {
             let pathlib_mod = py.import(intern!(py, "pathlib"))?;
-            let path_object =
-                pathlib_mod.call_method1(intern!(py, "Path"), PyTuple::new(py, vec![prefix])?)?;
-            path_object.into_py_any(py)
+            pathlib_mod.call_method1(intern!(py, "Path"), PyTuple::new(py, vec![prefix])?)
         } else {
-            Ok(py.None())
+            py.None().into_bound_py_any(py)
         }
     }
 }

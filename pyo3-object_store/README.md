@@ -8,13 +8,13 @@ This provides Python builder classes so that Python users can easily create [`Ar
 
 1. Register the builders.
 
-   ```rs
-   #[pymodule]
-   fn python_module(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
-       pyo3_object_store::register_store_module(py, m, "python_module", "store")?;
-       pyo3_object_store::register_exceptions_module(py, m, "python_module", "exceptions")?;
-   }
-   ```
+    ```rs
+    #[pymodule]
+    fn python_module(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
+        pyo3_object_store::register_store_module(py, m, "python_module", "store")?;
+        pyo3_object_store::register_exceptions_module(py, m, "python_module", "exceptions")?;
+    }
+    ```
 
    This exports the underlying Python classes from your own Rust-Python library.
 
@@ -22,12 +22,12 @@ This provides Python builder classes so that Python users can easily create [`Ar
 
 2. Accept [`PyObjectStore`] as a parameter in your function exported to Python. Its [`into_dyn`][PyObjectStore::into_dyn] method (or `Into` impl) gives you an [`Arc<dyn ObjectStore>`][object_store::ObjectStore].
 
-   ```rs
-   #[pyfunction]
-   pub fn use_object_store(store: PyObjectStore) {
-       let store: Arc<dyn ObjectStore> = store.into_dyn();
-   }
-   ```
+    ```rs
+    #[pyfunction]
+    pub fn use_object_store(store: PyObjectStore) {
+        let store: Arc<dyn ObjectStore> = store.into_dyn();
+    }
+    ```
 
    You can also accept [`AnyObjectStore`] as a parameter, which wraps [`PyObjectStore`] and [`PyExternalObjectStore`]. This allows you to seamlessly recreate `ObjectStore` instances that users pass in from other Python libraries (like [`obstore`][obstore]) that themselves export `pyo3-object_store` builders.
 
@@ -38,6 +38,10 @@ This provides Python builder classes so that Python users can easily create [`Ar
 The [`obstore`][obstore] Python library gives a full real-world example of using `pyo3-object_store`, exporting a Python API that mimics the Rust [`ObjectStore`][object_store::ObjectStore] API.
 
 [obstore]: https://developmentseed.org/obstore/latest/
+
+## Feature flags
+
+- `external-store-warning` (enabled by default): Emit a user warning when constructing a `PyExternalObjectStore` (or `AnyObjectStore::PyExternalObjectStore`), to inform users that there may be performance implications due to lack of connection pooling across separately-compiled Python libraries. Disable this feature if you don't want the warning.
 
 ## ABI stability
 
@@ -65,5 +69,6 @@ We don't yet have a _great_ solution here for reusing the store builder type hin
 | 0.3.x             | **0.23** :warning: | **0.11** :warning: |
 | 0.4.x             | 0.24               | **0.11** :warning: |
 | 0.5.x             | 0.25               | 0.12               |
+| 0.6.x             | 0.26               | 0.12               |
 
 Note that 0.3.x and 0.4.x are compatibility releases to use `pyo3-object_store` with older versions of `pyo3` and `object_store`.

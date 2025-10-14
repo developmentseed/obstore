@@ -9,7 +9,7 @@ pub fn head(py: Python, store: PyObjectStore, path: PyPath) -> PyObjectStoreResu
     let runtime = get_runtime();
     let store = store.into_inner();
 
-    py.allow_threads(|| {
+    py.detach(|| {
         let meta = runtime.block_on(store.head(path.as_ref()))?;
         Ok::<_, PyObjectStoreError>(PyObjectMeta::new(meta))
     })

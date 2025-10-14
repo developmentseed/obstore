@@ -38,8 +38,8 @@ impl S3Config {
             .as_ref()
     }
 
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
-        let args = PyTuple::empty(py).into_py_any(py)?;
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
+        let args = PyTuple::empty(py).into_bound_py_any(py)?;
         let kwargs = PyDict::new(py);
 
         if let Some(prefix) = &self.prefix {
@@ -56,7 +56,7 @@ impl S3Config {
             kwargs.set_item("credential_provider", credential_provider)?;
         }
 
-        PyTuple::new(py, [args, kwargs.into_py_any(py)?])?.into_py_any(py)
+        PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
     }
 }
 
@@ -142,15 +142,15 @@ impl PyS3Store {
 
     #[classmethod]
     #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
-    pub(crate) fn from_url(
-        cls: &Bound<PyType>,
+    pub(crate) fn from_url<'py>(
+        cls: &Bound<'py, PyType>,
         url: PyUrl,
         config: Option<PyAmazonS3Config>,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAWSCredentialProvider>,
         kwargs: Option<PyAmazonS3Config>,
-    ) -> PyObjectStoreResult<PyObject> {
+    ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
         // We manually parse the URL to find the prefix because `with_url` does not apply the
         // prefix.
         let (_, prefix) =
@@ -170,7 +170,7 @@ impl PyS3Store {
         kwargs.set_item("client_options", client_options)?;
         kwargs.set_item("retry_config", retry_config)?;
         kwargs.set_item("credential_provider", credential_provider)?;
-        Ok(cls.call((), Some(&kwargs))?.unbind())
+        Ok(cls.call((), Some(&kwargs))?)
     }
 
     fn __eq__(&self, other: &Bound<PyAny>) -> bool {
@@ -181,7 +181,7 @@ impl PyS3Store {
             .unwrap_or(false)
     }
 
-    fn __getnewargs_ex__(&self, py: Python) -> PyResult<PyObject> {
+    fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
         self.config.__getnewargs_ex__(py)
     }
 
