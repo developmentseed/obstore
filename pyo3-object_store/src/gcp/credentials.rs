@@ -94,7 +94,7 @@ impl<'py> FromPyObject<'_, 'py> for PyGcpCredentialProvider {
             };
         let cache = TokenCache::default().with_min_ttl(min_ttl);
         Ok(Self {
-            user_callback: <pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind(),
+            user_callback: obj.as_unbound().clone_ref(obj.py()),
             cache,
         })
     }
@@ -146,9 +146,7 @@ impl<'py> FromPyObject<'_, 'py> for PyCredentialProviderResult {
 
     fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         if is_awaitable(&obj)? {
-            Ok(Self::Async(
-                <pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind(),
-            ))
+            Ok(Self::Async(obj.as_unbound().clone_ref(obj.py())))
         } else {
             Ok(Self::Sync(obj.extract()?))
         }
