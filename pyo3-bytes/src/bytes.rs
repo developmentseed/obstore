@@ -407,8 +407,10 @@ impl PyBytes {
 }
 
 impl<'py> FromPyObject<'_, 'py> for PyBytes {
+    type Error = PyErr;
+
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let buffer = ob.extract::<PyBytesWrapper>()?;
+        let buffer = obj.extract::<PyBytesWrapper>()?;
         let bytes = Bytes::from_owner(buffer);
         Ok(Self(bytes))
     }
@@ -453,8 +455,9 @@ fn validate_buffer(buf: &PyBuffer<u8>) -> PyResult<()> {
 }
 
 impl<'py> FromPyObject<'_, 'py> for PyBytesWrapper {
+    type Error = PyErr;
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
-        let buffer = ob.extract::<PyBuffer<u8>>()?;
+        let buffer = obj.extract::<PyBuffer<u8>>()?;
         validate_buffer(&buffer)?;
         Ok(Self(buffer))
     }
