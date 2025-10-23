@@ -26,9 +26,11 @@ use crate::tags::PyTagSet;
 
 pub(crate) struct PyPutMode(PutMode);
 
-impl<'py> FromPyObject<'py> for PyPutMode {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(s) = ob.extract::<PyBackedStr>() {
+impl<'py> FromPyObject<'_, 'py> for PyPutMode {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(s) = obj.extract::<PyBackedStr>() {
             let s = s.to_ascii_lowercase();
             match s.as_str() {
                 "create" => Ok(Self(PutMode::Create)),
@@ -38,7 +40,7 @@ impl<'py> FromPyObject<'py> for PyPutMode {
                 ))),
             }
         } else {
-            let update_version = ob.extract::<PyUpdateVersion>()?;
+            let update_version = obj.extract::<PyUpdateVersion>()?;
             Ok(Self(PutMode::Update(update_version.0)))
         }
     }
@@ -46,11 +48,13 @@ impl<'py> FromPyObject<'py> for PyPutMode {
 
 pub(crate) struct PyUpdateVersion(UpdateVersion);
 
-impl<'py> FromPyObject<'py> for PyUpdateVersion {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyUpdateVersion {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
         // Update to use derive(FromPyObject) when default is implemented:
         // https://github.com/PyO3/pyo3/issues/4643
-        let dict = ob.extract::<HashMap<String, Bound<PyAny>>>()?;
+        let dict = obj.extract::<HashMap<String, Bound<PyAny>>>()?;
         Ok(Self(UpdateVersion {
             e_tag: dict.get("e_tag").map(|x| x.extract()).transpose()?,
             version: dict.get("version").map(|x| x.extract()).transpose()?,
@@ -233,40 +237,48 @@ impl PutInput {
     }
 }
 
-impl<'py> FromPyObject<'py> for PutInput {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let py = ob.py();
-        if let Ok(path) = ob.extract::<PathBuf>() {
+impl<'py> FromPyObject<'_, 'py> for PutInput {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let py = obj.py();
+        if let Ok(path) = obj.extract::<PathBuf>() {
             Ok(Self::Pull(PullSource::File(BufReader::new(File::open(
                 path,
             )?))))
-        } else if let Ok(buffer) = ob.extract::<PyBytes>() {
+        } else if let Ok(buffer) = obj.extract::<PyBytes>() {
             Ok(Self::Pull(PullSource::Buffer(Cursor::new(
                 buffer.into_inner(),
             ))))
         }
         // Check for file-like object
-        else if ob.hasattr(intern!(py, "read"))? && ob.hasattr(intern!(py, "seek"))? {
+        else if obj.hasattr(intern!(py, "read"))? && obj.hasattr(intern!(py, "seek"))? {
             Ok(Self::Pull(PullSource::FileLike(
-                PyFileLikeObject::py_with_requirements(ob.clone(), true, false, true, false)?,
+                PyFileLikeObject::py_with_requirements(
+                    obj.as_any().clone(),
+                    true,
+                    false,
+                    true,
+                    false,
+                )?,
             )))
         }
         // Ensure we check _first_ for an async generator before a sync one
-        else if ob.hasattr(intern!(py, "__aiter__"))? {
+        else if obj.hasattr(intern!(py, "__aiter__"))? {
             Ok(Self::AsyncPush(AsyncPushSource::AsyncIterator(
-                ob.call_method0(intern!(py, "__aiter__"))?.unbind(),
+                obj.call_method0(intern!(py, "__aiter__"))?.unbind(),
             )))
-        } else if ob.hasattr(intern!(py, "__anext__"))? {
+        } else if obj.hasattr(intern!(py, "__anext__"))? {
             Ok(Self::AsyncPush(AsyncPushSource::AsyncIterator(
-                ob.clone().unbind(),
+                obj.as_unbound().clone_ref(py),
             )))
-        } else if ob.hasattr(intern!(py, "__iter__"))? {
+        } else if obj.hasattr(intern!(py, "__iter__"))? {
             Ok(Self::SyncPush(SyncPushSource::Iterator(
-                ob.call_method0(intern!(py, "__iter__"))?.unbind(),
+                obj.call_method0(intern!(py, "__iter__"))?.unbind(),
             )))
-        } else if ob.hasattr(intern!(py, "__next__"))? {
+        } else if obj.hasattr(intern!(py, "__next__"))? {
             Ok(Self::SyncPush(SyncPushSource::Iterator(
-                ob.clone().unbind(),
+                obj.as_unbound().clone_ref(py),
             )))
         } else {
             Err(PyValueError::new_err("Unexpected input for PutInput"))

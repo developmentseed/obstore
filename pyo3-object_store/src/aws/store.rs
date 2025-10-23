@@ -174,7 +174,7 @@ impl PyS3Store {
     fn __eq__(&self, other: &Bound<PyAny>) -> bool {
         // Ensure we never error on __eq__ by returning false if the other object is not an S3Store
         other
-            .downcast::<PyS3Store>()
+            .cast::<PyS3Store>()
             .map(|other| self.config == other.get().config)
             .unwrap_or(false)
     }
@@ -225,9 +225,11 @@ impl PyS3Store {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyAmazonS3ConfigKey(AmazonS3ConfigKey);
 
-impl<'py> FromPyObject<'py> for PyAmazonS3ConfigKey {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?.to_lowercase();
+impl<'py> FromPyObject<'_, 'py> for PyAmazonS3ConfigKey {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let s = obj.extract::<PyBackedStr>()?.to_lowercase();
         let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
@@ -283,10 +285,12 @@ pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
 //
 // We also manually impl this so that we can raise on duplicate keys.
-impl<'py> FromPyObject<'py> for PyAmazonS3Config {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyAmazonS3Config {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         let mut slf = Self::new();
-        for (key, val) in ob.extract::<Bound<'py, PyDict>>()?.iter() {
+        for (key, val) in obj.extract::<Bound<'py, PyDict>>()?.iter() {
             slf.insert_raising_if_exists(
                 key.extract::<PyAmazonS3ConfigKey>()?,
                 val.extract::<PyConfigValue>()?,

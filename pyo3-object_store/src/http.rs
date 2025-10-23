@@ -104,7 +104,7 @@ impl PyHttpStore {
         // Ensure we never error on __eq__ by returning false if the other object is not the same
         // type
         other
-            .downcast::<PyHttpStore>()
+            .cast::<PyHttpStore>()
             .map(|other| self.config == other.get().config)
             .unwrap_or(false)
     }

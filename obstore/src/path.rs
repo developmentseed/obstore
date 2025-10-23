@@ -9,11 +9,13 @@ pub(crate) enum PyPaths {
     Many(Vec<Path>),
 }
 
-impl<'py> FromPyObject<'py> for PyPaths {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(path) = ob.extract::<PyPath>() {
+impl<'py> FromPyObject<'_, 'py> for PyPaths {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(path) = obj.extract::<PyPath>() {
             Ok(Self::One(path.into_inner()))
-        } else if let Ok(paths) = ob.extract::<Vec<PyPath>>() {
+        } else if let Ok(paths) = obj.extract::<Vec<PyPath>>() {
             Ok(Self::Many(
                 paths.into_iter().map(|path| path.into_inner()).collect(),
             ))

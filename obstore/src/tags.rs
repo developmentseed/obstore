@@ -12,9 +12,11 @@ impl PyTagSet {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyTagSet {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let input = ob.extract::<HashMap<PyBackedStr, PyBackedStr>>()?;
+impl<'py> FromPyObject<'_, 'py> for PyTagSet {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let input = obj.extract::<HashMap<PyBackedStr, PyBackedStr>>()?;
         let mut tag_set = TagSet::default();
         for (key, value) in input.into_iter() {
             tag_set.push(&key, &value);
