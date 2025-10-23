@@ -14,17 +14,19 @@ pub struct PyBackoffConfig {
     base: f64,
 }
 
-impl<'py> FromPyObject<'py> for PyBackoffConfig {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyBackoffConfig {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         let mut backoff_config = BackoffConfig::default();
-        let py = ob.py();
-        if let Ok(init_backoff) = ob.get_item(intern!(py, "init_backoff")) {
+        let py = obj.py();
+        if let Ok(init_backoff) = obj.get_item(intern!(py, "init_backoff")) {
             backoff_config.init_backoff = init_backoff.extract()?;
         }
-        if let Ok(max_backoff) = ob.get_item(intern!(py, "max_backoff")) {
+        if let Ok(max_backoff) = obj.get_item(intern!(py, "max_backoff")) {
             backoff_config.max_backoff = max_backoff.extract()?;
         }
-        if let Ok(base) = ob.get_item(intern!(py, "base")) {
+        if let Ok(base) = obj.get_item(intern!(py, "base")) {
             backoff_config.base = base.extract()?;
         }
         Ok(backoff_config.into())
@@ -61,17 +63,19 @@ pub struct PyRetryConfig {
     retry_timeout: Duration,
 }
 
-impl<'py> FromPyObject<'py> for PyRetryConfig {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyRetryConfig {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         let mut retry_config = RetryConfig::default();
-        let py = ob.py();
-        if let Ok(backoff) = ob.get_item(intern!(py, "backoff")) {
+        let py = obj.py();
+        if let Ok(backoff) = obj.get_item(intern!(py, "backoff")) {
             retry_config.backoff = backoff.extract::<PyBackoffConfig>()?.into();
         }
-        if let Ok(max_retries) = ob.get_item(intern!(py, "max_retries")) {
+        if let Ok(max_retries) = obj.get_item(intern!(py, "max_retries")) {
             retry_config.max_retries = max_retries.extract()?;
         }
-        if let Ok(retry_timeout) = ob.get_item(intern!(py, "retry_timeout")) {
+        if let Ok(retry_timeout) = obj.get_item(intern!(py, "retry_timeout")) {
             retry_config.retry_timeout = retry_timeout.extract()?;
         }
         Ok(retry_config.into())

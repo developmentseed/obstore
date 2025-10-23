@@ -8,9 +8,11 @@ use pyo3::types::PyString;
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PyPath(Path);
 
-impl<'py> FromPyObject<'py> for PyPath {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let path = Path::parse(ob.extract::<PyBackedStr>()?)
+impl<'py> FromPyObject<'_, 'py> for PyPath {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let path = Path::parse(obj.extract::<PyBackedStr>()?)
             .map_err(|err| PyValueError::new_err(format!("Could not parse path: {err}")))?;
         Ok(Self(path))
     }

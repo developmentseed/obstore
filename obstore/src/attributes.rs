@@ -10,9 +10,11 @@ use pyo3::types::PyDict;
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct PyAttribute(Attribute);
 
-impl<'py> FromPyObject<'py> for PyAttribute {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?;
+impl<'py> FromPyObject<'_, 'py> for PyAttribute {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let s = obj.extract::<PyBackedStr>()?;
         match s.to_ascii_lowercase().as_str() {
             "content-disposition" | "contentdisposition" => Ok(Self(Attribute::ContentDisposition)),
             "content-encoding" | "contentencoding" => Ok(Self(Attribute::ContentEncoding)),
@@ -39,9 +41,11 @@ fn attribute_to_string(attribute: &Attribute) -> Cow<'static, str> {
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub(crate) struct PyAttributeValue(AttributeValue);
 
-impl<'py> FromPyObject<'py> for PyAttributeValue {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        Ok(Self(ob.extract::<String>()?.into()))
+impl<'py> FromPyObject<'_, 'py> for PyAttributeValue {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        Ok(Self(obj.extract::<String>()?.into()))
     }
 }
 
@@ -58,9 +62,11 @@ impl PyAttributes {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyAttributes {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let d = ob.extract::<HashMap<PyAttribute, PyAttributeValue>>()?;
+impl<'py> FromPyObject<'_, 'py> for PyAttributes {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let d = obj.extract::<HashMap<PyAttribute, PyAttributeValue>>()?;
         let mut attributes = Attributes::with_capacity(d.len());
         for (k, v) in d.into_iter() {
             attributes.insert(k.0, v.0);

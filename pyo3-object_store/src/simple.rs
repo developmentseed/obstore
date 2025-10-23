@@ -72,7 +72,7 @@ pub fn from_url<'py>(
             let mut automatic_cleanup = false;
             let mut mkdir = false;
             if let Some(kwargs) = kwargs {
-                let kwargs = kwargs.extract::<Bound<PyDict>>()?;
+                let kwargs = kwargs.cast::<PyDict>()?;
                 if let Some(val) = kwargs.get_item(intern!(py, "automatic_cleanup"))? {
                     automatic_cleanup = val.extract()?;
                 }

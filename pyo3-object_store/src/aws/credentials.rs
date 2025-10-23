@@ -18,7 +18,9 @@ struct PyAwsCredential {
     expires_at: Option<DateTime<Utc>>,
 }
 
-impl<'py> FromPyObject<'py> for PyAwsCredential {
+impl<'py> FromPyObject<'_, 'py> for PyAwsCredential {
+    type Error = PyErr;
+
     /// Converts from a Python dictionary of the form
     ///
     /// ```py
@@ -28,11 +30,11 @@ impl<'py> FromPyObject<'py> for PyAwsCredential {
     ///     token: str | None
     ///     expires_at: datetime | None
     /// ```
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let py = ob.py();
-        let key_id = ob.get_item(intern!(py, "access_key_id"))?.extract()?;
-        let secret_key = ob.get_item(intern!(py, "secret_access_key"))?.extract()?;
-        let token = if let Ok(token) = ob.get_item(intern!(py, "token")) {
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let py = obj.py();
+        let key_id = obj.get_item(intern!(py, "access_key_id"))?.extract()?;
+        let secret_key = obj.get_item(intern!(py, "secret_access_key"))?.extract()?;
+        let token = if let Ok(token) = obj.get_item(intern!(py, "token")) {
             token.extract()?
         } else {
             // Allow the dictionary not having a `token` key (so `get_item` will `Err` above)
@@ -43,7 +45,7 @@ impl<'py> FromPyObject<'py> for PyAwsCredential {
             secret_key,
             token,
         };
-        let expires_at = ob.get_item(intern!(py, "expires_at"))?.extract()?;
+        let expires_at = obj.get_item(intern!(py, "expires_at"))?.extract()?;
         Ok(Self {
             credential,
             expires_at,
@@ -92,19 +94,21 @@ impl PartialEq for PyAWSCredentialProvider {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyAWSCredentialProvider {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if !ob.hasattr(intern!(ob.py(), "__call__"))? {
+impl<'py> FromPyObject<'_, 'py> for PyAWSCredentialProvider {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        if !obj.hasattr(intern!(obj.py(), "__call__"))? {
             return Err(PyTypeError::new_err(
                 "Expected callable object for credential_provider.",
             ));
         }
         let mut cache = TokenCache::default();
-        if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
+        if let Ok(refresh_threshold) = obj.getattr(intern!(obj.py(), "refresh_threshold")) {
             cache = cache.with_min_ttl(refresh_threshold.extract()?);
         }
 
-        let config = if let Ok(config) = ob.getattr(intern!(ob.py(), "config")) {
+        let config = if let Ok(config) = obj.getattr(intern!(obj.py(), "config")) {
             config.extract()?
         } else {
             // Allow not having a `config` attribute
@@ -112,7 +116,7 @@ impl<'py> FromPyObject<'py> for PyAWSCredentialProvider {
         };
 
         Ok(Self {
-            user_callback: ob.clone().unbind(),
+            user_callback: <pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind(),
             cache,
             config,
         })
@@ -160,12 +164,16 @@ impl PyCredentialProviderResult {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if is_awaitable(ob)? {
-            Ok(Self::Async(ob.clone().unbind()))
+impl<'py> FromPyObject<'_, 'py> for PyCredentialProviderResult {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        if is_awaitable(&obj)? {
+            Ok(Self::Async(
+                <pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind(),
+            ))
         } else {
-            Ok(Self::Sync(ob.extract()?))
+            Ok(Self::Sync(obj.extract()?))
         }
     }
 }

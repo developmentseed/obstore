@@ -25,14 +25,16 @@ impl AsRef<str> for PyConfigValue {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyConfigValue {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(val) = ob.extract::<bool>() {
+impl<'py> FromPyObject<'_, 'py> for PyConfigValue {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        if let Ok(val) = obj.extract::<bool>() {
             Ok(val.into())
-        } else if let Ok(duration) = ob.extract::<Duration>() {
+        } else if let Ok(duration) = obj.extract::<Duration>() {
             Ok(duration.into())
         } else {
-            Ok(Self(ob.extract()?))
+            Ok(Self(obj.extract()?))
         }
     }
 }

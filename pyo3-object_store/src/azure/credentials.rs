@@ -23,14 +23,16 @@ struct PyAzureAccessKey {
 }
 
 // Extract the dict {"access_key": str}
-impl<'py> FromPyObject<'py> for PyAzureAccessKey {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob
-            .get_item(intern!(ob.py(), "access_key"))?
+impl<'py> FromPyObject<'_, 'py> for PyAzureAccessKey {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let s = obj
+            .get_item(intern!(obj.py(), "access_key"))?
             .extract::<PyBackedStr>()?;
         let access_key =
             AzureAccessKey::try_new(&s).map_err(|err| PyValueError::new_err(err.to_string()))?;
-        let expires_at = ob.get_item(intern!(ob.py(), "expires_at"))?.extract()?;
+        let expires_at = obj.get_item(intern!(obj.py(), "expires_at"))?.extract()?;
         Ok(Self {
             access_key,
             expires_at,
@@ -44,10 +46,12 @@ struct PyAzureSASToken {
 }
 
 // Extract the dict {"sas_token": str | list[tuple[str, str]]}
-impl<'py> FromPyObject<'py> for PyAzureSASToken {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let expires_at = ob.get_item(intern!(ob.py(), "expires_at"))?.extract()?;
-        let py_sas_token = ob.get_item(intern!(ob.py(), "sas_token"))?;
+impl<'py> FromPyObject<'_, 'py> for PyAzureSASToken {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let expires_at = obj.get_item(intern!(obj.py(), "expires_at"))?.extract()?;
+        let py_sas_token = obj.get_item(intern!(obj.py(), "sas_token"))?;
         if let Ok(sas_token_str) = py_sas_token.extract::<PyBackedStr>() {
             Ok(Self {
                 sas_token: split_sas(&sas_token_str).map_err(PyObjectStoreError::from)?,
@@ -72,10 +76,12 @@ struct PyBearerToken {
 }
 
 // Extract the dict {"token": str}
-impl<'py> FromPyObject<'py> for PyBearerToken {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let token = ob.get_item(intern!(ob.py(), "token"))?.extract()?;
-        let expires_at = ob.get_item(intern!(ob.py(), "expires_at"))?.extract()?;
+impl<'py> FromPyObject<'_, 'py> for PyBearerToken {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let token = obj.get_item(intern!(obj.py(), "token"))?.extract()?;
+        let expires_at = obj.get_item(intern!(obj.py(), "expires_at"))?.extract()?;
         Ok(Self { token, expires_at })
     }
 }
@@ -182,27 +188,29 @@ impl PartialEq for PyAzureCredentialProvider {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyAzureCredentialProvider {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if !ob.hasattr(intern!(ob.py(), "__call__"))? {
+impl<'py> FromPyObject<'_, 'py> for PyAzureCredentialProvider {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        if !obj.hasattr(intern!(obj.py(), "__call__"))? {
             return Err(PyTypeError::new_err(
                 "Expected callable object for credential_provider.",
             ));
         }
 
         let mut cache = TokenCache::default();
-        if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
+        if let Ok(refresh_threshold) = obj.getattr(intern!(obj.py(), "refresh_threshold")) {
             cache = cache.with_min_ttl(refresh_threshold.extract()?);
         }
 
-        let config = if let Ok(config) = ob.getattr(intern!(ob.py(), "config")) {
+        let config = if let Ok(config) = obj.getattr(intern!(obj.py(), "config")) {
             config.extract()?
         } else {
             // Allow not having a `config` attribute
             None
         };
 
-        let prefix = if let Ok(prefix) = ob.getattr(intern!(ob.py(), "prefix")) {
+        let prefix = if let Ok(prefix) = obj.getattr(intern!(obj.py(), "prefix")) {
             prefix.extract()?
         } else {
             // Allow not having a `prefix` attribute
@@ -210,7 +218,7 @@ impl<'py> FromPyObject<'py> for PyAzureCredentialProvider {
         };
 
         Ok(Self {
-            user_callback: ob.clone().unbind(),
+            user_callback: <pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind(),
             cache,
             config,
             prefix,
@@ -258,12 +266,14 @@ impl PyCredentialProviderResult {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if is_awaitable(ob)? {
-            Ok(Self::Async(ob.clone().unbind()))
+impl<'py> FromPyObject<'_, 'py> for PyCredentialProviderResult {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        if is_awaitable(&obj)? {
+            Ok(Self::Async(<pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind()))
         } else {
-            Ok(Self::Sync(ob.extract()?))
+            Ok(Self::Sync(obj.extract()?))
         }
     }
 }

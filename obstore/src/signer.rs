@@ -29,18 +29,20 @@ pub(crate) enum SignCapableStore {
     Azure(Arc<MaybePrefixedStore<MicrosoftAzure>>),
 }
 
-impl<'py> FromPyObject<'py> for SignCapableStore {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(store) = ob.downcast::<PyS3Store>() {
+impl<'py> FromPyObject<'_, 'py> for SignCapableStore {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(store) = obj.cast::<PyS3Store>() {
             Ok(Self::S3(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyGCSStore>() {
+        } else if let Ok(store) = obj.cast::<PyGCSStore>() {
             Ok(Self::Gcs(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyAzureStore>() {
+        } else if let Ok(store) = obj.cast::<PyAzureStore>() {
             Ok(Self::Azure(store.get().as_ref().clone()))
         } else {
-            let py = ob.py();
+            let py = obj.py();
             // Check for object-store instance from other library
-            let cls_name = ob
+            let cls_name = obj
                 .getattr(intern!(py, "__class__"))?
                 .getattr(intern!(py, "__name__"))?
                 .extract::<PyBackedStr>()?;
@@ -59,7 +61,7 @@ impl<'py> FromPyObject<'py> for SignCapableStore {
 
             Err(PyValueError::new_err(format!(
                 "Expected an S3Store, GCSStore, or AzureStore instance, got {}",
-                ob.repr()?
+                obj.repr()?
             )))
         }
     }
@@ -114,9 +116,11 @@ impl Signer for SignCapableStore {
 
 pub(crate) struct PyMethod(Method);
 
-impl<'py> FromPyObject<'py> for PyMethod {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?;
+impl<'py> FromPyObject<'_, 'py> for PyMethod {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let s = obj.extract::<PyBackedStr>()?;
         let method = match s.as_ref() {
             "GET" => Method::GET,
             "PUT" => Method::PUT,

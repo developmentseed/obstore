@@ -111,7 +111,7 @@ impl PyLocalStore {
         // Ensure we never error on __eq__ by returning false if the other object is not the same
         // type
         other
-            .downcast::<PyLocalStore>()
+            .cast::<PyLocalStore>()
             .map(|other| self.config == other.get().config)
             .unwrap_or(false)
     }

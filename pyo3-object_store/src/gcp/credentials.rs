@@ -20,7 +20,9 @@ struct PyGcpCredential {
     expires_at: Option<DateTime<Utc>>,
 }
 
-impl<'py> FromPyObject<'py> for PyGcpCredential {
+impl<'py> FromPyObject<'_, 'py> for PyGcpCredential {
+    type Error = PyErr;
+
     /// Converts from a Python dictionary of the form
     ///
     /// ```py
@@ -28,12 +30,12 @@ impl<'py> FromPyObject<'py> for PyGcpCredential {
     ///     token: str
     ///     expires_at: datetime | None
     /// ```
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let bearer = ob
-            .get_item(intern!(ob.py(), "token"))?
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let bearer = obj
+            .get_item(intern!(obj.py(), "token"))?
             .extract::<String>()?;
         let credential = GcpCredential { bearer };
-        let expires_at = ob.get_item(intern!(ob.py(), "expires_at"))?.extract()?;
+        let expires_at = obj.get_item(intern!(obj.py(), "expires_at"))?.extract()?;
         Ok(Self {
             credential,
             expires_at,
@@ -75,22 +77,24 @@ impl PartialEq for PyGcpCredentialProvider {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyGcpCredentialProvider {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if !ob.hasattr(intern!(ob.py(), "__call__"))? {
+impl<'py> FromPyObject<'_, 'py> for PyGcpCredentialProvider {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        if !obj.hasattr(intern!(obj.py(), "__call__"))? {
             return Err(PyTypeError::new_err(
                 "Expected callable object for credential_provider.",
             ));
         }
         let min_ttl =
-            if let Ok(refresh_threshold) = ob.getattr(intern!(ob.py(), "refresh_threshold")) {
+            if let Ok(refresh_threshold) = obj.getattr(intern!(obj.py(), "refresh_threshold")) {
                 refresh_threshold.extract()?
             } else {
                 DEFAULT_GCP_MIN_TTL
             };
         let cache = TokenCache::default().with_min_ttl(min_ttl);
         Ok(Self {
-            user_callback: ob.clone().unbind(),
+            user_callback: <pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind(),
             cache,
         })
     }
@@ -137,12 +141,16 @@ impl PyCredentialProviderResult {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyCredentialProviderResult {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if is_awaitable(ob)? {
-            Ok(Self::Async(ob.clone().unbind()))
+impl<'py> FromPyObject<'_, 'py> for PyCredentialProviderResult {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        if is_awaitable(&obj)? {
+            Ok(Self::Async(
+                <pyo3::Bound<'_, pyo3::PyAny> as Clone>::clone(&obj).unbind(),
+            ))
         } else {
-            Ok(Self::Sync(ob.extract()?))
+            Ok(Self::Sync(obj.extract()?))
         }
     }
 }

@@ -1,7 +1,7 @@
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::{PyAnyMethods, PyString};
+use pyo3::types::PyString;
 use pyo3::FromPyObject;
 use url::Url;
 
@@ -21,9 +21,11 @@ impl PyUrl {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyUrl {
-    fn extract_bound(ob: &pyo3::Bound<'py, pyo3::PyAny>) -> pyo3::PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?;
+impl<'py> FromPyObject<'_, 'py> for PyUrl {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let s = obj.extract::<PyBackedStr>()?;
         let url = Url::parse(&s).map_err(|err| PyValueError::new_err(err.to_string()))?;
         Ok(Self(url))
     }

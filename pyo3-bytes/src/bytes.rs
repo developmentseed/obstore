@@ -406,8 +406,8 @@ impl PyBytes {
     }
 }
 
-impl<'py> FromPyObject<'py> for PyBytes {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyBytes {
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
         let buffer = ob.extract::<PyBytesWrapper>()?;
         let bytes = Bytes::from_owner(buffer);
         Ok(Self(bytes))
@@ -452,8 +452,8 @@ fn validate_buffer(buf: &PyBuffer<u8>) -> PyResult<()> {
     Ok(())
 }
 
-impl<'py> FromPyObject<'py> for PyBytesWrapper {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyBytesWrapper {
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
         let buffer = ob.extract::<PyBuffer<u8>>()?;
         validate_buffer(&buffer)?;
         Ok(Self(buffer))
