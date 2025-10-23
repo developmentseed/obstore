@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.7.0] - 2025-10-23
+
+- Bump to pyo3 0.27.
+
 ## [0.6.0] - 2025-09-02
 
 ### Breaking changes :wrench:
