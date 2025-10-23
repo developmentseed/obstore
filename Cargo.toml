@@ -27,9 +27,9 @@ futures = "0.3.31"
 http = "1.2"
 indexmap = "2"
 object_store = "0.12.4"
-pyo3 = { version = "0.26", features = ["macros", "indexmap"] }
-pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
-pyo3-file = { git = "https://github.com/alex/pyo3-file", rev = "82b96dc188a48b88421f41b24cb13da114fd2fe8" }
+pyo3 = { version = "0.27.1", features = ["macros", "indexmap"] }
+pyo3-async-runtimes = { version = "0.27", features = ["tokio-runtime"] }
+pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "aacc18816591f9987247bac8b7011b452b4eeb3e" }
 thiserror = "1"
 tokio = "1.40"
 url = "2"
