@@ -456,6 +456,7 @@ fn validate_buffer(buf: &PyBuffer<u8>) -> PyResult<()> {
 
 impl<'py> FromPyObject<'_, 'py> for PyBytesWrapper {
     type Error = PyErr;
+
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
         let buffer = obj.extract::<PyBuffer<u8>>()?;
         validate_buffer(&buffer)?;
