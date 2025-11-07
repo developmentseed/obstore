@@ -394,6 +394,10 @@ fn parse_url(
                     config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
                 }
             }
+            Some((bucket, "s3", "amazonaws", "com")) => {
+                config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                config.insert_if_not_exists(AmazonS3ConfigKey::VirtualHostedStyleRequest, "true");
+            }
             Some((bucket, "s3", region, "amazonaws.com")) => {
                 config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
                 config.insert_if_not_exists(AmazonS3ConfigKey::Region, region);
