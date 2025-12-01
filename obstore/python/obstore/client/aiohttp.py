@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
+from weakref import WeakSet
 
 from aiohttp import ClientSession
 from multidict import MultiDict
@@ -21,9 +23,22 @@ if TYPE_CHECKING:
 class AiohttpClientFactory:
     """A client factory for Aiohttp."""
 
+    _sessions: WeakSet[ClientSession]
+
+    def __init__(self) -> None:
+        """Create a new AiohttpClientFactory."""
+        self._sessions = WeakSet()
+
     def connect(self, options: ClientConfig) -> _AiohttpService:  # noqa: ARG002
         """Create a new HTTP Client."""
-        return _AiohttpService(ClientSession())
+        session = ClientSession()
+        self._sessions.add(session)
+        return _AiohttpService(session)
+
+    async def close_all(self) -> None:
+        """Close all generated aiohttp ClientSession instances."""
+        futs = [session.close() for session in self._sessions]
+        await asyncio.gather(*futs)
 
 
 class _AiohttpService:
