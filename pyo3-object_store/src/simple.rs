@@ -50,6 +50,7 @@ pub fn from_url<'py>(
             client_options,
             retry_config,
             credential_provider.map(|x| x.extract()).transpose()?,
+            client_factory,
             kwargs.map(|x| x.extract()).transpose()?,
         ),
         ObjectStoreScheme::MicrosoftAzure => PyAzureStore::from_url(
@@ -59,6 +60,7 @@ pub fn from_url<'py>(
             client_options,
             retry_config,
             credential_provider.map(|x| x.extract()).transpose()?,
+            client_factory,
             kwargs.map(|x| x.extract()).transpose()?,
         ),
         ObjectStoreScheme::Http => {
@@ -69,6 +71,7 @@ pub fn from_url<'py>(
                 url,
                 client_options,
                 retry_config,
+                client_factory,
             )
         }
         ObjectStoreScheme::Local => {

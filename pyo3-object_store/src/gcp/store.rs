@@ -15,7 +15,7 @@ use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStor
 use crate::gcp::credentials::PyGcpCredentialProvider;
 use crate::path::PyPath;
 use crate::retry::PyRetryConfig;
-use crate::{MaybePrefixedStore, PyUrl};
+use crate::{MaybePrefixedStore, PyHttpConnector, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct GCSConfig {
@@ -24,6 +24,7 @@ struct GCSConfig {
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
     credential_provider: Option<PyGcpCredentialProvider>,
+    client_factory: Option<PyHttpConnector>,
 }
 
 impl GCSConfig {
@@ -51,6 +52,9 @@ impl GCSConfig {
         }
         if let Some(credential_provider) = &self.credential_provider {
             kwargs.set_item("credential_provider", credential_provider)?;
+        }
+        if let Some(client_factory) = &self.client_factory {
+            kwargs.set_item("client_factory", client_factory)?;
         }
 
         PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
@@ -83,7 +87,7 @@ impl PyGCSStore {
 impl PyGCSStore {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, client_factory=None, **kwargs))]
     fn new(
         bucket: Option<String>,
         prefix: Option<PyPath>,
@@ -91,6 +95,7 @@ impl PyGCSStore {
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyGcpCredentialProvider>,
+        client_factory: Option<PyHttpConnector>,
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = GoogleCloudStorageBuilder::from_env();
@@ -111,6 +116,10 @@ impl PyGCSStore {
         if let Some(credential_provider) = credential_provider.clone() {
             builder = builder.with_credentials(Arc::new(credential_provider));
         }
+        if let Some(client_factory) = client_factory.clone() {
+            builder = builder.with_http_connector(client_factory);
+        }
+
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: GCSConfig {
@@ -119,12 +128,13 @@ impl PyGCSStore {
                 client_options,
                 retry_config,
                 credential_provider,
+                client_factory,
             },
         })
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, client_factory=None, **kwargs))]
     pub(crate) fn from_url<'py>(
         cls: &Bound<'py, PyType>,
         url: PyUrl,
@@ -132,6 +142,7 @@ impl PyGCSStore {
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyGcpCredentialProvider>,
+        client_factory: Option<PyHttpConnector>,
         kwargs: Option<PyGoogleConfig>,
     ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
         // We manually parse the URL to find the prefix because `parse_url` does not apply the
@@ -153,6 +164,7 @@ impl PyGCSStore {
         kwargs.set_item("client_options", client_options)?;
         kwargs.set_item("retry_config", retry_config)?;
         kwargs.set_item("credential_provider", credential_provider)?;
+        kwargs.set_item("client_factory", client_factory)?;
         Ok(cls.call((), Some(&kwargs))?)
     }
 

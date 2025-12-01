@@ -46,6 +46,7 @@ def from_url(
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: S3CredentialProvider | None = None,
+    client_factory: ClientFactory | None = None,
     **kwargs: Unpack[S3Config],
 ) -> ObjectStore: ...
 @overload
@@ -56,6 +57,7 @@ def from_url(
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: GCSCredentialProvider | None = None,
+    client_factory: ClientFactory | None = None,
     **kwargs: Unpack[GCSConfig],
 ) -> ObjectStore: ...
 @overload
@@ -66,6 +68,7 @@ def from_url(
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: AzureCredentialProvider | None = None,
+    client_factory: ClientFactory | None = None,
     **kwargs: Unpack[AzureConfig],
 ) -> ObjectStore: ...
 @overload
@@ -77,6 +80,7 @@ def from_url(
     retry_config: None = None,
     automatic_cleanup: bool = False,
     mkdir: bool = False,
+    client_factory: ClientFactory | None = None,
 ) -> ObjectStore: ...
 def from_url(  # type: ignore[misc] # docstring in pyi file
     url: str,
@@ -85,6 +89,7 @@ def from_url(  # type: ignore[misc] # docstring in pyi file
     client_options: ClientConfig | None = None,
     retry_config: RetryConfig | None = None,
     credential_provider: Callable | None = None,
+    client_factory: ClientFactory | None = None,
     **kwargs: Any,
 ) -> ObjectStore:
     """Easy construction of store by URL, identifying the relevant store.
@@ -124,6 +129,7 @@ def from_url(  # type: ignore[misc] # docstring in pyi file
         client_options: HTTP Client options. Defaults to None.
         retry_config: Retry configuration. Defaults to None.
         credential_provider: A callback to provide custom credentials to the underlying store classes.
+        client_factory: A custom HTTP client factory to use for requests. Defaults to None, which uses the Rust `reqwest` library to handle HTTP requests.
         kwargs: per-store configuration passed down to store-specific builders.
 
     """
