@@ -10,8 +10,8 @@ use crate::error::GenericError;
 use crate::retry::PyRetryConfig;
 use crate::url::PyUrl;
 use crate::{
-    PyAzureStore, PyClientOptions, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore,
-    PyObjectStoreResult, PyS3Store,
+    PyAzureStore, PyClientOptions, PyGCSStore, PyHttpConnector, PyHttpStore, PyLocalStore,
+    PyMemoryStore, PyObjectStoreResult, PyS3Store,
 };
 
 /// Simple construction of stores by url.
@@ -19,7 +19,8 @@ use crate::{
 // AWS/Azure/Google config keys could overlap. And so we don't want to accidentally parse a config
 // as an AWS config before knowing that the URL scheme is AWS.
 #[pyfunction]
-#[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
+#[expect(clippy::too_many_arguments)]
+#[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, client_factory=None, **kwargs))]
 pub fn from_url<'py>(
     py: Python<'py>,
     url: PyUrl,
@@ -27,6 +28,7 @@ pub fn from_url<'py>(
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
     credential_provider: Option<Bound<'py, PyAny>>,
+    client_factory: Option<PyHttpConnector>,
     kwargs: Option<Bound<'py, PyAny>>,
 ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
     let (scheme, _) = ObjectStoreScheme::parse(url.as_ref()).map_err(object_store::Error::from)?;
@@ -38,6 +40,7 @@ pub fn from_url<'py>(
             client_options,
             retry_config,
             credential_provider.map(|x| x.extract()).transpose()?,
+            client_factory,
             kwargs.map(|x| x.extract()).transpose()?,
         ),
         ObjectStoreScheme::GoogleCloudStorage => PyGCSStore::from_url(

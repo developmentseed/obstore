@@ -3,10 +3,11 @@ use object_store::client::{
     HttpClient, HttpConnector, HttpError, HttpRequest, HttpResponse, HttpResponseBody, HttpService,
 };
 use object_store::{ClientOptions, Result};
+use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
-use pyo3::types::{PyDict, PyString};
+use pyo3::types::{PyDict, PyString, PyTuple};
 
 use crate::client::options::PyHeaderMap;
 use crate::PyClientOptions;
@@ -14,6 +15,14 @@ use crate::PyClientOptions;
 /// An [HttpConnector] defined from Python.
 #[derive(Debug)]
 pub struct PyHttpConnector(Py<PyAny>);
+
+impl PyHttpConnector {
+    fn equals(&self, py: Python, other: &Self) -> PyResult<bool> {
+        self.0
+            .call_method1(py, "__eq__", PyTuple::new(py, vec![&other.0])?)?
+            .extract(py)
+    }
+}
 
 impl HttpConnector for PyHttpConnector {
     fn connect(&self, options: &ClientOptions) -> Result<HttpClient> {
@@ -25,6 +34,53 @@ impl HttpConnector for PyHttpConnector {
         .expect("httpconnector.connect");
         let client = HttpClient::new(PyHttpService(http_service));
         Ok(client)
+    }
+}
+
+impl Clone for PyHttpConnector {
+    fn clone(&self) -> Self {
+        Python::attach(|py| Self(self.0.clone_ref(py)))
+    }
+}
+
+impl PartialEq for PyHttpConnector {
+    fn eq(&self, other: &Self) -> bool {
+        Python::attach(|py| self.equals(py, other)).unwrap_or(false)
+    }
+}
+
+impl<'py> FromPyObject<'_, 'py> for PyHttpConnector {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> std::result::Result<Self, Self::Error> {
+        let py = obj.py();
+        if !obj.hasattr(intern!(py, "connect"))? {
+            Err(PyValueError::new_err(
+                "client_factory must have a method named `connect`.",
+            ))
+        } else {
+            Ok(Self(obj.as_unbound().clone_ref(py)))
+        }
+    }
+}
+
+impl<'py> IntoPyObject<'py> for PyHttpConnector {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        (&self).into_pyobject(py)
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &PyHttpConnector {
+    type Target = PyAny;
+    type Output = Bound<'py, PyAny>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(self.0.bind(py).clone())
     }
 }
 
@@ -218,6 +274,7 @@ impl<'py> FromPyObject<'_, 'py> for PyHttpResponse {
         Ok(Self(http::Response::from_parts(parts, body)))
     }
 }
+
 pub struct PyHttpStatusCode(http::StatusCode);
 
 impl<'py> FromPyObject<'_, 'py> for PyHttpStatusCode {
