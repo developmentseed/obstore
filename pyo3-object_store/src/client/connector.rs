@@ -1,13 +1,14 @@
 use async_trait::async_trait;
-use http::{HeaderMap, HeaderName, StatusCode};
 use object_store::client::{
     HttpClient, HttpConnector, HttpError, HttpRequest, HttpResponse, HttpResponseBody, HttpService,
 };
 use object_store::{ClientOptions, Result};
 use pyo3::intern;
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyString, PyTuple};
+use pyo3::pybacked::PyBackedStr;
+use pyo3::types::{PyDict, PyString};
 
+use crate::client::options::PyHeaderMap;
 use crate::PyClientOptions;
 
 /// An [HttpConnector] defined from Python.
@@ -69,7 +70,7 @@ impl<'py> IntoPyObject<'py> for PyHttpRequest {
         )?;
         dict.set_item(
             intern!(py, "headers"),
-            PyHttpHeaderMap(parts.headers).into_pyobject(py)?,
+            PyHeaderMap(parts.headers).into_pyobject(py)?,
         )?;
 
         // TODO: body doesn't currently offer a way to access the underlying PutPayload for
@@ -167,28 +168,22 @@ impl<'py> IntoPyObject<'py> for PyHttpVersion {
     }
 }
 
-pub struct PyHttpHeaderMap(HeaderMap);
-
-impl<'py> IntoPyObject<'py> for PyHttpHeaderMap {
-    type Target = PyTuple;
-    type Output = Bound<'py, PyTuple>;
+impl<'py> FromPyObject<'_, 'py> for PyHttpVersion {
     type Error = PyErr;
 
-    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let mut headers = vec![];
-        let mut current_header: Option<HeaderName> = None;
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> std::result::Result<Self, Self::Error> {
+        use http::Version;
 
-        for (header_name, header_value) in self.0.into_iter() {
-            if let Some(header_name) = header_name {
-                current_header = Some(header_name.clone());
-            }
-            let name = current_header
-                .as_ref()
-                .expect("valid value of header name for multi key");
-            headers.push((name.as_str(), header_value.as_bytes()).into_pyobject(py)?)
-        }
-
-        PyTuple::new(py, headers)
+        let version_input = obj.extract::<PyBackedStr>()?;
+        let http_version = match version_input.as_ref() {
+            "0.9" => Version::HTTP_09,
+            "1.0" => Version::HTTP_10,
+            "1.1" => Version::HTTP_11,
+            "2.0" => Version::HTTP_2,
+            "3.0" => Version::HTTP_3,
+            _ => panic!("Unsupported HTTP version"),
+        };
+        Ok(Self(http_version))
     }
 }
 
@@ -198,11 +193,32 @@ impl<'py> FromPyObject<'_, 'py> for PyHttpResponse {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> std::result::Result<Self, Self::Error> {
-        // HttpResponse::from_parts(parts, body);
-        todo!("create http error kind")
+        let py = obj.py();
+        let status = obj
+            .getattr(intern!(py, "status"))?
+            .extract::<PyHttpStatusCode>()?;
+        let version = obj
+            .getattr(intern!(py, "version"))?
+            .extract::<PyHttpVersion>()?;
+        let headers = obj
+            .getattr(intern!(py, "headers"))?
+            .extract::<PyHeaderMap>()?;
+
+        // TODO: construct body. This probably will have to be a Python object that we poll?
+
+        let resp = http::Response::new(body);
+        let (mut parts, body) = resp.into_parts();
+
+        parts.status = status.0;
+        parts.version = version.0;
+        parts.headers = headers.0;
+
+        // There's also a `http::response::Builder` API but I can't figure out how I'd convert that
+        // `Builder` to `Response`??
+        Ok(Self(http::Response::from_parts(parts, body)))
     }
 }
-pub struct PyHttpStatusCode(StatusCode);
+pub struct PyHttpStatusCode(http::StatusCode);
 
 impl<'py> FromPyObject<'_, 'py> for PyHttpStatusCode {
     type Error = PyErr;
@@ -210,12 +226,10 @@ impl<'py> FromPyObject<'_, 'py> for PyHttpStatusCode {
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> std::result::Result<Self, Self::Error> {
         let code = obj.extract::<u16>()?;
         Ok(PyHttpStatusCode(
-            StatusCode::from_u16(code).expect("invalid http status code"),
+            http::StatusCode::from_u16(code).expect("invalid http status code"),
         ))
     }
 }
-
-pub struct PyHttpResponseParts(http::response::Parts);
 
 pub struct PyHttpResponseBody(HttpResponseBody);
 
@@ -224,7 +238,7 @@ pub struct PyHttpError(HttpError);
 impl<'py> FromPyObject<'_, 'py> for PyHttpError {
     type Error = PyErr;
 
-    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> std::result::Result<Self, Self::Error> {
+    fn extract(_obj: Borrowed<'_, 'py, PyAny>) -> std::result::Result<Self, Self::Error> {
         todo!("create http error kind")
     }
 }
