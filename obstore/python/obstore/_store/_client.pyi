@@ -99,7 +99,7 @@ class HttpRequest(TypedDict):
 class HttpResponse(Protocol):
     status: int | HTTPStatus
     version: Literal["0.9", "1.0", "1.1", "2.0", "3.0"]
-    headers: Iterable[tuple[str, bytes]]
+    headers: Iterable[tuple[str, str | bytes]]
     # TODO: not sure yet what body will look like
     body: AsyncIterable[Buffer]
 

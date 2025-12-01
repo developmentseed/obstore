@@ -16,6 +16,10 @@ from ._azure import AzureCredentialProvider as AzureCredentialProvider
 from ._azure import AzureSASToken as AzureSASToken
 from ._azure import AzureStore as AzureStore
 from ._client import ClientConfig as ClientConfig
+from ._client import ClientFactory as ClientFactory
+from ._client import HttpRequest as HttpRequest
+from ._client import HttpResponse as HttpResponse
+from ._client import HttpService as HttpService
 from ._gcs import GCSConfig as GCSConfig
 from ._gcs import GCSCredential as GCSCredential
 from ._gcs import GCSCredentialProvider as GCSCredentialProvider
