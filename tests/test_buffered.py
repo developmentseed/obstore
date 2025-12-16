@@ -1,3 +1,5 @@
+from io import BytesIO
+
 import pytest
 
 import obstore as obs
@@ -77,3 +79,36 @@ async def test_writable_file_async():
     resp = await obs.get_async(store, path)
     retour = await resp.bytes_async()
     assert retour == line * 50
+
+
+def test_read_past_eof_sync():
+    store = MemoryStore()
+
+    data = b"Hello, World!"
+    path = "greeting.txt"
+    obs.put(store, path, data)
+
+    file = obs.open_reader(store, path)
+    buffer = file.read(20)
+    assert memoryview(data) == memoryview(buffer)
+
+    buf = BytesIO(data)
+    expected = buf.read(20)
+    assert memoryview(expected) == memoryview(buffer)
+
+
+@pytest.mark.asyncio
+async def test_read_past_eof_async():
+    store = MemoryStore()
+
+    data = b"Hello, World!"
+    path = "greeting.txt"
+    await obs.put_async(store, path, data)
+
+    file = await obs.open_reader_async(store, path)
+    buffer = await file.read(20)
+    assert memoryview(data) == memoryview(buffer)
+
+    buf = BytesIO(data)
+    expected = buf.read(20)
+    assert memoryview(expected) == memoryview(buffer)
