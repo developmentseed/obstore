@@ -5,6 +5,10 @@
 
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use object_store::aws::AmazonS3;
+use object_store::azure::MicrosoftAzure;
+use object_store::gcp::GoogleCloudStorage;
+use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::OnceLock;
@@ -58,58 +62,47 @@ impl<T: ObjectStore> MaybePrefixedStore<T> {
             Cow::Borrowed(location)
         }
     }
-
-    /// Strip the constant prefix from a given path
-    fn strip_prefix(&self, path: Path) -> Path {
-        if let Some(prefix) = &self.prefix {
-            // Note cannot use match because of borrow checker
-            if let Some(suffix) = path.prefix_match(prefix) {
-                return suffix.collect();
-            }
-            path
-        } else {
-            path
-        }
-    }
-
-    /// Strip the constant prefix from a given ObjectMeta
-    fn strip_meta(&self, meta: ObjectMeta) -> ObjectMeta {
-        ObjectMeta {
-            last_modified: meta.last_modified,
-            size: meta.size,
-            location: self.strip_prefix(meta.location),
-            e_tag: meta.e_tag,
-            version: None,
-        }
-    }
 }
 
-// Note: This is a relative hack to move these two functions to pure functions so they don't rely
-// on the `self` lifetime. Expected to be cleaned up before merge.
-//
 /// Strip the constant prefix from a given path
-fn strip_prefix(prefix: &Path, path: Path) -> Path {
-    // Note cannot use match because of borrow checker
-    if let Some(suffix) = path.prefix_match(prefix) {
-        return suffix.collect();
+fn strip_prefix(prefix: Option<&Path>, path: Path) -> Path {
+    if let Some(prefix) = prefix {
+        // Note cannot use match because of borrow checker
+        if let Some(suffix) = path.prefix_match(prefix) {
+            return suffix.collect();
+        }
+        path
+    } else {
+        path
     }
-    path
 }
 
 /// Strip the constant prefix from a given ObjectMeta
 fn strip_meta(prefix: Option<&Path>, meta: ObjectMeta) -> ObjectMeta {
-    if let Some(prefix) = prefix {
-        ObjectMeta {
-            last_modified: meta.last_modified,
-            size: meta.size,
-            location: strip_prefix(prefix, meta.location),
-            e_tag: meta.e_tag,
-            version: None,
-        }
-    } else {
-        meta
+    ObjectMeta {
+        last_modified: meta.last_modified,
+        size: meta.size,
+        location: strip_prefix(prefix, meta.location),
+        e_tag: meta.e_tag,
+        version: None,
     }
 }
+
+fn strip_list_result(prefix: Option<&Path>, lst: ListResult) -> ListResult {
+    ListResult {
+        common_prefixes: lst
+            .common_prefixes
+            .into_iter()
+            .map(|p| strip_prefix(prefix, p))
+            .collect(),
+        objects: lst
+            .objects
+            .into_iter()
+            .map(|meta| strip_meta(prefix, meta))
+            .collect(),
+    }
+}
+
 #[async_trait::async_trait]
 impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     async fn put(&self, location: &Path, payload: PutPayload) -> Result<PutResult> {
@@ -166,7 +159,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     async fn head(&self, location: &Path) -> Result<ObjectMeta> {
         let full_path = self.full_path(location);
         let meta = self.inner.head(&full_path).await?;
-        Ok(self.strip_meta(meta))
+        Ok(strip_meta(self.prefix.as_ref(), meta))
     }
 
     async fn delete(&self, location: &Path) -> Result<()> {
@@ -200,18 +193,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner
             .list_with_delimiter(Some(&prefix))
             .await
-            .map(|lst| ListResult {
-                common_prefixes: lst
-                    .common_prefixes
-                    .into_iter()
-                    .map(|p| self.strip_prefix(p))
-                    .collect(),
-                objects: lst
-                    .objects
-                    .into_iter()
-                    .map(|meta| self.strip_meta(meta))
-                    .collect(),
-            })
+            .map(|lst| strip_list_result(self.prefix.as_ref(), lst))
     }
 
     async fn copy(&self, from: &Path, to: &Path) -> Result<()> {
@@ -236,5 +218,85 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         let full_from = self.full_path(from);
         let full_to = self.full_path(to);
         self.inner.rename_if_not_exists(&full_from, &full_to).await
+    }
+}
+
+fn create_paginated_list_prefix<'a>(
+    store_prefix: Option<&'a Path>,
+    list_prefix: Option<&'a str>,
+    delimiter: Option<&Cow<'static, str>>,
+) -> Option<Cow<'a, str>> {
+    match (store_prefix, list_prefix) {
+        (None, None) => None,
+        (Some(store_prefix), None) => Some(Cow::Borrowed(store_prefix.as_ref())),
+        (None, Some(list_prefix)) => Some(Cow::Borrowed(list_prefix)),
+        (Some(store_prefix), Some(list_prefix)) => {
+            let delimiter = delimiter.map(|x| x.as_ref()).unwrap_or("/");
+            let combined = format!("{}{delimiter}{list_prefix}", store_prefix.as_ref());
+            Some(Cow::Owned(combined))
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl PaginatedListStore for MaybePrefixedStore<AmazonS3> {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> Result<PaginatedListResult> {
+        let store_prefix = self.prefix.as_ref();
+        let list_prefix =
+            create_paginated_list_prefix(store_prefix, prefix, opts.delimiter.as_ref());
+        let lst = self
+            .inner
+            .list_paginated(list_prefix.as_deref(), opts)
+            .await?;
+        Ok(PaginatedListResult {
+            result: strip_list_result(store_prefix, lst.result),
+            page_token: lst.page_token,
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl PaginatedListStore for MaybePrefixedStore<GoogleCloudStorage> {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> Result<PaginatedListResult> {
+        let store_prefix = self.prefix.as_ref();
+        let list_prefix =
+            create_paginated_list_prefix(store_prefix, prefix, opts.delimiter.as_ref());
+        let lst = self
+            .inner
+            .list_paginated(list_prefix.as_deref(), opts)
+            .await?;
+        Ok(PaginatedListResult {
+            result: strip_list_result(store_prefix, lst.result),
+            page_token: lst.page_token,
+        })
+    }
+}
+
+#[async_trait::async_trait]
+impl PaginatedListStore for MaybePrefixedStore<MicrosoftAzure> {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> Result<PaginatedListResult> {
+        let store_prefix = self.prefix.as_ref();
+        let list_prefix =
+            create_paginated_list_prefix(store_prefix, prefix, opts.delimiter.as_ref());
+        let lst = self
+            .inner
+            .list_paginated(list_prefix.as_deref(), opts)
+            .await?;
+        Ok(PaginatedListResult {
+            result: strip_list_result(store_prefix, lst.result),
+            page_token: lst.page_token,
+        })
     }
 }
