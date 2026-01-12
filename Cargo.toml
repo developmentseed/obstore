@@ -26,7 +26,7 @@ chrono = "0.4.38"
 futures = "0.3.31"
 http = "1.2"
 indexmap = "2"
-object_store = "0.12.4"
+object_store = { version = "0.13.0", features = ["aws", "azure", "gcp", "http"] }
 pyo3 = { version = "0.27.1", features = ["macros", "indexmap"] }
 pyo3-async-runtimes = { version = "0.27", features = ["tokio-runtime"] }
 pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "aacc18816591f9987247bac8b7011b452b4eeb3e" }
