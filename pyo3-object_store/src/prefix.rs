@@ -9,7 +9,7 @@ use std::borrow::Cow;
 use std::ops::Range;
 use std::sync::OnceLock;
 
-use object_store::path::Path;
+use object_store::{path::Path, CopyOptions};
 // Remove when updating to object_store 0.13
 #[allow(deprecated)]
 use object_store::{
@@ -112,11 +112,6 @@ fn strip_meta(prefix: Option<&Path>, meta: ObjectMeta) -> ObjectMeta {
 }
 #[async_trait::async_trait]
 impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
-    async fn put(&self, location: &Path, payload: PutPayload) -> Result<PutResult> {
-        let full_path = self.full_path(location);
-        self.inner.put(&full_path, payload).await
-    }
-
     async fn put_opts(
         &self,
         location: &Path,
@@ -125,11 +120,6 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     ) -> Result<PutResult> {
         let full_path = self.full_path(location);
         self.inner.put_opts(&full_path, payload, opts).await
-    }
-
-    async fn put_multipart(&self, location: &Path) -> Result<Box<dyn MultipartUpload>> {
-        let full_path = self.full_path(location);
-        self.inner.put_multipart(&full_path).await
     }
 
     // Remove when updating to object_store 0.13
@@ -143,16 +133,6 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner.put_multipart_opts(&full_path, opts).await
     }
 
-    async fn get(&self, location: &Path) -> Result<GetResult> {
-        let full_path = self.full_path(location);
-        self.inner.get(&full_path).await
-    }
-
-    async fn get_range(&self, location: &Path, range: Range<u64>) -> Result<Bytes> {
-        let full_path = self.full_path(location);
-        self.inner.get_range(&full_path, range).await
-    }
-
     async fn get_opts(&self, location: &Path, options: GetOptions) -> Result<GetResult> {
         let full_path = self.full_path(location);
         self.inner.get_opts(&full_path, options).await
@@ -161,17 +141,6 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     async fn get_ranges(&self, location: &Path, ranges: &[Range<u64>]) -> Result<Vec<Bytes>> {
         let full_path = self.full_path(location);
         self.inner.get_ranges(&full_path, ranges).await
-    }
-
-    async fn head(&self, location: &Path) -> Result<ObjectMeta> {
-        let full_path = self.full_path(location);
-        let meta = self.inner.head(&full_path).await?;
-        Ok(self.strip_meta(meta))
-    }
-
-    async fn delete(&self, location: &Path) -> Result<()> {
-        let full_path = self.full_path(location);
-        self.inner.delete(&full_path).await
     }
 
     fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
@@ -214,27 +183,16 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
             })
     }
 
-    async fn copy(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.copy(&full_from, &full_to).await
+    async fn copy_opts(&self, from: &Path, to: &Path, options: CopyOptions) -> Result<()> {
+        let from_full = self.full_path(from);
+        let to_full = self.full_path(to);
+        self.inner.copy_opts(&from_full, &to_full, options).await
     }
 
-    async fn rename(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.rename(&full_from, &full_to).await
-    }
-
-    async fn copy_if_not_exists(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.copy_if_not_exists(&full_from, &full_to).await
-    }
-
-    async fn rename_if_not_exists(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.rename_if_not_exists(&full_from, &full_to).await
+    fn delete_stream(
+        &self,
+        locations: BoxStream<'static, Result<Path>>,
+    ) -> BoxStream<'static, Result<Path>> {
+        self.inner.delete_stream(locations)
     }
 }

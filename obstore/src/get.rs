@@ -6,7 +6,9 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
-use object_store::{Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore};
+use object_store::{
+    Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore, ObjectStoreExt,
+};
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::get_runtime;
@@ -347,7 +349,7 @@ pub(crate) fn get(
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {
-            store.as_ref().get(path)
+            Box::pin(store.as_ref().get(path))
         };
         let out = runtime.block_on(fut)?;
         Ok::<_, PyObjectStoreError>(PyGetResult::new(out))
@@ -367,7 +369,7 @@ pub(crate) fn get_async(
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {
-            store.as_ref().get(path)
+            Box::pin(store.as_ref().get(path))
         };
         let out = fut.await.map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(PyGetResult::new(out))

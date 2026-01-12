@@ -131,9 +131,10 @@ impl From<PyObjectStoreError> for PyErr {
                 object_store::Error::NotModified { path: _, source: _ } => {
                     NotModifiedError::new_err(print_with_debug(err))
                 }
-                object_store::Error::NotImplemented => {
-                    PyNotImplementedError::new_err(print_with_debug(err))
-                }
+                object_store::Error::NotImplemented {
+                    operation: _,
+                    implementer: _,
+                } => PyNotImplementedError::new_err(print_with_debug(err)),
                 object_store::Error::PermissionDenied { path: _, source: _ } => {
                     PermissionDeniedError::new_err(print_with_debug(err))
                 }

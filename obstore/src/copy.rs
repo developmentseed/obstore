@@ -1,4 +1,6 @@
-use object_store::ObjectStore;
+use std::{future::Future, pin::Pin};
+
+use object_store::ObjectStoreExt;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
@@ -18,10 +20,10 @@ pub(crate) fn copy(
     let from_ = from_.into();
     let to = to.into();
     py.detach(|| {
-        let fut = if overwrite {
-            store.as_ref().copy(&from_, &to)
+        let fut: Pin<Box<dyn Future<Output = _> + Send>> = if overwrite {
+            Box::pin(store.as_ref().copy(&from_, &to))
         } else {
-            store.as_ref().copy_if_not_exists(&from_, &to)
+            Box::pin(store.as_ref().copy_if_not_exists(&from_, &to))
         };
         runtime.block_on(fut)?;
         Ok::<_, PyObjectStoreError>(())
@@ -40,10 +42,10 @@ pub(crate) fn copy_async(
     let from_ = from_.into();
     let to = to.into();
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let fut = if overwrite {
-            store.as_ref().copy(&from_, &to)
+        let fut: Pin<Box<dyn Future<Output = _> + Send>> = if overwrite {
+            Box::pin(store.as_ref().copy(&from_, &to))
         } else {
-            store.as_ref().copy_if_not_exists(&from_, &to)
+            Box::pin(store.as_ref().copy_if_not_exists(&from_, &to))
         };
         fut.await.map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(PyNone)
