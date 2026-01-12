@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use object_store::buffered::{BufReader, BufWriter};
-use object_store::{ObjectMeta, ObjectStore};
+use object_store::{ObjectMeta, ObjectStore, ObjectStoreExt};
 use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3::types::PyString;
