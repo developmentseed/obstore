@@ -22,7 +22,7 @@ mod url;
 pub use api::{register_exceptions_module, register_store_module};
 pub use aws::PyS3Store;
 pub use azure::PyAzureStore;
-pub use client::{PyClientConfigKey, PyClientOptions};
+pub use client::{PyClientConfigKey, PyClientOptions, PyHttpConnector, PyHttpService};
 pub use error::{PyObjectStoreError, PyObjectStoreResult};
 pub use gcp::PyGCSStore;
 pub use http::PyHttpStore;
