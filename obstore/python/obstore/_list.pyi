@@ -1,61 +1,11 @@
 # ruff: noqa: A001, UP035
 
-import sys
-from typing import Generic, Literal, Sequence, overload
+from typing import Literal, Sequence, overload
 
 from arro3.core import RecordBatch, Table
 
-from ._list_types import ListChunkType, ListResult, ObjectMeta
+from ._list_types import ListResult, ListStream, ObjectMeta
 from ._store import ObjectStore
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
-
-class ListStream(Generic[ListChunkType]):
-    """A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
-    async fashion.
-
-    This implements [`obstore.ListStream`][].
-
-    !!! warning "Not importable at runtime"
-
-        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
-
-        ```py
-        from __future__ import annotations
-        from typing import TYPE_CHECKING
-        if TYPE_CHECKING:
-            from obstore import ListStream
-        ```
-    """  # noqa: D205
-
-    def __aiter__(self) -> Self:
-        """Return `Self` as an async iterator."""
-
-    def __iter__(self) -> Self:
-        """Return `Self` as an async iterator."""
-
-    async def collect_async(self) -> ListChunkType:
-        """Collect all remaining ObjectMeta objects in the stream.
-
-        This ignores the `chunk_size` parameter from the `list` call and collects all
-        remaining data into a single chunk.
-        """
-
-    def collect(self) -> ListChunkType:
-        """Collect all remaining ObjectMeta objects in the stream.
-
-        This ignores the `chunk_size` parameter from the `list` call and collects all
-        remaining data into a single chunk.
-        """
-
-    async def __anext__(self) -> ListChunkType:
-        """Return the next chunk of ObjectMeta in the stream."""
-
-    def __next__(self) -> ListChunkType:
-        """Return the next chunk of ObjectMeta in the stream."""
 
 @overload
 def list(

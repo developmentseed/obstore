@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 # ruff: noqa: UP035
-from typing import TYPE_CHECKING, Generic, Sequence, TypedDict, TypeVar
+import sys
+from typing import TYPE_CHECKING, Generic, Protocol, Sequence, TypedDict, TypeVar
 
 if TYPE_CHECKING:
     from datetime import datetime
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class ObjectMeta(TypedDict):
@@ -56,3 +62,45 @@ class ListResult(TypedDict, Generic[ListChunkType]):
 
     objects: ListChunkType
     """Object metadata for the listing"""
+
+
+# Note: the public API exposes a Protocol, not the literal class exported from
+# Rust because we don't want users to rely on nominal subtyping.
+class ListStream(Protocol[ListChunkType]):
+    """A stream of [ObjectMeta][obstore.ObjectMeta] that can be polled in a sync or
+    async fashion.
+
+    This implements [`obstore.ListStream`][].
+    """  # noqa: D205
+
+    def __aiter__(self) -> Self:
+        """Return `Self` as an async iterator."""
+        ...
+
+    def __iter__(self) -> Self:
+        """Return `Self` as an async iterator."""
+        ...
+
+    async def collect_async(self) -> ListChunkType:
+        """Collect all remaining ObjectMeta objects in the stream.
+
+        This ignores the `chunk_size` parameter from the `list` call and collects all
+        remaining data into a single chunk.
+        """
+        ...
+
+    def collect(self) -> ListChunkType:
+        """Collect all remaining ObjectMeta objects in the stream.
+
+        This ignores the `chunk_size` parameter from the `list` call and collects all
+        remaining data into a single chunk.
+        """
+        ...
+
+    async def __anext__(self) -> ListChunkType:
+        """Return the next chunk of ObjectMeta in the stream."""
+        ...
+
+    def __next__(self) -> ListChunkType:
+        """Return the next chunk of ObjectMeta in the stream."""
+        ...

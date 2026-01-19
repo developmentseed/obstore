@@ -211,7 +211,7 @@ class GetResult(Protocol):
         ...
 
 
-# Note: the public API exposes a Protocol, not the literal GetResult class exported from
+# Note: the public API exposes a Protocol, not the literal class exported from
 # Rust because we don't want users to rely on nominal subtyping.
 class BytesStream(Protocol):
     """An async stream of bytes.
@@ -236,17 +236,6 @@ class BytesStream(Protocol):
 
         To fix this, set the `timeout` parameter in the
         [`client_options`][obstore.store.ClientConfig] passed when creating the store.
-
-    !!! warning "Not importable at runtime"
-
-        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
-
-        ```py
-        from __future__ import annotations
-        from typing import TYPE_CHECKING
-        if TYPE_CHECKING:
-            from obstore import BytesStream
-        ```
     """
 
     def __aiter__(self) -> BytesStream:
