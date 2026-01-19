@@ -5,6 +5,7 @@ from ._buffered import (
     open_writer,
     open_writer_async,
 )
+from ._bytes import Bytes
 from ._copy import copy, copy_async
 from ._delete import delete, delete_async
 from ._get import (
@@ -31,6 +32,7 @@ _object_store_version: str
 _object_store_source: str
 
 __all__ = [
+    "Bytes",
     "__version__",
     "_object_store_source",
     "_object_store_version",

@@ -1,7 +1,6 @@
 """Type hint for `pyo3_bytes.Bytes` objects."""
 
-# ruff: noqa: D205, D105 # noqa: RUF100
-from __future__ import annotations
+# ruff: noqa: D205
 
 import sys
 from typing import Protocol, overload
@@ -11,8 +10,7 @@ if sys.version_info >= (3, 12):
 else:
     from typing_extensions import Buffer
 
-
-class Bytes(Buffer, Protocol):  # noqa: PLW1641
+class Bytes(Buffer, Protocol):
     """A `bytes`-like buffer.
 
     This implements the Python buffer protocol, allowing zero-copy access
@@ -47,13 +45,11 @@ class Bytes(Buffer, Protocol):  # noqa: PLW1641
 
         Otherwise, return the original binary data.
         """
-        ...
 
     def removesuffix(self, suffix: Buffer, /) -> Bytes:
         """If the binary data ends with the suffix string and that suffix is not empty,
         return `bytes[:-len(suffix)]`. Otherwise, return the original binary data.
         """
-        ...
 
     def isalnum(self) -> bool:
         """Return `True` if all bytes in the sequence are alphabetical ASCII characters
@@ -63,7 +59,6 @@ class Bytes(Buffer, Protocol):  # noqa: PLW1641
         `b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'`. ASCII decimal digits
         are those byte values in the sequence `b'0123456789'`.
         """
-        ...
 
     def isalpha(self) -> bool:
         """Return `True` if all bytes in the sequence are alphabetic ASCII characters
@@ -72,7 +67,6 @@ class Bytes(Buffer, Protocol):  # noqa: PLW1641
         Alphabetic ASCII characters are those byte values in the sequence
         `b'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'`.
         """
-        ...
 
     def isascii(self) -> bool:
         """Return `True` if the sequence is empty or all bytes in the sequence are
@@ -80,7 +74,6 @@ class Bytes(Buffer, Protocol):  # noqa: PLW1641
 
         ASCII bytes are in the range `0-0x7F`.
         """
-        ...
 
     def isdigit(self) -> bool:
         """Return `True` if all bytes in the sequence are ASCII decimal digits and the
@@ -88,13 +81,11 @@ class Bytes(Buffer, Protocol):  # noqa: PLW1641
 
         ASCII decimal digits are those byte values in the sequence `b'0123456789'`.
         """
-        ...
 
     def islower(self) -> bool:
         """Return `True` if there is at least one lowercase ASCII character in the
         sequence and no uppercase ASCII characters, `False` otherwise.
         """
-        ...
 
     def isspace(self) -> bool:
         r"""Return `True` if all bytes in the sequence are ASCII whitespace and the
@@ -104,26 +95,21 @@ class Bytes(Buffer, Protocol):  # noqa: PLW1641
         in the sequence `b' \t\n\r\x0b\f'` (space, tab, newline, carriage return,
         vertical tab, form feed).
         """
-        ...
 
     def isupper(self) -> bool:
         """Return `True` if there is at least one uppercase alphabetic ASCII character
         in the sequence and no lowercase ASCII characters, `False` otherwise.
         """
-        ...
 
     def lower(self) -> Bytes:
         """Return a copy of the sequence with all the uppercase ASCII characters
         converted to their corresponding lowercase counterpart.
         """
-        ...
 
     def upper(self) -> Bytes:
         """Return a copy of the sequence with all the lowercase ASCII characters
         converted to their corresponding uppercase counterpart.
         """
-        ...
 
     def to_bytes(self) -> bytes:
         """Copy this buffer's contents into a Python `bytes` object."""
-        ...

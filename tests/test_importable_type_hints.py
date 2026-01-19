@@ -5,7 +5,6 @@ def test_types_should_be_importable():
         AsyncWritableFile,  # noqa: F401
         Attribute,  # noqa: F401
         Attributes,  # noqa: F401
-        Bytes,  # noqa: F401
         BytesStream,  # noqa: F401
         GetOptions,  # noqa: F401
         GetResult,  # noqa: F401

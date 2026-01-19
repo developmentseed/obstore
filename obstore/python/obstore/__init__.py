@@ -8,7 +8,6 @@ from ._buffered_types import (
     ReadableFile,
     WritableFile,
 )
-from ._bytes import Bytes
 from ._get_types import BytesStream, GetOptions, GetResult, OffsetRange, SuffixRange
 from ._list_types import ListChunkType, ListResult, ListStream, ObjectMeta
 from ._obstore import *  # noqa: F403  # pyright:ignore[reportMissingModuleSource]
@@ -25,7 +24,6 @@ __all__ = [
     "AsyncWritableFile",
     "Attribute",
     "Attributes",
-    "Bytes",
     "BytesStream",
     "GetOptions",
     "GetResult",

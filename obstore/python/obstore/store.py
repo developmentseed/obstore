@@ -27,7 +27,6 @@ if TYPE_CHECKING:
 
     from obstore import (
         Attributes,
-        Bytes,
         GetOptions,
         GetResult,
         ListResult,
@@ -35,6 +34,9 @@ if TYPE_CHECKING:
         ObjectMeta,
         PutMode,
         PutResult,
+    )
+    from obstore._obstore import (  # pyright:ignore[reportMissingModuleSource]
+        Bytes,  # noqa: TC004
     )
     from obstore._store import (
         AzureAccessKey,  # noqa: TC004
@@ -79,6 +81,7 @@ __all__ = [
     "AzureSASToken",
     "AzureStore",
     "BackoffConfig",
+    "Bytes",
     "ClientConfig",
     "GCSConfig",
     "GCSCredential",
