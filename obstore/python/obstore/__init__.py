@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from . import _obstore, store  # pyright:ignore[reportMissingModuleSource]
+from ._attributes import Attribute, Attributes
 from ._obstore import *  # noqa: F403  # pyright:ignore[reportMissingModuleSource]
 
 if TYPE_CHECKING:
@@ -9,3 +10,4 @@ if TYPE_CHECKING:
 
 __all__ = ["exceptions", "store"]
 __all__ += _obstore.__all__
+__all__ += ["Attribute", "Attributes"]
