@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, Protocol, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from datetime import datetime
+
+    from ._attributes import Attributes
+    from ._bytes import Bytes
+    from ._list_types import ObjectMeta
 
 
 class OffsetRange(TypedDict):
@@ -97,3 +101,168 @@ class GetOptions(TypedDict, total=False):
     Request transfer of no content
     <https://datatracker.ietf.org/doc/html/rfc9110#name-head>
     """
+
+
+# Note: the public API exposes a Protocol, not the literal GetResult class exported from
+# Rust because we don't want users to rely on nominal subtyping.
+class GetResult(Protocol):
+    """Result for a get request.
+
+    You can materialize the entire buffer by using either `bytes` or `bytes_async`, or
+    you can stream the result using `stream`. `__iter__` and `__aiter__` are implemented
+    as aliases to `stream`, so you can alternatively call `iter()` or `aiter()` on
+    `GetResult` to start an iterator.
+
+    Using as an async iterator:
+    ```py
+    resp = await obs.get_async(store, path)
+    # 5MB chunk size in stream
+    stream = resp.stream(min_chunk_size=5 * 1024 * 1024)
+    async for buf in stream:
+        print(len(buf))
+    ```
+
+    Using as a sync iterator:
+    ```py
+    resp = obs.get(store, path)
+    # 20MB chunk size in stream
+    stream = resp.stream(min_chunk_size=20 * 1024 * 1024)
+    for buf in stream:
+        print(len(buf))
+    ```
+    """
+
+    @property
+    def attributes(self) -> Attributes:
+        """Additional object attributes."""
+        ...
+
+    def bytes(self) -> Bytes:
+        """Collect the data into a `Bytes` object.
+
+        This implements the Python buffer protocol. You can copy the buffer to Python
+        memory by passing to [`bytes`][].
+        """
+        ...
+
+    async def bytes_async(self) -> Bytes:
+        """Collect the data into a `Bytes` object.
+
+        This implements the Python buffer protocol. You can copy the buffer to Python
+        memory by passing to [`bytes`][].
+        """
+        ...
+
+    def buffer(self) -> Bytes:
+        """Collect the data into a `Bytes` object.
+
+        This is an alias of the [`bytes()`][obstore.GetResult.bytes] method to comply
+        with the [`obspec.Get`][] protocol.
+        """
+        ...
+
+    async def buffer_async(self) -> Bytes:
+        """Collect the data into a `Bytes` object.
+
+        This is an alias of the [`bytes_async()`][obstore.GetResult.bytes_async] method
+        to comply with the [`obspec.GetAsync`][] protocol.
+        """
+        ...
+
+    @property
+    def meta(self) -> ObjectMeta:
+        """The ObjectMeta for this object."""
+        ...
+
+    @property
+    def range(self) -> tuple[int, int]:
+        """The range of bytes returned by this request.
+
+        Note that this is `(start, stop)` **not** `(start, length)`.
+        """
+        ...
+
+    def stream(self, min_chunk_size: int = 10 * 1024 * 1024) -> BytesStream:
+        r"""Return a chunked stream over the result's bytes.
+
+        Args:
+            min_chunk_size: The minimum size in bytes for each chunk in the returned
+                `BytesStream`. All chunks except for the last chunk will be at least
+                this size. Defaults to 10\*1024\*1024 (10MB).
+
+        Returns:
+            A chunked stream
+
+        """
+        ...
+
+    def __aiter__(self) -> BytesStream:
+        """Return a chunked stream over the result's bytes.
+
+        Uses the default (10MB) chunk size.
+        """
+        ...
+
+    def __iter__(self) -> BytesStream:
+        """Return a chunked stream over the result's bytes.
+
+        Uses the default (10MB) chunk size.
+        """
+        ...
+
+
+# Note: the public API exposes a Protocol, not the literal GetResult class exported from
+# Rust because we don't want users to rely on nominal subtyping.
+class BytesStream(Protocol):
+    """An async stream of bytes.
+
+    !!! note "Request timeouts"
+        The underlying stream needs to stay alive until the last chunk is polled. If the
+        file is large, it may exceed the default timeout of 30 seconds. In this case,
+        you may see an error like:
+
+        ```
+        GenericError: Generic {
+            store: "HTTP",
+            source: reqwest::Error {
+                kind: Decode,
+                source: reqwest::Error {
+                    kind: Body,
+                    source: TimedOut,
+                },
+            },
+        }
+        ```
+
+        To fix this, set the `timeout` parameter in the
+        [`client_options`][obstore.store.ClientConfig] passed when creating the store.
+
+    !!! warning "Not importable at runtime"
+
+        To use this type hint in your code, import it within a `TYPE_CHECKING` block:
+
+        ```py
+        from __future__ import annotations
+        from typing import TYPE_CHECKING
+        if TYPE_CHECKING:
+            from obstore import BytesStream
+        ```
+    """
+
+    def __aiter__(self) -> BytesStream:
+        """Return `Self` as an async iterator."""
+        ...
+
+    def __iter__(self) -> BytesStream:
+        """Return `Self` as an async iterator."""
+        ...
+
+    # Note: this returns bytes, not Bytes
+    async def __anext__(self) -> bytes:
+        """Return the next chunk of bytes in the stream."""
+        ...
+
+    # Note: this returns bytes, not Bytes
+    def __next__(self) -> bytes:
+        """Return the next chunk of bytes in the stream."""
+        ...

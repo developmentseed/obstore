@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from obstore import (
         Attributes,
         GetOptions,
+        GetResult,
         ListResult,
         ListStream,
         ObjectMeta,
@@ -36,7 +37,6 @@ if TYPE_CHECKING:
     )
     from obstore._obstore import (  # pyright:ignore[reportMissingModuleSource]
         Bytes,
-        GetResult,
     )
     from obstore._store import (
         AzureAccessKey,  # noqa: TC004
