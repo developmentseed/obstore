@@ -1,6 +1,6 @@
 """Type hint for `pyo3_bytes.Bytes` objects."""
 
-# ruff: noqa: D205, D105
+# ruff: noqa: D205, D105 # noqa: RUF100
 from __future__ import annotations
 
 import sys
