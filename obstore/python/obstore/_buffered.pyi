@@ -3,7 +3,7 @@ from contextlib import AbstractAsyncContextManager, AbstractContextManager
 
 from ._attributes import Attributes
 from ._bytes import Bytes
-from ._list import ObjectMeta
+from ._list_types import ObjectMeta
 from ._store import ObjectStore
 
 if sys.version_info >= (3, 11):
