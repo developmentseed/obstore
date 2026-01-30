@@ -5,6 +5,7 @@ build-backend = "maturin"
 [project]
 name = "obstore"
 requires-python = ">=3.9"
+readme = "README.md"
 dependencies = ["typing-extensions; python_version < '3.13'"]
 classifiers = [
     "Development Status :: 4 - Beta",
