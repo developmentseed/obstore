@@ -14,6 +14,7 @@ use crate::{PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, 
 ///
 /// This will only accept ObjectStore instances created from the same library. See
 /// [register_store_module][crate::register_store_module].
+#[derive(Debug, Clone)]
 pub struct PyObjectStore(Arc<dyn ObjectStore>);
 
 impl<'py> FromPyObject<'_, 'py> for PyObjectStore {
