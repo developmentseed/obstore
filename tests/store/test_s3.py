@@ -1,7 +1,6 @@
 # ruff: noqa: PGH003
 
 import pickle
-import sys
 from datetime import datetime, timezone
 
 import pytest
@@ -10,10 +9,6 @@ from obstore.exceptions import BaseError, UnauthenticatedError
 from obstore.store import S3Store, from_url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10),
-    reason="Moto doesn't seem to support Python 3.9",
-)
 @pytest.mark.asyncio
 async def test_list_async(minio_store: S3Store):
     await minio_store.put_async("afile", b"hello world")
@@ -22,10 +17,6 @@ async def test_list_async(minio_store: S3Store):
     assert any("afile" in x["path"] for x in list_result)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10),
-    reason="Moto doesn't seem to support Python 3.9",
-)
 @pytest.mark.asyncio
 async def test_get_async(minio_store: S3Store):
     await minio_store.put_async("afile", b"hello world")
