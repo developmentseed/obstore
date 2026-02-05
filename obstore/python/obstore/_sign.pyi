@@ -1,30 +1,8 @@
-import sys
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Literal, overload
+from typing import overload
 
-from .store import AzureStore, GCSStore, S3Store
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
-
-HTTP_METHOD: TypeAlias = Literal[
-    "GET",
-    "PUT",
-    "POST",
-    "HEAD",
-    "PATCH",
-    "TRACE",
-    "DELETE",
-    "OPTIONS",
-    "CONNECT",
-]
-"""Allowed HTTP Methods for signing."""
-
-SignCapableStore: TypeAlias = AzureStore | GCSStore | S3Store
-"""ObjectStore instances that are capable of signing."""
+from ._sign_types import HTTP_METHOD, SignCapableStore
 
 @overload
 def sign(
@@ -61,7 +39,7 @@ def sign(  # type: ignore[misc] # docstring in pyi file
         expires_in: How long the signed URL(s) should be valid.
 
     Returns:
-        _description_
+        Signed URL
 
     """
 
