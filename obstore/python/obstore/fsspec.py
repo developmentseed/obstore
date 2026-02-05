@@ -463,7 +463,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         mode: str = "overwrite",  # noqa: ARG002
         **_kwargs: Any,
     ) -> None:
-        if not Path(lpath).is_file():
+        # TODO: We shouldn't use blocking file operations in async functions
+        if not Path(lpath).is_file():  # noqa: ASYNC240
             err_msg = f"File {lpath} not found in local"
             raise FileNotFoundError(err_msg)
 
@@ -479,7 +480,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
         res = urlparse(lpath)
-        if res.scheme or Path(lpath).is_dir():
+        # TODO: We shouldn't use blocking file operations in async functions
+        if res.scheme or Path(lpath).is_dir():  # noqa: ASYNC240
             # lpath need to be local file and cannot contain scheme
             return
 
