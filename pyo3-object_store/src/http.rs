@@ -34,7 +34,7 @@ impl HTTPConfig {
 
 /// A Python-facing wrapper around a [`HttpStore`].
 #[derive(Debug, Clone)]
-#[pyclass(name = "HTTPStore", frozen, subclass)]
+#[pyclass(name = "HTTPStore", frozen, subclass, from_py_object)]
 pub struct PyHttpStore {
     // Note: we don't need to wrap this in a MaybePrefixedStore because the HttpStore manages its
     // own prefix.
