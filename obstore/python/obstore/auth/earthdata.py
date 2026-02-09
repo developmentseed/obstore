@@ -63,6 +63,7 @@ class NasaEarthdataCredentialProvider:
 
     Examples:
         ```py
+        import obstore
         from obstore.store import S3Store
         from obstore.auth.earthdata import NasaEarthdataCredentialProvider
 
