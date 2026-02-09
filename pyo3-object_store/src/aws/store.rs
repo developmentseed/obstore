@@ -61,7 +61,7 @@ impl S3Config {
 
 /// A Python-facing wrapper around an [`AmazonS3`].
 #[derive(Debug, Clone)]
-#[pyclass(name = "S3Store", frozen, subclass)]
+#[pyclass(name = "S3Store", frozen, subclass, from_py_object)]
 pub struct PyS3Store {
     store: Arc<MaybePrefixedStore<AmazonS3>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.

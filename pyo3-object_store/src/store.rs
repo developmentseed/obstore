@@ -41,14 +41,14 @@ impl<'py> FromPyObject<'_, 'py> for PyObjectStore {
                 .getattr(intern!(py, "__name__"))?
                 .extract::<PyBackedStr>()?;
             if [
-                PyAzureStore::NAME,
-                PyGCSStore::NAME,
-                PyHttpStore::NAME,
-                PyLocalStore::NAME,
-                PyMemoryStore::NAME,
-                PyS3Store::NAME,
+                PyAzureStore::type_object(py).name()?.to_str()?,
+                PyGCSStore::type_object(py).name()?.to_str()?,
+                PyHttpStore::type_object(py).name()?.to_str()?,
+                PyLocalStore::type_object(py).name()?.to_str()?,
+                PyMemoryStore::type_object(py).name()?.to_str()?,
+                PyS3Store::type_object(py).name()?.to_str()?,
             ]
-            .contains(&cls_name.as_ref())
+            .contains(&cls_name.as_str())
             {
                 return Err(PyValueError::new_err("You must use an object store instance exported from **the same library** as this function. They cannot be used across libraries.\nThis is because object store instances are compiled with a specific version of Rust and Python." ));
             }
@@ -99,7 +99,7 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
             .getattr(intern!(py, "__name__"))?
             .extract::<PyBackedStr>()?;
 
-        if cls_name == PyAzureStore::NAME {
+        if cls_name.as_str() == PyAzureStore::type_object(py).name()? {
             let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
                 .call_method0(intern!(py, "__getnewargs_ex__"))?
                 .extract()?;
@@ -111,7 +111,7 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
             return Ok(Self(store.into_inner()));
         }
 
-        if cls_name == PyGCSStore::NAME {
+        if cls_name.as_str() == PyGCSStore::type_object(py).name()? {
             let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
                 .call_method0(intern!(py, "__getnewargs_ex__"))?
                 .extract()?;
@@ -123,7 +123,7 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
             return Ok(Self(store.into_inner()));
         }
 
-        if cls_name == PyHttpStore::NAME {
+        if cls_name.as_str() == PyHttpStore::type_object(py).name()? {
             let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
                 .call_method0(intern!(py, "__getnewargs_ex__"))?
                 .extract()?;
@@ -135,7 +135,7 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
             return Ok(Self(store.into_inner()));
         }
 
-        if cls_name == PyLocalStore::NAME {
+        if cls_name.as_str() == PyLocalStore::type_object(py).name()? {
             let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
                 .call_method0(intern!(py, "__getnewargs_ex__"))?
                 .extract()?;
@@ -147,7 +147,7 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
             return Ok(Self(store.into_inner()));
         }
 
-        if cls_name == PyS3Store::NAME {
+        if cls_name.as_str() == PyS3Store::type_object(py).name()? {
             let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
                 .call_method0(intern!(py, "__getnewargs_ex__"))?
                 .extract()?;

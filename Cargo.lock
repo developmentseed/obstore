@@ -1578,6 +1578,7 @@ dependencies = [
 [[package]]
 name = "pyo3-object_store"
 version = "0.8.0"
+source = "git+https://github.com/developmentseed/obstore?rev=53db2b952f878a605468ab47a89695d7b209f490#53db2b952f878a605468ab47a89695d7b209f490"
 dependencies = [
  "async-trait",
  "bytes",
