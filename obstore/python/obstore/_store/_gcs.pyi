@@ -3,7 +3,7 @@ from collections.abc import Coroutine
 from datetime import datetime
 from typing import Any, Protocol, TypedDict
 
-from ._client import ClientConfig
+from ._client import ClientConfig, ClientFactory
 from ._retry import RetryConfig
 
 if sys.version_info >= (3, 11):
@@ -146,6 +146,7 @@ class GCSStore:
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: GCSCredentialProvider | None = None,
+        client_factory: ClientFactory | None = None,
         **kwargs: Unpack[GCSConfig],  # type: ignore # noqa: PGH003 (bucket key overlaps with positional arg)
     ) -> None:
         """Construct a new GCSStore.
@@ -159,6 +160,7 @@ class GCSStore:
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
             credential_provider: A callback to provide custom Google credentials.
+            client_factory: A custom HTTP client factory to use for requests. Defaults to None, which uses the Rust `reqwest` library to handle HTTP requests.
             kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
@@ -176,6 +178,7 @@ class GCSStore:
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
         credential_provider: GCSCredentialProvider | None = None,
+        client_factory: ClientFactory | None = None,
         **kwargs: Unpack[GCSConfig],
     ) -> Self:
         """Construct a new GCSStore with values populated from a well-known storage URL.
@@ -198,6 +201,7 @@ class GCSStore:
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
             credential_provider: A callback to provide custom Google credentials.
+            client_factory: A custom HTTP client factory to use for requests. Defaults to None, which uses the Rust `reqwest` library to handle HTTP requests.
             kwargs: GCS configuration values. Supports the same values as `config`, but as named keyword args.
 
         Returns:
