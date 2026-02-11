@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-object_store"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Kyle Barron <kyle@developmentseed.org>"]
 edition = "2021"
 description = "object_store integration for pyo3."
@@ -28,7 +28,7 @@ humantime = "2.1"
 http = "1"
 # This is already an object_store dependency
 itertools = "0.14.0"
-object_store = { version = "0.13.0", features = [
+object_store = { version = "0.12.0", features = [
     "aws",
     "azure",
     "gcp",

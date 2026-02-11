@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.10.0] - 2026-02-09
+
+- Compatibility release with pyo3 0.28 and object_store 0.12.
+
 ## [0.9.0] - 2026-02-09
 
 - Bump to pyo3 0.28.

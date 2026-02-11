@@ -73,5 +73,6 @@ We don't yet have a _great_ solution here for reusing the store builder type hin
 | 0.7.x             | 0.27               | 0.12               |
 | 0.8.x             | 0.27               | 0.13               |
 | 0.9.x             | 0.28               | 0.13               |
+| 0.10.x            | 0.28               | **0.12** :warning: |
 
-Note that 0.3.x and 0.4.x are compatibility releases to use `pyo3-object_store` with older versions of `pyo3` and `object_store`.
+Note that :warning: signifies compatibility releases to use `pyo3-object_store` with older versions of `pyo3` and/or `object_store`.
