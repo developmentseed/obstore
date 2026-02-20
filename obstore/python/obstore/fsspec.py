@@ -332,7 +332,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             **self._config_kwargs,
         )  # type: ignore (can't find overload)
 
-    async def _rm_file(self, path: str, **_kwargs: Any) -> None:
+    async def _rm_file(self, path: str, **_kwargs: Any) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         bucket, path = self._split_path(path)
         store = self._construct_store(bucket)
         return await obs.delete_async(store, path)
