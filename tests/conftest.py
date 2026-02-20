@@ -21,7 +21,6 @@ def pytest_configure(config: pytest.Config) -> None:
     Tests must opt-in via @pytest.mark.freethreaded(threads=N, iterations=M).
     """
     if sys.version_info >= (3, 13) and hasattr(config.option, "threads"):
-        config.option.threads = 1
         config.option.iterations = 1
 
 
