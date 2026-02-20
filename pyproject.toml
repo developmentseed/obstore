@@ -104,7 +104,7 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-v --mypy-only-local-stub --threads=1 --iterations=1"
+addopts = "-v --mypy-only-local-stub"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 markers = [
