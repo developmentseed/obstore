@@ -52,7 +52,7 @@ jobs:
           version: "0.5.x"
 
       - name: Install Python versions
-        run: uv python install 3.10 3.11 3.12 3.13 3.13t 3.14 3.14t pypy3.10
+        run: uv python install 3.10 3.11 3.12 3.13 3.14 3.14t pypy3.10
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
