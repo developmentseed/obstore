@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import socket
+import sys
 import time
 import warnings
 from typing import TYPE_CHECKING, Any
@@ -12,6 +13,17 @@ from minio import Minio
 from requests.exceptions import RequestException
 
 from obstore.store import S3Store
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Disable pytest-freethreaded's multi-thread defaults.
+
+    Tests must opt-in via @pytest.mark.freethreaded(threads=N, iterations=M).
+    """
+    if sys.version_info >= (3, 13) and hasattr(config.option, "threads"):
+        config.option.threads = 2
+        config.option.iterations = 1
+
 
 if TYPE_CHECKING:
     from collections.abc import Generator
