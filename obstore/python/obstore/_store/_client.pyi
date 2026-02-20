@@ -1,5 +1,8 @@
+from collections.abc import AsyncIterable, Buffer, Iterable
 from datetime import timedelta
-from typing import TypedDict
+from http import HTTPMethod, HTTPStatus
+from typing import Literal, Protocol, TypedDict
+from urllib.parse import ParseResult
 
 class ClientConfig(TypedDict, total=False):
     """HTTP client configuration.
@@ -85,3 +88,25 @@ class ClientConfig(TypedDict, total=False):
     """
     user_agent: str
     """User-Agent header to be used by this client."""
+
+class HttpRequest(TypedDict):
+    method: HTTPMethod
+    uri: ParseResult
+    version: Literal["0.9", "1.0", "1.1", "2.0", "3.0"]
+    headers: Iterable[tuple[str, bytes]]
+    body: Buffer | None
+
+class HttpResponse(Protocol):
+    status: int | HTTPStatus
+    version: Literal["0.9", "1.0", "1.1", "2.0", "3.0"]
+    headers: Iterable[tuple[str, str | bytes]]
+    # TODO: not sure yet what body will look like
+    body: AsyncIterable[Buffer]
+
+# This maps to what is called PyHttpConnector in Rust
+class ClientFactory(Protocol):
+    def connect(self, options: ClientConfig) -> HttpService: ...
+
+class HttpService(Protocol):
+    async def __call__(self, req: HttpRequest) -> HttpResponse:
+        """Perform the given `HttpRequest`, returning an `HttpResponse`."""

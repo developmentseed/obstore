@@ -17,7 +17,7 @@ use crate::error::{GenericError, ParseUrlError, PyObjectStoreError, PyObjectStor
 use crate::path::PyPath;
 use crate::prefix::MaybePrefixedStore;
 use crate::retry::PyRetryConfig;
-use crate::PyUrl;
+use crate::{PyHttpConnector, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct S3Config {
@@ -26,6 +26,7 @@ struct S3Config {
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
     credential_provider: Option<PyAWSCredentialProvider>,
+    client_factory: Option<PyHttpConnector>,
 }
 
 impl S3Config {
@@ -53,6 +54,9 @@ impl S3Config {
         }
         if let Some(credential_provider) = &self.credential_provider {
             kwargs.set_item("credential_provider", credential_provider)?;
+        }
+        if let Some(client_factory) = &self.client_factory {
+            kwargs.set_item("client_factory", client_factory)?;
         }
 
         PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
@@ -85,7 +89,8 @@ impl PyS3Store {
 impl PyS3Store {
     // Create from parameters
     #[new]
-    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
+    #[expect(clippy::too_many_arguments)]
+    #[pyo3(signature = (bucket=None, *, prefix=None, config=None, client_options=None, retry_config=None, credential_provider=None, client_factory=None, **kwargs))]
     fn new(
         bucket: Option<String>,
         prefix: Option<PyPath>,
@@ -93,6 +98,7 @@ impl PyS3Store {
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAWSCredentialProvider>,
+        client_factory: Option<PyHttpConnector>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = AmazonS3Builder::from_env();
@@ -124,6 +130,10 @@ impl PyS3Store {
             builder = builder.with_credentials(Arc::new(credential_provider));
         }
 
+        if let Some(client_factory) = client_factory.clone() {
+            builder = builder.with_http_connector(client_factory);
+        }
+
         builder = combined_config.clone().apply_config(builder);
 
         Ok(Self {
@@ -134,12 +144,14 @@ impl PyS3Store {
                 client_options,
                 retry_config,
                 credential_provider,
+                client_factory,
             },
         })
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, **kwargs))]
+    #[expect(clippy::too_many_arguments)]
+    #[pyo3(signature = (url, *, config=None, client_options=None, retry_config=None, credential_provider=None, client_factory=None, **kwargs))]
     pub(crate) fn from_url<'py>(
         cls: &Bound<'py, PyType>,
         url: PyUrl,
@@ -147,6 +159,7 @@ impl PyS3Store {
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
         credential_provider: Option<PyAWSCredentialProvider>,
+        client_factory: Option<PyHttpConnector>,
         kwargs: Option<PyAmazonS3Config>,
     ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
         // We manually parse the URL to find the prefix because `with_url` does not apply the
@@ -168,6 +181,7 @@ impl PyS3Store {
         kwargs.set_item("client_options", client_options)?;
         kwargs.set_item("retry_config", retry_config)?;
         kwargs.set_item("credential_provider", credential_provider)?;
+        kwargs.set_item("client_factory", client_factory)?;
         Ok(cls.call((), Some(&kwargs))?)
     }
 
