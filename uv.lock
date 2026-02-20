@@ -3,7 +3,8 @@ revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
-    "python_full_version >= '3.11' and python_full_version < '3.14'",
+    "python_full_version == '3.13.*'",
+    "python_full_version >= '3.11' and python_full_version < '3.13'",
     "python_full_version < '3.11'",
 ]
 
@@ -1166,7 +1167,8 @@ version = "9.10.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14'",
-    "python_full_version >= '3.11' and python_full_version < '3.14'",
+    "python_full_version == '3.13.*'",
+    "python_full_version >= '3.11' and python_full_version < '3.13'",
 ]
 dependencies = [
     { name = "colorama", marker = "python_full_version >= '3.11' and sys_platform == 'win32'" },
@@ -2669,6 +2671,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-freethreaded"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest", marker = "python_full_version >= '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/20/09/3bf5fb5321463551787c41bd1af128c1eff018a55e1bb91af0501df54773/pytest_freethreaded-0.1.0.tar.gz", hash = "sha256:9cb4f412db3abb5a8ffdcb29a2d42e058c41f16437c0a1815101651b485dcf45", size = 6439, upload-time = "2024-10-03T09:09:56.817Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/e0/f379af92804357ac186d2d90ec73a1534183477de1e32e1a4f0bb86b85da/pytest_freethreaded-0.1.0-py3-none-any.whl", hash = "sha256:5f2beb6026857f274162d0aa131fe605b8c6d2a3b0c2d35a2af14721959398f1", size = 5286, upload-time = "2024-10-03T09:09:54.716Z" },
+]
+
+[[package]]
 name = "pytest-mypy-plugins"
 version = "3.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3276,6 +3290,7 @@ dev = [
     { name = "pystac-client" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pytest-freethreaded", marker = "python_full_version >= '3.13'" },
     { name = "pytest-mypy-plugins" },
     { name = "python-dotenv" },
     { name = "pyzmq" },
@@ -3322,6 +3337,7 @@ dev = [
     { name = "pystac-client", specifier = ">=0.8.3" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-freethreaded", marker = "python_full_version >= '3.13'", specifier = ">=0.1.0" },
     { name = "pytest-mypy-plugins", specifier = ">=3.2.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "pyzmq", specifier = ">=27.1.0" },

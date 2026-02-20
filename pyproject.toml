@@ -41,6 +41,7 @@ dev-dependencies = [
     "pytest>=8.3.3",
     "pytest-asyncio>=0.24.0",
     "pytest-mypy-plugins>=3.2.0",
+    "pytest-freethreaded>=0.1.0;python_version>='3.13'",
     "python-dotenv>=1.0.1",
     "pyzmq>=27.1.0",
     "ruff>=0.15.0",
@@ -103,10 +104,13 @@ executionEnvironments = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-v --mypy-only-local-stub"
+addopts = "-v --mypy-only-local-stub --threads=1 --iterations=1"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
-markers = ["network: mark the test as requiring a network connection"]
+markers = [
+    "network: mark the test as requiring a network connection",
+    "freethreaded: mark test for free-threaded concurrent execution",
+]
 
 [tool.mypy]
 files = ["obstore/python"]
