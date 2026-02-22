@@ -58,7 +58,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --features abi3-py311 --features extension-module -i 3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: ${{ matrix.platform.manylinux }}
 
@@ -105,7 +105,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --features abi3-py311 --features extension-module -i 3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: musllinux_1_2
 
@@ -145,7 +145,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --features abi3-py311 --features extension-module -i 3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
       - name: Build version-specific wheels
@@ -185,7 +185,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --features abi3-py311 --features extension-module -i 3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
       - name: Build version-specific wheels
