@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## [0.9.0] - 2026-02-22
+
+### Breaking Changes
+
+* chore!: Deprecate support for python 3.9 by @kylebarron in https://github.com/developmentseed/obstore/pull/609
+
+### What's Changed
+
+* fix: Remove TypeVar constraints on arro3-core to fix list typing when arro3-core not installed by @kylebarron in https://github.com/developmentseed/obstore/pull/578
+* docs: Update cookbook.md - unmatched quotes by @mdsumner in https://github.com/developmentseed/obstore/pull/587
+* fix: Prevent early EOF error in reader.read by @nvictus in https://github.com/developmentseed/obstore/pull/593
+* feat: Allow S3 HTTP URLs without region by @kylebarron in https://github.com/developmentseed/obstore/pull/590
+* feat: upgrade object store 0.13.x by @alukach in https://github.com/developmentseed/obstore/pull/600
+* ci: Make abi3 wheels for mainline Python 3.11+ by @kylebarron in https://github.com/developmentseed/obstore/pull/623
+* feat: Update docs, examples, tests to use method-based API by @kylebarron in https://github.com/developmentseed/obstore/pull/625
+
+### New Contributors
+
+* @nvictus made their first contribution in https://github.com/developmentseed/obstore/pull/593
+* @alukach made their first contribution in https://github.com/developmentseed/obstore/pull/600
+* @DisturbedOcean made their first contribution in https://github.com/developmentseed/obstore/pull/620
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.8.2...py-v0.9.0
+
 ## [0.8.2] - 2025-09-16
 
 ### What's Changed
