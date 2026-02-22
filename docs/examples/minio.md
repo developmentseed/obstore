@@ -20,7 +20,6 @@ docker run -p 9000:9000 -p 9001:9001 \
 Now we can create an `S3Store` to interact with minio:
 
 ```py
-import obstore as obs
 from obstore.store import S3Store
 
 store = S3Store(
@@ -33,20 +32,20 @@ store = S3Store(
 )
 
 # Add files
-obs.put(store, "a.txt", b"foo")
-obs.put(store, "b.txt", b"bar")
-obs.put(store, "c/d.txt", b"baz")
+store.put("a.txt", b"foo")
+store.put("b.txt", b"bar")
+store.put("c/d.txt", b"baz")
 
 # List files
-files = obs.list(store).collect()
+files = store.list().collect()
 print(files)
 
 # Download a file
-resp = obs.get(store, "a.txt")
+resp = store.get("a.txt")
 print(resp.bytes())
 
 # Delete a file
-obs.delete(store, "a.txt")
+store.delete("a.txt")
 ```
 
 There's a [full example](https://github.com/developmentseed/obstore/tree/main/examples/minio) in the obstore repository.

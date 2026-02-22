@@ -7,11 +7,10 @@ All requests to S3 must include the region. An error will occur on requests when
 For example, trying to list the [`sentinel-cogs`](https://registry.opendata.aws/sentinel-2-l2a-cogs/) open bucket without passing a region will fail:
 
 ```py
-import obstore as obs
 from obstore.store import S3Store
 
 store = S3Store("sentinel-cogs", skip_signature=True)
-next(obs.list(store))
+next(store.list())
 ```
 
 raises
@@ -25,11 +24,10 @@ configured region
 We can fix this by passing the correct region:
 
 ```py
-import obstore as obs
 from obstore.store import S3Store
 
 store = S3Store("sentinel-cogs", skip_signature=True, region="us-west-2")
-next(obs.list(store))
+next(store.list())
 ```
 
 this prints:

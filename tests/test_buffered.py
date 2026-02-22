@@ -13,7 +13,7 @@ def test_readable_file_sync():
     data = line * 5000
     path = "big-data.txt"
 
-    obs.put(store, path, data)
+    store.put(path, data)
 
     file = obs.open_reader(store, path)
     assert line == file.readline().to_bytes()
