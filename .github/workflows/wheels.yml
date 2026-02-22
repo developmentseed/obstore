@@ -52,15 +52,24 @@ jobs:
           version: "0.5.x"
 
       - name: Install Python versions
-        run: uv python install 3.10 3.11 3.12 3.13 3.14 pypy3.10
+        run: uv python install 3.10 3.11 pypy3.11
 
-      - name: Build wheels
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i 3.14 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: ${{ matrix.platform.manylinux }}
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i 3.10 -i pypy3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+          manylinux: ${{ matrix.platform.manylinux }}
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -90,15 +99,24 @@ jobs:
           version: "0.5.x"
 
       - name: Install Python versions
-        run: uv python install 3.10 3.11 3.12 3.13 3.14 pypy3.10
+        run: uv python install 3.10 3.11 pypy3.11
 
-      - name: Build wheels
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i 3.14 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: musllinux_1_2
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i 3.10 -i pypy3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+          manylinux: musllinux_1_2
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -122,11 +140,19 @@ jobs:
         with:
           python-version: 3.13
           architecture: ${{ matrix.platform.target }}
-      - name: Build wheels
+
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.11 -i 3.12 -i 3.13 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i 3.10 --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -139,9 +165,9 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: macos-13
+          - runner: macos-15-intel
             target: x86_64
-          - runner: macos-14
+          - runner: macos-15
             target: aarch64
     steps:
       - uses: actions/checkout@v4
@@ -153,13 +179,20 @@ jobs:
           version: "0.5.x"
 
       - name: Install Python versions
-        run: uv python install 3.10 3.11 3.12 3.13 3.14 pypy3.10
+        run: uv python install 3.10 3.11 pypy3.11
 
-      - name: Build wheels
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i 3.14 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i 3.10 -i pypy3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4
