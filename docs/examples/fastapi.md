@@ -18,7 +18,6 @@ First, import `fastapi` and `obstore` and create the FastAPI application.
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
-import obstore as obs
 from obstore.store import HTTPStore, S3Store
 
 app = FastAPI()
@@ -39,7 +38,7 @@ async def download_example() -> StreamingResponse:
 
     # Make the request. This only begins the download; it does not wait for the
     # download to finish.
-    resp = await obs.get_async(store, path)
+    resp = await store.get_async(path)
     return StreamingResponse(resp)
 ```
 
@@ -56,7 +55,7 @@ async def large_example() -> StreamingResponse:
 
     # Note: for large file downloads you may need to increase the timeout in
     # the client configuration
-    resp = await obs.get_async(store, path)
+    resp = await store.get_async(path)
 
     # Example: Ensure the stream returns at least 5MB of data in each chunk.
     return StreamingResponse(resp.stream(min_chunk_size=5 * 1024 * 1024))

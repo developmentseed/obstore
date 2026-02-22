@@ -5,7 +5,6 @@ from urllib.parse import urlsplit
 
 from tqdm import tqdm
 
-import obstore as obs
 from obstore.store import HTTPStore
 
 # https://registry.opendata.aws/speedtest-global-performance/
@@ -14,7 +13,7 @@ DEFAULT_URL = "https://ookla-open-data.s3.us-west-2.amazonaws.com/parquet/perfor
 
 def sync_download_progress_bar(url: str):
     store, path = parse_url(url)
-    resp = obs.get(store, path)
+    resp = store.get(path)
     file_size = resp.meta["size"]
     with tqdm(total=file_size) as pbar:
         for bytes_chunk in resp:
@@ -24,7 +23,7 @@ def sync_download_progress_bar(url: str):
 
 async def async_download_progress_bar(url: str):
     store, path = parse_url(url)
-    resp = await obs.get_async(store, path)
+    resp = await store.get_async(path)
     file_size = resp.meta["size"]
     with tqdm(total=file_size) as pbar:
         async for bytes_chunk in resp:
