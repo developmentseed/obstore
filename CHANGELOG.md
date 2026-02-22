@@ -15,7 +15,8 @@
 * fix: Prevent early EOF error in reader.read by @nvictus in https://github.com/developmentseed/obstore/pull/593
 * feat: Allow S3 HTTP URLs without region by @kylebarron in https://github.com/developmentseed/obstore/pull/590
 * feat: upgrade object store 0.13.x by @alukach in https://github.com/developmentseed/obstore/pull/600
-* ci: Make abi3 wheels for mainline Python 3.11+  by @kylebarron in https://github.com/developmentseed/obstore/pull/623
+* ci: Make abi3 wheels for mainline Python 3.11+ by @kylebarron in https://github.com/developmentseed/obstore/pull/623
+* feat: Update docs, examples, tests to use method-based API by @kylebarron in https://github.com/developmentseed/obstore/pull/625
 
 ### New Contributors
 
