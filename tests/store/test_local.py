@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pytest
 
-import obstore as obs
 from obstore.exceptions import GenericError
 from obstore.store import LocalStore
 
@@ -12,7 +11,7 @@ HERE = Path()
 
 def test_local_store():
     store = LocalStore(HERE)
-    list_result = obs.list(store).collect()
+    list_result = store.list().collect()
     assert any("test_local.py" in x["path"] for x in list_result)
 
 
@@ -30,13 +29,13 @@ def test_local_from_url():
 
     url = f"file://{HERE.absolute()}"
     store = LocalStore.from_url(url)
-    list_result = obs.list(store).collect()
+    list_result = store.list().collect()
     assert any("test_local.py" in x["path"] for x in list_result)
 
     # Test with trailing slash
     url = f"file://{HERE.absolute()}/"
     store = LocalStore.from_url(url)
-    list_result = obs.list(store).collect()
+    list_result = store.list().collect()
     assert any("test_local.py" in x["path"] for x in list_result)
 
     # Test with two trailing slashes
@@ -66,9 +65,9 @@ def test_prefix_property(tmp_path: Path):
 
 def test_pickle(tmp_path: Path):
     store = LocalStore(tmp_path)
-    obs.put(store, "path.txt", b"foo")
+    store.put("path.txt", b"foo")
     new_store: LocalStore = pickle.loads(pickle.dumps(store))
-    assert obs.get(new_store, "path.txt").bytes() == b"foo"
+    assert new_store.get("path.txt").bytes() == b"foo"
 
 
 def test_eq():

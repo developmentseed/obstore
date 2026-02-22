@@ -76,12 +76,12 @@ File-like object support is also provided:
 ### Example
 
 ```py
-import obstore as obs
+from obstore.store import MemoryStore
 
-store = obs.store.MemoryStore()
+store = MemoryStore()
 
-obs.put(store, "file.txt", b"hello world!")
-response = obs.get(store, "file.txt")
+store.put("file.txt", b"hello world!")
+response = store.get("file.txt")
 response.meta
 # {'path': 'file.txt',
 #  'last_modified': datetime.datetime(2024, 10, 21, 16, 19, 45, 102620, tzinfo=datetime.timezone.utc),
@@ -90,22 +90,22 @@ response.meta
 #  'version': None}
 assert response.bytes() == b"hello world!"
 
-byte_range = obs.get_range(store, "file.txt", start=0, end=5)
+byte_range = store.get_range("file.txt", start=0, end=5)
 assert byte_range == b"hello"
 
-obs.copy(store, "file.txt", "other.txt")
-assert obs.get(store, "other.txt").bytes() == b"hello world!"
+store.copy("file.txt", "other.txt")
+assert store.get("other.txt").bytes() == b"hello world!"
 ```
 
 All of these methods also have `async` counterparts, suffixed with `_async`.
 
 ```py
-import obstore as obs
+from obstore.store import MemoryStore
 
-store = obs.store.MemoryStore()
+store = MemoryStore()
 
-await obs.put_async(store, "file.txt", b"hello world!")
-response = await obs.get_async(store, "file.txt")
+await store.put_async("file.txt", b"hello world!")
+response = await store.get_async("file.txt")
 response.meta
 # {'path': 'file.txt',
 #  'last_modified': datetime.datetime(2024, 10, 21, 16, 20, 36, 477418, tzinfo=datetime.timezone.utc),
@@ -114,10 +114,10 @@ response.meta
 #  'version': None}
 assert await response.bytes_async() == b"hello world!"
 
-byte_range = await obs.get_range_async(store, "file.txt", start=0, end=5)
+byte_range = await store.get_range_async("file.txt", start=0, end=5)
 assert byte_range == b"hello"
 
-await obs.copy_async(store, "file.txt", "other.txt")
-resp = await obs.get_async(store, "other.txt")
+await store.copy_async("file.txt", "other.txt")
+resp = await store.get_async("other.txt")
 assert await resp.bytes_async() == b"hello world!"
 ```

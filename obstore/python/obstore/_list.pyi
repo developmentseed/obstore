@@ -193,14 +193,13 @@ def list(  # type: ignore[misc] # docstring in pyi file
     Synchronously iterate through list results:
 
     ```py
-    import obstore as obs
     from obstore.store import MemoryStore
 
     store = MemoryStore()
     for i in range(100):
-        obs.put(store, f"file{i}.txt", b"foo")
+        store.put(f"file{i}.txt", b"foo")
 
-    stream = obs.list(store, chunk_size=10)
+    stream = store.list(chunk_size=10)
     for list_result in stream:
         print(list_result[0])
         # {'path': 'file0.txt', 'last_modified': datetime.datetime(2024, 10, 23, 19, 19, 28, 781723, tzinfo=datetime.timezone.utc), 'size': 3, 'e_tag': '0', 'version': None}
@@ -210,7 +209,7 @@ def list(  # type: ignore[misc] # docstring in pyi file
     Asynchronously iterate through list results. Just change `for` to `async for`:
 
     ```py
-    stream = obs.list(store, chunk_size=10)
+    stream = store.list(chunk_size=10)
     async for list_result in stream:
         print(list_result[2])
         # {'path': 'file10.txt', 'last_modified': datetime.datetime(2024, 10, 23, 19, 21, 46, 224725, tzinfo=datetime.timezone.utc), 'size': 3, 'e_tag': '10', 'version': None}
@@ -224,7 +223,7 @@ def list(  # type: ignore[misc] # docstring in pyi file
     record batch).
 
     ```py
-    stream = obs.list(store, chunk_size=1000, return_arrow=True)
+    stream = store.list(chunk_size=1000, return_arrow=True)
     # Stream is now an iterable/async iterable of `RecordBatch`es
     for batch in stream:
         print(batch.num_rows) # 100
@@ -237,7 +236,7 @@ def list(  # type: ignore[misc] # docstring in pyi file
     Collect all list results into a single Arrow `RecordBatch`.
 
     ```py
-    stream = obs.list(store, return_arrow=True)
+    stream = store.list(return_arrow=True)
     batch = stream.collect()
     ```
 
