@@ -17,6 +17,9 @@ rust-version = { workspace = true }
 name = "_obstore"
 crate-type = ["cdylib"]
 
+[features]
+abi3-py311 = ["pyo3/abi3-py311"]
+
 [dependencies]
 arrow = "57"
 bytes = { workspace = true }
