@@ -28,7 +28,7 @@ def pytest_configure(config: pytest.Config) -> None:
     """
     if sys.version_info >= (3, 13) and hasattr(config.option, "threads"):
         if sysconfig.get_config_var("Py_GIL_DISABLED"):
-            config.option.threads = 2
+            config.option.threads = 1
             config.option.iterations = 1
         else:
             # Unregister the plugin on GIL-enabled builds so its
