@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import socket
 import sys
+import sysconfig
 import time
 import warnings
 from typing import TYPE_CHECKING, Any
@@ -18,11 +19,27 @@ from obstore.store import S3Store
 def pytest_configure(config: pytest.Config) -> None:
     """Disable pytest-freethreaded's multi-thread defaults.
 
-    Tests must opt-in via @pytest.mark.freethreaded(threads=N, iterations=M).
+    On GIL-enabled Python, unregister the plugin entirely so its
+    pytest_runtest_call hook doesn't wrap tests in a ThreadPoolExecutor
+    (which breaks async tests run from non-main threads).
+
+    On free-threaded Python, set conservative defaults so tests must opt-in
+    via @pytest.mark.freethreaded(threads=N, iterations=M).
     """
     if sys.version_info >= (3, 13) and hasattr(config.option, "threads"):
-        config.option.threads = 2
-        config.option.iterations = 1
+        if sysconfig.get_config_var("Py_GIL_DISABLED"):
+            config.option.threads = 2
+            config.option.iterations = 1
+        else:
+            # Unregister the plugin on GIL-enabled builds so its
+            # pytest_runtest_call hook doesn't wrap tests in a
+            # ThreadPoolExecutor (breaks async tests from non-main threads).
+            try:
+                import pytest_freethreaded.plugin as ft_plugin
+
+                config.pluginmanager.unregister(ft_plugin)
+            except (ImportError, ValueError):
+                pass
 
 
 if TYPE_CHECKING:
