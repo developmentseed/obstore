@@ -128,13 +128,19 @@ def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
 def minio_bucket(
     minio_config: tuple[S3Config, ClientConfig],
 ) -> Generator[tuple[S3Config, ClientConfig], Any, None]:
-    yield minio_config
-
-    # Remove all files from bucket
+    # Clean bucket before each test so tests always start with empty state,
+    # regardless of whether a previous test's teardown failed or was incomplete.
     store = S3Store(config=minio_config[0], client_options=minio_config[1])
     objects = store.list().collect()
-    paths = [obj["path"] for obj in objects]
-    store.delete(paths)
+    if paths := [obj["path"] for obj in objects]:
+        store.delete(paths)
+
+    yield minio_config
+
+    # Best-effort cleanup after the test as well.
+    objects = store.list().collect()
+    if paths := [obj["path"] for obj in objects]:
+        store.delete(paths)
 
 
 @pytest.fixture
