@@ -366,12 +366,14 @@ def get_ranges(
     starts: Sequence[int],
     ends: Sequence[int] | None = None,
     lengths: Sequence[int] | None = None,
+    coalesce: int | None = None,
 ) -> list[Bytes]:
     """Return the bytes stored at the specified location in the given byte ranges.
 
     To improve performance this will:
 
-    - Transparently combine ranges less than 1MB apart into a single underlying request
+    - Transparently combine ranges less than `coalesce` bytes apart into a single
+      underlying request (defaults to 1MB)
     - Make multiple `fetch` requests in parallel (up to maximum of 10)
 
     Args:
@@ -382,6 +384,7 @@ def get_ranges(
         starts: A sequence of `int` where each offset starts.
         ends: A sequence of `int` where each offset ends (exclusive). Either `ends` or `lengths` must be non-None.
         lengths: A sequence of `int` with the number of bytes of each byte range. Either `ends` or `lengths` must be non-None.
+        coalesce: Maximum distance in bytes between ranges that will be coalesced into a single request. Defaults to 1MB (1048576 bytes). Set to `0` to disable coalescing.
 
     Returns:
         A sequence of `Bytes`, one for each range. This `Bytes` object implements the
@@ -397,6 +400,7 @@ async def get_ranges_async(
     starts: Sequence[int],
     ends: Sequence[int] | None = None,
     lengths: Sequence[int] | None = None,
+    coalesce: int | None = None,
 ) -> list[Bytes]:
     """Call `get_ranges` asynchronously.
 

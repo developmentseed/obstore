@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from obstore.store import MemoryStore
@@ -132,6 +134,60 @@ def test_get_ranges():
     buffers = store.get_ranges(path, starts=starts, lengths=lengths)
 
     # set strict=True when we upgrade to 3.10
+    for start, end, buffer in zip(starts, ends, buffers):
+        assert memoryview(buffer) == data[start:end]
+
+
+COALESCE_CASES = [
+    # (starts, ends, coalesce) — close ranges
+    ([5, 10, 15, 20], [15, 20, 25, 30], None),
+    ([5, 10, 15, 20], [15, 20, 25, 30], 0),
+    ([5, 10, 15, 20], [15, 20, 25, 30], 1024 * 1024),
+    # widely-spaced ranges
+    ([0, 1000, 2000, 3000], [10, 1010, 2010, 3010], 0),
+    ([0, 1000, 2000, 3000], [10, 1010, 2010, 3010], 500),
+    ([0, 1000, 2000, 3000], [10, 1010, 2010, 3010], 2000),
+]
+
+
+@pytest.mark.parametrize(("starts", "ends", "coalesce"), COALESCE_CASES)
+def test_get_ranges_with_coalesce(
+    starts: list[int],
+    ends: list[int],
+    coalesce: int | None,
+):
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    store.put(path, data)
+
+    buffers = store.get_ranges(path, starts=starts, ends=ends, coalesce=coalesce)
+    for start, end, buffer in zip(starts, ends, buffers):
+        assert memoryview(buffer) == data[start:end]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("starts", "ends", "coalesce"), COALESCE_CASES)
+async def test_get_ranges_async_with_coalesce(
+    starts: list[int],
+    ends: list[int],
+    coalesce: int | None,
+):
+    store = MemoryStore()
+
+    data = b"the quick brown fox jumps over the lazy dog," * 100
+    path = "big-data.txt"
+
+    await store.put_async(path, data)
+
+    buffers = await store.get_ranges_async(
+        path,
+        starts=starts,
+        ends=ends,
+        coalesce=coalesce,
+    )
     for start, end, buffer in zip(starts, ends, buffers):
         assert memoryview(buffer) == data[start:end]
 
