@@ -140,7 +140,6 @@ def test_get_ranges():
 
 COALESCE_CASES = [
     # (starts, ends, coalesce) — close ranges
-    ([5, 10, 15, 20], [15, 20, 25, 30], None),
     ([5, 10, 15, 20], [15, 20, 25, 30], 0),
     ([5, 10, 15, 20], [15, 20, 25, 30], 1024 * 1024),
     # widely-spaced ranges

@@ -228,16 +228,20 @@ class _ObjectStoreMixin:
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
         lengths: Sequence[int] | None = None,
-        coalesce: int | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Return the bytes stored at the specified location in the given byte ranges.
 
         Refer to the documentation for [get_ranges][obstore.get_ranges].
         """
-        kwargs: dict = {"starts": starts, "ends": ends, "lengths": lengths}
-        if coalesce is not None:
-            kwargs["coalesce"] = coalesce
-        return obs.get_ranges(self, path, **kwargs)  # type: ignore[arg-type]
+        return obs.get_ranges(
+            self,  # type: ignore[arg-type]
+            path,
+            starts=starts,
+            ends=ends,
+            lengths=lengths,
+            coalesce=coalesce,
+        )
 
     async def get_ranges_async(
         self,
@@ -246,16 +250,20 @@ class _ObjectStoreMixin:
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
         lengths: Sequence[int] | None = None,
-        coalesce: int | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Call `get_ranges` asynchronously.
 
         Refer to the documentation for [get_ranges][obstore.get_ranges].
         """
-        kwargs: dict = {"starts": starts, "ends": ends, "lengths": lengths}
-        if coalesce is not None:
-            kwargs["coalesce"] = coalesce
-        return await obs.get_ranges_async(self, path, **kwargs)  # type: ignore[arg-type]
+        return await obs.get_ranges_async(
+            self,  # type: ignore[arg-type]
+            path,
+            starts=starts,
+            ends=ends,
+            lengths=lengths,
+            coalesce=coalesce,
+        )
 
     def head(self, path: str) -> ObjectMeta:
         """Return the metadata for the specified location.
