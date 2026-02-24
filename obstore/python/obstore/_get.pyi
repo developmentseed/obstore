@@ -384,7 +384,7 @@ def get_ranges(
         starts: A sequence of `int` where each offset starts.
         ends: A sequence of `int` where each offset ends (exclusive). Either `ends` or `lengths` must be non-None.
         lengths: A sequence of `int` with the number of bytes of each byte range. Either `ends` or `lengths` must be non-None.
-        coalesce: Maximum distance in bytes between ranges that will be coalesced into a single request. Defaults to 1MB (1048576 bytes). Set to `0` to disable coalescing.
+        coalesce: Maximum distance in bytes between ranges that will be coalesced into a single request. Defaults to 1MiB. Set to `0` to disable coalescing.
 
     Returns:
         A sequence of `Bytes`, one for each range. This `Bytes` object implements the
