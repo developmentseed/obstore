@@ -228,6 +228,7 @@ class _ObjectStoreMixin:
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
         lengths: Sequence[int] | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Return the bytes stored at the specified location in the given byte ranges.
 
@@ -239,6 +240,7 @@ class _ObjectStoreMixin:
             starts=starts,
             ends=ends,
             lengths=lengths,
+            coalesce=coalesce,
         )
 
     async def get_ranges_async(
@@ -248,6 +250,7 @@ class _ObjectStoreMixin:
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
         lengths: Sequence[int] | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Call `get_ranges` asynchronously.
 
@@ -259,6 +262,7 @@ class _ObjectStoreMixin:
             starts=starts,
             ends=ends,
             lengths=lengths,
+            coalesce=coalesce,
         )
 
     def head(self, path: str) -> ObjectMeta:

@@ -7,7 +7,8 @@ use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use object_store::{
-    Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore, ObjectStoreExt,
+    coalesce_ranges, Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore,
+    ObjectStoreExt, OBJECT_STORE_COALESCE_DEFAULT,
 };
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
@@ -430,8 +431,23 @@ fn params_to_range(
     }
 }
 
+async fn _get_ranges(
+    store: PyObjectStore,
+    path: PyPath,
+    ranges: &[Range<u64>],
+    coalesce: u64,
+) -> PyObjectStoreResult<Vec<PyBytes>> {
+    let out = coalesce_ranges(
+        ranges,
+        |range| store.as_ref().get_range(path.as_ref(), range),
+        coalesce,
+    )
+    .await?;
+    Ok(out.into_iter().map(|buf| buf.into()).collect())
+}
+
 #[pyfunction]
-#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None))]
+#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None, coalesce=OBJECT_STORE_COALESCE_DEFAULT))]
 pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
@@ -439,17 +455,15 @@ pub(crate) fn get_ranges(
     starts: Vec<u64>,
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,
-) -> PyObjectStoreResult<Vec<pyo3_bytes::PyBytes>> {
+    coalesce: u64,
+) -> PyObjectStoreResult<Vec<PyBytes>> {
     let runtime = get_runtime();
     let ranges = params_to_ranges(starts, ends, lengths)?;
-    py.detach(|| {
-        let out = runtime.block_on(store.as_ref().get_ranges(path.as_ref(), &ranges))?;
-        Ok::<_, PyObjectStoreError>(out.into_iter().map(|buf| buf.into()).collect())
-    })
+    py.detach(|| runtime.block_on(_get_ranges(store, path, &ranges, coalesce)))
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None))]
+#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None, coalesce=OBJECT_STORE_COALESCE_DEFAULT))]
 pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
@@ -457,18 +471,11 @@ pub(crate) fn get_ranges_async(
     starts: Vec<u64>,
     ends: Option<Vec<u64>>,
     lengths: Option<Vec<u64>>,
+    coalesce: u64,
 ) -> PyResult<Bound<PyAny>> {
     let ranges = params_to_ranges(starts, ends, lengths)?;
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let out = store
-            .as_ref()
-            .get_ranges(path.as_ref(), &ranges)
-            .await
-            .map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(out
-            .into_iter()
-            .map(pyo3_bytes::PyBytes::new)
-            .collect::<Vec<_>>())
+        Ok(_get_ranges(store, path, &ranges, coalesce).await?)
     })
 }
 
