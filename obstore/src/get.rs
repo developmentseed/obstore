@@ -7,8 +7,8 @@ use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use object_store::{
-    Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore, ObjectStoreExt,
-    coalesce_ranges, OBJECT_STORE_COALESCE_DEFAULT,
+    coalesce_ranges, Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore,
+    ObjectStoreExt, OBJECT_STORE_COALESCE_DEFAULT,
 };
 use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
