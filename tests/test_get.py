@@ -153,7 +153,7 @@ COALESCE_CASES = [
 def test_get_ranges_with_coalesce(
     starts: list[int],
     ends: list[int],
-    coalesce: int | None,
+    coalesce: int,
 ):
     store = MemoryStore()
 
@@ -172,7 +172,7 @@ def test_get_ranges_with_coalesce(
 async def test_get_ranges_async_with_coalesce(
     starts: list[int],
     ends: list[int],
-    coalesce: int | None,
+    coalesce: int,
 ):
     store = MemoryStore()
 
