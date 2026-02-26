@@ -6,7 +6,7 @@ use object_store::{ClientConfigKey, ClientOptions};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
-use pyo3::types::{PyDict, PyString};
+use pyo3::types::{PyDict, PyString, PyTuple};
 
 use crate::config::PyConfigValue;
 use crate::error::PyObjectStoreError;
@@ -125,7 +125,7 @@ impl From<PyClientOptions> for ClientOptions {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-struct PyHeaderMap(HeaderMap);
+pub(crate) struct PyHeaderMap(pub(crate) HeaderMap);
 
 impl<'py> FromPyObject<'_, 'py> for PyHeaderMap {
     type Error = PyErr;
@@ -152,29 +152,27 @@ impl<'py> FromPyObject<'_, 'py> for PyHeaderMap {
 }
 
 impl<'py> IntoPyObject<'py> for PyHeaderMap {
-    type Target = PyDict;
-    type Output = Bound<'py, PyDict>;
+    type Target = PyTuple;
+    type Output = Bound<'py, PyTuple>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let dict = PyDict::new(py);
-        for (key, value) in self.0.iter() {
-            dict.set_item(key.as_str(), value.as_bytes())?;
-        }
-        Ok(dict)
+        (&self).into_pyobject(py)
     }
 }
 
 impl<'py> IntoPyObject<'py> for &PyHeaderMap {
-    type Target = PyDict;
-    type Output = Bound<'py, PyDict>;
+    type Target = PyTuple;
+    type Output = Bound<'py, PyTuple>;
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let dict = PyDict::new(py);
-        for (key, value) in self.0.iter() {
-            dict.set_item(key.as_str(), value.as_bytes())?;
+        let mut headers = vec![];
+
+        for (header_name, header_value) in self.0.iter() {
+            headers.push((header_name.as_str(), header_value.as_bytes()).into_pyobject(py)?)
         }
-        Ok(dict)
+
+        PyTuple::new(py, headers)
     }
 }
