@@ -98,8 +98,6 @@ def test_delete_prefix(minio_bucket: tuple[S3Config, ClientConfig]):
 
     store.put("file1.txt", b"foo")
 
-    print(store.list().collect())
-
     assert len(store.list().collect()) == 1
 
     store.delete("file1.txt")
