@@ -1,8 +1,14 @@
+from __future__ import annotations
+
 from tempfile import TemporaryDirectory
+from typing import TYPE_CHECKING
 
 import pytest
 
-from obstore.store import LocalStore, MemoryStore
+from obstore.store import LocalStore, MemoryStore, S3Store
+
+if TYPE_CHECKING:
+    from obstore.store import ClientConfig, S3Config
 
 
 def test_delete_one():
@@ -78,3 +84,23 @@ def test_delete_many_local_fs():
             store.delete(
                 ["file1.txt", "file2.txt", "file3.txt"],
             )
+
+
+@pytest.mark.asyncio
+def test_delete_prefix(minio_bucket: tuple[S3Config, ClientConfig]):
+    # https://github.com/developmentseed/obstore/issues/628
+    # We validate that prefix is set on both upload and delete
+    store = S3Store(
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
+        prefix="test-prefix/",
+    )
+
+    store.put("file1.txt", b"foo")
+
+    print(store.list().collect())
+
+    assert len(store.list().collect()) == 1
+
+    store.delete("file1.txt")
+    assert len(store.list().collect()) == 0
