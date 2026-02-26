@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import socket
+import sys
+import sysconfig
 import time
 import warnings
 from typing import TYPE_CHECKING, Any
@@ -12,6 +14,33 @@ from minio import Minio
 from requests.exceptions import RequestException
 
 from obstore.store import S3Store
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Disable pytest-freethreaded's multi-thread defaults.
+
+    On GIL-enabled Python, unregister the plugin entirely so its
+    pytest_runtest_call hook doesn't wrap tests in a ThreadPoolExecutor
+    (which breaks async tests run from non-main threads).
+
+    On free-threaded Python, set conservative defaults so tests must opt-in
+    via @pytest.mark.freethreaded(threads=N, iterations=M).
+    """
+    if sys.version_info >= (3, 13) and hasattr(config.option, "threads"):
+        if sysconfig.get_config_var("Py_GIL_DISABLED"):
+            config.option.threads = 1
+            config.option.iterations = 1
+        else:
+            # Unregister the plugin on GIL-enabled builds so its
+            # pytest_runtest_call hook doesn't wrap tests in a
+            # ThreadPoolExecutor (breaks async tests from non-main threads).
+            try:
+                import pytest_freethreaded.plugin as ft_plugin
+
+                config.pluginmanager.unregister(ft_plugin)
+            except (ImportError, ValueError):
+                pass
+
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -116,13 +145,19 @@ def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
 def minio_bucket(
     minio_config: tuple[S3Config, ClientConfig],
 ) -> Generator[tuple[S3Config, ClientConfig], Any, None]:
-    yield minio_config
-
-    # Remove all files from bucket
+    # Clean bucket before each test so tests always start with empty state,
+    # regardless of whether a previous test's teardown failed or was incomplete.
     store = S3Store(config=minio_config[0], client_options=minio_config[1])
     objects = store.list().collect()
-    paths = [obj["path"] for obj in objects]
-    store.delete(paths)
+    if paths := [obj["path"] for obj in objects]:
+        store.delete(paths)
+
+    yield minio_config
+
+    # Best-effort cleanup after the test as well.
+    objects = store.list().collect()
+    if paths := [obj["path"] for obj in objects]:
+        store.delete(paths)
 
 
 @pytest.fixture

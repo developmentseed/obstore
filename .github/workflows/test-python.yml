@@ -44,7 +44,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
     steps:
       - uses: actions/checkout@v4
 
@@ -54,21 +54,27 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.5.x"
+          version: "0.10.x"
 
       - name: Set up Python
         run: uv python install ${{ matrix.python-version }}
 
       - name: Build rust submodules
         run: |
-          uv run maturin develop -m obstore/Cargo.toml
+          uv run --python ${{ matrix.python-version }} maturin develop -m obstore/Cargo.toml
 
       - name: Run python tests
+        if: "!endsWith(matrix.python-version, 't')"
         run: |
-          uv run pytest
+          uv run --python ${{ matrix.python-version }} pytest tests
+
+      - name: Run python tests with --require-gil-disabled
+        if: "endsWith(matrix.python-version, 't')"
+        run: |
+          uv run --python ${{ matrix.python-version }} pytest tests --require-gil-disabled
 
       # Ensure docs build without warnings
       - name: Check docs

@@ -32,10 +32,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Install a specific version of uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.5.x"
+          version: "0.10.x"
 
       - name: Set up Python 3.11
         run: uv python install 3.11
