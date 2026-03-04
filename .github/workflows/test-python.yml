@@ -79,7 +79,7 @@ jobs:
       # Ensure docs build without warnings
       - name: Check docs
         if: "${{ matrix.python-version == 3.11 }}"
-        run: uv run mkdocs build --strict
+        run: uv run --group docs mkdocs build --strict
 
       - name: Add venv to PATH (for pyright action)
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH

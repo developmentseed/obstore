@@ -30,4 +30,3 @@ dynamic = ["version"]
 features = ["pyo3/extension-module"]
 module-name = "obstore._obstore"
 python-source = "python"
-strip = true

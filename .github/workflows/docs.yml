@@ -45,7 +45,7 @@ jobs:
 
       - name: Build python packages
         run: |
-          uv run maturin develop -m obstore/Cargo.toml
+          uv run maturin develop --uv -m obstore/Cargo.toml
 
       - name: Deploy docs
         env:
@@ -67,8 +67,8 @@ jobs:
           if echo $VERSION | cut -c 2- | grep -q "[A-Za-z]"; then
             echo "Is beta version"
             # For beta versions publish but don't set as latest
-            uv run mike deploy $VERSION --update-aliases --push
+            uv run --group docs mike deploy $VERSION --update-aliases --push
           else
             echo "Is NOT beta version"
-            uv run mike deploy $VERSION latest --update-aliases --push
+            uv run --group docs mike deploy $VERSION latest --update-aliases --push
           fi

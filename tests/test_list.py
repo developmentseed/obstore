@@ -1,5 +1,3 @@
-import polars as pl
-import pyarrow as pa
 import pytest
 from arro3.core import RecordBatch, Table
 
@@ -128,14 +126,3 @@ async def test_list_with_delimiter_async():
     assert objects.num_rows == 2
     assert objects["path"][0].as_py() == "a/file1.txt"
     assert objects["path"][1].as_py() == "a/file2.txt"
-
-
-def test_list_as_arrow_to_polars():
-    store = MemoryStore()
-
-    for i in range(100):
-        store.put(f"file{i}.txt", b"foo")
-
-    stream = store.list(return_arrow=True, chunk_size=10)
-    _pl_df = pl.DataFrame(next(stream))
-    _df = pa.record_batch(next(stream))

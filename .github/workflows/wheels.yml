@@ -96,7 +96,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.5.x"
+          version: "0.10.x"
 
       - name: Install Python versions
         run: uv python install 3.10 3.11 3.13t 3.14t pypy3.11
@@ -176,7 +176,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.5.x"
+          version: "0.10.x"
 
       - name: Install Python versions
         run: uv python install 3.10 3.11 3.13t 3.14t pypy3.11
