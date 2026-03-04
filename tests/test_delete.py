@@ -87,7 +87,7 @@ def test_delete_many_local_fs():
 
 
 @pytest.mark.asyncio
-def test_delete_prefix(minio_bucket: tuple[S3Config, ClientConfig]):
+async def test_delete_prefix(minio_bucket: tuple[S3Config, ClientConfig]):
     # https://github.com/developmentseed/obstore/issues/628
     # We validate that prefix is set on both upload and delete
     store = S3Store(
@@ -96,9 +96,9 @@ def test_delete_prefix(minio_bucket: tuple[S3Config, ClientConfig]):
         prefix="test-prefix/",
     )
 
-    store.put("file1.txt", b"foo")
+    await store.put_async("file1.txt", b"foo")
 
-    assert len(store.list().collect()) == 1
+    assert len(await store.list().collect_async()) == 1
 
-    store.delete("file1.txt")
-    assert len(store.list().collect()) == 0
+    await store.delete_async("file1.txt")
+    assert len(await store.list().collect_async()) == 0
