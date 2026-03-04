@@ -65,11 +65,11 @@ jobs:
 
       - name: Build rust submodules
         run: |
-          uv run maturin develop --uv -m obstore/Cargo.toml
+          uv run --python ${{ matrix.python-version }} maturin develop --uv -m obstore/Cargo.toml
 
       - name: Run python tests
         run: |
-          uv run pytest
+          uv run --python ${{ matrix.python-version }} pytest
 
       # Ensure docs build without warnings
       - name: Check docs
