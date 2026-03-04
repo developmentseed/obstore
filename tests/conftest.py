@@ -149,15 +149,13 @@ def minio_bucket(
     # regardless of whether a previous test's teardown failed or was incomplete.
     store = S3Store(config=minio_config[0], client_options=minio_config[1])
     objects = store.list().collect()
-    if paths := [obj["path"] for obj in objects]:
-        store.delete(paths)
+    store.delete([obj["path"] for obj in objects])
 
     yield minio_config
 
     # Best-effort cleanup after the test as well.
     objects = store.list().collect()
-    if paths := [obj["path"] for obj in objects]:
-        store.delete(paths)
+    store.delete([obj["path"] for obj in objects])
 
 
 @pytest.fixture
