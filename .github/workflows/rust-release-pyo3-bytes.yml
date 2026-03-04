@@ -1,0 +1,20 @@
+name: Publish pyo3-bytes to crates.io
+on:
+  push:
+    # Triggers when pushing tags starting with 'pyo3-bytes-v'
+    tags: ["pyo3-bytes-v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Optional: for enhanced security
+    environment: rust-release-pyo3-bytes
+    permissions:
+      id-token: write # Required for OIDC token exchange
+    steps:
+      - uses: actions/checkout@v5
+      - uses: rust-lang/crates-io-auth-action@v1
+        id: auth
+      - run: cargo publish -p pyo3-bytes
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

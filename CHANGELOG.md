@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## [0.9.1] - 2026-02-26
+
+- fix: Include prefix in `delete_stream` #629
+
 ## [0.9.0] - 2026-02-22
 
 ### Breaking Changes

@@ -85,27 +85,36 @@ impl<T: ObjectStore> MaybePrefixedStore<T> {
 // Note: This is a relative hack to move these two functions to pure functions so they don't rely
 // on the `self` lifetime. Expected to be cleaned up before merge.
 //
-/// Strip the constant prefix from a given path
-fn strip_prefix(prefix: &Path, path: Path) -> Path {
-    // Note cannot use match because of borrow checker
-    if let Some(suffix) = path.prefix_match(prefix) {
-        return suffix.collect();
+/// Create the full path from a path relative to prefix
+fn full_path<'a>(prefix: Option<&'a Path>, location: &'a Path) -> Cow<'a, Path> {
+    if let Some(prefix) = prefix {
+        Cow::Owned(prefix.parts().chain(location.parts()).collect())
+    } else {
+        Cow::Borrowed(location)
     }
-    path
+}
+
+/// Strip the constant prefix from a given path
+fn strip_prefix(prefix: Option<&Path>, path: Path) -> Path {
+    if let Some(prefix) = &prefix {
+        // Note cannot use match because of borrow checker
+        if let Some(suffix) = path.prefix_match(prefix) {
+            return suffix.collect();
+        }
+        path
+    } else {
+        path
+    }
 }
 
 /// Strip the constant prefix from a given ObjectMeta
 fn strip_meta(prefix: Option<&Path>, meta: ObjectMeta) -> ObjectMeta {
-    if let Some(prefix) = prefix {
-        ObjectMeta {
-            last_modified: meta.last_modified,
-            size: meta.size,
-            location: strip_prefix(prefix, meta.location),
-            e_tag: meta.e_tag,
-            version: None,
-        }
-    } else {
-        meta
+    ObjectMeta {
+        last_modified: meta.last_modified,
+        size: meta.size,
+        location: strip_prefix(prefix, meta.location),
+        e_tag: meta.e_tag,
+        version: None,
     }
 }
 #[async_trait::async_trait]
@@ -191,6 +200,16 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         &self,
         locations: BoxStream<'static, Result<Path>>,
     ) -> BoxStream<'static, Result<Path>> {
-        self.inner.delete_stream(locations)
+        let prefix_owned = self.prefix.clone();
+        let locations = locations
+            .map(move |location| {
+                location.map(|loc| full_path(prefix_owned.as_ref(), &loc).into_owned())
+            })
+            .boxed();
+        let prefix = self.prefix.clone();
+        self.inner
+            .delete_stream(locations)
+            .map(move |location| location.map(|loc| strip_prefix(prefix.as_ref(), loc)))
+            .boxed()
     }
 }
