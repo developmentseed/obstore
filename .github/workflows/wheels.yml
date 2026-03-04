@@ -145,14 +145,14 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 --features generate-import-lib -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
       - name: Build version-specific wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.13t -i 3.14t --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features generate-import-lib -i 3.10 -i 3.13t -i 3.14t --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v4

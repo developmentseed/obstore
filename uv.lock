@@ -905,7 +905,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -2874,18 +2874,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytest-freethreaded"
-version = "0.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pytest", marker = "python_full_version >= '3.13'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/20/09/3bf5fb5321463551787c41bd1af128c1eff018a55e1bb91af0501df54773/pytest_freethreaded-0.1.0.tar.gz", hash = "sha256:9cb4f412db3abb5a8ffdcb29a2d42e058c41f16437c0a1815101651b485dcf45", size = 6439, upload-time = "2024-10-03T09:09:56.817Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/e0/f379af92804357ac186d2d90ec73a1534183477de1e32e1a4f0bb86b85da/pytest_freethreaded-0.1.0-py3-none-any.whl", hash = "sha256:5f2beb6026857f274162d0aa131fe605b8c6d2a3b0c2d35a2af14721959398f1", size = 5286, upload-time = "2024-10-03T09:09:54.716Z" },
-]
-
-[[package]]
 name = "pytest-mypy-plugins"
 version = "3.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2903,6 +2891,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/bd/5d/d10e83a0dfb5fe8eb7468c77d566ec8511abc4cc505cf69dbdab0447cb7f/pytest_mypy_plugins-3.3.0.tar.gz", hash = "sha256:4faa42c567fc25951f065c42607f61f5c36ded0265f4d77a4d16cda76002054a", size = 28907, upload-time = "2026-02-16T17:24:56Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4e/49/a5f212e829e2b05b31aad9e96b89e70cd73c7a604f74df34825eac5fd227/pytest_mypy_plugins-3.3.0-py3-none-any.whl", hash = "sha256:7b93f338609eace9405986be69fb52344dfb3ccbb96f3fc5ac3cbd257a34c5fc", size = 20798, upload-time = "2026-02-16T17:24:54.693Z" },
+]
+
+[[package]]
+name = "pytest-run-parallel"
+version = "0.8.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest", marker = "python_full_version >= '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ff/91/14b1403b47f595d360af67624ee50eae2129f04f56e354ce6c04dbda9d93/pytest_run_parallel-0.8.2.tar.gz", hash = "sha256:ccc625bb79b3759a8c280a635a2332371af183020289c9215d04631b55ecfe3e", size = 66369, upload-time = "2026-01-14T09:55:33.797Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/ae/48c9c65807ecdfdd47abe8de308d805e2f3fd782838a0a54ed5505dae627/pytest_run_parallel-0.8.2-py3-none-any.whl", hash = "sha256:2a61aba89f56013859ca5c1efb660755bb6b0349ccfd1dbbef27a94b8c04fe4b", size = 19242, upload-time = "2026-01-14T09:55:32.742Z" },
 ]
 
 [[package]]
@@ -3528,8 +3528,8 @@ dev = [
     { name = "pystac-client" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
-    { name = "pytest-freethreaded", marker = "python_full_version >= '3.13'" },
     { name = "pytest-mypy-plugins" },
+    { name = "pytest-run-parallel", marker = "python_full_version >= '3.13'" },
     { name = "python-dotenv" },
     { name = "pyzmq" },
     { name = "ruff" },
@@ -3577,8 +3577,8 @@ dev = [
     { name = "pystac-client", specifier = ">=0.8.3" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
-    { name = "pytest-freethreaded", marker = "python_full_version >= '3.13'", specifier = ">=0.1.0" },
     { name = "pytest-mypy-plugins", specifier = ">=3.2.0" },
+    { name = "pytest-run-parallel", marker = "python_full_version >= '3.13'", specifier = ">=0.3.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "pyzmq", specifier = ">=27.1.0" },
     { name = "ruff", specifier = ">=0.15.0" },

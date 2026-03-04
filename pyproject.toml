@@ -42,11 +42,10 @@ dev = [
     "pyarrow>=17.0.0",
     "pystac-client>=0.8.3",
     "pystac>=1.10.1",
-    "pystac-client>=0.8.3",
     "pytest>=8.3.3",
     "pytest-asyncio>=0.24.0",
     "pytest-mypy-plugins>=3.2.0",
-    "pytest-freethreaded>=0.1.0;python_version>='3.13'",
+    "pytest-run-parallel>=0.3.0;python_version>='3.13'",
     "python-dotenv>=1.0.1",
     "pyzmq>=27.1.0",
     "ruff>=0.15.0",
@@ -113,7 +112,7 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 markers = [
     "network: mark the test as requiring a network connection",
-    "freethreaded: mark test for free-threaded concurrent execution",
+    "parallel_threads: mark test for concurrent thread execution",
 ]
 
 [tool.mypy]
