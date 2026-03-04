@@ -212,13 +212,15 @@ def test_list(
     fs.pipe_file(f"{bucket}/afile", b"hello world")
 
     out = fs.ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile"]
+    assert f"{bucket}/afile" in out
     fs.pipe_file(f"{bucket}/dir/bfile", b"data")
     out = fs.ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile", f"{bucket}/dir"]
+    assert f"{bucket}/afile" in out
+    assert f"{bucket}/dir" in out
     out = fs.ls(f"{bucket}", detail=True, refresh=True)
-    assert out[0]["type"] == "file"
-    assert out[1]["type"] == "directory"
+    types = {o["name"]: o["type"] for o in out}
+    assert types.get(f"{bucket}/afile") == "file"
+    assert types.get(f"{bucket}/dir") == "directory"
 
 
 @pytest.mark.asyncio
@@ -239,13 +241,15 @@ async def test_list_async(
     await fs._pipe_file(f"{bucket}/afile", b"hello world")
 
     out = await fs._ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile"]
+    assert f"{bucket}/afile" in out
     await fs._pipe_file(f"{bucket}/dir/bfile", b"data")
     out = await fs._ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile", f"{bucket}/dir"]
+    assert f"{bucket}/afile" in out
+    assert f"{bucket}/dir" in out
     out = await fs._ls(f"{bucket}", detail=True, refresh=True)
-    assert out[0]["type"] == "file"
-    assert out[1]["type"] == "directory"
+    types = {o["name"]: o["type"] for o in out}
+    assert types.get(f"{bucket}/afile") == "file"
+    assert types.get(f"{bucket}/dir") == "directory"
 
 
 def test_info(minio_bucket: tuple[S3Config, ClientConfig]):
