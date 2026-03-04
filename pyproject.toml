@@ -23,7 +23,7 @@ docs = [
     "black>=24.8.0",
 ]
 # dependencies used in examples but added here for pyright CI run from top-level
-examples = ["fastapi>=0.115.12", "tqdm>=4.67.1", "pystac-client>=0.8.3"]
+examples = ["fastapi>=0.115.12", "tqdm>=4.67.1"]
 dev = [
     "aiohttp-retry>=2.9.1",
     "aiohttp>=3.11.13",
@@ -40,6 +40,7 @@ dev = [
     "mypy>=1.15.0",
     "obspec>=0.1.0",
     "pyarrow>=17.0.0",
+    "pystac-client>=0.8.3",
     "pystac>=1.10.1",
     "pytest-asyncio>=0.24.0",
     "pytest-mypy-plugins>=3.2.0",
