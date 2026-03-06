@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import inspect
 import socket
-import sys
 import sysconfig
 import time
 import warnings
@@ -17,29 +17,33 @@ from obstore.store import S3Store
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    """Disable pytest-freethreaded's multi-thread defaults.
+    """On free-threaded Python, enable parallel test execution by default."""
+    if (
+        sysconfig.get_config_var("Py_GIL_DISABLED")
+        and hasattr(
+            config.option,
+            "parallel_threads",
+        )
+        and config.option.parallel_threads == 1
+    ):
+        config.option.parallel_threads = "auto"
 
-    On GIL-enabled Python, unregister the plugin entirely so its
-    pytest_runtest_call hook doesn't wrap tests in a ThreadPoolExecutor
-    (which breaks async tests run from non-main threads).
 
-    On free-threaded Python, set conservative defaults so tests must opt-in
-    via @pytest.mark.freethreaded(threads=N, iterations=M).
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Mark async tests as thread-unsafe.
+
+    pytest-asyncio and pytest-run-parallel are incompatible: run-parallel wraps
+    the test function before asyncio can schedule it, producing an unawaited
+    coroutine. Marking every async test as thread_unsafe keeps them on the main
+    thread where pytest-asyncio expects to run them.
+
+    See: https://github.com/Quansight-Labs/pytest-run-parallel/issues/14
     """
-    if sys.version_info >= (3, 13) and hasattr(config.option, "threads"):
-        if sysconfig.get_config_var("Py_GIL_DISABLED"):
-            config.option.threads = 1
-            config.option.iterations = 1
-        else:
-            # Unregister the plugin on GIL-enabled builds so its
-            # pytest_runtest_call hook doesn't wrap tests in a
-            # ThreadPoolExecutor (breaks async tests from non-main threads).
-            try:
-                import pytest_freethreaded.plugin as ft_plugin
-
-                config.pluginmanager.unregister(ft_plugin)
-            except (ImportError, ValueError):
-                pass
+    for item in items:
+        if isinstance(item, pytest.Function) and inspect.iscoroutinefunction(
+            item.function,
+        ):
+            item.add_marker(pytest.mark.thread_unsafe)
 
 
 if TYPE_CHECKING:

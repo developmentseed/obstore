@@ -114,6 +114,10 @@ markers = [
     "network: mark the test as requiring a network connection",
     "parallel_threads: mark test for concurrent thread execution",
 ]
+thread_unsafe_fixtures = [
+    "minio_bucket",
+    "minio_store",
+]
 
 [tool.mypy]
 files = ["obstore/python"]

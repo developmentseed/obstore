@@ -71,10 +71,10 @@ jobs:
         run: |
           uv run --python ${{ matrix.python-version }} pytest tests
 
-      - name: Run python tests with --require-gil-disabled
+      - name: Run python tests with --parallel-threads=2
         if: "endsWith(matrix.python-version, 't')"
         run: |
-          uv run --python ${{ matrix.python-version }} pytest tests --require-gil-disabled
+          uv run --python ${{ matrix.python-version }} pytest tests --parallel-threads=2
 
       # Ensure docs build without warnings
       - name: Check docs
