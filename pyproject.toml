@@ -27,7 +27,7 @@ examples = ["fastapi>=0.115.12", "tqdm>=4.67.1"]
 dev = [
     "aiohttp-retry>=2.9.1",
     "aiohttp>=3.11.13",
-    "arro3-core>=0.4.2",
+    "arro3-core>=0.6.5",
     "azure-identity>=1.21.0",
     "boto3>=1.38.21",
     "docker>=7.1.0",
@@ -42,10 +42,12 @@ dev = [
     "pyarrow>=17.0.0",
     "pystac-client>=0.8.3",
     "pystac>=1.10.1",
+    "pytest>=8.3.3",
     "pytest-asyncio>=0.24.0",
     "pytest-mypy-plugins>=3.2.0",
-    "pytest>=8.3.3",
+    "pytest-run-parallel>=0.3.0;python_version>='3.13'",
     "python-dotenv>=1.0.1",
+    "pyzmq>=27.1.0",
     "ruff>=0.15.0",
     "types-boto3[s3,sts]>=1.36.23",
     "types-requests>=2.31.0.6",
@@ -108,7 +110,14 @@ executionEnvironments = [
 addopts = "-v --mypy-only-local-stub"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
-markers = ["network: mark the test as requiring a network connection"]
+markers = [
+    "network: mark the test as requiring a network connection",
+    "parallel_threads: mark test for concurrent thread execution",
+]
+thread_unsafe_fixtures = [
+    "minio_bucket",
+    "minio_store",
+]
 
 [tool.mypy]
 files = ["obstore/python"]

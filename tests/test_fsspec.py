@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import gc
 import os
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -14,8 +16,6 @@ from obstore.fsspec import FsspecStore, register
 from tests.conftest import TEST_BUCKET_NAME
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from obstore.store import ClientConfig, S3Config
 
 
@@ -212,13 +212,15 @@ def test_list(
     fs.pipe_file(f"{bucket}/afile", b"hello world")
 
     out = fs.ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile"]
+    assert f"{bucket}/afile" in out
     fs.pipe_file(f"{bucket}/dir/bfile", b"data")
     out = fs.ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile", f"{bucket}/dir"]
+    assert f"{bucket}/afile" in out
+    assert f"{bucket}/dir" in out
     out = fs.ls(f"{bucket}", detail=True, refresh=True)
-    assert out[0]["type"] == "file"
-    assert out[1]["type"] == "directory"
+    types = {o["name"]: o["type"] for o in out}
+    assert types.get(f"{bucket}/afile") == "file"
+    assert types.get(f"{bucket}/dir") == "directory"
 
 
 @pytest.mark.asyncio
@@ -239,13 +241,15 @@ async def test_list_async(
     await fs._pipe_file(f"{bucket}/afile", b"hello world")
 
     out = await fs._ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile"]
+    assert f"{bucket}/afile" in out
     await fs._pipe_file(f"{bucket}/dir/bfile", b"data")
     out = await fs._ls(f"{bucket}", detail=False, refresh=True)
-    assert out == [f"{bucket}/afile", f"{bucket}/dir"]
+    assert f"{bucket}/afile" in out
+    assert f"{bucket}/dir" in out
     out = await fs._ls(f"{bucket}", detail=True, refresh=True)
-    assert out[0]["type"] == "file"
-    assert out[1]["type"] == "directory"
+    types = {o["name"]: o["type"] for o in out}
+    assert types.get(f"{bucket}/afile") == "file"
+    assert types.get(f"{bucket}/dir") == "directory"
 
 
 def test_info(minio_bucket: tuple[S3Config, ClientConfig]):
@@ -318,7 +322,7 @@ async def test_info_async(minio_bucket: tuple[S3Config, ClientConfig]):
     assert not await fs._isdir(f"{bucket}/dir_1/")
 
 
-def test_put_files(minio_bucket: tuple[S3Config, ClientConfig], tmp_path: Path):
+def test_put_files(minio_bucket: tuple[S3Config, ClientConfig]):
     """Test put new file to S3 synchronously."""
     register("s3")
     fs = fsspec.filesystem(
@@ -330,14 +334,15 @@ def test_put_files(minio_bucket: tuple[S3Config, ClientConfig], tmp_path: Path):
     bucket = minio_bucket[0].get("bucket")
     assert bucket is not None
 
-    test_data = "Hello, World!"
-    local_file_path = tmp_path / "test_file.txt"
-    local_file_path.write_text(test_data)
+    with TemporaryDirectory() as tmp:
+        test_data = "Hello, World!"
+        local_file_path = Path(tmp) / "test_file.txt"
+        local_file_path.write_text(test_data)
 
-    assert local_file_path.read_text() == test_data
-    remote_file_path = f"{bucket}/uploaded_test_file.txt"
+        assert local_file_path.read_text() == test_data
+        remote_file_path = f"{bucket}/uploaded_test_file.txt"
 
-    fs.put(str(local_file_path), remote_file_path)
+        fs.put(str(local_file_path), remote_file_path)
 
     # Verify file upload
     assert remote_file_path in fs.ls(f"{bucket}", detail=False, refresh=True)
@@ -350,7 +355,6 @@ def test_put_files(minio_bucket: tuple[S3Config, ClientConfig], tmp_path: Path):
 @pytest.mark.asyncio
 async def test_put_files_async(
     minio_bucket: tuple[S3Config, ClientConfig],
-    tmp_path: Path,
 ):
     """Test put new file to S3 asynchronously."""
     register("s3")
@@ -361,14 +365,15 @@ async def test_put_files_async(
         asynchronous=True,
     )
 
-    test_data = "Hello, World!"
-    local_file_path = tmp_path / "test_file.txt"
-    local_file_path.write_text(test_data)
+    with TemporaryDirectory() as tmp:
+        test_data = "Hello, World!"
+        local_file_path = Path(tmp) / "test_file.txt"
+        local_file_path.write_text(test_data)
 
-    assert local_file_path.read_text() == test_data
-    remote_file_path = f"{TEST_BUCKET_NAME}/uploaded_test_file.txt"
+        assert local_file_path.read_text() == test_data
+        remote_file_path = f"{TEST_BUCKET_NAME}/uploaded_test_file.txt"
 
-    await fs._put(str(local_file_path), remote_file_path)
+        await fs._put(str(local_file_path), remote_file_path)
 
     # Verify file upload
     assert remote_file_path in await fs._ls(

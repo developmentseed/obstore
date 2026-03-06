@@ -64,11 +64,17 @@ jobs:
 
       - name: Build rust submodules
         run: |
-          uv run --python ${{ matrix.python-version }} maturin develop --uv -m obstore/Cargo.toml
+          uv run --python ${{ matrix.python-version }} maturin develop -m obstore/Cargo.toml
 
       - name: Run python tests
+        if: "!endsWith(matrix.python-version, 't')"
         run: |
-          uv run --python ${{ matrix.python-version }} pytest
+          uv run --python ${{ matrix.python-version }} pytest tests
+
+      - name: Run python tests with --parallel-threads=2
+        if: "endsWith(matrix.python-version, 't')"
+        run: |
+          uv run --python ${{ matrix.python-version }} pytest tests --parallel-threads=2
 
       # Ensure docs build without warnings
       - name: Check docs

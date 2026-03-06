@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import inspect
 import socket
+import sysconfig
 import time
 import warnings
 from typing import TYPE_CHECKING, Any
@@ -12,6 +14,37 @@ from minio import Minio
 from requests.exceptions import RequestException
 
 from obstore.store import S3Store
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """On free-threaded Python, enable parallel test execution by default."""
+    if (
+        sysconfig.get_config_var("Py_GIL_DISABLED")
+        and hasattr(
+            config.option,
+            "parallel_threads",
+        )
+        and config.option.parallel_threads == 1
+    ):
+        config.option.parallel_threads = "auto"
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Mark async tests as thread-unsafe.
+
+    pytest-asyncio and pytest-run-parallel are incompatible: run-parallel wraps
+    the test function before asyncio can schedule it, producing an unawaited
+    coroutine. Marking every async test as thread_unsafe keeps them on the main
+    thread where pytest-asyncio expects to run them.
+
+    See: https://github.com/Quansight-Labs/pytest-run-parallel/issues/14
+    """
+    for item in items:
+        if isinstance(item, pytest.Function) and inspect.iscoroutinefunction(
+            item.function,
+        ):
+            item.add_marker(pytest.mark.thread_unsafe)
+
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -116,13 +149,17 @@ def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
 def minio_bucket(
     minio_config: tuple[S3Config, ClientConfig],
 ) -> Generator[tuple[S3Config, ClientConfig], Any, None]:
-    yield minio_config
-
-    # Remove all files from bucket
+    # Clean bucket before each test so tests always start with empty state,
+    # regardless of whether a previous test's teardown failed or was incomplete.
     store = S3Store(config=minio_config[0], client_options=minio_config[1])
     objects = store.list().collect()
-    paths = [obj["path"] for obj in objects]
-    store.delete(paths)
+    store.delete([obj["path"] for obj in objects])
+
+    yield minio_config
+
+    # Best-effort cleanup after the test as well.
+    objects = store.list().collect()
+    store.delete([obj["path"] for obj in objects])
 
 
 @pytest.fixture

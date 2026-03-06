@@ -3,7 +3,8 @@ revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14'",
-    "python_full_version >= '3.11' and python_full_version < '3.14'",
+    "python_full_version == '3.13.*'",
+    "python_full_version >= '3.11' and python_full_version < '3.13'",
     "python_full_version < '3.11'",
 ]
 
@@ -1249,7 +1250,8 @@ version = "9.10.0"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.14'",
-    "python_full_version >= '3.11' and python_full_version < '3.14'",
+    "python_full_version == '3.13.*'",
+    "python_full_version >= '3.11' and python_full_version < '3.13'",
 ]
 dependencies = [
     { name = "colorama", marker = "python_full_version >= '3.11' and sys_platform == 'win32'" },
@@ -2892,6 +2894,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-run-parallel"
+version = "0.8.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest", marker = "python_full_version >= '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ff/91/14b1403b47f595d360af67624ee50eae2129f04f56e354ce6c04dbda9d93/pytest_run_parallel-0.8.2.tar.gz", hash = "sha256:ccc625bb79b3759a8c280a635a2332371af183020289c9215d04631b55ecfe3e", size = 66369, upload-time = "2026-01-14T09:55:33.797Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/ae/48c9c65807ecdfdd47abe8de308d805e2f3fd782838a0a54ed5505dae627/pytest_run_parallel-0.8.2-py3-none-any.whl", hash = "sha256:2a61aba89f56013859ca5c1efb660755bb6b0349ccfd1dbbef27a94b8c04fe4b", size = 19242, upload-time = "2026-01-14T09:55:32.742Z" },
+]
+
+[[package]]
 name = "python-dateutil"
 version = "2.9.0.post0"
 source = { registry = "https://pypi.org/simple" }
@@ -3515,7 +3529,9 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-mypy-plugins" },
+    { name = "pytest-run-parallel", marker = "python_full_version >= '3.13'" },
     { name = "python-dotenv" },
+    { name = "pyzmq" },
     { name = "ruff" },
     { name = "types-boto3", extra = ["s3", "sts"] },
     { name = "types-requests" },
@@ -3544,7 +3560,7 @@ examples = [
 dev = [
     { name = "aiohttp", specifier = ">=3.11.13" },
     { name = "aiohttp-retry", specifier = ">=2.9.1" },
-    { name = "arro3-core", specifier = ">=0.4.2" },
+    { name = "arro3-core", specifier = ">=0.6.5" },
     { name = "azure-identity", specifier = ">=1.21.0" },
     { name = "boto3", specifier = ">=1.38.21" },
     { name = "docker", specifier = ">=7.1.0" },
@@ -3562,7 +3578,9 @@ dev = [
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-mypy-plugins", specifier = ">=3.2.0" },
+    { name = "pytest-run-parallel", marker = "python_full_version >= '3.13'", specifier = ">=0.3.0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
+    { name = "pyzmq", specifier = ">=27.1.0" },
     { name = "ruff", specifier = ">=0.15.0" },
     { name = "types-boto3", extras = ["s3", "sts"], specifier = ">=1.36.23" },
     { name = "types-requests", specifier = ">=2.31.0.6" },
