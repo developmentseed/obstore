@@ -28,7 +28,7 @@ directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
-# ruff: noqa: ANN401, EM102, PTH123, FBT001, FBT002
+# ruff: noqa: ANN401, EM102, FBT001, FBT002
 
 from __future__ import annotations
 
@@ -43,8 +43,8 @@ from urllib.parse import urlparse
 import fsspec.asyn
 import fsspec.spec
 
-from obstore import open_reader, open_writer
-from obstore.store import from_url
+from obstore import open_reader, open_writer, open_writer_async
+from obstore.store import LocalStore, from_url
 
 if TYPE_CHECKING:
     import sys
@@ -260,6 +260,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         self._retry_config = retry_config
         self._config_kwargs = kwargs
         self._credential_provider = credential_provider
+        self._local_store = LocalStore()
 
         # https://stackoverflow.com/a/68550238
         self._construct_store = lru_cache(maxsize=max_cache_size)(self._construct_store)
@@ -462,39 +463,42 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         mode: str = "overwrite",  # noqa: ARG002
         **_kwargs: Any,
     ) -> None:
-        # TODO: We shouldn't use blocking file operations in async functions
-        if not Path(lpath).is_file():  # noqa: ASYNC240
-            err_msg = f"File {lpath} not found in local"
-            raise FileNotFoundError(err_msg)
+        # Raises FileNotFoundError if is directory or file not found
+        _ = await self._local_store.head_async(lpath)
 
-        # TODO: convert to use async file system methods using LocalStore
         # Async functions should not open files with blocking methods like `open`
         rbucket, rpath = self._split_path(rpath)
 
         # Should construct the store instance by rbucket, which is the target path
         store = self._construct_store(rbucket)
 
-        with open(lpath, "rb") as f:  # noqa: ASYNC230
-            await store.put_async(rpath, f)
+        await store.put_async(rpath, Path(lpath))
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
         res = urlparse(lpath)
-        # TODO: We shouldn't use blocking file operations in async functions
-        if res.scheme or Path(lpath).is_dir():  # noqa: ASYNC240
+        if (
+            res.scheme
+            or len(
+                (await self._local_store.list_with_delimiter_async(lpath)).get(
+                    "common_prefixes",
+                    [],
+                ),
+            )
+            > 0
+        ):
             # lpath need to be local file and cannot contain scheme
             return
 
-        # TODO: convert to use async file system methods using LocalStore
         # Async functions should not open files with blocking methods like `open`
         rbucket, rpath = self._split_path(rpath)
 
         # Should construct the store instance by rbucket, which is the target path
         store = self._construct_store(rbucket)
 
-        with open(lpath, "wb") as f:  # noqa: ASYNC230
+        async with open_writer_async(self._local_store, lpath) as f:
             resp = await store.get_async(rpath)
             async for buffer in resp.stream():
-                f.write(buffer)
+                await f.write(buffer)
 
     async def _info(self, path: str, **_kwargs: Any) -> dict[str, Any]:
         bucket, path_no_bucket = self._split_path(path)
