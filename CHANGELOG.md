@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [0.9.2] - 2026-03-11
+
+### What's Changed
+
+* ci: Run tests on 3.13, 3.14, 3.14t by @kylebarron in https://github.com/developmentseed/obstore/pull/637
+* feat: Add Python 3.13t and 3.14t builds / wheels by @DisturbedOcean in https://github.com/developmentseed/obstore/pull/619
+* feat: Bump upstream `object_store` version by @kylebarron in https://github.com/developmentseed/obstore/pull/636
+    * This should reduce contention on the credential cache for highly-concurrent usage. See https://github.com/apache/arrow-rs-object-store/issues/541, some initial discussion in https://github.com/apache/arrow-rs-object-store/pull/542, and fix in https://github.com/apache/arrow-rs-object-store/pull/648.
+* fix: Fix pytest warning about `@pytest.mark.asyncio` on non-async function by @kylebarron in https://github.com/developmentseed/obstore/pull/638
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.1...py-v0.9.2
+
 ## [0.9.1] - 2026-02-26
 
 - fix: Include prefix in `delete_stream` #629
