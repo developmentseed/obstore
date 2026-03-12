@@ -11,7 +11,7 @@ docs = [
     # Workaround for https://github.com/mkdocs/mkdocs/issues/4032
     "click<8.3",
     "mkdocs-material[imaging]>=9.6.3",
-    "mkdocs>=1.6.1",
+    "mkdocs>=1.6.1,<2",
     "mkdocstrings[python]>=1.0",
     "mkdocs-jupyter>=0.24.8",
     "mkdocs-redirects>=1.2.2",
@@ -114,10 +114,7 @@ markers = [
     "network: mark the test as requiring a network connection",
     "parallel_threads: mark test for concurrent thread execution",
 ]
-thread_unsafe_fixtures = [
-    "minio_bucket",
-    "minio_store",
-]
+thread_unsafe_fixtures = ["minio_bucket", "minio_store"]
 
 [tool.mypy]
 files = ["obstore/python"]
