@@ -1,4 +1,4 @@
-from ._list import ObjectMeta
+from ._list_types import ObjectMeta
 from .store import ObjectStore
 
 def head(store: ObjectStore, path: str) -> ObjectMeta:
