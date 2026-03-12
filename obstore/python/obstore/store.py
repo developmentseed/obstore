@@ -47,9 +47,13 @@ if TYPE_CHECKING:
         AzureSASToken,  # noqa: TC004
         BackoffConfig,  # noqa: TC004
         ClientConfig,  # noqa: TC004
+        ClientFactory,  # noqa: TC004
         GCSConfig,  # noqa: TC004
         GCSCredential,  # noqa: TC004
         GCSCredentialProvider,  # noqa: TC004
+        HttpRequest,  # noqa: TC004
+        HttpResponse,  # noqa: TC004
+        HttpService,  # noqa: TC004
         RetryConfig,  # noqa: TC004
         S3Config,  # noqa: TC004
         S3Credential,  # noqa: TC004
@@ -82,11 +86,15 @@ __all__ = [
     "AzureStore",
     "BackoffConfig",
     "ClientConfig",
+    "ClientFactory",
     "GCSConfig",
     "GCSCredential",
     "GCSCredentialProvider",
     "GCSStore",
     "HTTPStore",
+    "HttpRequest",
+    "HttpResponse",
+    "HttpService",
     "LocalStore",
     "MemoryStore",
     "RetryConfig",
