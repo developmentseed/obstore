@@ -221,13 +221,13 @@ jobs:
   release:
     runs-on: ubuntu-latest
     name: Release
-    # environment:
-    #   name: release
-    #   url: https://pypi.org/p/obstore
-    # permissions:
-    #   # IMPORTANT: this permission is mandatory for trusted publishing
-    #   id-token: write
-    if: startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: pypi-release
+      url: https://pypi.org/p/obstore
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     needs: [linux, musllinux, windows, macos, sdist]
     steps:
       - uses: actions/download-artifact@v4
@@ -239,7 +239,5 @@ jobs:
         with:
           python-version: 3.13
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
