@@ -470,7 +470,6 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         if not await self._local_store._exists(lpath):  # noqa: SLF001
             raise FileNotFoundError(lpath)
 
-        # Async functions should not open files with blocking methods like `open`
         rbucket, rpath = self._split_path(rpath)
 
         # Should construct the store instance by rbucket, which is the target path
@@ -480,7 +479,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
         res = urlparse(lpath)
-        if res.scheme or self._local_store.isdir(lpath):
+        if res.scheme or await self._local_store._isdir(lpath):  # noqa: SLF001
             # lpath need to be local file and cannot contain scheme
             return
 
