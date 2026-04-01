@@ -24,7 +24,7 @@
         
       
       
-      <link rel="icon" href="../../assets/images/favicon.png">
+      <link rel="icon" href="../../assets/ds_favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.4">
     
     
@@ -3281,20 +3281,24 @@ conditional updates, and it is therefore recommended applications preserve both<
 
     <div class="doc doc-contents first">
 
-        <p>Configure preconditions for the put operation
-There are three modes:
-- Overwrite: Perform an atomic write operation, overwriting any object present at the
-  provided path.
-- Create: Perform an atomic write operation, returning
+        <p>Configure preconditions for the put operation.</p>
+<p>There are three modes:</p>
+<ul>
+<li><strong>Overwrite</strong>: Perform an atomic write operation, overwriting any object present at
+  the provided path.</li>
+<li><strong>Create</strong>: Perform an atomic write operation, returning
   <a class="autorefs autorefs-internal" title="AlreadyExistsError" href="../exceptions/#obstore.exceptions.AlreadyExistsError"><code>AlreadyExistsError</code></a> if an object already
-  exists at the provided path.
-- Update: Perform an atomic write operation if the current version of the object matches
-  the provided <a class="autorefs autorefs-internal" title="obstore.UpdateVersion" href="#obstore.UpdateVersion"><code>UpdateVersion</code></a>, returning
-  <a class="autorefs autorefs-internal" title="PreconditionError" href="../exceptions/#obstore.exceptions.PreconditionError"><code>PreconditionError</code></a> otherwise.
-If a string is provided, it must be one of:
-- <code>"overwrite"</code>
-- <code>"create"</code>
-If a <code>dict</code> is provided, it must meet the criteria of
+  exists at the provided path.</li>
+<li><strong>Update</strong>: Perform an atomic write operation if the current version of the object
+  matches the provided <a class="autorefs autorefs-internal" title="obstore.UpdateVersion" href="#obstore.UpdateVersion"><code>UpdateVersion</code></a>, returning
+  <a class="autorefs autorefs-internal" title="PreconditionError" href="../exceptions/#obstore.exceptions.PreconditionError"><code>PreconditionError</code></a> otherwise.</li>
+</ul>
+<p>If a string is provided, it must be one of:</p>
+<ul>
+<li><code>"overwrite"</code></li>
+<li><code>"create"</code></li>
+</ul>
+<p>If a <code>dict</code> is provided, it must meet the criteria of
 <a class="autorefs autorefs-internal" title="obstore.UpdateVersion" href="#obstore.UpdateVersion"><code>UpdateVersion</code></a>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Not importable at runtime</p>
