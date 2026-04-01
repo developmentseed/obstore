@@ -18,17 +18,17 @@ jobs:
     name: Run pre-commit on Python code
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
       # Use ruff-action so we get annotations in the Github UI
-      - uses: astral-sh/ruff-action@v3
+      - uses: astral-sh/ruff-action@4919ec5cf1f49eff0871dbcea0da843445b837e6 # v3
 
       - name: Cache pre-commit virtualenvs
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-3|${{ hashFiles('.pre-commit-config.yaml') }}
@@ -46,15 +46,15 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           enable-cache: true
           version: "0.10.x"
@@ -85,7 +85,7 @@ jobs:
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run pyright
-        uses: jakebailey/pyright-action@v2.3.3
+        uses: jakebailey/pyright-action@6cabc0f01c4994be48fd45cd9dbacdd6e1ee6e5e # v2.3.3
         with:
           # Restore pylance-version: latest-release
           # once it uses >1.1.405
