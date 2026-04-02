@@ -136,7 +136,7 @@ jobs:
       # executables, so we use the Python versions provided by github actions
       # for now.
       # Seems to be this question: https://stackoverflow.com/questions/78557803/python-with-rust-cannot-open-input-file-python3-lib
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.13
           architecture: ${{ matrix.platform.target }}
@@ -235,7 +235,7 @@ jobs:
           pattern: wheels-*-obstore
           merge-multiple: true
           path: dist
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.13
 
