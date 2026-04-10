@@ -71,6 +71,90 @@ def test_register():
     assert issubclass(fsspec.get_filesystem_class("abfs"), FsspecStore)
 
 
+@pytest.mark.asyncio
+async def test_info_returns_cached_entry_without_constructing_store():
+    register("file")
+    fs: FsspecStore = fsspec.filesystem("file", asynchronous=True)
+
+    cached_entry = {
+        "name": "bucket/file.parquet",
+        "size": 12345,
+        "type": "file",
+        "e_tag": None,
+        "last_modified": None,
+        "version": None,
+    }
+    fs.dircache["bucket"] = [cached_entry]
+
+    with patch.object(fs, "_construct_store") as mock_construct:
+        result = await fs._info("bucket/file.parquet")
+
+    assert result == cached_entry
+    assert mock_construct.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_info_falls_through_to_head_on_dircache_miss():
+    register("file")
+    fs: FsspecStore = fsspec.filesystem("file", asynchronous=True)
+    assert fs.dircache == {}
+
+    with patch.object(fs, "_construct_store") as mock_construct:
+        mock_construct.side_effect = RuntimeError("HEAD path entered")
+        with pytest.raises(RuntimeError, match="HEAD path entered"):
+            await fs._info("bucket/some/file.parquet")
+
+    assert mock_construct.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_info_raises_filenotfound_when_parent_cached_and_child_absent():
+    register("file")
+    fs: FsspecStore = fsspec.filesystem("file", asynchronous=True)
+    fs.dircache["bucket"] = [
+        {"name": "bucket/other.parquet", "type": "file", "size": 1},
+    ]
+
+    with (
+        patch.object(fs, "_construct_store") as mock_construct,
+        pytest.raises(FileNotFoundError),
+    ):
+        await fs._info("bucket/missing.parquet")
+
+    assert mock_construct.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_info_synthesizes_directory_when_path_is_cached_dir_key():
+    register("file")
+    fs: FsspecStore = fsspec.filesystem("file", asynchronous=True)
+    fs.dircache["bucket/sub"] = [
+        {"name": "bucket/sub/child1", "type": "file", "size": 1},
+        {"name": "bucket/sub/child2", "type": "file", "size": 2},
+    ]
+
+    with patch.object(fs, "_construct_store") as mock_construct:
+        result = await fs._info("bucket/sub")
+
+    assert result == {"name": "bucket/sub", "size": 0, "type": "directory"}
+    assert mock_construct.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_info_synthesizes_directory_for_trailing_slash_query():
+    register("file")
+    fs: FsspecStore = fsspec.filesystem("file", asynchronous=True)
+    fs.dircache["bucket"] = [
+        {"name": "bucket/sub", "type": "directory", "size": 0},
+    ]
+
+    with patch.object(fs, "_construct_store") as mock_construct:
+        result = await fs._info("bucket/sub/")
+
+    assert result == {"name": "bucket/sub/", "size": 0, "type": "directory"}
+    assert mock_construct.call_count == 0
+
+
 def test_construct_store_cache_diff_bucket_name(
     minio_bucket: tuple[S3Config, ClientConfig],
 ):
