@@ -487,6 +487,16 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         await self._local_store._pipe_file(lpath, resp)  # noqa: SLF001
 
     async def _info(self, path: str, **_kwargs: Any) -> dict[str, Any]:
+        # Consult `self.dircache` before issuing a HEAD request. An empty
+        # filter means the cache has evidence `path` is a directory but no
+        # entry under that exact name, so we return a synthetic directory.
+        cached = self._ls_from_cache(path)
+        if cached is not None:
+            match = next((entry for entry in cached if entry["name"] == path), None)
+            if match is not None:
+                return match
+            return {"name": path, "size": 0, "type": "directory"}
+
         bucket, path_no_bucket = self._split_path(path)
         store = self._construct_store(bucket)
 
