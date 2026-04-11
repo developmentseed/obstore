@@ -2,11 +2,13 @@ use std::io::SeekFrom;
 use std::sync::Arc;
 
 use bytes::Bytes;
+use chrono::{DateTime, Utc};
+use indexmap::IndexMap;
 use object_store::buffered::{BufReader, BufWriter};
 use object_store::{ObjectMeta, ObjectStore, ObjectStoreExt};
-use pyo3::exceptions::{PyDeprecationWarning, PyIOError, PyStopAsyncIteration, PyStopIteration};
+use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
-use pyo3::types::PyString;
+use pyo3::types::{PyDict, PyString};
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::{future_into_py, get_runtime};
 use pyo3_bytes::PyBytes;
@@ -15,35 +17,39 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Line
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
-use crate::list::PyObjectMeta;
 use crate::tags::PyTagSet;
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024))]
+#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024, size=None))]
 pub(crate) fn open_reader(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
     buffer_size: usize,
+    size: Option<u64>,
 ) -> PyObjectStoreResult<PyReadableFile> {
     let store = store.into_inner();
     let runtime = get_runtime();
-    let (reader, meta) = py.detach(|| runtime.block_on(create_reader(store, path, buffer_size)))?;
-    Ok(PyReadableFile::new(reader, meta, false))
+    let was_hinted = size.is_some();
+    let (reader, meta) =
+        py.detach(|| runtime.block_on(create_reader(store, path, buffer_size, size)))?;
+    Ok(PyReadableFile::new(reader, meta, was_hinted, false))
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024))]
+#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024, size=None))]
 pub(crate) fn open_reader_async(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
     buffer_size: usize,
+    size: Option<u64>,
 ) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
+    let was_hinted = size.is_some();
     future_into_py(py, async move {
-        let (reader, meta) = create_reader(store, path, buffer_size).await?;
-        Ok(PyReadableFile::new(reader, meta, true))
+        let (reader, meta) = create_reader(store, path, buffer_size, size).await?;
+        Ok(PyReadableFile::new(reader, meta, was_hinted, true))
     })
 }
 
@@ -51,11 +57,22 @@ async fn create_reader(
     store: Arc<dyn ObjectStore>,
     path: PyPath,
     capacity: usize,
+    size: Option<u64>,
 ) -> PyObjectStoreResult<(BufReader, ObjectMeta)> {
-    let meta = store
-        .head(path.as_ref())
-        .await
-        .map_err(PyObjectStoreError::ObjectStoreError)?;
+    let meta = match size {
+        Some(size) => ObjectMeta {
+            location: path.as_ref().clone(),
+            last_modified: DateTime::<Utc>::from_timestamp(0, 0)
+                .expect("unix epoch is a valid DateTime"),
+            size,
+            e_tag: None,
+            version: None,
+        },
+        None => store
+            .head(path.as_ref())
+            .await
+            .map_err(PyObjectStoreError::ObjectStoreError)?,
+    };
     Ok((BufReader::with_capacity(store, &meta, capacity), meta))
 }
 
@@ -63,14 +80,16 @@ async fn create_reader(
 pub(crate) struct PyReadableFile {
     reader: Arc<Mutex<BufReader>>,
     meta: ObjectMeta,
+    was_hinted: bool,
     r#async: bool,
 }
 
 impl PyReadableFile {
-    fn new(reader: BufReader, meta: ObjectMeta, r#async: bool) -> Self {
+    fn new(reader: BufReader, meta: ObjectMeta, was_hinted: bool, r#async: bool) -> Self {
         Self {
             reader: Arc::new(Mutex::new(reader)),
             meta,
+            was_hinted,
             r#async,
         }
     }
@@ -92,14 +111,19 @@ impl PyReadableFile {
     fn close(&self) {}
 
     #[getter]
-    fn meta(&self, py: Python) -> PyResult<PyObjectMeta> {
-        let warnings_mod = py.import(intern!(py, "warnings"))?;
-        let warning = PyDeprecationWarning::new_err(
-            "The `meta` attribute is deprecated and will be removed in a future release. \
-             Use the `head` or `head_async` methods directly if you need object metadata.",
-        );
-        warnings_mod.call_method1(intern!(py, "warn"), (warning,))?;
-        Ok(self.meta.clone().into())
+    fn meta<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
+        let mut dict = IndexMap::with_capacity(5);
+        dict.insert("path", self.meta.location.as_ref().into_bound_py_any(py)?);
+        if !self.was_hinted {
+            dict.insert(
+                "last_modified",
+                self.meta.last_modified.into_bound_py_any(py)?,
+            );
+        }
+        dict.insert("size", self.meta.size.into_bound_py_any(py)?);
+        dict.insert("e_tag", self.meta.e_tag.clone().into_bound_py_any(py)?);
+        dict.insert("version", self.meta.version.clone().into_bound_py_any(py)?);
+        dict.into_pyobject(py)
     }
 
     #[pyo3(signature = (size = None, /))]

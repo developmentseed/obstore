@@ -26,6 +26,7 @@ def open_reader(
     path: str,
     *,
     buffer_size: int = 1024 * 1024,
+    size: int | None = None,
 ) -> ReadableFile:
     """Open a readable file object from the specified location.
 
@@ -35,6 +36,11 @@ def open_reader(
 
     Keyword Args:
         buffer_size: The minimum number of bytes to read in a single request. Up to `buffer_size` bytes will be buffered in memory.
+        size: Optional byte size of the object. When provided, skips the HEAD request used to fetch the file size. Useful for callers that already know the size from external metadata.
+
+            The caller is responsible for accuracy: a value larger than the actual file surfaces as a read-time range error, a value smaller causes silent truncation.
+
+            When `size` is provided, the resulting reader's `meta` attribute omits `last_modified` (since it was not fetched). Callers that need that field should call `open_reader` without `size`. Defaults to `None`.
 
     Returns:
         ReadableFile
@@ -46,6 +52,7 @@ async def open_reader_async(
     path: str,
     *,
     buffer_size: int = 1024 * 1024,
+    size: int | None = None,
 ) -> AsyncReadableFile:
     """Call `open_reader` asynchronously, returning a readable file object with asynchronous operations.
 
