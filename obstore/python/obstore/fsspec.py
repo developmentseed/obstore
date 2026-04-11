@@ -681,7 +681,12 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
         if self.mode == "rb":
             buffer_size = 1024 * 1024 if buffer_size is None else buffer_size
-            self._reader = open_reader(store, path, buffer_size=buffer_size)
+            self._reader = open_reader(
+                store,
+                path,
+                buffer_size=buffer_size,
+                size=self.size,
+            )
         elif self.mode == "wb":
             buffer_size = 10 * 1024 * 1024 if buffer_size is None else buffer_size
             self._writer = open_writer(

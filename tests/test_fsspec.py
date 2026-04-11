@@ -155,6 +155,24 @@ async def test_info_synthesizes_directory_for_trailing_slash_query():
     assert mock_construct.call_count == 0
 
 
+def test_buffered_file_forwards_size_to_open_reader():
+    register("file")
+    fs: FsspecStore = fsspec.filesystem("file", asynchronous=False)
+
+    with TemporaryDirectory() as tmp:
+        path = Path(tmp) / "sized.bin"
+        path.write_bytes(b"x" * 1000)
+
+        file = fs._open(str(path), mode="rb", size=500)
+
+        assert file.size == 500
+        assert file._reader.size == 500
+        assert "last_modified" not in file._reader.meta
+
+        data = file.read()
+        assert len(data) == 500
+
+
 def test_construct_store_cache_diff_bucket_name(
     minio_bucket: tuple[S3Config, ClientConfig],
 ):
