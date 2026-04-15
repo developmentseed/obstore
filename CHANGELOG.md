@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## [0.9.3] - 2026-04-15
+
+### What's Changed
+
+* docs: Add devseed favicon by @kylebarron in https://github.com/developmentseed/obstore/pull/641
+* ci: Use trusted publishing by @kylebarron in https://github.com/developmentseed/obstore/pull/642
+* docs: Fix rendering of `PutMode` docstring by @kylebarron in https://github.com/developmentseed/obstore/pull/645
+* ci: add Dependabot for GitHub Actions version updates by @lhoupert in https://github.com/developmentseed/obstore/pull/647
+* feat: Fsspec: Convert async methods that open sync file handles to use LocalStore by @matteomorlack in https://github.com/developmentseed/obstore/pull/656
+* ci: pin gha to sha commit by @lhoupert in https://github.com/developmentseed/obstore/pull/659
+* ci: Use github app token for conventional commit labeling by @kylebarron in https://github.com/developmentseed/obstore/pull/662
+* fix(fsspec): _info() should honor self.dircache by @fvaleye in https://github.com/developmentseed/obstore/pull/663
+* feat(buffered): deprecate ReadableFile.meta and AsyncReadableFile.meta by @fvaleye in https://github.com/developmentseed/obstore/pull/667
+
+### New Contributors
+
+* @lhoupert made their first contribution in https://github.com/developmentseed/obstore/pull/647
+* @dependabot[bot] made their first contribution in https://github.com/developmentseed/obstore/pull/652
+* @matteomorlack made their first contribution in https://github.com/developmentseed/obstore/pull/656
+* @fvaleye made their first contribution in https://github.com/developmentseed/obstore/pull/663
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.2...py-v0.9.3
+
 ## [0.9.2] - 2026-03-11
 
 ### What's Changed
