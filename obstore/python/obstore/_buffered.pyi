@@ -16,6 +16,11 @@ if sys.version_info >= (3, 12):
 else:
     from typing_extensions import Buffer
 
+if sys.version_info >= (3, 13):
+    from warnings import deprecated
+else:
+    from typing_extensions import deprecated
+
 def open_reader(
     store: ObjectStore,
     path: str,
@@ -88,8 +93,19 @@ class ReadableFile:
         """
 
     @property
+    @deprecated(
+        "`ReadableFile.meta` is deprecated and will be removed in a future release. "
+        "Call `obstore.head(store, path)` directly if you need object metadata.",
+    )
     def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file."""
+        """Access the metadata of the underlying file.
+
+        !!! warning "Deprecated"
+
+            This attribute is deprecated and will be removed in a future
+            release. Call [`obstore.head`][obstore.head] directly if you
+            need object metadata.
+        """
 
     def read(self, size: int | None = None, /) -> Bytes:
         """Read up to `size` bytes from the object and return them.
@@ -170,8 +186,19 @@ class AsyncReadableFile:
         """
 
     @property
+    @deprecated(
+        "`AsyncReadableFile.meta` is deprecated and will be removed in a future release. "
+        "Call `obstore.head_async(store, path)` directly if you need object metadata.",
+    )
     def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file."""
+        """Access the metadata of the underlying file.
+
+        !!! warning "Deprecated"
+
+            This attribute is deprecated and will be removed in a future
+            release. Call [`obstore.head_async`][obstore.head_async]
+            directly if you need object metadata.
+        """
 
     async def read(self, size: int | None = None, /) -> Bytes:
         """Read up to `size` bytes from the object and return them.
