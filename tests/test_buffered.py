@@ -112,3 +112,30 @@ async def test_read_past_eof_async():
     buf = BytesIO(data)
     expected = buf.read(20)
     assert memoryview(expected) == memoryview(buffer)
+
+
+def test_readable_file_meta_emits_deprecation_warning():
+    store = MemoryStore()
+    path = "sized.bin"
+    obs.put(store, path, b"x" * 100)
+
+    file = obs.open_reader(store, path)
+    with pytest.warns(DeprecationWarning, match="`meta` attribute is deprecated"):
+        meta = file.meta
+
+    assert meta["size"] == 100
+    assert meta["path"] == path
+
+
+@pytest.mark.asyncio
+async def test_async_readable_file_meta_emits_deprecation_warning():
+    store = MemoryStore()
+    path = "sized.bin"
+    await obs.put_async(store, path, b"x" * 100)
+
+    file = await obs.open_reader_async(store, path)
+    with pytest.warns(DeprecationWarning, match="`meta` attribute is deprecated"):
+        meta = file.meta
+
+    assert meta["size"] == 100
+    assert meta["path"] == path
