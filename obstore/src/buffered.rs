@@ -96,7 +96,7 @@ impl PyReadableFile {
         let warnings_mod = py.import(intern!(py, "warnings"))?;
         let warning = PyDeprecationWarning::new_err(
             "The `meta` attribute is deprecated and will be removed in a future release. \
-             Call `obstore.head` (or `obstore.head_async`) directly if you need object metadata.",
+             Use the `head` or `head_async` methods directly if you need object metadata.",
         );
         warnings_mod.call_method1(intern!(py, "warn"), (warning,))?;
         Ok(self.meta.clone().into())

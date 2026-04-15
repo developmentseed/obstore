@@ -95,7 +95,7 @@ class ReadableFile:
     @property
     @deprecated(
         "`ReadableFile.meta` is deprecated and will be removed in a future release. "
-        "Call `obstore.head(store, path)` directly if you need object metadata.",
+        "Use the `head` or `head_async` methods directly if you need object metadata.",
     )
     def meta(self) -> ObjectMeta:
         """Access the metadata of the underlying file.
@@ -103,8 +103,9 @@ class ReadableFile:
         !!! warning "Deprecated"
 
             This attribute is deprecated and will be removed in a future
-            release. Call [`obstore.head`][obstore.head] directly if you
-            need object metadata.
+            release. Use the [`head`][obstore.head] or
+            [`head_async`][obstore.head_async] methods directly if you need
+            object metadata.
         """
 
     def read(self, size: int | None = None, /) -> Bytes:
@@ -188,7 +189,7 @@ class AsyncReadableFile:
     @property
     @deprecated(
         "`AsyncReadableFile.meta` is deprecated and will be removed in a future release. "
-        "Call `obstore.head_async(store, path)` directly if you need object metadata.",
+        "Use the `head` or `head_async` methods directly if you need object metadata.",
     )
     def meta(self) -> ObjectMeta:
         """Access the metadata of the underlying file.
@@ -196,8 +197,9 @@ class AsyncReadableFile:
         !!! warning "Deprecated"
 
             This attribute is deprecated and will be removed in a future
-            release. Call [`obstore.head_async`][obstore.head_async]
-            directly if you need object metadata.
+            release. Use the [`head`][obstore.head] or
+            [`head_async`][obstore.head_async] methods directly if you need
+            object metadata.
         """
 
     async def read(self, size: int | None = None, /) -> Bytes:
