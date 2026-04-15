@@ -171,18 +171,11 @@ def test_open_reader_size_hint_zero_byte_file():
     assert memoryview(b"") == memoryview(file.read())
 
 
-def test_open_reader_meta_last_modified_depends_on_size_hint():
+def test_open_reader_no_longer_exposes_meta():
     store = MemoryStore()
     data = b"x" * 1000
     path = "sized.bin"
     obs.put(store, path, data)
 
-    hinted = obs.open_reader(store, path, size=len(data))
-    unhinted = obs.open_reader(store, path)
-
-    assert "last_modified" not in hinted.meta
-    assert "last_modified" in unhinted.meta
-    assert hinted.meta["size"] == len(data)
-    assert unhinted.meta["size"] == len(data)
-    assert hinted.meta["e_tag"] is None
-    assert hinted.meta["path"] == path
+    file = obs.open_reader(store, path)
+    assert not hasattr(file, "meta")

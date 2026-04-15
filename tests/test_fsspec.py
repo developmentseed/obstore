@@ -167,7 +167,6 @@ def test_buffered_file_forwards_size_to_open_reader():
 
         assert file.size == 500
         assert file._reader.size == 500
-        assert "last_modified" not in file._reader.meta
 
         data = file.read()
         assert len(data) == 500

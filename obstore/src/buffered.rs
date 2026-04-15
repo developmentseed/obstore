@@ -2,13 +2,11 @@ use std::io::SeekFrom;
 use std::sync::Arc;
 
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
-use indexmap::IndexMap;
 use object_store::buffered::{BufReader, BufWriter};
 use object_store::{ObjectMeta, ObjectStore, ObjectStoreExt};
 use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyString};
+use pyo3::types::PyString;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::{future_into_py, get_runtime};
 use pyo3_bytes::PyBytes;
@@ -30,10 +28,9 @@ pub(crate) fn open_reader(
 ) -> PyObjectStoreResult<PyReadableFile> {
     let store = store.into_inner();
     let runtime = get_runtime();
-    let was_hinted = size.is_some();
-    let (reader, meta) =
+    let (reader, resolved_size) =
         py.detach(|| runtime.block_on(create_reader(store, path, buffer_size, size)))?;
-    Ok(PyReadableFile::new(reader, meta, was_hinted, false))
+    Ok(PyReadableFile::new(reader, resolved_size, false))
 }
 
 #[pyfunction]
@@ -46,10 +43,9 @@ pub(crate) fn open_reader_async(
     size: Option<u64>,
 ) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
-    let was_hinted = size.is_some();
     future_into_py(py, async move {
-        let (reader, meta) = create_reader(store, path, buffer_size, size).await?;
-        Ok(PyReadableFile::new(reader, meta, was_hinted, true))
+        let (reader, resolved_size) = create_reader(store, path, buffer_size, size).await?;
+        Ok(PyReadableFile::new(reader, resolved_size, true))
     })
 }
 
@@ -58,12 +54,11 @@ async fn create_reader(
     path: PyPath,
     capacity: usize,
     size: Option<u64>,
-) -> PyObjectStoreResult<(BufReader, ObjectMeta)> {
+) -> PyObjectStoreResult<(BufReader, u64)> {
     let meta = match size {
         Some(size) => ObjectMeta {
             location: path.as_ref().clone(),
-            last_modified: DateTime::<Utc>::from_timestamp(0, 0)
-                .expect("unix epoch is a valid DateTime"),
+            last_modified: Default::default(),
             size,
             e_tag: None,
             version: None,
@@ -73,23 +68,22 @@ async fn create_reader(
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?,
     };
-    Ok((BufReader::with_capacity(store, &meta, capacity), meta))
+    let size = meta.size;
+    Ok((BufReader::with_capacity(store, &meta, capacity), size))
 }
 
 #[pyclass(name = "ReadableFile", frozen)]
 pub(crate) struct PyReadableFile {
     reader: Arc<Mutex<BufReader>>,
-    meta: ObjectMeta,
-    was_hinted: bool,
+    size: u64,
     r#async: bool,
 }
 
 impl PyReadableFile {
-    fn new(reader: BufReader, meta: ObjectMeta, was_hinted: bool, r#async: bool) -> Self {
+    fn new(reader: BufReader, size: u64, r#async: bool) -> Self {
         Self {
             reader: Arc::new(Mutex::new(reader)),
-            meta,
-            was_hinted,
+            size,
             r#async,
         }
     }
@@ -109,22 +103,6 @@ impl PyReadableFile {
     // Maybe this should dispose of the internal reader? In that case we want to store an
     // `Option<Arc<Mutex<BufReader>>>`.
     fn close(&self) {}
-
-    #[getter]
-    fn meta<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let mut dict = IndexMap::with_capacity(5);
-        dict.insert("path", self.meta.location.as_ref().into_bound_py_any(py)?);
-        if !self.was_hinted {
-            dict.insert(
-                "last_modified",
-                self.meta.last_modified.into_bound_py_any(py)?,
-            );
-        }
-        dict.insert("size", self.meta.size.into_bound_py_any(py)?);
-        dict.insert("e_tag", self.meta.e_tag.clone().into_bound_py_any(py)?);
-        dict.insert("version", self.meta.version.clone().into_bound_py_any(py)?);
-        dict.into_pyobject(py)
-    }
 
     #[pyo3(signature = (size = None, /))]
     fn read<'py>(&'py self, py: Python<'py>, size: Option<usize>) -> PyResult<Bound<'py, PyAny>> {
@@ -203,7 +181,7 @@ impl PyReadableFile {
 
     #[getter]
     fn size(&self) -> u64 {
-        self.meta.size
+        self.size
     }
 
     fn tell<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {
