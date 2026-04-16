@@ -3,7 +3,6 @@ from contextlib import AbstractAsyncContextManager, AbstractContextManager
 
 from ._attributes import Attributes
 from ._bytes import Bytes
-from ._list import ObjectMeta
 from ._store import ObjectStore
 
 if sys.version_info >= (3, 11):
@@ -16,16 +15,12 @@ if sys.version_info >= (3, 12):
 else:
     from typing_extensions import Buffer
 
-if sys.version_info >= (3, 13):
-    from warnings import deprecated
-else:
-    from typing_extensions import deprecated
-
 def open_reader(
     store: ObjectStore,
     path: str,
     *,
     buffer_size: int = 1024 * 1024,
+    size: int | None = None,
 ) -> ReadableFile:
     """Open a readable file object from the specified location.
 
@@ -35,6 +30,9 @@ def open_reader(
 
     Keyword Args:
         buffer_size: The minimum number of bytes to read in a single request. Up to `buffer_size` bytes will be buffered in memory.
+        size: Optional byte size of the object. When provided, skips the HEAD request used to fetch the file size. Useful for callers that already know the size from external metadata.
+
+            The caller is responsible for accuracy: a value larger than the actual file surfaces as a read-time range error, a value smaller causes silent truncation. Defaults to `None`.
 
     Returns:
         ReadableFile
@@ -46,6 +44,7 @@ async def open_reader_async(
     path: str,
     *,
     buffer_size: int = 1024 * 1024,
+    size: int | None = None,
 ) -> AsyncReadableFile:
     """Call `open_reader` asynchronously, returning a readable file object with asynchronous operations.
 
@@ -90,22 +89,6 @@ class ReadableFile:
         """Close the current file.
 
         This is currently a no-op.
-        """
-
-    @property
-    @deprecated(
-        "`ReadableFile.meta` is deprecated and will be removed in a future release. "
-        "Use the `head` or `head_async` methods directly if you need object metadata.",
-    )
-    def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file.
-
-        !!! warning "Deprecated"
-
-            This attribute is deprecated and will be removed in a future
-            release. Use the [`head`][obstore.head] or
-            [`head_async`][obstore.head_async] methods directly if you need
-            object metadata.
         """
 
     def read(self, size: int | None = None, /) -> Bytes:
@@ -184,22 +167,6 @@ class AsyncReadableFile:
         """Close the current file.
 
         This is currently a no-op.
-        """
-
-    @property
-    @deprecated(
-        "`AsyncReadableFile.meta` is deprecated and will be removed in a future release. "
-        "Use the `head` or `head_async` methods directly if you need object metadata.",
-    )
-    def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file.
-
-        !!! warning "Deprecated"
-
-            This attribute is deprecated and will be removed in a future
-            release. Use the [`head`][obstore.head] or
-            [`head_async`][obstore.head_async] methods directly if you need
-            object metadata.
         """
 
     async def read(self, size: int | None = None, /) -> Bytes:
