@@ -346,7 +346,7 @@ pub(crate) fn get(
 ) -> PyObjectStoreResult<PyGetResult> {
     let runtime = get_runtime();
     py.detach(|| {
-        let path = &path.as_ref();
+        let path = path.as_ref();
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {
@@ -366,7 +366,7 @@ pub(crate) fn get_async(
     options: Option<PyGetOptions>,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let path = &path.as_ref();
+        let path = path.as_ref();
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {
