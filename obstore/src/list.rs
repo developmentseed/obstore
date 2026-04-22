@@ -8,7 +8,6 @@ use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
-use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
@@ -17,7 +16,7 @@ use pyo3::{intern, IntoPyObjectExt};
 use pyo3_arrow::export::{Arro3RecordBatch, Arro3Table};
 use pyo3_arrow::PyTable;
 use pyo3_async_runtimes::tokio::get_runtime;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPath};
 use tokio::sync::Mutex;
 
 pub(crate) struct PyObjectMeta(ObjectMeta);
@@ -353,8 +352,8 @@ impl<'py> IntoPyObject<'py> for PyListResult {
 pub(crate) fn list(
     py: Python,
     store: PyObjectStore,
-    prefix: Option<String>,
-    offset: Option<String>,
+    prefix: Option<PyPath>,
+    offset: Option<PyPath>,
     chunk_size: usize,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListStream> {
@@ -373,7 +372,7 @@ pub(crate) fn list(
     let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
     let stream = if let Some(offset) = offset {
-        store.list_with_offset(prefix.as_ref(), &offset.into())
+        store.list_with_offset(prefix.as_ref(), offset.as_ref())
     } else {
         store.list(prefix.as_ref())
     };
@@ -385,14 +384,14 @@ pub(crate) fn list(
 pub(crate) fn list_with_delimiter(
     py: Python,
     store: PyObjectStore,
-    prefix: Option<String>,
+    prefix: Option<PyPath>,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
     let runtime = get_runtime();
     py.detach(|| {
         let out = runtime.block_on(list_with_delimiter_materialize(
             store.into_inner(),
-            prefix.map(|s| s.into()).as_ref(),
+            prefix.as_ref(),
             return_arrow,
         ))?;
         Ok::<_, PyObjectStoreError>(out)
@@ -404,25 +403,24 @@ pub(crate) fn list_with_delimiter(
 pub(crate) fn list_with_delimiter_async(
     py: Python,
     store: PyObjectStore,
-    prefix: Option<String>,
+    prefix: Option<PyPath>,
     return_arrow: bool,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let out = list_with_delimiter_materialize(
-            store.into_inner(),
-            prefix.map(|s| s.into()).as_ref(),
-            return_arrow,
-        )
-        .await?;
+        let out =
+            list_with_delimiter_materialize(store.into_inner(), prefix.as_ref(), return_arrow)
+                .await?;
         Ok(out)
     })
 }
 
 async fn list_with_delimiter_materialize(
     store: Arc<dyn ObjectStore>,
-    prefix: Option<&Path>,
+    prefix: Option<&PyPath>,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
-    let list_result = store.list_with_delimiter(prefix).await?;
+    let list_result = store
+        .list_with_delimiter(prefix.map(|s| s.as_ref()))
+        .await?;
     Ok(PyListResult::new(list_result, return_arrow))
 }

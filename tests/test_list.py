@@ -11,9 +11,25 @@ def test_list():
     store.put("file2.txt", b"bar")
     store.put("file3.txt", b"baz")
 
-    stream = store.list()
-    result = stream.collect()
+    result = store.list().collect()
     assert len(result) == 3
+
+
+def test_list_non_ascii():
+    store = MemoryStore()
+
+    name1 = "café.txt"
+    name2 = "ümlaut.txt"
+    name3 = "こんにちは世界.txt"
+    store.put(name1, b"foo")
+    store.put(name2, b"bar")
+    store.put(name3, b"baz")
+
+    result = store.list().collect()
+    assert len(result) == 3
+    assert result[0]["path"] == name1
+    assert result[1]["path"] == name2
+    assert result[2]["path"] == name3
 
 
 def test_list_as_arrow():
@@ -35,6 +51,23 @@ def test_list_as_arrow():
     batch = stream.collect()
     assert isinstance(batch, RecordBatch)
     assert batch.num_rows == 100
+
+
+def test_list_non_ascii_arrow():
+    store = MemoryStore()
+
+    name1 = "café.txt"
+    name2 = "ümlaut.txt"
+    name3 = "こんにちは世界.txt"
+    store.put(name1, b"foo")
+    store.put(name2, b"bar")
+    store.put(name3, b"baz")
+
+    result = store.list(return_arrow=True).collect()
+    assert result.num_rows == 3
+    assert result["path"][0].as_py() == name1
+    assert result["path"][1].as_py() == name2
+    assert result["path"][2].as_py() == name3
 
 
 @pytest.mark.asyncio
