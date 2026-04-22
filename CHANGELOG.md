@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [0.9.4] - 2026-04-22
+
+### What's Changed
+
+- fix: Fix path parsing for copy, rename by @kylebarron in https://github.com/developmentseed/obstore/pull/672
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.3...py-v0.9.4
+
 ## [0.9.3] - 2026-04-15
 
 ### What's Changed
