@@ -80,9 +80,9 @@ impl Signer for SignCapableStore {
         Self: 'async_trait,
     {
         match self {
-            Self::S3(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
-            Self::Gcs(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
-            Self::Azure(inner) => inner.as_ref().inner().signed_url(method, path, expires_in),
+            Self::S3(inner) => inner.signed_url(method, path, expires_in),
+            Self::Gcs(inner) => inner.signed_url(method, path, expires_in),
+            Self::Azure(inner) => inner.signed_url(method, path, expires_in),
         }
     }
 
@@ -98,18 +98,9 @@ impl Signer for SignCapableStore {
         Self: 'async_trait,
     {
         match self {
-            Self::S3(inner) => inner
-                .as_ref()
-                .inner()
-                .signed_urls(method, paths, expires_in),
-            Self::Gcs(inner) => inner
-                .as_ref()
-                .inner()
-                .signed_urls(method, paths, expires_in),
-            Self::Azure(inner) => inner
-                .as_ref()
-                .inner()
-                .signed_urls(method, paths, expires_in),
+            Self::S3(inner) => inner.signed_urls(method, paths, expires_in),
+            Self::Gcs(inner) => inner.signed_urls(method, paths, expires_in),
+            Self::Azure(inner) => inner.signed_urls(method, paths, expires_in),
         }
     }
 }
