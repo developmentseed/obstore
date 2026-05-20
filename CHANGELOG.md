@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [0.9.5] - 2026-05-20
+
+### What's Changed
+
+- fix: Fix handling prefix during signing https://github.com/developmentseed/obstore/pull/683
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.4...py-v0.9.5
+
 ## [0.9.4] - 2026-04-22
 
 ### What's Changed
