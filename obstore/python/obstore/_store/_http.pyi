@@ -1,6 +1,6 @@
 import sys
 
-from ._client import ClientConfig
+from ._client import ClientConfig, ClientFactory
 from ._retry import RetryConfig
 
 if sys.version_info >= (3, 11):
@@ -17,6 +17,7 @@ class HTTPStore:
         *,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        client_factory: ClientFactory | None = None,
     ) -> None:
         """Construct a new HTTPStore from a URL.
 
@@ -31,6 +32,7 @@ class HTTPStore:
         Keyword Args:
             client_options: HTTP Client options. Defaults to None.
             retry_config: Retry configuration. Defaults to None.
+            client_factory: A custom HTTP client factory to use for requests. Defaults to None, which uses the Rust `reqwest` library to handle HTTP requests.
 
         Returns:
             HTTPStore
@@ -44,6 +46,7 @@ class HTTPStore:
         *,
         client_options: ClientConfig | None = None,
         retry_config: RetryConfig | None = None,
+        client_factory: ClientFactory | None = None,
     ) -> Self:
         """Construct a new HTTPStore from a URL.
 

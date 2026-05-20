@@ -7,13 +7,14 @@ use pyo3::{intern, IntoPyObjectExt};
 
 use crate::error::PyObjectStoreResult;
 use crate::retry::PyRetryConfig;
-use crate::{PyClientOptions, PyUrl};
+use crate::{PyClientOptions, PyHttpConnector, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
 struct HTTPConfig {
     url: PyUrl,
     client_options: Option<PyClientOptions>,
     retry_config: Option<PyRetryConfig>,
+    client_factory: Option<PyHttpConnector>,
 }
 
 impl HTTPConfig {
@@ -26,6 +27,9 @@ impl HTTPConfig {
         }
         if let Some(retry_config) = &self.retry_config {
             kwargs.set_item(intern!(py, "retry_config"), retry_config.clone())?;
+        }
+        if let Some(client_factory) = &self.client_factory {
+            kwargs.set_item("client_factory", client_factory)?;
         }
 
         PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
@@ -59,11 +63,12 @@ impl PyHttpStore {
 #[pymethods]
 impl PyHttpStore {
     #[new]
-    #[pyo3(signature = (url, *, client_options=None, retry_config=None))]
+    #[pyo3(signature = (url, *, client_options=None, retry_config=None, client_factory=None))]
     fn new(
         url: PyUrl,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        client_factory: Option<PyHttpConnector>,
     ) -> PyObjectStoreResult<Self> {
         let mut builder = HttpBuilder::new().with_url(url.clone());
         if let Some(client_options) = client_options.clone() {
@@ -72,24 +77,30 @@ impl PyHttpStore {
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
         }
+        if let Some(client_factory) = client_factory.clone() {
+            builder = builder.with_http_connector(client_factory);
+        }
+
         Ok(Self {
             store: Arc::new(builder.build()?),
             config: HTTPConfig {
                 url,
                 client_options,
                 retry_config,
+                client_factory,
             },
         })
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, client_options=None, retry_config=None))]
+    #[pyo3(signature = (url, *, client_options=None, retry_config=None, client_factory=None))]
     pub(crate) fn from_url<'py>(
         cls: &Bound<'py, PyType>,
         py: Python<'py>,
         url: PyUrl,
         client_options: Option<PyClientOptions>,
         retry_config: Option<PyRetryConfig>,
+        client_factory: Option<PyHttpConnector>,
     ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
         // Note: we pass **back** through Python so that if cls is a subclass, we instantiate the
         // subclass
@@ -97,6 +108,7 @@ impl PyHttpStore {
         kwargs.set_item("url", url)?;
         kwargs.set_item("client_options", client_options)?;
         kwargs.set_item("retry_config", retry_config)?;
+        kwargs.set_item("client_factory", client_factory)?;
         Ok(cls.call((), Some(&kwargs))?)
     }
 
