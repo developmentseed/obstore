@@ -5,9 +5,15 @@
 
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use http::Method;
+use object_store::signer::Signer;
 use std::borrow::Cow;
+use std::future::Future;
 use std::ops::Range;
+use std::pin::Pin;
 use std::sync::OnceLock;
+use std::time::Duration;
+use url::Url;
 
 use object_store::{path::Path, CopyOptions};
 use object_store::{
@@ -211,5 +217,44 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
             .delete_stream(locations)
             .map(move |location| location.map(|loc| strip_prefix(prefix.as_ref(), loc)))
             .boxed()
+    }
+}
+
+impl<T: ObjectStore + Signer> Signer for MaybePrefixedStore<T> {
+    fn signed_url<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        method: Method,
+        path: &'life1 Path,
+        expires_in: Duration,
+    ) -> Pin<Box<dyn Future<Output = object_store::Result<Url>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        let full = full_path(self.prefix.as_ref(), path).into_owned();
+        Box::pin(async move { self.inner.signed_url(method, &full, expires_in).await })
+    }
+
+    fn signed_urls<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        method: Method,
+        paths: &'life1 [Path],
+        expires_in: Duration,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Url>>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        let full_paths = paths
+            .iter()
+            .map(|path| full_path(self.prefix.as_ref(), path).into_owned())
+            .collect::<Vec<_>>();
+        Box::pin(async move {
+            self.inner
+                .signed_urls(method, &full_paths, expires_in)
+                .await
+        })
     }
 }
