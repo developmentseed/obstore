@@ -44,7 +44,7 @@ def test_sign_roundtrip_with_prefix(
         prefix="some/prefix",
     )
 
-    obstore.put(store, "filename.txt", b"hello world")
+    store.put("filename.txt", b"hello world")
 
     url = str(obstore.sign(store, "GET", "filename.txt", timedelta(seconds=3600)))
     assert "/some/prefix/filename.txt?" in url
@@ -85,8 +85,8 @@ def test_sign_batch_roundtrip_with_prefix(
         prefix="some/prefix",
     )
 
-    obstore.put(store, "one.txt", b"first")
-    obstore.put(store, "nested/two.txt", b"second")
+    store.put("one.txt", b"first")
+    store.put("nested/two.txt", b"second")
 
     paths = ["one.txt", "nested/two.txt"]
     urls = obstore.sign(store, "GET", paths, timedelta(seconds=3600))
