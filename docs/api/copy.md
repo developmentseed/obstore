@@ -2,8 +2,8 @@
 
 ## Method API
 
-::: obstore.store.ObjectStoreMixin.copy
-::: obstore.store.ObjectStoreMixin.copy_async
+::: obstore.store.ObjectStoreMethods.copy
+::: obstore.store.ObjectStoreMethods.copy_async
 
 ## Functional API
 

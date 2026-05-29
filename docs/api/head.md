@@ -2,8 +2,8 @@
 
 ## Method API
 
-::: obstore.store.ObjectStoreMixin.head
-::: obstore.store.ObjectStoreMixin.head_async
+::: obstore.store.ObjectStoreMethods.head
+::: obstore.store.ObjectStoreMethods.head_async
 
 ## Functional API
 

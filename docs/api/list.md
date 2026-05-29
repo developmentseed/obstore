@@ -2,9 +2,9 @@
 
 ## Method API
 
-::: obstore.store.ObjectStoreMixin.list
-::: obstore.store.ObjectStoreMixin.list_with_delimiter
-::: obstore.store.ObjectStoreMixin.list_with_delimiter_async
+::: obstore.store.ObjectStoreMethods.list
+::: obstore.store.ObjectStoreMethods.list_with_delimiter
+::: obstore.store.ObjectStoreMethods.list_with_delimiter_async
 
 ## Functional API
 

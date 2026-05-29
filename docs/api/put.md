@@ -2,8 +2,8 @@
 
 ## Method API
 
-::: obstore.store.ObjectStoreMixin.put
-::: obstore.store.ObjectStoreMixin.put_async
+::: obstore.store.ObjectStoreMethods.put
+::: obstore.store.ObjectStoreMethods.put_async
 
 ## Functional API
 

@@ -2,12 +2,12 @@
 
 ## Method API
 
-::: obstore.store.ObjectStoreMixin.get
-::: obstore.store.ObjectStoreMixin.get_async
-::: obstore.store.ObjectStoreMixin.get_range
-::: obstore.store.ObjectStoreMixin.get_range_async
-::: obstore.store.ObjectStoreMixin.get_ranges
-::: obstore.store.ObjectStoreMixin.get_ranges_async
+::: obstore.store.ObjectStoreMethods.get
+::: obstore.store.ObjectStoreMethods.get_async
+::: obstore.store.ObjectStoreMethods.get_range
+::: obstore.store.ObjectStoreMethods.get_range_async
+::: obstore.store.ObjectStoreMethods.get_ranges
+::: obstore.store.ObjectStoreMethods.get_ranges_async
 
 ## Functional API
 

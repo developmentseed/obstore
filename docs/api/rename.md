@@ -2,8 +2,8 @@
 
 ## Method API
 
-::: obstore.store.ObjectStoreMixin.rename
-::: obstore.store.ObjectStoreMixin.rename_async
+::: obstore.store.ObjectStoreMethods.rename
+::: obstore.store.ObjectStoreMethods.rename_async
 
 ## Functional API
 

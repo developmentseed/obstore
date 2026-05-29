@@ -2,8 +2,8 @@
 
 ## Method API
 
-::: obstore.store.ObjectStoreMixin.delete
-::: obstore.store.ObjectStoreMixin.delete_async
+::: obstore.store.ObjectStoreMethods.delete
+::: obstore.store.ObjectStoreMethods.delete_async
 
 ## Functional API
 
