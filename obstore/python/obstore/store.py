@@ -98,7 +98,7 @@ __all__ = [
 ]
 
 
-class _ObjectStoreMixin:
+class ObjectStoreMixin:
     def copy(self, from_: str, to: str, *, overwrite: bool = True) -> None:
         """Copy an object from one path to another in the same object store.
 
@@ -579,7 +579,7 @@ class _ObjectStoreMixin:
         )
 
 
-class AzureStore(_ObjectStoreMixin, _store.AzureStore):
+class AzureStore(ObjectStoreMixin, _store.AzureStore):
     """Interface to a Microsoft Azure Blob Storage container.
 
     All constructors will check for environment variables. Refer to
@@ -587,7 +587,7 @@ class AzureStore(_ObjectStoreMixin, _store.AzureStore):
     """
 
 
-class GCSStore(_ObjectStoreMixin, _store.GCSStore):
+class GCSStore(ObjectStoreMixin, _store.GCSStore):
     """Interface to Google Cloud Storage.
 
     All constructors will check for environment variables. Refer to
@@ -599,7 +599,7 @@ class GCSStore(_ObjectStoreMixin, _store.GCSStore):
     """
 
 
-class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
+class HTTPStore(ObjectStoreMixin, _store.HTTPStore):
     """Configure a connection to a generic HTTP server.
 
     **Example**
@@ -627,7 +627,7 @@ class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
     """
 
 
-class LocalStore(_ObjectStoreMixin, _store.LocalStore):
+class LocalStore(ObjectStoreMixin, _store.LocalStore):
     """An ObjectStore interface to local filesystem storage.
 
     Can optionally be created with a directory prefix.
@@ -642,7 +642,7 @@ class LocalStore(_ObjectStoreMixin, _store.LocalStore):
     """
 
 
-class MemoryStore(_ObjectStoreMixin, _store.MemoryStore):
+class MemoryStore(ObjectStoreMixin, _store.MemoryStore):
     """A fully in-memory implementation of ObjectStore.
 
     Create a new in-memory store:
@@ -652,7 +652,7 @@ class MemoryStore(_ObjectStoreMixin, _store.MemoryStore):
     """
 
 
-class S3Store(_ObjectStoreMixin, _store.S3Store):
+class S3Store(ObjectStoreMixin, _store.S3Store):
     """Interface to an Amazon S3 bucket.
 
     All constructors will check for environment variables. Refer to

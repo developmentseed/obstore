@@ -49,6 +49,7 @@ nav:
   - API Reference:
       - obstore.store:
           - api/store/index.md
+          - api/store/base.md
           - api/store/aws.md
           - api/store/gcs.md
           - api/store/azure.md
