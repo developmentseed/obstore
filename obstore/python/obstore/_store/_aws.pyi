@@ -278,12 +278,14 @@ class S3Config(TypedDict, total=False):
     **Environment variable**: `AWS_REGION`.
     """
 
-    request_payer: bool
-    """If `True`, enable operations on requester-pays buckets.
+    request_payer: bool | Literal["requester", "REQUESTER"]
+    """Enable operations on requester-pays buckets.
+
+    Config option can be set to `True` or `"requester"` (case insensitive).
 
     <https://docs.aws.amazon.com/AmazonS3/latest/userguide/RequesterPaysBuckets.html>
 
-    **Environment variable**: `AWS_REQUEST_PAYER`.
+    **Environment variable**: `AWS_REQUEST_PAYER` (can be set to either `"requester"` or `"true"`).
     """
     role_arn: str
     """Role ARN to assume when using web identity token.
