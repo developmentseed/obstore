@@ -57,6 +57,17 @@ class GCSConfig(TypedDict, total=False):
     **Environment variable**: `GOOGLE_SERVICE_ACCOUNT_KEY`.
     """
 
+    base_url: str
+    """Sets the base URL for communicating with GCS.
+
+    If not explicitly set, it will be:
+
+    1. Derived from the service account credentials, if provided
+    2. Otherwise, uses the default GCS endpoint
+
+    **Environment variable**: `GOOGLE_BASE_URL`.
+    """
+
     bucket: str
     """Bucket name. (required)
 
