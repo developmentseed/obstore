@@ -109,6 +109,8 @@ class ObjectStoreMethods:
     It is exposed for documentation and for
     `isinstance` checks against obstore's own stores.
 
+    This implements the protocols defined in [obspec](https://developmentseed.org/obspec/).
+
     !!! note
         Do not subclass this to build your own store. To implement a
         custom object store backend, implement the protocols in
