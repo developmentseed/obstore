@@ -135,6 +135,8 @@ class S3Config(TypedDict, total=False):
     <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
 
     **Environment variable**: `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`.
+
+    Example: `/v2/credentials/abc123`
     """
 
     container_credentials_full_uri: str
@@ -143,6 +145,8 @@ class S3Config(TypedDict, total=False):
     <https://docs.aws.amazon.com/sdkref/latest/guide/feature-container-credentials.html>
 
     **Environment variable**: `AWS_CONTAINER_CREDENTIALS_FULL_URI`.
+
+    Example: `http://169.254.170.2/v2/credentials/abc123`
     """
 
     container_authorization_token_file: str
@@ -151,6 +155,8 @@ class S3Config(TypedDict, total=False):
     <https://docs.aws.amazon.com/sdkref/latest/guide/feature-container-credentials.html>
 
     **Environment variable**: `AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE`.
+
+    Example: `/var/run/secrets/eks.amazonaws.com/serviceaccount/token`
     """
 
     copy_if_not_exists: Literal["multipart"] | str
@@ -282,6 +288,8 @@ class S3Config(TypedDict, total=False):
     """Role ARN to assume when using web identity token.
 
     **Environment variable**: `AWS_ROLE_ARN`.
+
+    Example: `arn:aws:iam::123456789012:role/MyWebIdentityRole`
     """
 
     role_session_name: str
@@ -359,10 +367,14 @@ class S3Config(TypedDict, total=False):
     If set, the server side encryption config value must be `"aws:kms"` or `"aws:kms:dsse"`.
 
     **Environment variable**: `AWS_SSE_KMS_KEY_ID`.
+
+    Example: `arn:aws:kms:us-east-1:123456789012:key/abcd-1234-efgh-5678`
     """
 
     sts_endpoint: str
     """Custom STS endpoint for web identity token exchange.
+
+    Defaults to `https://sts.{region}.amazonaws.com`.
 
     **Environment variable**: `AWS_STS_ENDPOINT`.
     """
@@ -397,6 +409,8 @@ class S3Config(TypedDict, total=False):
     """Web identity token file path for AssumeRoleWithWebIdentity.
 
     **Environment variable**: `AWS_WEB_IDENTITY_TOKEN_FILE`.
+
+    Example: `/var/run/secrets/eks.amazonaws.com/serviceaccount/token`
     """
 
 class S3Credential(TypedDict):
