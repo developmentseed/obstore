@@ -99,6 +99,22 @@ __all__ = [
 
 
 class ObjectStoreMethods:
+    """Shared methods implemented by all obstore store classes.
+
+    This is the concrete method surface common to [`S3Store`][obstore.store.S3Store],
+    [`AzureStore`][obstore.store.AzureStore], [`GCSStore`][obstore.store.GCSStore],
+    [`HTTPStore`][obstore.store.HTTPStore], [`LocalStore`][obstore.store.LocalStore],
+    and [`MemoryStore`][obstore.store.MemoryStore].
+
+    It is exposed for documentation and for
+    `isinstance` checks against obstore's own stores.
+
+    !!! note
+        Do not subclass this to build your own store. To implement a
+        custom object store backend, implement the protocols in
+        [obspec](https://developmentseed.org/obspec/) instead.
+    """
+
     def copy(self, from_: str, to: str, *, overwrite: bool = True) -> None:
         """Copy an object from one path to another in the same object store.
 
