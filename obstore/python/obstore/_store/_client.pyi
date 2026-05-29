@@ -41,6 +41,7 @@ class ClientConfig(TypedDict, total=False):
 
     allow_http: bool
     """Allow non-TLS, i.e. non-HTTPS connections."""
+
     allow_invalid_certificates: bool
     """Skip certificate validation on https connections.
 
@@ -52,8 +53,19 @@ class ClientConfig(TypedDict, total=False):
         introduces significant vulnerabilities, and should only be used
         as a last resort or for testing
     """
+
     connect_timeout: str | timedelta
-    """Timeout for only the connect phase of a Client"""
+    """Set a timeout for only the connect phase of a Client.
+
+    This is the time allowed for the client to establish a connection
+    and if the connection is not established within this time,
+    the client returns a timeout error.
+
+    Timeout errors are retried, subject to the `RetryConfig`.
+
+    Default is 5 seconds.
+    """
+
     default_content_type: str
     """Default [`CONTENT_TYPE`] for uploads.
 
@@ -108,10 +120,15 @@ class ClientConfig(TypedDict, total=False):
 
     """HTTP proxy to use for requests."""
     timeout: str | timedelta
-    """Request timeout.
+    """Set timeout for the overall request
 
-    The timeout is applied from when the request starts connecting until the
-    response body has finished.
+    The timeout starts from when the request starts connecting until the
+    response body has finished. If the request does not complete within the
+    timeout, the client returns a timeout error.
+
+    Timeout errors are retried, subject to the `RetryConfig`.
+
+    Default is 30 seconds.
     """
     user_agent: str
     """[User-Agent] header to be used by this client.
