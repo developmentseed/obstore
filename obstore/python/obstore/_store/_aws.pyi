@@ -238,8 +238,9 @@ class S3Config(TypedDict, total=False):
 
     **Environment variables**:
 
-    - `AWS_ENDPOINT_URL`
     - `AWS_ENDPOINT`
+    - `AWS_ENDPOINT_URL`
+    - `AWS_ENDPOINT_URL_S3`.
     """
 
     imdsv1_fallback: bool
