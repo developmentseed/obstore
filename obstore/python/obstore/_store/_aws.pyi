@@ -92,6 +92,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_ACCESS_KEY_ID`.
     """
+
     bucket: str
     """Bucket name (required).
 
@@ -100,6 +101,7 @@ class S3Config(TypedDict, total=False):
     - `AWS_BUCKET`
     - `AWS_BUCKET_NAME`
     """
+
     checksum_algorithm: S3ChecksumAlgorithm | str
     """
     Sets the [checksum algorithm] which has to be used for object integrity check during upload.
@@ -108,6 +110,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_CHECKSUM_ALGORITHM`.
     """
+
     conditional_put: str
     """Configure how to provide conditional put support
 
@@ -125,6 +128,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_CONDITIONAL_PUT`.
     """
+
     container_credentials_relative_uri: str
     """Set the container credentials relative URI
 
@@ -132,6 +136,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`.
     """
+
     copy_if_not_exists: Literal["multipart"] | str
     """Configure how to provide "copy if not exists".
 
@@ -179,16 +184,19 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_COPY_IF_NOT_EXISTS`.
     """
+
     default_region: S3Regions | str
     """Default region.
 
     **Environment variable**: `AWS_DEFAULT_REGION`.
     """
+
     disable_tagging: bool
     """Disable tagging objects. This can be desirable if not supported by the backing store.
 
     **Environment variable**: `AWS_DISABLE_TAGGING`.
     """
+
     endpoint: str
     """The endpoint for communicating with AWS S3.
 
@@ -211,6 +219,7 @@ class S3Config(TypedDict, total=False):
     - `AWS_ENDPOINT_URL`
     - `AWS_ENDPOINT`
     """
+
     imdsv1_fallback: bool
     """Fall back to ImdsV1.
 
@@ -230,6 +239,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_IMDSV1_FALLBACK`.
     """
+
     metadata_endpoint: str
     """Set the [instance metadata endpoint], used primarily within AWS EC2.
 
@@ -238,11 +248,13 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_METADATA_ENDPOINT`.
     """
+
     region: S3Regions | str
     """The region, defaults to `us-east-1`
 
     **Environment variable**: `AWS_REGION`.
     """
+
     request_payer: bool
     """If `True`, enable operations on requester-pays buckets.
 
@@ -250,16 +262,30 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_REQUEST_PAYER`.
     """
+    role_arn: str
+    """Role ARN to assume when using web identity token.
+
+    **Environment variable**: `AWS_ROLE_ARN`.
+    """
+
+    role_session_name: str
+    """Session name for web identity role assumption.
+
+    **Environment variable**: `AWS_ROLE_SESSION_NAME`.
+    """
+
     s3_express: bool
     """Enable Support for S3 Express One Zone.
 
     **Environment variable**: `AWS_S3_EXPRESS`.
     """
+
     secret_access_key: str
     """Secret Access Key.
 
     **Environment variable**: `AWS_SECRET_ACCESS_KEY`.
     """
+
     server_side_encryption: S3EncryptionAlgorithm | str
     """Type of encryption to use.
 
@@ -272,6 +298,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_SERVER_SIDE_ENCRYPTION`.
     """
+
     session_token: str
     """Token to use for requests (passed to underlying provider).
 
@@ -280,6 +307,7 @@ class S3Config(TypedDict, total=False):
     - `AWS_SESSION_TOKEN`
     - `AWS_TOKEN`
     """
+
     skip_signature: bool
     """If `True`, S3Store will not fetch credentials and will not sign requests.
 
@@ -287,6 +315,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_SKIP_SIGNATURE`.
     """
+
     sse_bucket_key_enabled: bool
     """Set whether to enable bucket key for server side encryption.
 
@@ -298,6 +327,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_SSE_BUCKET_KEY_ENABLED`.
     """
+
     sse_customer_key_base64: str
     """
     The base64 encoded, 256-bit customer encryption key to use for server-side
@@ -305,6 +335,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_SSE_CUSTOMER_KEY_BASE64`.
     """
+
     sse_kms_key_id: str
     """
     The KMS key ID to use for server-side encryption.
@@ -313,6 +344,13 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_SSE_KMS_KEY_ID`.
     """
+
+    sts_endpoint: str
+    """Custom STS endpoint for web identity token exchange.
+
+    **Environment variable**: `AWS_STS_ENDPOINT`.
+    """
+
     unsigned_payload: bool
     """Avoid computing payload checksum when calculating signature.
 
@@ -323,6 +361,7 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_UNSIGNED_PAYLOAD`.
     """
+
     virtual_hosted_style_request: bool
     """If virtual hosted style request has to be used.
 
@@ -336,6 +375,12 @@ class S3Config(TypedDict, total=False):
     `True` then `endpoint` should have bucket name included.
 
     **Environment variable**: `AWS_VIRTUAL_HOSTED_STYLE_REQUEST`.
+    """
+
+    web_identity_token_file: str
+    """Web identity token file path for AssumeRoleWithWebIdentity.
+
+    **Environment variable**: `AWS_WEB_IDENTITY_TOKEN_FILE`.
     """
 
 class S3Credential(TypedDict):
