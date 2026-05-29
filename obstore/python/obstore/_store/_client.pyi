@@ -82,6 +82,18 @@ class ClientConfig(TypedDict, total=False):
     pool_max_idle_per_host: str
     """Maximum number of idle connections per host."""
     proxy_url: str
+
+    randomize_addresses: bool
+    """Randomize order addresses that the DNS resolution yields.
+
+    This will spread the connections across more servers.
+
+    !!! warning
+
+        This will override the DNS resolver configured by `reqwest`.
+
+    """
+
     """HTTP proxy to use for requests."""
     timeout: str | timedelta
     """Request timeout.
