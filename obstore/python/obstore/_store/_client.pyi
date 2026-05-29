@@ -94,6 +94,18 @@ class ClientConfig(TypedDict, total=False):
 
     """
 
+    read_timeout: str | timedelta
+    """Read timeout.
+
+    The timeout applies to each read operation, and resets after a
+    successful read. This is useful for detecting stalled connections
+    when the size of the response is not known beforehand.
+
+    Timeout errors are retried, subject to the `RetryConfig`.
+
+    Default is disabled (no read timeout).
+    """
+
     """HTTP proxy to use for requests."""
     timeout: str | timedelta
     """Request timeout.
