@@ -122,10 +122,6 @@ class S3Config(TypedDict, total=False):
 
         [HTTP precondition]: https://datatracker.ietf.org/doc/html/rfc9110#name-preconditions
 
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`: The name of a DynamoDB table to use for coordination.
-
-        This will use the same region, credentials and endpoint as configured for S3.
-
     **Environment variable**: `AWS_CONDITIONAL_PUT`.
     """
 
@@ -196,13 +192,6 @@ class S3Config(TypedDict, total=False):
 
         The same as the header variant above but allows custom status code checking, for
         object stores that return values other than 412.
-
-    - `"dynamo:<TABLE_NAME>"` or `"dynamo:<TABLE_NAME>:<TIMEOUT_MILLIS>"`:
-
-        The name of a DynamoDB table to use for coordination.
-
-        The default timeout is used if not specified. This will use the same region,
-        credentials and endpoint as configured for S3.
 
     **Environment variable**: `AWS_COPY_IF_NOT_EXISTS`.
     """
