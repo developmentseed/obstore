@@ -130,11 +130,27 @@ class S3Config(TypedDict, total=False):
     """
 
     container_credentials_relative_uri: str
-    """Set the container credentials relative URI
+    """Set the container credentials relative URI when used in ECS.
 
     <https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html>
 
     **Environment variable**: `AWS_CONTAINER_CREDENTIALS_RELATIVE_URI`.
+    """
+
+    container_credentials_full_uri: str
+    """Set the container credentials full URI when used in EKS.
+
+    <https://docs.aws.amazon.com/sdkref/latest/guide/feature-container-credentials.html>
+
+    **Environment variable**: `AWS_CONTAINER_CREDENTIALS_FULL_URI`.
+    """
+
+    container_authorization_token_file: str
+    """Set the authorization token in plain text when used in EKS to authenticate with ContainerCredentialsFullUri.
+
+    <https://docs.aws.amazon.com/sdkref/latest/guide/feature-container-credentials.html>
+
+    **Environment variable**: `AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE`.
     """
 
     copy_if_not_exists: Literal["multipart"] | str
