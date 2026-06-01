@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## [0.10.0] - 2026-06-01
+
+* feat: Add storage class Attribute by @kylebarron in https://github.com/developmentseed/obstore/pull/685
+* feat: Add type hints for AWS STS WebIdentity, RoleArn, RoleSession by @kylebarron in https://github.com/developmentseed/obstore/pull/687
+* feat: Add EKS pod identity support by @kylebarron in https://github.com/developmentseed/obstore/pull/688
+* docs: Improve wording for HTTP client options by @kylebarron in https://github.com/developmentseed/obstore/pull/689
+* feat: Allow explicitly specifying GCS base url by @kylebarron in https://github.com/developmentseed/obstore/pull/690
+* docs: Docs for backend bulk delete support by @kylebarron in https://github.com/developmentseed/obstore/pull/691
+* feat: Support randomizing DNS addresses in client config by @kylebarron in https://github.com/developmentseed/obstore/pull/692
+* docs: Add some examples to aws config options by @kylebarron in https://github.com/developmentseed/obstore/pull/693
+* docs: Allow AWS_ENDPOINT_URL_S3 by @kylebarron in https://github.com/developmentseed/obstore/pull/694
+* docs: Allow string "requester" for requester_pays on AWS by @kylebarron in https://github.com/developmentseed/obstore/pull/695
+* docs: Expose `read_timeout` client config by @kylebarron in https://github.com/developmentseed/obstore/pull/696
+* docs: AWS CRC64 checksum support by @kylebarron in https://github.com/developmentseed/obstore/pull/697
+* docs: Improve docs on http client timeout by @kylebarron in https://github.com/developmentseed/obstore/pull/698
+* chore: Update azure url parsing by @kylebarron in https://github.com/developmentseed/obstore/pull/699
+* docs: Remove AWS dynamo integration for conditional put by @kylebarron in https://github.com/developmentseed/obstore/pull/700
+* feat: Make ObjectStoreMethods public, update docs by @kylebarron in https://github.com/developmentseed/obstore/pull/701
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.5...py-v0.10.0
+
 ## [0.9.5] - 2026-05-20
 
 ### What's Changed
