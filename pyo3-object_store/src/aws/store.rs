@@ -270,6 +270,12 @@ impl<'py> FromPyObject<'_, 'py> for PyAmazonS3ConfigKey {
     }
 }
 
+impl AsRef<AmazonS3ConfigKey> for PyAmazonS3ConfigKey {
+    fn as_ref(&self) -> &AmazonS3ConfigKey {
+        &self.0
+    }
+}
+
 impl AsRef<str> for PyAmazonS3ConfigKey {
     fn as_ref(&self) -> &str {
         self.0.as_ref()
@@ -316,6 +322,12 @@ impl From<PyAmazonS3ConfigKey> for AmazonS3ConfigKey {
 /// A Python-facing wrapper around a set of S3 configuration key-value pairs.
 #[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject, IntoPyObjectRef)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
+
+impl AsRef<HashMap<PyAmazonS3ConfigKey, PyConfigValue>> for PyAmazonS3Config {
+    fn as_ref(&self) -> &HashMap<PyAmazonS3ConfigKey, PyConfigValue> {
+        &self.0
+    }
+}
 
 // Note: we manually impl FromPyObject instead of deriving it so that we can raise an
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
