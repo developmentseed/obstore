@@ -138,7 +138,7 @@ class ObjectStoreMethods:
     ) -> None:
         """Call `copy` asynchronously.
 
-        Refer to the documentation for [copy][obstore.copy].
+        Refer to the documentation for [copy_async][obstore.copy_async].
         """
         return await obs.copy_async(
             self,  # type: ignore[arg-type]
@@ -160,7 +160,7 @@ class ObjectStoreMethods:
     async def delete_async(self, paths: str | Sequence[str]) -> None:
         """Call `delete` asynchronously.
 
-        Refer to the documentation for [delete][obstore.delete].
+        Refer to the documentation for [delete_async][obstore.delete_async].
         """
         return await obs.delete_async(
             self,  # type: ignore[arg-type]
@@ -191,7 +191,7 @@ class ObjectStoreMethods:
     ) -> GetResult:
         """Call `get` asynchronously.
 
-        Refer to the documentation for [get][obstore.get].
+        Refer to the documentation for [get_async][obstore.get_async].
         """
         return await obs.get_async(
             self,  # type: ignore[arg-type]
@@ -229,7 +229,7 @@ class ObjectStoreMethods:
     ) -> Bytes:
         """Call `get_range` asynchronously.
 
-        Refer to the documentation for [get_range][obstore.get_range].
+        Refer to the documentation for [get_range_async][obstore.get_range_async].
         """
         return await obs.get_range_async(
             self,  # type: ignore[arg-type]
@@ -272,7 +272,7 @@ class ObjectStoreMethods:
     ) -> list[Bytes]:
         """Call `get_ranges` asynchronously.
 
-        Refer to the documentation for [get_ranges][obstore.get_ranges].
+        Refer to the documentation for [get_ranges_async][obstore.get_ranges_async].
         """
         return await obs.get_ranges_async(
             self,  # type: ignore[arg-type]
@@ -471,7 +471,7 @@ class ObjectStoreMethods:
         """Call `list_with_delimiter` asynchronously.
 
         Refer to the documentation for
-        [list_with_delimiter][obstore.list_with_delimiter].
+        [list_with_delimiter_async][obstore.list_with_delimiter_async].
         """
         # Splitting these fixes the typing issue with the `return_arrow` parameter, by
         # converting from a bool to a Literal[True] or Literal[False]
@@ -537,22 +537,7 @@ class ObjectStoreMethods:
     ) -> PutResult:
         """Call `put` asynchronously.
 
-        Refer to the documentation for [`put`][obstore.put]. In addition to what the
-        synchronous `put` allows for the `file` parameter, this **also supports an async
-        iterator or iterable** of objects implementing the Python buffer protocol.
-
-        This means, for example, you can pass the result of `get_async` directly to
-        `put_async`, and the request will be streamed through Python during the put
-        operation:
-
-        ```py
-        import obstore as obs
-
-        # This only constructs the stream, it doesn't materialize the data in memory
-        resp = await obs.get_async(store1, path1)
-        # A streaming upload is created to copy the file to path2
-        await obs.put_async(store2, path2)
-        ```
+        Refer to the documentation for [put_async][obstore.put_async].
         """
         return await obs.put_async(
             self,  # type: ignore[arg-type]
@@ -587,7 +572,7 @@ class ObjectStoreMethods:
     ) -> None:
         """Call `rename` asynchronously.
 
-        Refer to the documentation for [rename][obstore.rename].
+        Refer to the documentation for [rename_async][obstore.rename_async].
         """
         return await obs.rename_async(
             self,  # type: ignore[arg-type]
