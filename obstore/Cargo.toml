@@ -52,4 +52,4 @@ reqwest = { version = "*", default-features = false, features = [
 ] }
 
 [build-dependencies]
-cargo-lock = "10.1.0"
+cargo-lock = "11.0.1"
