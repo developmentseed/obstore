@@ -1,5 +1,9 @@
 # Get
 
+Get operations.
+
+Obstore provides [two API designs](../method-vs-functional-api.md) for your convenience.
+
 ## Method API
 
 ::: obstore.store.ObjectStoreMethods.get
