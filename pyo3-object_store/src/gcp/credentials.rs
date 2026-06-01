@@ -43,6 +43,7 @@ impl<'py> FromPyObject<'_, 'py> for PyGcpCredential {
     }
 }
 
+/// A Python-facing wrapper around a user-provided callback for GCP credential management.
 // TODO: don't use a cache for static credentials where `expires_at` is `None`
 // (so you don't need to access a mutex)
 #[derive(Debug)]

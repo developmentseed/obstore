@@ -20,7 +20,7 @@ use crate::retry::PyRetryConfig;
 use crate::PyUrl;
 
 #[derive(Debug, Clone, PartialEq)]
-struct S3Config {
+pub struct S3Config {
     prefix: Option<PyPath>,
     config: PyAmazonS3Config,
     client_options: Option<PyClientOptions>,
@@ -29,12 +29,40 @@ struct S3Config {
 }
 
 impl S3Config {
-    fn bucket(&self) -> &str {
+    /// Access the bucket name for this config.
+    pub fn bucket(&self) -> &str {
         self.config
             .0
             .get(&PyAmazonS3ConfigKey(AmazonS3ConfigKey::Bucket))
             .expect("bucket should always exist in the config")
             .as_ref()
+    }
+
+    /// Access the prefix for this config, if it exists.
+    pub fn prefix(&self) -> Option<&PyPath> {
+        self.prefix.as_ref()
+    }
+
+    /// Access the config key-value pairs for this config.
+    ///
+    /// Note that the bucket **is included** in the returned config.
+    pub fn config(&self) -> &PyAmazonS3Config {
+        &self.config
+    }
+
+    /// Access the client options for this config, if they exist.
+    pub fn client_options(&self) -> Option<&PyClientOptions> {
+        self.client_options.as_ref()
+    }
+
+    /// Access the retry config for this config, if it exists.
+    pub fn retry_config(&self) -> Option<&PyRetryConfig> {
+        self.retry_config.as_ref()
+    }
+
+    /// Access the credential provider for this config, if it exists.
+    pub fn credential_provider(&self) -> Option<&PyAWSCredentialProvider> {
+        self.credential_provider.as_ref()
     }
 
     fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
@@ -78,6 +106,11 @@ impl PyS3Store {
     /// Consume self and return the underlying [`AmazonS3`].
     pub fn into_inner(self) -> Arc<MaybePrefixedStore<AmazonS3>> {
         self.store
+    }
+
+    /// Access the config for this store.
+    pub fn config(&self) -> &S3Config {
+        &self.config
     }
 }
 
@@ -201,8 +234,9 @@ impl PyS3Store {
         self.config.prefix.as_ref()
     }
 
+    #[pyo3(name = "config")]
     #[getter]
-    fn config(&self) -> &PyAmazonS3Config {
+    fn py_config(&self) -> &PyAmazonS3Config {
         &self.config.config
     }
 
@@ -222,6 +256,7 @@ impl PyS3Store {
     }
 }
 
+/// A Python-facing wrapper around a config key for S3 configuration.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyAmazonS3ConfigKey(AmazonS3ConfigKey);
 
@@ -278,6 +313,7 @@ impl From<PyAmazonS3ConfigKey> for AmazonS3ConfigKey {
     }
 }
 
+/// A Python-facing wrapper around a set of S3 configuration key-value pairs.
 #[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject, IntoPyObjectRef)]
 pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 

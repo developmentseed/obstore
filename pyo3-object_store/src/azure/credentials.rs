@@ -17,7 +17,8 @@ use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
 use crate::path::PyPath;
 use crate::PyObjectStoreError;
 
-struct PyAzureAccessKey {
+/// A wrapper around an [AzureAccessKey]
+pub struct PyAzureAccessKey {
     access_key: AzureAccessKey,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -40,7 +41,8 @@ impl<'py> FromPyObject<'_, 'py> for PyAzureAccessKey {
     }
 }
 
-struct PyAzureSASToken {
+/// A wrapper around a SAS token, which is a list of key-value pairs, and an optional expiry timestamp.
+pub struct PyAzureSASToken {
     sas_token: Vec<(String, String)>,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -70,7 +72,8 @@ impl<'py> FromPyObject<'_, 'py> for PyAzureSASToken {
     }
 }
 
-struct PyBearerToken {
+/// A wrapper around a bearer token
+pub struct PyBearerToken {
     token: String,
     expires_at: Option<DateTime<Utc>>,
 }
@@ -86,10 +89,16 @@ impl<'py> FromPyObject<'_, 'py> for PyBearerToken {
     }
 }
 
+/// A Python-facing enum wrapper around different Azure credential types.
 #[derive(FromPyObject)]
-enum PyAzureCredential {
+pub enum PyAzureCredential {
+    /// An access key credential
     AccessKey(PyAzureAccessKey),
+
+    /// A SAS token credential
     SASToken(PyAzureSASToken),
+
+    /// A bearer token credential
     BearerToken(PyBearerToken),
 }
 
@@ -141,6 +150,7 @@ fn split_sas(sas: &str) -> Result<Vec<(String, String)>, object_store::Error> {
     Ok(pairs)
 }
 
+/// A Python-facing wrapper around a user-provided credential provider callback
 #[derive(Debug)]
 pub struct PyAzureCredentialProvider {
     /// The provided user callback to manage credential refresh
