@@ -417,30 +417,41 @@ fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Resul
             // or the convention for the hadoop driver abfs[s]://<file_system>@<account_name>.dfs.core.windows.net/<path>
             if parsed.username().is_empty() {
                 config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
-            } else if let Some(a) = host.strip_suffix(".dfs.core.windows.net") {
-                config.insert_if_not_exists(
-                    AzureConfigKey::ContainerName,
-                    validate(parsed.username())?,
-                );
-                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
-            } else if let Some(a) = host.strip_suffix(".dfs.fabric.microsoft.com") {
-                config.insert_if_not_exists(
-                    AzureConfigKey::ContainerName,
-                    validate(parsed.username())?,
-                );
-                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
-                config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
             } else {
-                return Err(ParseUrlError::UrlNotRecognised {
-                    url: parsed.as_str().to_string(),
+                match host.split_once('.') {
+                    Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
+                        config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                        config.insert_if_not_exists(
+                            AzureConfigKey::ContainerName,
+                            validate(parsed.username())?,
+                        );
+                    }
+                    Some((a, "dfs.fabric.microsoft.com"))
+                    | Some((a, "blob.fabric.microsoft.com")) => {
+                        config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                        config.insert_if_not_exists(
+                            AzureConfigKey::ContainerName,
+                            validate(parsed.username())?,
+                        );
+                        config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+                    }
+                    _ => {
+                        return Err(ParseUrlError::UrlNotRecognised {
+                            url: parsed.as_str().to_string(),
+                        }
+                        .into())
+                    }
                 }
-                .into());
             }
         }
         "https" => match host.split_once('.') {
             Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
                 config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
-                if let Some(container) = parsed.path_segments().unwrap().next() {
+                let container =
+                    parsed.path_segments().unwrap().next().expect(
+                        "iterator always contains at least one string (which may be empty)",
+                    );
+                if !container.is_empty() {
                     config
                         .insert_if_not_exists(AzureConfigKey::ContainerName, validate(container)?);
                 }
@@ -452,10 +463,12 @@ fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Resul
                 // - https://onelake.dfs.fabric.microsoft.com/<workspace>/<item>.<itemtype>/<path>/<fileName>
                 //
                 // See <https://learn.microsoft.com/en-us/fabric/onelake/onelake-access-api>
-                if let Some(workspace) = parsed.path_segments().unwrap().next() {
-                    if !workspace.is_empty() {
-                        config.insert_if_not_exists(AzureConfigKey::ContainerName, workspace);
-                    }
+                let workspace =
+                    parsed.path_segments().unwrap().next().expect(
+                        "iterator always contains at least one string (which may be empty)",
+                    );
+                if !workspace.is_empty() {
+                    config.insert_if_not_exists(AzureConfigKey::ContainerName, workspace);
                 }
                 config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
             }

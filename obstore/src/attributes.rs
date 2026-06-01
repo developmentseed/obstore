@@ -21,6 +21,7 @@ impl<'py> FromPyObject<'_, 'py> for PyAttribute {
             "content-language" | "contentlanguage" => Ok(Self(Attribute::ContentLanguage)),
             "content-type" | "contenttype" => Ok(Self(Attribute::ContentType)),
             "cache-control" | "cachecontrol" => Ok(Self(Attribute::CacheControl)),
+            "storage-class" | "storageclass" => Ok(Self(Attribute::StorageClass)),
             _ => Ok(Self(Attribute::Metadata(Cow::Owned(s.to_string())))),
         }
     }
@@ -33,6 +34,7 @@ fn attribute_to_string(attribute: &Attribute) -> Cow<'static, str> {
         Attribute::ContentLanguage => Cow::Borrowed("Content-Language"),
         Attribute::ContentType => Cow::Borrowed("Content-Type"),
         Attribute::CacheControl => Cow::Borrowed("Cache-Control"),
+        Attribute::StorageClass => Cow::Borrowed("Storage-Class"),
         Attribute::Metadata(x) => x.clone(),
         other => panic!("Unexpected attribute: {other:?}"),
     }

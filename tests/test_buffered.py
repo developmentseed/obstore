@@ -112,3 +112,70 @@ async def test_read_past_eof_async():
     buf = BytesIO(data)
     expected = buf.read(20)
     assert memoryview(expected) == memoryview(buffer)
+
+
+def test_open_reader_size_hint_sync():
+    store = MemoryStore()
+    data = b"x" * 1000
+    path = "sized.bin"
+    obs.put(store, path, data)
+
+    file = obs.open_reader(store, path, size=len(data))
+    assert file.size == len(data)
+    assert memoryview(data) == memoryview(file.read())
+
+
+@pytest.mark.asyncio
+async def test_open_reader_size_hint_async():
+    store = MemoryStore()
+    data = b"x" * 1000
+    path = "sized.bin"
+    await obs.put_async(store, path, data)
+
+    file = await obs.open_reader_async(store, path, size=len(data))
+    assert file.size == len(data)
+    assert memoryview(data) == memoryview(await file.read())
+
+
+def test_open_reader_size_hint_larger_than_actual_errors_on_read():
+    store = MemoryStore()
+    data = b"x" * 1000
+    path = "sized.bin"
+    obs.put(store, path, data)
+
+    file = obs.open_reader(store, path, size=5000)
+    assert file.size == 5000
+    with pytest.raises(OSError, match="range"):
+        file.read()
+
+
+def test_open_reader_size_hint_smaller_than_actual_truncates():
+    store = MemoryStore()
+    data = b"x" * 1000
+    path = "sized.bin"
+    obs.put(store, path, data)
+
+    file = obs.open_reader(store, path, size=500)
+    assert file.size == 500
+    buffer = file.read()
+    assert memoryview(data[:500]) == memoryview(buffer)
+
+
+def test_open_reader_size_hint_zero_byte_file():
+    store = MemoryStore()
+    path = "empty.bin"
+    obs.put(store, path, b"")
+
+    file = obs.open_reader(store, path, size=0)
+    assert file.size == 0
+    assert memoryview(b"") == memoryview(file.read())
+
+
+def test_open_reader_no_longer_exposes_meta():
+    store = MemoryStore()
+    data = b"x" * 1000
+    path = "sized.bin"
+    obs.put(store, path, data)
+
+    file = obs.open_reader(store, path)
+    assert not hasattr(file, "meta")

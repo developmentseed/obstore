@@ -3,7 +3,6 @@ from contextlib import AbstractAsyncContextManager, AbstractContextManager
 
 from ._attributes import Attributes
 from ._bytes import Bytes
-from ._list import ObjectMeta
 from ._store import ObjectStore
 
 if sys.version_info >= (3, 11):
@@ -21,6 +20,7 @@ def open_reader(
     path: str,
     *,
     buffer_size: int = 1024 * 1024,
+    size: int | None = None,
 ) -> ReadableFile:
     """Open a readable file object from the specified location.
 
@@ -30,6 +30,9 @@ def open_reader(
 
     Keyword Args:
         buffer_size: The minimum number of bytes to read in a single request. Up to `buffer_size` bytes will be buffered in memory.
+        size: Optional byte size of the object. When provided, skips the HEAD request used to fetch the file size. Useful for callers that already know the size from external metadata.
+
+            The caller is responsible for accuracy: a value larger than the actual file surfaces as a read-time range error, a value smaller causes silent truncation. Defaults to `None`.
 
     Returns:
         ReadableFile
@@ -41,6 +44,7 @@ async def open_reader_async(
     path: str,
     *,
     buffer_size: int = 1024 * 1024,
+    size: int | None = None,
 ) -> AsyncReadableFile:
     """Call `open_reader` asynchronously, returning a readable file object with asynchronous operations.
 
@@ -86,10 +90,6 @@ class ReadableFile:
 
         This is currently a no-op.
         """
-
-    @property
-    def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file."""
 
     def read(self, size: int | None = None, /) -> Bytes:
         """Read up to `size` bytes from the object and return them.
@@ -168,10 +168,6 @@ class AsyncReadableFile:
 
         This is currently a no-op.
         """
-
-    @property
-    def meta(self) -> ObjectMeta:
-        """Access the metadata of the underlying file."""
 
     async def read(self, size: int | None = None, /) -> Bytes:
         """Read up to `size` bytes from the object and return them.

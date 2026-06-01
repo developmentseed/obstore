@@ -37,8 +37,7 @@ impl<'py> FromPyObject<'_, 'py> for PyGetOptions {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
-        // Update to use derive(FromPyObject) when default is implemented:
-        // https://github.com/PyO3/pyo3/issues/4643
+        // Can't use derive(FromPyObject) when all fields have default values
         let dict = obj.extract::<HashMap<String, Bound<PyAny>>>()?;
         Ok(Self {
             if_match: dict.get("if_match").map(|x| x.extract()).transpose()?,
@@ -346,7 +345,7 @@ pub(crate) fn get(
 ) -> PyObjectStoreResult<PyGetResult> {
     let runtime = get_runtime();
     py.detach(|| {
-        let path = &path.as_ref();
+        let path = path.as_ref();
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {
@@ -366,7 +365,7 @@ pub(crate) fn get_async(
     options: Option<PyGetOptions>,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let path = &path.as_ref();
+        let path = path.as_ref();
         let fut = if let Some(options) = options {
             store.as_ref().get_opts(path, options.into())
         } else {

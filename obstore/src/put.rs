@@ -52,8 +52,7 @@ impl<'py> FromPyObject<'_, 'py> for PyUpdateVersion {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
-        // Update to use derive(FromPyObject) when default is implemented:
-        // https://github.com/PyO3/pyo3/issues/4643
+        // Can't use derive(FromPyObject) when all fields have default values
         let dict = obj.extract::<HashMap<String, Bound<PyAny>>>()?;
         Ok(Self(UpdateVersion {
             e_tag: dict.get("e_tag").map(|x| x.extract()).transpose()?,

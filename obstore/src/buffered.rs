@@ -15,35 +15,37 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Line
 use tokio::sync::Mutex;
 
 use crate::attributes::PyAttributes;
-use crate::list::PyObjectMeta;
 use crate::tags::PyTagSet;
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024))]
+#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024, size=None))]
 pub(crate) fn open_reader(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
     buffer_size: usize,
+    size: Option<u64>,
 ) -> PyObjectStoreResult<PyReadableFile> {
     let store = store.into_inner();
     let runtime = get_runtime();
-    let (reader, meta) = py.detach(|| runtime.block_on(create_reader(store, path, buffer_size)))?;
-    Ok(PyReadableFile::new(reader, meta, false))
+    let (reader, resolved_size) =
+        py.detach(|| runtime.block_on(create_reader(store, path, buffer_size, size)))?;
+    Ok(PyReadableFile::new(reader, resolved_size, false))
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024))]
+#[pyo3(signature = (store, path, *, buffer_size=1024 * 1024, size=None))]
 pub(crate) fn open_reader_async(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
     buffer_size: usize,
+    size: Option<u64>,
 ) -> PyResult<Bound<PyAny>> {
     let store = store.into_inner();
     future_into_py(py, async move {
-        let (reader, meta) = create_reader(store, path, buffer_size).await?;
-        Ok(PyReadableFile::new(reader, meta, true))
+        let (reader, resolved_size) = create_reader(store, path, buffer_size, size).await?;
+        Ok(PyReadableFile::new(reader, resolved_size, true))
     })
 }
 
@@ -51,26 +53,37 @@ async fn create_reader(
     store: Arc<dyn ObjectStore>,
     path: PyPath,
     capacity: usize,
-) -> PyObjectStoreResult<(BufReader, ObjectMeta)> {
-    let meta = store
-        .head(path.as_ref())
-        .await
-        .map_err(PyObjectStoreError::ObjectStoreError)?;
-    Ok((BufReader::with_capacity(store, &meta, capacity), meta))
+    size: Option<u64>,
+) -> PyObjectStoreResult<(BufReader, u64)> {
+    let meta = match size {
+        Some(size) => ObjectMeta {
+            location: path.as_ref().clone(),
+            last_modified: Default::default(),
+            size,
+            e_tag: None,
+            version: None,
+        },
+        None => store
+            .head(path.as_ref())
+            .await
+            .map_err(PyObjectStoreError::ObjectStoreError)?,
+    };
+    let size = meta.size;
+    Ok((BufReader::with_capacity(store, &meta, capacity), size))
 }
 
 #[pyclass(name = "ReadableFile", frozen)]
 pub(crate) struct PyReadableFile {
     reader: Arc<Mutex<BufReader>>,
-    meta: ObjectMeta,
+    size: u64,
     r#async: bool,
 }
 
 impl PyReadableFile {
-    fn new(reader: BufReader, meta: ObjectMeta, r#async: bool) -> Self {
+    fn new(reader: BufReader, size: u64, r#async: bool) -> Self {
         Self {
             reader: Arc::new(Mutex::new(reader)),
-            meta,
+            size,
             r#async,
         }
     }
@@ -90,11 +103,6 @@ impl PyReadableFile {
     // Maybe this should dispose of the internal reader? In that case we want to store an
     // `Option<Arc<Mutex<BufReader>>>`.
     fn close(&self) {}
-
-    #[getter]
-    fn meta(&self) -> PyObjectMeta {
-        self.meta.clone().into()
-    }
 
     #[pyo3(signature = (size = None, /))]
     fn read<'py>(&'py self, py: Python<'py>, size: Option<usize>) -> PyResult<Bound<'py, PyAny>> {
@@ -173,7 +181,7 @@ impl PyReadableFile {
 
     #[getter]
     fn size(&self) -> u64 {
-        self.meta.size
+        self.size
     }
 
     fn tell<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyAny>> {

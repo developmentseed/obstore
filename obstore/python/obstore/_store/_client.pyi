@@ -41,6 +41,7 @@ class ClientConfig(TypedDict, total=False):
 
     allow_http: bool
     """Allow non-TLS, i.e. non-HTTPS connections."""
+
     allow_invalid_certificates: bool
     """Skip certificate validation on https connections.
 
@@ -52,22 +53,39 @@ class ClientConfig(TypedDict, total=False):
         introduces significant vulnerabilities, and should only be used
         as a last resort or for testing
     """
+
     connect_timeout: str | timedelta
-    """Timeout for only the connect phase of a Client"""
+    """Set a timeout for only the connect phase of a Client.
+
+    This is the time allowed for the client to establish a connection
+    and if the connection is not established within this time,
+    the client returns a timeout error.
+
+    Timeout errors are retried, subject to the `RetryConfig`.
+
+    Default is 5 seconds.
+    """
+
     default_content_type: str
-    """Default `CONTENT_TYPE` for uploads"""
+    """Default [`CONTENT_TYPE`] for uploads.
+
+    [`CONTENT_TYPE`]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Type
+    """
     default_headers: dict[str, str] | dict[str, bytes]
     """Default headers to be sent with each request"""
     http1_only: bool
-    """Only use http1 connections."""
+    """Only use HTTP/1 connections (default).
+
+    Set to `false` to allow HTTP/2 connections.
+    """
     http2_keep_alive_interval: str
-    """Interval for HTTP2 Ping frames should be sent to keep a connection alive."""
+    """Interval for HTTP/2 Ping frames should be sent to keep a connection alive."""
     http2_keep_alive_timeout: str | timedelta
     """Timeout for receiving an acknowledgement of the keep-alive ping."""
     http2_keep_alive_while_idle: str
-    """Enable HTTP2 keep alive pings for idle connections"""
+    """Enable HTTP/2 keep alive pings for idle connections"""
     http2_only: bool
-    """Only use http2 connections"""
+    """Only use HTTP/2 connections"""
     pool_idle_timeout: str | timedelta
     """The pool max idle timeout.
 
@@ -76,12 +94,44 @@ class ClientConfig(TypedDict, total=False):
     pool_max_idle_per_host: str
     """Maximum number of idle connections per host."""
     proxy_url: str
+
+    randomize_addresses: bool
+    """Randomize order addresses that the DNS resolution yields.
+
+    This will spread the connections across more servers.
+
+    !!! warning
+
+        This will override the DNS resolver configured by `reqwest`.
+
+    """
+
+    read_timeout: str | timedelta
+    """Read timeout.
+
+    The timeout applies to each read operation, and resets after a
+    successful read. This is useful for detecting stalled connections
+    when the size of the response is not known beforehand.
+
+    Timeout errors are retried, subject to the `RetryConfig`.
+
+    Default is disabled (no read timeout).
+    """
+
     """HTTP proxy to use for requests."""
     timeout: str | timedelta
-    """Request timeout.
+    """Set timeout for the overall request
 
-    The timeout is applied from when the request starts connecting until the
-    response body has finished.
+    The timeout starts from when the request starts connecting until the
+    response body has finished. If the request does not complete within the
+    timeout, the client returns a timeout error.
+
+    Timeout errors are retried, subject to the `RetryConfig`.
+
+    Default is 30 seconds.
     """
     user_agent: str
-    """User-Agent header to be used by this client."""
+    """[User-Agent] header to be used by this client.
+
+    [User-Agent]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent
+    """

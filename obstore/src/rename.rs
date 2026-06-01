@@ -3,7 +3,7 @@ use std::{future::Future, pin::Pin};
 use object_store::ObjectStoreExt;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::get_runtime;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPath};
 
 use crate::utils::PyNone;
 
@@ -12,8 +12,8 @@ use crate::utils::PyNone;
 pub(crate) fn rename(
     py: Python,
     store: PyObjectStore,
-    from_: String,
-    to: String,
+    from_: PyPath,
+    to: PyPath,
     overwrite: bool,
 ) -> PyObjectStoreResult<()> {
     let runtime = get_runtime();
@@ -35,8 +35,8 @@ pub(crate) fn rename(
 pub(crate) fn rename_async(
     py: Python,
     store: PyObjectStore,
-    from_: String,
-    to: String,
+    from_: PyPath,
+    to: PyPath,
     overwrite: bool,
 ) -> PyResult<Bound<PyAny>> {
     let from_ = from_.into();
