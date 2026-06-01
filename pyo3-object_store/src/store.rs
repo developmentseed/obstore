@@ -85,85 +85,158 @@ impl PyObjectStore {
     }
 }
 
+/// A typed version of [`PyObjectStore`] that avoids type erasure of the underlying store
 #[derive(Debug, Clone)]
-struct PyExternalObjectStoreInner(Arc<dyn ObjectStore>);
+pub enum PyTypedObjectStore {
+    /// A wrapper around a [`PyAzureStore`].
+    Azure(PyAzureStore),
+    /// A wrapper around a [`PyGCSStore`].
+    Gcs(PyGCSStore),
+    /// A wrapper around a [`PyHttpStore`].
+    Http(PyHttpStore),
+    /// A wrapper around a [`PyLocalStore`].
+    Local(PyLocalStore),
+    /// A wrapper around a [`PyS3Store`].
+    S3(PyS3Store),
+}
 
-impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
-    type Error = PyErr;
-
-    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
-        let py = obj.py();
-        // Check for object-store instance from other library
-        let cls_name = obj
-            .getattr(intern!(py, "__class__"))?
-            .getattr(intern!(py, "__name__"))?
-            .extract::<PyBackedStr>()?;
-
-        if cls_name.as_ref() == PyAzureStore::type_object(py).name()? {
-            let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
-                .call_method0(intern!(py, "__getnewargs_ex__"))?
-                .extract()?;
-            let store = PyAzureStore::type_object(py)
-                .call(args, Some(&kwargs))?
-                .cast::<PyAzureStore>()?
-                .get()
-                .clone();
-            return Ok(Self(store.into_inner()));
-        }
-
-        if cls_name.as_ref() == PyGCSStore::type_object(py).name()? {
-            let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
-                .call_method0(intern!(py, "__getnewargs_ex__"))?
-                .extract()?;
-            let store = PyGCSStore::type_object(py)
-                .call(args, Some(&kwargs))?
-                .cast::<PyGCSStore>()?
-                .get()
-                .clone();
-            return Ok(Self(store.into_inner()));
-        }
-
-        if cls_name.as_ref() == PyHttpStore::type_object(py).name()? {
-            let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
-                .call_method0(intern!(py, "__getnewargs_ex__"))?
-                .extract()?;
-            let store = PyHttpStore::type_object(py)
-                .call(args, Some(&kwargs))?
-                .cast::<PyHttpStore>()?
-                .get()
-                .clone();
-            return Ok(Self(store.into_inner()));
-        }
-
-        if cls_name.as_ref() == PyLocalStore::type_object(py).name()? {
-            let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
-                .call_method0(intern!(py, "__getnewargs_ex__"))?
-                .extract()?;
-            let store = PyLocalStore::type_object(py)
-                .call(args, Some(&kwargs))?
-                .cast::<PyLocalStore>()?
-                .get()
-                .clone();
-            return Ok(Self(store.into_inner()));
-        }
-
-        if cls_name.as_ref() == PyS3Store::type_object(py).name()? {
-            let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
-                .call_method0(intern!(py, "__getnewargs_ex__"))?
-                .extract()?;
-            let store = PyS3Store::type_object(py)
-                .call(args, Some(&kwargs))?
-                .cast::<PyS3Store>()?
-                .get()
-                .clone();
-            return Ok(Self(store.into_inner()));
-        }
-
-        Err(PyValueError::new_err(format!(
-            "Expected an object store-compatible instance, got {}",
-            obj.repr()?
-        )))
+impl PyTypedObjectStore {
+    /// Attempt to extract an object store instance from an externally-defined (not statically
+    /// linked) ObjectStore instance.
+    pub fn from_external_store<'py>(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        import_external_object_store(obj)
     }
+}
+
+impl From<PyTypedObjectStore> for PyObjectStore {
+    fn from(value: PyTypedObjectStore) -> Self {
+        match value {
+            PyTypedObjectStore::Azure(store) => PyObjectStore(store.into_inner()),
+            PyTypedObjectStore::Gcs(store) => PyObjectStore(store.into_inner()),
+            PyTypedObjectStore::Http(store) => PyObjectStore(store.into_inner()),
+            PyTypedObjectStore::Local(store) => PyObjectStore(store.into_inner()),
+            PyTypedObjectStore::S3(store) => PyObjectStore(store.into_inner()),
+        }
+    }
+}
+
+impl From<PyTypedObjectStore> for Arc<dyn ObjectStore> {
+    fn from(value: PyTypedObjectStore) -> Self {
+        match value {
+            PyTypedObjectStore::Azure(store) => store.into_inner(),
+            PyTypedObjectStore::Gcs(store) => store.into_inner(),
+            PyTypedObjectStore::Http(store) => store.into_inner(),
+            PyTypedObjectStore::Local(store) => store.into_inner(),
+            PyTypedObjectStore::S3(store) => store.into_inner(),
+        }
+    }
+}
+
+fn raise_external_store_warning<'py>(py: Python<'py>) -> PyResult<()> {
+    let warnings_mod = py.import(intern!(py, "warnings"))?;
+    let warning = PyRuntimeWarning::new_err(
+        "Successfully reconstructed a store defined in another Python module. Connection pooling will not be shared across store instances.",
+    );
+    let args = PyTuple::new(py, vec![warning])?;
+    warnings_mod.call_method1(intern!(py, "warn"), args)?;
+    Ok(())
+}
+
+fn import_external_object_store<'py>(
+    obj: Borrowed<'_, 'py, pyo3::PyAny>,
+) -> PyResult<PyTypedObjectStore> {
+    let py = obj.py();
+
+    // Check for object-store instance from other library
+    let cls_name = obj
+        .getattr(intern!(py, "__class__"))?
+        .getattr(intern!(py, "__name__"))?
+        .extract::<PyBackedStr>()?;
+
+    if cls_name.as_ref() == PyAzureStore::type_object(py).name()? {
+        let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
+            .call_method0(intern!(py, "__getnewargs_ex__"))?
+            .extract()?;
+        let store = PyAzureStore::type_object(py)
+            .call(args, Some(&kwargs))?
+            .cast::<PyAzureStore>()?
+            .get()
+            .clone();
+
+        #[cfg(feature = "external-store-warning")]
+        raise_external_store_warning(py)?;
+
+        return Ok(PyTypedObjectStore::Azure(store));
+    }
+
+    if cls_name.as_ref() == PyGCSStore::type_object(py).name()? {
+        let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
+            .call_method0(intern!(py, "__getnewargs_ex__"))?
+            .extract()?;
+        let store = PyGCSStore::type_object(py)
+            .call(args, Some(&kwargs))?
+            .cast::<PyGCSStore>()?
+            .get()
+            .clone();
+
+        #[cfg(feature = "external-store-warning")]
+        raise_external_store_warning(py)?;
+
+        return Ok(PyTypedObjectStore::Gcs(store));
+    }
+
+    if cls_name.as_ref() == PyHttpStore::type_object(py).name()? {
+        let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
+            .call_method0(intern!(py, "__getnewargs_ex__"))?
+            .extract()?;
+        let store = PyHttpStore::type_object(py)
+            .call(args, Some(&kwargs))?
+            .cast::<PyHttpStore>()?
+            .get()
+            .clone();
+
+        #[cfg(feature = "external-store-warning")]
+        raise_external_store_warning(py)?;
+
+        return Ok(PyTypedObjectStore::Http(store));
+    }
+
+    if cls_name.as_ref() == PyLocalStore::type_object(py).name()? {
+        let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
+            .call_method0(intern!(py, "__getnewargs_ex__"))?
+            .extract()?;
+        let store = PyLocalStore::type_object(py)
+            .call(args, Some(&kwargs))?
+            .cast::<PyLocalStore>()?
+            .get()
+            .clone();
+
+        #[cfg(feature = "external-store-warning")]
+        raise_external_store_warning(py)?;
+
+        return Ok(PyTypedObjectStore::Local(store));
+    }
+
+    if cls_name.as_ref() == PyS3Store::type_object(py).name()? {
+        let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
+            .call_method0(intern!(py, "__getnewargs_ex__"))?
+            .extract()?;
+        let store = PyS3Store::type_object(py)
+            .call(args, Some(&kwargs))?
+            .cast::<PyS3Store>()?
+            .get()
+            .clone();
+
+        #[cfg(feature = "external-store-warning")]
+        raise_external_store_warning(py)?;
+
+        return Ok(PyTypedObjectStore::S3(store));
+    }
+
+    Err(PyValueError::new_err(format!(
+        "Expected an object store-compatible instance, got {}",
+        obj.repr()?
+    )))
 }
 
 /// A wrapper around a Rust [ObjectStore] instance that will extract and recreate an ObjectStore
@@ -192,11 +265,11 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
 /// - This will not work for `PyMemoryStore` because we can't clone the internal state of the
 ///   store.
 #[derive(Debug, Clone)]
-pub struct PyExternalObjectStore(PyExternalObjectStoreInner);
+pub struct PyExternalObjectStore(Arc<dyn ObjectStore>);
 
 impl From<PyExternalObjectStore> for Arc<dyn ObjectStore> {
     fn from(value: PyExternalObjectStore) -> Self {
-        value.0 .0
+        value.0
     }
 }
 
@@ -211,23 +284,8 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStore {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
-        match obj.extract() {
-            Ok(inner) => {
-                #[cfg(feature = "external-store-warning")]
-                {
-                    let py = obj.py();
-
-                    let warnings_mod = py.import(intern!(py, "warnings"))?;
-                    let warning = PyRuntimeWarning::new_err(
-                    "Successfully reconstructed a store defined in another Python module. Connection pooling will not be shared across store instances.",
-                );
-                    let args = PyTuple::new(py, vec![warning])?;
-                    warnings_mod.call_method1(intern!(py, "warn"), args)?;
-                }
-                Ok(Self(inner))
-            }
-            Err(err) => Err(err),
-        }
+        let typed_store = import_external_object_store(obj)?;
+        Ok(Self(typed_store.into()))
     }
 }
 

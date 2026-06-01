@@ -31,5 +31,5 @@ pub use memory::PyMemoryStore;
 pub use path::PyPath;
 pub use prefix::MaybePrefixedStore;
 pub use simple::from_url;
-pub use store::{AnyObjectStore, PyExternalObjectStore, PyObjectStore};
+pub use store::{AnyObjectStore, PyExternalObjectStore, PyObjectStore, PyTypedObjectStore};
 pub use url::PyUrl;
