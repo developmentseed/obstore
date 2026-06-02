@@ -34,7 +34,7 @@ impl LocalConfig {
 #[pyclass(name = "LocalStore", frozen, subclass, from_py_object)]
 pub struct PyLocalStore {
     store: Arc<LocalFileSystem>,
-    config: LocalConfig,
+    config: Arc<LocalConfig>,
 }
 
 impl AsRef<Arc<LocalFileSystem>> for PyLocalStore {
@@ -70,11 +70,11 @@ impl PyLocalStore {
         let fs = fs.with_automatic_cleanup(automatic_cleanup);
         Ok(Self {
             store: Arc::new(fs),
-            config: LocalConfig {
+            config: Arc::new(LocalConfig {
                 prefix,
                 automatic_cleanup,
                 mkdir,
-            },
+            }),
         })
     }
 

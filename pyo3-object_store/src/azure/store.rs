@@ -72,7 +72,7 @@ impl AzureConfig {
 pub struct PyAzureStore {
     store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
-    config: AzureConfig,
+    config: Arc<AzureConfig>,
 }
 
 impl AsRef<Arc<MaybePrefixedStore<MicrosoftAzure>>> for PyAzureStore {
@@ -146,13 +146,13 @@ impl PyAzureStore {
 
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
-            config: AzureConfig {
+            config: Arc::new(AzureConfig {
                 prefix,
                 config: combined_config,
                 client_options,
                 retry_config,
                 credential_provider,
-            },
+            }),
         })
     }
 
