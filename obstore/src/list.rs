@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::ops::AddAssign;
 use std::sync::Arc;
 
@@ -8,70 +9,17 @@ use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
-use object_store::list::{PaginatedListOptions, PaginatedListStore};
+use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use object_store::{ListResult, ObjectMeta, ObjectStore};
-use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration, PyValueError};
+use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
-use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
-use pyo3::{intern, IntoPyObjectExt, PyTypeInfo};
+use pyo3::{intern, IntoPyObjectExt};
 use pyo3_arrow::export::{Arro3RecordBatch, Arro3Table};
 use pyo3_arrow::PyTable;
 use pyo3_async_runtimes::tokio::get_runtime;
-use pyo3_object_store::{
-    PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyObjectStore,
-    PyObjectStoreError, PyObjectStoreResult, PyPath, PyS3Store,
-};
+use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPath};
 use tokio::sync::Mutex;
-
-pub(crate) enum MaybePaginatedListStore {
-    SupportsPagination(Arc<dyn PaginatedListStore>),
-    NoPagination(Arc<dyn ObjectStore>),
-}
-
-impl<'py> FromPyObject<'_, 'py> for MaybePaginatedListStore {
-    type Error = PyErr;
-
-    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
-        if let Ok(store) = ob.cast::<PyS3Store>() {
-            Ok(Self::SupportsPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.cast::<PyAzureStore>() {
-            Ok(Self::SupportsPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.cast::<PyGCSStore>() {
-            Ok(Self::SupportsPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.cast::<PyHttpStore>() {
-            Ok(Self::NoPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.cast::<PyLocalStore>() {
-            Ok(Self::NoPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.cast::<PyMemoryStore>() {
-            Ok(Self::NoPagination(store.get().as_ref().clone()))
-        } else {
-            let py = ob.py();
-            // Check for object-store instance from other library
-            let cls_name = ob
-                .getattr(intern!(py, "__class__"))?
-                .getattr(intern!(py, "__name__"))?
-                .extract::<PyBackedStr>()?;
-            if [
-                PyAzureStore::type_object(py).name()?.to_str()?,
-                PyGCSStore::type_object(py).name()?.to_str()?,
-                PyHttpStore::type_object(py).name()?.to_str()?,
-                PyLocalStore::type_object(py).name()?.to_str()?,
-                PyMemoryStore::type_object(py).name()?.to_str()?,
-                PyS3Store::type_object(py).name()?.to_str()?,
-            ]
-            .contains(&cls_name.as_str())
-            {
-                return Err(PyValueError::new_err("You must use an object store instance exported from **the same library** as this function. They cannot be used across libraries.\nThis is because object store instances are compiled with a specific version of Rust and Python." ));
-            }
-
-            Err(PyValueError::new_err(format!(
-                "Expected an object store instance, got {}",
-                ob.repr()?
-            )))
-        }
-    }
-}
 
 pub(crate) struct PyObjectMeta(ObjectMeta);
 
@@ -401,11 +349,105 @@ impl<'py> IntoPyObject<'py> for PyListResult {
     }
 }
 
+enum MaybePaginatedStore {
+    /// Stores that natively support pagination
+    Native(Arc<dyn PaginatedListStore>),
+    /// Paginated stores emulated by collecting all results and filtering prefix in memory
+    Emulated(Arc<dyn ObjectStore>),
+}
+
+impl From<PyObjectStore> for MaybePaginatedStore {
+    fn from(store: PyObjectStore) -> Self {
+        match store {
+            PyObjectStore::S3(s3) => Self::Native(s3.into_inner()),
+            PyObjectStore::Azure(azure) => Self::Native(azure.into_inner()),
+            PyObjectStore::Gcs(gcs) => Self::Native(gcs.into_inner()),
+            PyObjectStore::Http(http) => Self::Emulated(http.into_inner()),
+            PyObjectStore::Local(local) => Self::Emulated(local.into_inner()),
+            PyObjectStore::Memory(memory) => Self::Emulated(memory.into_inner()),
+        }
+    }
+}
+
+/// A custom implementation of PaginatedListStore for stores that don't natively support
+/// pagination, like HttpStore and LocalStore.
+///
+/// PaginatedListStore is not implemented in upstream for LocalFileSystem because there's no way to
+/// get a stable offset in local FS APIs.
+/// https://github.com/apache/arrow-rs-object-store/issues/388
+///
+/// Instead, we collect _all_ results and filter them in memory with the provided substring.
+async fn emulate_paginated_list(
+    store: &Arc<dyn ObjectStore>,
+    prefix: Option<&str>,
+) -> object_store::Result<PaginatedListResult> {
+    // Split a path like "some/prefix/abc" into (Some(Path("some/prefix")), Some("abc"))
+    // This allows us to do a substring prefix match after the / delimiter
+    let (list_path, list_prefix_match): (Option<object_store::path::Path>, Option<String>) =
+        if let Some(list_prefix) = prefix {
+            if let Some((list_path, list_prefix_match)) = list_prefix.rsplit_once('/') {
+                // There's a / in the prefix, so we assume the part before the last / is a
+                // path, and the end is a substring match
+                (
+                    Some(object_store::path::Path::parse(list_path)?),
+                    Some(list_prefix_match.to_string()),
+                )
+            } else {
+                // No / in prefix, so we assume it's a substring
+                (None, Some(list_prefix.to_string()))
+            }
+        } else {
+            (None, None)
+        };
+
+    let list_result = store.list_with_delimiter(list_path.as_ref()).await?;
+
+    // Filter list result to include only results with the given prefix after the / delimiter
+    let filtered_list_result = if let Some(list_prefix_match) = list_prefix_match {
+        let filtered_common_prefixes = list_result
+            .common_prefixes
+            .into_iter()
+            .filter(|p| p.as_ref().starts_with(&list_prefix_match))
+            .collect();
+        let filtered_objects = list_result
+            .objects
+            .into_iter()
+            .filter(|obj| obj.location.as_ref().starts_with(&list_prefix_match))
+            .collect();
+        ListResult {
+            common_prefixes: filtered_common_prefixes,
+            objects: filtered_objects,
+        }
+    } else {
+        list_result
+    };
+
+    Ok(PaginatedListResult {
+        result: filtered_list_result,
+        // emulated stores do not support pagination
+        page_token: None,
+    })
+}
+
+#[async_trait]
+impl PaginatedListStore for MaybePaginatedStore {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> object_store::Result<PaginatedListResult> {
+        match self {
+            Self::Native(store) => store.list_paginated(prefix, opts).await,
+            Self::Emulated(store) => emulate_paginated_list(store, prefix).await,
+        }
+    }
+}
+
 #[pyfunction]
 #[pyo3(signature = (store, prefix=None, *, offset=None, chunk_size=50, return_arrow=false))]
 pub(crate) fn list(
     py: Python,
-    store: MaybePaginatedListStore,
+    store: PyObjectStore,
     prefix: Option<String>,
     offset: Option<String>,
     chunk_size: usize,
@@ -423,14 +465,8 @@ pub(crate) fn list(
             .map_err(|err| PyImportError::new_err(format!("{msg}\n\n{err}")))?;
     }
 
-    let stream = match store {
-        MaybePaginatedListStore::SupportsPagination(paginated_store) => {
-            create_paginated_stream(paginated_store, prefix, offset, chunk_size)
-        }
-        MaybePaginatedListStore::NoPagination(object_store) => {
-            create_filtered_stream(object_store, prefix, offset)
-        }
-    };
+    let maybe_paginated_store = Arc::new(MaybePaginatedStore::from(store));
+    let stream = create_paginated_stream(maybe_paginated_store, prefix, offset, chunk_size);
     Ok(PyListStream::new(stream, chunk_size, return_arrow))
 }
 
@@ -524,6 +560,7 @@ fn create_paginated_stream(
     Box::pin(stream)
 }
 
+// I think this isn't used anymore, and is subsumed into emulate_paginated_list?
 fn create_filtered_stream(
     store: Arc<dyn ObjectStore>,
     prefix: Option<String>,
