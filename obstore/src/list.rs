@@ -516,6 +516,71 @@ async fn list_with_delimiter_materialize(
     Ok(PyListResult::new(list_result, return_arrow))
 }
 
+/// Internal stream state
+#[derive(Clone)]
+struct StreamState {
+    store: Arc<dyn PaginatedListStore>,
+    prefix: Option<String>,
+    offset: Option<String>,
+    page_token: Option<String>,
+    has_more: bool,
+}
+
+async fn stream_step(
+    state: StreamState,
+    chunk_size: usize,
+) -> Option<(Vec<object_store::Result<ObjectMeta>>, StreamState)> {
+    let StreamState {
+        store,
+        prefix,
+        offset,
+        page_token,
+        has_more,
+    } = state;
+
+    if !has_more {
+        return None;
+    }
+
+    let opts: PaginatedListOptions = PaginatedListOptions {
+        offset: offset.clone(),
+        delimiter: None,
+        max_keys: Some(chunk_size),
+        page_token: page_token.clone(),
+        ..Default::default()
+    };
+
+    match store.list_paginated(prefix.as_deref(), opts).await {
+        Ok(result) => {
+            let next_has_more = result.page_token.is_some();
+            let next_page_token = result.page_token;
+            let objects: Vec<object_store::Result<ObjectMeta>> =
+                result.result.objects.into_iter().map(Ok).collect();
+
+            let next_state = StreamState {
+                store,
+                prefix,
+                offset,
+                page_token: next_page_token,
+                has_more: next_has_more,
+            };
+            Some((objects, next_state))
+        }
+        // Surface the error to the consumer as a stream item, then stop the stream
+        // so we don't silently truncate results on a failed page.
+        Err(e) => Some((
+            vec![Err(e)],
+            StreamState {
+                store,
+                prefix,
+                offset,
+                page_token: None,
+                has_more: false,
+            },
+        )),
+    }
+}
+
 fn create_paginated_stream(
     store: Arc<dyn PaginatedListStore>,
     prefix: Option<String>,
@@ -524,35 +589,14 @@ fn create_paginated_stream(
 ) -> BoxStream<'static, object_store::Result<ObjectMeta>> {
     // Create a stream that will fetch from the paginated store
     let stream = futures::stream::unfold(
-        (store, prefix, offset, None, true),
-        move |(store, prefix, offset, page_token, has_more)| async move {
-            if !has_more {
-                return None;
-            }
-
-            let opts = PaginatedListOptions {
-                offset: offset.clone(),
-                delimiter: None,
-                max_keys: Some(chunk_size),
-                page_token,
-                ..Default::default()
-            };
-
-            match store.list_paginated(prefix.as_deref(), opts).await {
-                Ok(result) => {
-                    let next_has_more = result.page_token.is_some();
-                    let next_page_token = result.page_token;
-                    let objects: Vec<object_store::Result<ObjectMeta>> =
-                        result.result.objects.into_iter().map(Ok).collect();
-
-                    let next_state = (store, prefix, offset, next_page_token, next_has_more);
-                    Some((objects, next_state))
-                }
-                // Surface the error to the consumer as a stream item, then stop the stream
-                // so we don't silently truncate results on a failed page.
-                Err(e) => Some((vec![Err(e)], (store, prefix, offset, None, false))),
-            }
+        StreamState {
+            store,
+            prefix,
+            offset,
+            page_token: None,
+            has_more: true,
         },
+        move |state| stream_step(state, chunk_size),
     )
     .flat_map(futures::stream::iter);
 
