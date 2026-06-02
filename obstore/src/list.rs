@@ -542,20 +542,19 @@ fn create_paginated_stream(
                 Ok(result) => {
                     let next_has_more = result.page_token.is_some();
                     let next_page_token = result.page_token;
-                    let objects = result.result.objects;
+                    let objects: Vec<object_store::Result<ObjectMeta>> =
+                        result.result.objects.into_iter().map(Ok).collect();
 
                     let next_state = (store, prefix, offset, next_page_token, next_has_more);
                     Some((objects, next_state))
                 }
-                Err(_e) => {
-                    // TODO: propagate error
-                    // For errors, return empty list and stop
-                    Some((Vec::new(), (store, prefix, offset, None, false)))
-                }
+                // Surface the error to the consumer as a stream item, then stop the stream
+                // so we don't silently truncate results on a failed page.
+                Err(e) => Some((vec![Err(e)], (store, prefix, offset, None, false))),
             }
         },
     )
-    .flat_map(|objects| futures::stream::iter(objects.into_iter().map(Ok)));
+    .flat_map(futures::stream::iter);
 
     Box::pin(stream)
 }
