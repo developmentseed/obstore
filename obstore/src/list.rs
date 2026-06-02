@@ -359,12 +359,12 @@ enum MaybePaginatedStore {
 impl From<PyObjectStore> for MaybePaginatedStore {
     fn from(store: PyObjectStore) -> Self {
         match store {
-            PyObjectStore::S3(s3) => Self::Native(s3.into_inner()),
-            PyObjectStore::Azure(azure) => Self::Native(azure.into_inner()),
-            PyObjectStore::Gcs(gcs) => Self::Native(gcs.into_inner()),
-            PyObjectStore::Http(http) => Self::Emulated(http.into_inner()),
-            PyObjectStore::Local(local) => Self::Emulated(local.into_inner()),
-            PyObjectStore::Memory(memory) => Self::Emulated(memory.into_inner()),
+            PyObjectStore::S3(store) => Self::Native(store.into_inner()),
+            PyObjectStore::Azure(store) => Self::Native(store.into_inner()),
+            PyObjectStore::Gcs(store) => Self::Native(store.into_inner()),
+            PyObjectStore::Http(store) => Self::Emulated(store.into_inner()),
+            PyObjectStore::Local(store) => Self::Emulated(store.into_inner()),
+            PyObjectStore::Memory(store) => Self::Emulated(store.into_inner()),
         }
     }
 }
