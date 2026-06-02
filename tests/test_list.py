@@ -1,7 +1,6 @@
 import tempfile
 from pathlib import Path
 
-import polars as pl
 import pyarrow as pa
 import pytest
 from arro3.core import RecordBatch, Table
@@ -224,12 +223,19 @@ def test_list_substring_filtering_local_store():
         assert "data/another.csv" not in paths
 
 
-def test_list_as_arrow_to_polars():
+def test_list_as_arrow_to_pyarrow():
     store = MemoryStore()
 
     for i in range(100):
         store.put(f"file{i}.txt", b"foo")
 
     stream = store.list(return_arrow=True, chunk_size=10)
-    _pl_df = pl.DataFrame(next(stream))
-    _df = pa.record_batch(next(stream))
+
+    # The RecordBatch yielded by the stream implements the Arrow PyCapsule interface,
+    # so external Arrow libraries can consume it zero-copy.
+    batch = next(stream)
+    assert isinstance(batch, RecordBatch)
+
+    pa_batch = pa.record_batch(batch)
+    assert pa_batch.num_rows == 10
+    assert "path" in pa_batch.column_names
