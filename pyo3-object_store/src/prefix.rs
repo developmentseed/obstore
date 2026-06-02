@@ -6,9 +6,6 @@
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use http::Method;
-use object_store::aws::AmazonS3;
-use object_store::azure::MicrosoftAzure;
-use object_store::gcp::GoogleCloudStorage;
 use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use object_store::signer::Signer;
 use std::borrow::Cow;
@@ -262,49 +259,7 @@ fn create_paginated_list_prefix<'a>(
 }
 
 #[async_trait::async_trait]
-impl PaginatedListStore for MaybePrefixedStore<AmazonS3> {
-    async fn list_paginated(
-        &self,
-        prefix: Option<&str>,
-        opts: PaginatedListOptions,
-    ) -> Result<PaginatedListResult> {
-        let store_prefix = self.prefix.as_ref();
-        let list_prefix =
-            create_paginated_list_prefix(store_prefix, prefix, opts.delimiter.as_ref());
-        let lst = self
-            .inner
-            .list_paginated(list_prefix.as_deref(), opts)
-            .await?;
-        Ok(PaginatedListResult {
-            result: strip_list_result(store_prefix, lst.result),
-            page_token: lst.page_token,
-        })
-    }
-}
-
-#[async_trait::async_trait]
-impl PaginatedListStore for MaybePrefixedStore<GoogleCloudStorage> {
-    async fn list_paginated(
-        &self,
-        prefix: Option<&str>,
-        opts: PaginatedListOptions,
-    ) -> Result<PaginatedListResult> {
-        let store_prefix = self.prefix.as_ref();
-        let list_prefix =
-            create_paginated_list_prefix(store_prefix, prefix, opts.delimiter.as_ref());
-        let lst = self
-            .inner
-            .list_paginated(list_prefix.as_deref(), opts)
-            .await?;
-        Ok(PaginatedListResult {
-            result: strip_list_result(store_prefix, lst.result),
-            page_token: lst.page_token,
-        })
-    }
-}
-
-#[async_trait::async_trait]
-impl PaginatedListStore for MaybePrefixedStore<MicrosoftAzure> {
+impl<S: ObjectStore + PaginatedListStore> PaginatedListStore for MaybePrefixedStore<S> {
     async fn list_paginated(
         &self,
         prefix: Option<&str>,
