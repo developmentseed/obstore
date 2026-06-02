@@ -517,7 +517,6 @@ async fn list_with_delimiter_materialize(
 }
 
 /// Internal stream state
-#[derive(Clone)]
 struct StreamState {
     store: Arc<dyn PaginatedListStore>,
     prefix: Option<String>,
@@ -542,11 +541,11 @@ async fn stream_step(
         return None;
     }
 
-    let opts: PaginatedListOptions = PaginatedListOptions {
+    let opts = PaginatedListOptions {
         offset: offset.clone(),
         delimiter: None,
         max_keys: Some(chunk_size),
-        page_token: page_token.clone(),
+        page_token,
         ..Default::default()
     };
 
