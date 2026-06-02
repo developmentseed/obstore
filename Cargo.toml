@@ -22,21 +22,26 @@ rust-version = "1.75"
 
 [workspace.dependencies]
 bytes = "1.10.1"
-chrono = "0.4.38"
+chrono = "0.4.44"
 futures = "0.3.31"
-http = "1.2"
+http = "1.4"
 indexmap = "2"
-object_store = "0.12.3"
-pyo3 = { version = "0.26", features = ["macros", "indexmap"] }
-pyo3-async-runtimes = { version = "0.26", features = ["tokio-runtime"] }
-pyo3-file = { git = "https://github.com/alex/pyo3-file", rev = "82b96dc188a48b88421f41b24cb13da114fd2fe8" }
-thiserror = "1"
-tokio = "1.40"
+object_store = { version = "0.13.0", features = [
+    "aws",
+    "azure",
+    "gcp",
+    "http",
+] }
+pyo3 = { version = "0.28", features = ["macros", "indexmap"] }
+pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
+pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "f724ceaa7e06e7d227bf40b1d60adbb842963a44" }
+thiserror = "2"
+tokio = "1.50"
 url = "2"
+
+[patch.crates-io]
+object_store = { git = "https://github.com/apache/arrow-rs-object-store", rev = "62592027cb7d33ed843bc14fb77d7fc32f13ace5" }
 
 [profile.release]
 lto = true
 codegen-units = 1
-
-[patch.crates-io]
-object_store = { git = "https://github.com/apache/arrow-rs-object-store", rev = "f422dce1528ee2a089d8061af639c3f2a9cd43af" }

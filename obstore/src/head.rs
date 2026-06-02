@@ -1,3 +1,4 @@
+use object_store::ObjectStoreExt;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPath};

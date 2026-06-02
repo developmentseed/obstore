@@ -28,14 +28,14 @@ directly. Only where this is not possible should users fall back to this fsspec
 integration.
 """
 
-# ruff: noqa: ANN401, EM102, PTH123, FBT001, FBT002
+# ruff: noqa: ANN401, EM102, FBT001, FBT002
 
 from __future__ import annotations
 
 import asyncio
 import warnings
 from collections import defaultdict
-from functools import lru_cache
+from functools import cached_property, lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 from urllib.parse import urlparse
@@ -43,7 +43,6 @@ from urllib.parse import urlparse
 import fsspec.asyn
 import fsspec.spec
 
-import obstore as obs
 from obstore import open_reader, open_writer
 from obstore.store import from_url
 
@@ -272,6 +271,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             batch_size=batch_size,
         )
 
+    @cached_property
+    def _local_store(self) -> FsspecStore:
+        return FsspecStore("file")
+
     def _split_path(self, path: str) -> tuple[str, str]:
         """Split bucket and file path.
 
@@ -332,10 +335,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             **self._config_kwargs,
         )  # type: ignore (can't find overload)
 
-    async def _rm_file(self, path: str, **_kwargs: Any) -> None:
+    async def _rm_file(self, path: str, **_kwargs: Any) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         bucket, path = self._split_path(path)
         store = self._construct_store(bucket)
-        return await obs.delete_async(store, path)
+        return await store.delete_async(path)
 
     async def _cp_file(self, path1: str, path2: str, **_kwargs: Any) -> None:
         bucket1, path1_no_bucket = self._split_path(path1)
@@ -350,7 +353,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
         store = self._construct_store(bucket1)
 
-        return await obs.copy_async(store, path1_no_bucket, path2_no_bucket)
+        return await store.copy_async(path1_no_bucket, path2_no_bucket)
 
     async def _pipe_file(
         self,
@@ -361,7 +364,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
     ) -> Any:
         bucket, path = self._split_path(path)
         store = self._construct_store(bucket)
-        return await obs.put_async(store, path, value)
+        return await store.put_async(path, value)
 
     async def _cat_file(
         self,
@@ -374,7 +377,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         store = self._construct_store(bucket)
 
         if start is None and end is None:
-            resp = await obs.get_async(store, path)
+            resp = await store.get_async(path)
             return (await resp.bytes_async()).to_bytes()
 
         if start is None or end is None:
@@ -382,7 +385,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 "cat_file not implemented for start=None xor end=None",
             )
 
-        range_bytes = await obs.get_range_async(store, path, start=start, end=end)
+        range_bytes = await store.get_range_async(path, start=start, end=end)
         return range_bytes.to_bytes()
 
     async def _cat(  # type: ignore (fsspec has bad typing)
@@ -440,7 +443,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
             offsets = [r[0] for r in ranges]
             ends = [r[1] for r in ranges]
-            fut = obs.get_ranges_async(store, path_no_bucket, starts=offsets, ends=ends)
+            fut = store.get_ranges_async(path_no_bucket, starts=offsets, ends=ends)
             futs.append(fut)
 
         result = await asyncio.gather(*futs)
@@ -463,44 +466,42 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         mode: str = "overwrite",  # noqa: ARG002
         **_kwargs: Any,
     ) -> None:
-        if not Path(lpath).is_file():
-            err_msg = f"File {lpath} not found in local"
-            raise FileNotFoundError(err_msg)
 
-        # TODO: convert to use async file system methods using LocalStore
-        # Async functions should not open files with blocking methods like `open`
+        if not await self._local_store._exists(lpath):  # noqa: SLF001
+            raise FileNotFoundError(lpath)
+
         rbucket, rpath = self._split_path(rpath)
 
         # Should construct the store instance by rbucket, which is the target path
         store = self._construct_store(rbucket)
 
-        with open(lpath, "rb") as f:  # noqa: ASYNC230
-            await obs.put_async(store, rpath, f)
+        await store.put_async(rpath, Path(lpath))
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
         res = urlparse(lpath)
-        if res.scheme or Path(lpath).is_dir():
+        if res.scheme or await self._local_store._isdir(lpath):  # noqa: SLF001
             # lpath need to be local file and cannot contain scheme
             return
 
-        # TODO: convert to use async file system methods using LocalStore
-        # Async functions should not open files with blocking methods like `open`
-        rbucket, rpath = self._split_path(rpath)
-
-        # Should construct the store instance by rbucket, which is the target path
-        store = self._construct_store(rbucket)
-
-        with open(lpath, "wb") as f:  # noqa: ASYNC230
-            resp = await obs.get_async(store, rpath)
-            async for buffer in resp.stream():
-                f.write(buffer)
+        resp = await self._cat_file(rpath)
+        await self._local_store._pipe_file(lpath, resp)  # noqa: SLF001
 
     async def _info(self, path: str, **_kwargs: Any) -> dict[str, Any]:
+        # Consult `self.dircache` before issuing a HEAD request. An empty
+        # filter means the cache has evidence `path` is a directory but no
+        # entry under that exact name, so we return a synthetic directory.
+        cached = self._ls_from_cache(path)
+        if cached is not None:
+            match = next((entry for entry in cached if entry["name"] == path), None)
+            if match is not None:
+                return match
+            return {"name": path, "size": 0, "type": "directory"}
+
         bucket, path_no_bucket = self._split_path(path)
         store = self._construct_store(bucket)
 
         try:
-            head = await obs.head_async(store, path_no_bucket)
+            head = await store.head_async(path_no_bucket)
             return {
                 # Required of `info`: (?)
                 "name": head["path"],
@@ -552,7 +553,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         bucket, path = self._split_path(path)
         store = self._construct_store(bucket)
 
-        result = await obs.list_with_delimiter_async(store, path)
+        result = await store.list_with_delimiter_async(path)
         objects = result["objects"]
         prefs = result["common_prefixes"]
         files = [
@@ -596,7 +597,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         """Return the modified timestamp of a file as a `datetime.datetime`."""
         bucket, path_no_bucket = self._split_path(path)
         store = self._construct_store(bucket)
-        head = obs.head(store, path_no_bucket)
+        head = store.head(path_no_bucket)
         return head["last_modified"]
 
 
@@ -680,7 +681,12 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
         if self.mode == "rb":
             buffer_size = 1024 * 1024 if buffer_size is None else buffer_size
-            self._reader = open_reader(store, path, buffer_size=buffer_size)
+            self._reader = open_reader(
+                store,
+                path,
+                buffer_size=buffer_size,
+                size=self.size,
+            )
         elif self.mode == "wb":
             buffer_size = 10 * 1024 * 1024 if buffer_size is None else buffer_size
             self._writer = open_writer(

@@ -43,19 +43,24 @@ class UpdateVersion(TypedDict, total=False):
     """A version indicator for the newly created object."""
 
 PutMode: TypeAlias = Literal["create", "overwrite"] | UpdateVersion
-"""Configure preconditions for the put operation
+"""Configure preconditions for the put operation.
+
 There are three modes:
-- Overwrite: Perform an atomic write operation, overwriting any object present at the
-  provided path.
-- Create: Perform an atomic write operation, returning
+
+- **Overwrite**: Perform an atomic write operation, overwriting any object present at
+  the provided path.
+- **Create**: Perform an atomic write operation, returning
   [`AlreadyExistsError`][obstore.exceptions.AlreadyExistsError] if an object already
   exists at the provided path.
-- Update: Perform an atomic write operation if the current version of the object matches
-  the provided [`UpdateVersion`][obstore.UpdateVersion], returning
+- **Update**: Perform an atomic write operation if the current version of the object
+  matches the provided [`UpdateVersion`][obstore.UpdateVersion], returning
   [`PreconditionError`][obstore.exceptions.PreconditionError] otherwise.
+
 If a string is provided, it must be one of:
+
 - `"overwrite"`
 - `"create"`
+
 If a `dict` is provided, it must meet the criteria of
 [`UpdateVersion`][obstore.UpdateVersion].
 
@@ -188,11 +193,9 @@ async def put_async(
     operation:
 
     ```py
-    import obstore as obs
-
     # This only constructs the stream, it doesn't materialize the data in memory
-    resp = await obs.get_async(store1, path1)
+    resp = await store1.get_async(path1)
     # A streaming upload is created to copy the file to path2
-    await obs.put_async(store2, path2)
+    await store2.put_async(path2)
     ```
     """

@@ -13,6 +13,7 @@ Attribute: TypeAlias = (
         "Content-Language",
         "Content-Type",
         "Cache-Control",
+        "Storage-Class",
     ]
     | str
 )
@@ -39,6 +40,14 @@ Attribute: TypeAlias = (
 - `"Cache-Control"`: Overrides cache control policy of the object.
 
     See [Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control).
+
+- `"Storage-Class"`: Specifies the storage class of the object.
+
+    See [AWS](https://aws.amazon.com/s3/storage-classes/),
+    [GCP](https://cloud.google.com/storage/docs/storage-classes), and
+    [Azure](https://learn.microsoft.com/en-us/rest/api/storageservices/set-blob-tier)
+    documentation. `Storage-Class` is used as the name for this attribute because two of
+    the three storage providers use that name
 
 Any other string key specifies a user-defined metadata field for the object.
 

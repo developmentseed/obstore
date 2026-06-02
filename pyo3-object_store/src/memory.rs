@@ -7,7 +7,7 @@ use pyo3::types::PyString;
 
 /// A Python-facing wrapper around an [`InMemory`].
 #[derive(Debug, Clone)]
-#[pyclass(name = "MemoryStore", frozen, subclass)]
+#[pyclass(name = "MemoryStore", frozen, subclass, from_py_object)]
 pub struct PyMemoryStore(Arc<InMemory>);
 
 impl AsRef<Arc<InMemory>> for PyMemoryStore {

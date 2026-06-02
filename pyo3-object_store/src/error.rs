@@ -3,7 +3,7 @@
 
 use pyo3::exceptions::{PyFileNotFoundError, PyIOError, PyNotImplementedError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::{create_exception, DowncastError};
+use pyo3::{create_exception, CastError};
 use thiserror::Error;
 
 // Base exception
@@ -131,9 +131,10 @@ impl From<PyObjectStoreError> for PyErr {
                 object_store::Error::NotModified { path: _, source: _ } => {
                     NotModifiedError::new_err(print_with_debug(err))
                 }
-                object_store::Error::NotImplemented => {
-                    PyNotImplementedError::new_err(print_with_debug(err))
-                }
+                object_store::Error::NotImplemented {
+                    operation: _,
+                    implementer: _,
+                } => PyNotImplementedError::new_err(print_with_debug(err)),
                 object_store::Error::PermissionDenied { path: _, source: _ } => {
                     PermissionDeniedError::new_err(print_with_debug(err))
                 }
@@ -156,8 +157,8 @@ fn print_with_debug(err: &object_store::Error) -> String {
     format!("{err}\n\nDebug source:\n{err:#?}")
 }
 
-impl<'a, 'py> From<DowncastError<'a, 'py>> for PyObjectStoreError {
-    fn from(other: DowncastError<'a, 'py>) -> Self {
+impl<'a, 'py> From<CastError<'a, 'py>> for PyObjectStoreError {
+    fn from(other: CastError<'a, 'py>) -> Self {
         Self::PyErr(PyValueError::new_err(format!(
             "Could not downcast: {other}",
         )))

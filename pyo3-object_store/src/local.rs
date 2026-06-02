@@ -31,7 +31,7 @@ impl LocalConfig {
 
 /// A Python-facing wrapper around a [`LocalFileSystem`].
 #[derive(Debug, Clone)]
-#[pyclass(name = "LocalStore", frozen, subclass)]
+#[pyclass(name = "LocalStore", frozen, subclass, from_py_object)]
 pub struct PyLocalStore {
     store: Arc<LocalFileSystem>,
     config: LocalConfig,
@@ -112,7 +112,7 @@ impl PyLocalStore {
         // Ensure we never error on __eq__ by returning false if the other object is not the same
         // type
         other
-            .downcast::<PyLocalStore>()
+            .cast::<PyLocalStore>()
             .map(|other| self.config == other.get().config)
             .unwrap_or(false)
     }

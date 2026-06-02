@@ -9,7 +9,6 @@ use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
 use object_store::list::{PaginatedListOptions, PaginatedListStore};
-use object_store::path::Path;
 use object_store::{ListResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
@@ -21,7 +20,7 @@ use pyo3_arrow::PyTable;
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_object_store::{
     PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyObjectStore,
-    PyObjectStoreError, PyObjectStoreResult, PyS3Store,
+    PyObjectStoreError, PyObjectStoreResult, PyPath, PyS3Store,
 };
 use tokio::sync::Mutex;
 
@@ -30,19 +29,21 @@ pub(crate) enum MaybePaginatedListStore {
     NoPagination(Arc<dyn ObjectStore>),
 }
 
-impl<'py> FromPyObject<'py> for MaybePaginatedListStore {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        if let Ok(store) = ob.downcast::<PyS3Store>() {
+impl<'py> FromPyObject<'_, 'py> for MaybePaginatedListStore {
+    type Error = PyErr;
+
+    fn extract(ob: Borrowed<'_, 'py, PyAny>) -> PyResult<Self> {
+        if let Ok(store) = ob.cast::<PyS3Store>() {
             Ok(Self::SupportsPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyAzureStore>() {
+        } else if let Ok(store) = ob.cast::<PyAzureStore>() {
             Ok(Self::SupportsPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyGCSStore>() {
+        } else if let Ok(store) = ob.cast::<PyGCSStore>() {
             Ok(Self::SupportsPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyHttpStore>() {
+        } else if let Ok(store) = ob.cast::<PyHttpStore>() {
             Ok(Self::NoPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyLocalStore>() {
+        } else if let Ok(store) = ob.cast::<PyLocalStore>() {
             Ok(Self::NoPagination(store.get().as_ref().clone()))
-        } else if let Ok(store) = ob.downcast::<PyMemoryStore>() {
+        } else if let Ok(store) = ob.cast::<PyMemoryStore>() {
             Ok(Self::NoPagination(store.get().as_ref().clone()))
         } else {
             let py = ob.py();
@@ -52,14 +53,14 @@ impl<'py> FromPyObject<'py> for MaybePaginatedListStore {
                 .getattr(intern!(py, "__name__"))?
                 .extract::<PyBackedStr>()?;
             if [
-                PyAzureStore::NAME,
-                PyGCSStore::NAME,
-                PyHttpStore::NAME,
-                PyLocalStore::NAME,
-                PyMemoryStore::NAME,
-                PyS3Store::NAME,
+                PyAzureStore::type_object(py).name()?.to_str()?,
+                PyGCSStore::type_object(py).name()?.to_str()?,
+                PyHttpStore::type_object(py).name()?.to_str()?,
+                PyLocalStore::type_object(py).name()?.to_str()?,
+                PyMemoryStore::type_object(py).name()?.to_str()?,
+                PyS3Store::type_object(py).name()?.to_str()?,
             ]
-            .contains(&cls_name.as_ref())
+            .contains(&cls_name.as_str())
             {
                 return Err(PyValueError::new_err("You must use an object store instance exported from **the same library** as this function. They cannot be used across libraries.\nThis is because object store instances are compiled with a specific version of Rust and Python." ));
             }
@@ -438,14 +439,14 @@ pub(crate) fn list(
 pub(crate) fn list_with_delimiter(
     py: Python,
     store: PyObjectStore,
-    prefix: Option<String>,
+    prefix: Option<PyPath>,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
     let runtime = get_runtime();
     py.detach(|| {
         let out = runtime.block_on(list_with_delimiter_materialize(
             store.into_inner(),
-            prefix.map(|s| s.into()).as_ref(),
+            prefix.as_ref(),
             return_arrow,
         ))?;
         Ok::<_, PyObjectStoreError>(out)
@@ -457,26 +458,25 @@ pub(crate) fn list_with_delimiter(
 pub(crate) fn list_with_delimiter_async(
     py: Python,
     store: PyObjectStore,
-    prefix: Option<String>,
+    prefix: Option<PyPath>,
     return_arrow: bool,
 ) -> PyResult<Bound<PyAny>> {
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        let out = list_with_delimiter_materialize(
-            store.into_inner(),
-            prefix.map(|s| s.into()).as_ref(),
-            return_arrow,
-        )
-        .await?;
+        let out =
+            list_with_delimiter_materialize(store.into_inner(), prefix.as_ref(), return_arrow)
+                .await?;
         Ok(out)
     })
 }
 
 async fn list_with_delimiter_materialize(
     store: Arc<dyn ObjectStore>,
-    prefix: Option<&Path>,
+    prefix: Option<&PyPath>,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListResult> {
-    let list_result = store.list_with_delimiter(prefix).await?;
+    let list_result = store
+        .list_with_delimiter(prefix.map(|s| s.as_ref()))
+        .await?;
     Ok(PyListResult::new(list_result, return_arrow))
 }
 
@@ -558,7 +558,7 @@ fn create_filtered_stream(
                     Ok(meta) => {
                         // Extract filename from path for substring matching
                         let path_str = meta.location.as_ref();
-                        if let Some(filename) = path_str.split('/').last() {
+                        if let Some(filename) = path_str.split('/').next_back() {
                             if filename.contains(&substring) {
                                 Some(Ok(meta))
                             } else {

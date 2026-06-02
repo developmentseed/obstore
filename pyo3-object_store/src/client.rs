@@ -15,9 +15,11 @@ use crate::error::PyObjectStoreError;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyClientConfigKey(ClientConfigKey);
 
-impl<'py> FromPyObject<'py> for PyClientConfigKey {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?.to_lowercase();
+impl<'py> FromPyObject<'_, 'py> for PyClientConfigKey {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let s = obj.extract::<PyBackedStr>()?.to_lowercase();
         let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
@@ -50,10 +52,12 @@ pub struct PyClientOptions {
     default_headers: Option<PyHeaderMap>,
 }
 
-impl<'py> FromPyObject<'py> for PyClientOptions {
+impl<'py> FromPyObject<'_, 'py> for PyClientOptions {
+    type Error = PyErr;
+
     // Need custom extraction because default headers is not a string value
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let dict = ob.extract::<Bound<PyDict>>()?;
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let dict = obj.extract::<Bound<PyDict>>()?;
         let mut string_options = HashMap::new();
         let mut default_headers = None;
 
@@ -123,9 +127,11 @@ impl From<PyClientOptions> for ClientOptions {
 #[derive(Clone, Debug, PartialEq)]
 struct PyHeaderMap(HeaderMap);
 
-impl<'py> FromPyObject<'py> for PyHeaderMap {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let dict = ob.extract::<Bound<PyDict>>()?;
+impl<'py> FromPyObject<'_, 'py> for PyHeaderMap {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let dict = obj.extract::<Bound<PyDict>>()?;
         let mut header_map = HeaderMap::with_capacity(dict.len());
         for (key, value) in dict.iter() {
             let key = HeaderName::from_str(&key.extract::<PyBackedStr>()?)

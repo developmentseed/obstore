@@ -27,6 +27,7 @@ nav:
   - User Guide:
       - getting-started.md
       - cookbook.md
+      - method-vs-functional-api.md
       - authentication.md
       - obspec.md
       - Integrations:
@@ -93,6 +94,7 @@ theme:
   name: material
   custom_dir: docs/overrides
   logo: assets/logo_no_text.png
+  favicon: assets/ds_favicon.png
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"

@@ -1,3 +1,6 @@
+*.dylib
+*.dylib.yml
+Info.plist
 *.so
 *.whl
 

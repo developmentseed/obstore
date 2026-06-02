@@ -43,26 +43,35 @@ jobs:
             target: ppc64le
             manylinux: auto
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.5.x"
+          version: "0.10.x"
 
       - name: Install Python versions
-        run: uv python install 3.9 3.10 3.11 3.12 3.13 pypy3.10
+        run: uv python install 3.10 3.11 3.13t 3.14t pypy3.11
 
-      - name: Build wheels
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: ${{ matrix.platform.manylinux }}
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i 3.10 -i 3.13t -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+          manylinux: ${{ matrix.platform.manylinux }}
+
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-linux-${{ matrix.platform.target }}-obstore
           path: dist
@@ -81,26 +90,35 @@ jobs:
           - runner: ubuntu-latest
             target: armv7
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.5.x"
+          version: "0.10.x"
 
       - name: Install Python versions
-        run: uv python install 3.9 3.10 3.11 3.12 3.13 pypy3.10
+        run: uv python install 3.10 3.11 3.13t 3.14t pypy3.11
 
-      - name: Build wheels
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: musllinux_1_2
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i 3.10 -i 3.13t -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+          manylinux: musllinux_1_2
+
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-musllinux-${{ matrix.platform.target }}-obstore
           path: dist
@@ -113,23 +131,31 @@ jobs:
           - runner: windows-latest
             target: x64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # There seem to be linking errors on Windows with the uv-provided Python
       # executables, so we use the Python versions provided by github actions
       # for now.
       # Seems to be this question: https://stackoverflow.com/questions/78557803/python-with-rust-cannot-open-input-file-python3-lib
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.13
           architecture: ${{ matrix.platform.target }}
-      - name: Build wheels
+
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 --features generate-import-lib -i 3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --features generate-import-lib -i 3.10 -i 3.13t -i 3.14t --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-windows-${{ matrix.platform.target }}-obstore
           path: dist
@@ -139,73 +165,79 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: macos-13
+          - runner: macos-15-intel
             target: x86_64
-          - runner: macos-14
+          - runner: macos-15
             target: aarch64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.5.x"
+          version: "0.10.x"
 
       - name: Install Python versions
-        run: uv python install 3.9 3.10 3.11 3.12 3.13 pypy3.10
+        run: uv python install 3.10 3.11 3.13t 3.14t pypy3.11
 
-      - name: Build wheels
+      - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.9 -i 3.10 -i 3.11 -i 3.12 -i 3.13 -i pypy3.10 --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+
+      - name: Build version-specific wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i 3.10 -i 3.13t -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-macos-${{ matrix.platform.target }}-obstore
           path: dist
 
-  # sdist:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Build sdist
-  #       uses: PyO3/maturin-action@v1
-  #       with:
-  #         command: sdist
-  #         args: --out dist --manifest-path obstore/Cargo.toml
-  #     - name: Upload sdist
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: wheels-sdist-obstore
-  #         path: dist
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist --manifest-path obstore/Cargo.toml
+      - name: Test sdist
+        run: |
+          python -m pip install dist/*.tar.gz
+      - name: Upload sdist
+        uses: actions/upload-artifact@v7
+        with:
+          name: wheels-sdist-obstore
+          path: dist
 
   release:
     runs-on: ubuntu-latest
     name: Release
-    # environment:
-    #   name: release
-    #   url: https://pypi.org/p/obstore
-    # permissions:
-    #   # IMPORTANT: this permission is mandatory for trusted publishing
-    #   id-token: write
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: [linux, musllinux, windows, macos]
+    environment:
+      name: pypi-release
+      url: https://pypi.org/p/obstore
+    permissions:
+      # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    needs: [linux, musllinux, windows, macos, sdist]
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: wheels-*-obstore
           merge-multiple: true
           path: dist
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: 3.9
+          python-version: 3.13
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

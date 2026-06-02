@@ -62,7 +62,7 @@ impl S3Config {
 
 /// A Python-facing wrapper around an [`AmazonS3`].
 #[derive(Debug, Clone)]
-#[pyclass(name = "S3Store", frozen, subclass)]
+#[pyclass(name = "S3Store", frozen, subclass, from_py_object)]
 pub struct PyS3Store {
     store: Arc<MaybePrefixedStore<AmazonS3>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
@@ -175,7 +175,7 @@ impl PyS3Store {
     fn __eq__(&self, other: &Bound<PyAny>) -> bool {
         // Ensure we never error on __eq__ by returning false if the other object is not an S3Store
         other
-            .downcast::<PyS3Store>()
+            .cast::<PyS3Store>()
             .map(|other| self.config == other.get().config)
             .unwrap_or(false)
     }
@@ -226,9 +226,11 @@ impl PyS3Store {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyAmazonS3ConfigKey(AmazonS3ConfigKey);
 
-impl<'py> FromPyObject<'py> for PyAmazonS3ConfigKey {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?.to_lowercase();
+impl<'py> FromPyObject<'_, 'py> for PyAmazonS3ConfigKey {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let s = obj.extract::<PyBackedStr>()?.to_lowercase();
         let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
@@ -284,10 +286,12 @@ pub struct PyAmazonS3Config(HashMap<PyAmazonS3ConfigKey, PyConfigValue>);
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
 //
 // We also manually impl this so that we can raise on duplicate keys.
-impl<'py> FromPyObject<'py> for PyAmazonS3Config {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyAmazonS3Config {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         let mut slf = Self::new();
-        for (key, val) in ob.extract::<Bound<'py, PyDict>>()?.iter() {
+        for (key, val) in obj.extract::<Bound<'py, PyDict>>()?.iter() {
             slf.insert_raising_if_exists(
                 key.extract::<PyAmazonS3ConfigKey>()?,
                 val.extract::<PyConfigValue>()?,
@@ -390,6 +394,10 @@ fn parse_url(
                 if let Some(bucket) = bucket {
                     config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
                 }
+            }
+            Some((bucket, "s3", "amazonaws", "com")) => {
+                config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                config.insert_if_not_exists(AmazonS3ConfigKey::VirtualHostedStyleRequest, "true");
             }
             Some((bucket, "s3", region, "amazonaws.com")) => {
                 config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);

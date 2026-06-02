@@ -1,6 +1,6 @@
 [package]
 name = "obstore"
-version = "0.8.1"
+version = "0.10.0"
 authors = { workspace = true }
 edition = { workspace = true }
 description = "The simplest, highest-throughput interface to Amazon S3, Google Cloud Storage, Azure Blob Storage, and S3-compliant APIs like Cloudflare R2."
@@ -17,8 +17,13 @@ rust-version = { workspace = true }
 name = "_obstore"
 crate-type = ["cdylib"]
 
+[features]
+abi3-py311 = ["pyo3/abi3-py311"]
+# https://www.maturin.rs/distribution.html#cross-compile-to-windows
+generate-import-lib = ["pyo3/generate-import-lib"]
+
 [dependencies]
-arrow = "56"
+arrow = "57"
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
@@ -26,9 +31,9 @@ http = { workspace = true }
 indexmap = { workspace = true }
 object_store = { workspace = true }
 pyo3 = { workspace = true, features = ["chrono"] }
-pyo3-arrow = "0.12"
+pyo3-arrow = "0.16"
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
-pyo3-bytes = "0.4"
+pyo3-bytes = "0.6"
 pyo3-file = { workspace = true }
 pyo3-object_store = { path = "../pyo3-object_store" }
 tokio = { workspace = true, features = [
@@ -47,4 +52,4 @@ reqwest = { version = "*", default-features = false, features = [
 ] }
 
 [build-dependencies]
-cargo-lock = "10.1.0"
+cargo-lock = "11.0.1"

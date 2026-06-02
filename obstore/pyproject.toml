@@ -1,10 +1,11 @@
 [build-system]
-requires = ["maturin>=1.4.0,<2.0"]
+requires = ["maturin>=1.12.0,<2.0"]
 build-backend = "maturin"
 
 [project]
 name = "obstore"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
+readme = "README.md"
 dependencies = ["typing-extensions; python_version < '3.13'"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -29,4 +30,3 @@ dynamic = ["version"]
 features = ["pyo3/extension-module"]
 module-name = "obstore._obstore"
 python-source = "python"
-strip = true

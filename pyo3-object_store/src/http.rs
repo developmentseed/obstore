@@ -34,7 +34,7 @@ impl HTTPConfig {
 
 /// A Python-facing wrapper around a [`HttpStore`].
 #[derive(Debug, Clone)]
-#[pyclass(name = "HTTPStore", frozen, subclass)]
+#[pyclass(name = "HTTPStore", frozen, subclass, from_py_object)]
 pub struct PyHttpStore {
     // Note: we don't need to wrap this in a MaybePrefixedStore because the HttpStore manages its
     // own prefix.
@@ -104,7 +104,7 @@ impl PyHttpStore {
         // Ensure we never error on __eq__ by returning false if the other object is not the same
         // type
         other
-            .downcast::<PyHttpStore>()
+            .cast::<PyHttpStore>()
             .map(|other| self.config == other.get().config)
             .unwrap_or(false)
     }

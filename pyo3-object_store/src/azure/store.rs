@@ -68,7 +68,7 @@ impl AzureConfig {
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
 #[derive(Debug, Clone)]
-#[pyclass(name = "AzureStore", frozen, subclass)]
+#[pyclass(name = "AzureStore", frozen, subclass, from_py_object)]
 pub struct PyAzureStore {
     store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
@@ -193,7 +193,7 @@ impl PyAzureStore {
         // Ensure we never error on __eq__ by returning false if the other object is not the same
         // type
         other
-            .downcast::<PyAzureStore>()
+            .cast::<PyAzureStore>()
             .map(|other| self.config == other.get().config)
             .unwrap_or(false)
     }
@@ -248,9 +248,11 @@ impl PyAzureStore {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyAzureConfigKey(AzureConfigKey);
 
-impl<'py> FromPyObject<'py> for PyAzureConfigKey {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
-        let s = ob.extract::<PyBackedStr>()?.to_lowercase();
+impl<'py> FromPyObject<'_, 'py> for PyAzureConfigKey {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let s = obj.extract::<PyBackedStr>()?.to_lowercase();
         let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
@@ -310,10 +312,12 @@ pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 // UnknownConfigurationKeyError instead of a `TypeError` on invalid config keys.
 //
 // We also manually impl this so that we can raise on duplicate keys.
-impl<'py> FromPyObject<'py> for PyAzureConfig {
-    fn extract_bound(ob: &Bound<'py, PyAny>) -> PyResult<Self> {
+impl<'py> FromPyObject<'_, 'py> for PyAzureConfig {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         let mut slf = Self::new();
-        for (key, val) in ob.extract::<Bound<'py, PyDict>>()?.iter() {
+        for (key, val) in obj.extract::<Bound<'py, PyDict>>()?.iter() {
             slf.insert_raising_if_exists(
                 key.extract::<PyAzureConfigKey>()?,
                 val.extract::<PyConfigValue>()?,
@@ -414,30 +418,41 @@ fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Resul
             // or the convention for the hadoop driver abfs[s]://<file_system>@<account_name>.dfs.core.windows.net/<path>
             if parsed.username().is_empty() {
                 config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
-            } else if let Some(a) = host.strip_suffix(".dfs.core.windows.net") {
-                config.insert_if_not_exists(
-                    AzureConfigKey::ContainerName,
-                    validate(parsed.username())?,
-                );
-                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
-            } else if let Some(a) = host.strip_suffix(".dfs.fabric.microsoft.com") {
-                config.insert_if_not_exists(
-                    AzureConfigKey::ContainerName,
-                    validate(parsed.username())?,
-                );
-                config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
-                config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
             } else {
-                return Err(ParseUrlError::UrlNotRecognised {
-                    url: parsed.as_str().to_string(),
+                match host.split_once('.') {
+                    Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
+                        config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                        config.insert_if_not_exists(
+                            AzureConfigKey::ContainerName,
+                            validate(parsed.username())?,
+                        );
+                    }
+                    Some((a, "dfs.fabric.microsoft.com"))
+                    | Some((a, "blob.fabric.microsoft.com")) => {
+                        config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
+                        config.insert_if_not_exists(
+                            AzureConfigKey::ContainerName,
+                            validate(parsed.username())?,
+                        );
+                        config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+                    }
+                    _ => {
+                        return Err(ParseUrlError::UrlNotRecognised {
+                            url: parsed.as_str().to_string(),
+                        }
+                        .into())
+                    }
                 }
-                .into());
             }
         }
         "https" => match host.split_once('.') {
             Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
                 config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
-                if let Some(container) = parsed.path_segments().unwrap().next() {
+                let container =
+                    parsed.path_segments().unwrap().next().expect(
+                        "iterator always contains at least one string (which may be empty)",
+                    );
+                if !container.is_empty() {
                     config
                         .insert_if_not_exists(AzureConfigKey::ContainerName, validate(container)?);
                 }
@@ -449,10 +464,12 @@ fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Resul
                 // - https://onelake.dfs.fabric.microsoft.com/<workspace>/<item>.<itemtype>/<path>/<fileName>
                 //
                 // See <https://learn.microsoft.com/en-us/fabric/onelake/onelake-access-api>
-                if let Some(workspace) = parsed.path_segments().unwrap().next() {
-                    if !workspace.is_empty() {
-                        config.insert_if_not_exists(AzureConfigKey::ContainerName, workspace);
-                    }
+                let workspace =
+                    parsed.path_segments().unwrap().next().expect(
+                        "iterator always contains at least one string (which may be empty)",
+                    );
+                if !workspace.is_empty() {
+                    config.insert_if_not_exists(AzureConfigKey::ContainerName, workspace);
                 }
                 config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
             }

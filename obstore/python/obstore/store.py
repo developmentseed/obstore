@@ -98,7 +98,25 @@ __all__ = [
 ]
 
 
-class _ObjectStoreMixin:
+class ObjectStoreMethods:
+    """Shared methods implemented by all obstore store classes.
+
+    This is the concrete method surface common to [`S3Store`][obstore.store.S3Store],
+    [`AzureStore`][obstore.store.AzureStore], [`GCSStore`][obstore.store.GCSStore],
+    [`HTTPStore`][obstore.store.HTTPStore], [`LocalStore`][obstore.store.LocalStore],
+    and [`MemoryStore`][obstore.store.MemoryStore].
+
+    It is exposed for documentation and for
+    `isinstance` checks against obstore's own stores.
+
+    This implements the protocols defined in [obspec](https://developmentseed.org/obspec/).
+
+    !!! note
+        Do not subclass this to build your own store. To implement a
+        custom object store backend, implement the protocols in
+        [obspec](https://developmentseed.org/obspec/) instead.
+    """
+
     def copy(self, from_: str, to: str, *, overwrite: bool = True) -> None:
         """Copy an object from one path to another in the same object store.
 
@@ -120,7 +138,7 @@ class _ObjectStoreMixin:
     ) -> None:
         """Call `copy` asynchronously.
 
-        Refer to the documentation for [copy][obstore.copy].
+        Refer to the documentation for [copy_async][obstore.copy_async].
         """
         return await obs.copy_async(
             self,  # type: ignore[arg-type]
@@ -142,7 +160,7 @@ class _ObjectStoreMixin:
     async def delete_async(self, paths: str | Sequence[str]) -> None:
         """Call `delete` asynchronously.
 
-        Refer to the documentation for [delete][obstore.delete].
+        Refer to the documentation for [delete_async][obstore.delete_async].
         """
         return await obs.delete_async(
             self,  # type: ignore[arg-type]
@@ -173,7 +191,7 @@ class _ObjectStoreMixin:
     ) -> GetResult:
         """Call `get` asynchronously.
 
-        Refer to the documentation for [get][obstore.get].
+        Refer to the documentation for [get_async][obstore.get_async].
         """
         return await obs.get_async(
             self,  # type: ignore[arg-type]
@@ -211,7 +229,7 @@ class _ObjectStoreMixin:
     ) -> Bytes:
         """Call `get_range` asynchronously.
 
-        Refer to the documentation for [get_range][obstore.get_range].
+        Refer to the documentation for [get_range_async][obstore.get_range_async].
         """
         return await obs.get_range_async(
             self,  # type: ignore[arg-type]
@@ -228,6 +246,7 @@ class _ObjectStoreMixin:
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
         lengths: Sequence[int] | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Return the bytes stored at the specified location in the given byte ranges.
 
@@ -239,6 +258,7 @@ class _ObjectStoreMixin:
             starts=starts,
             ends=ends,
             lengths=lengths,
+            coalesce=coalesce,
         )
 
     async def get_ranges_async(
@@ -248,10 +268,11 @@ class _ObjectStoreMixin:
         starts: Sequence[int],
         ends: Sequence[int] | None = None,
         lengths: Sequence[int] | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Call `get_ranges` asynchronously.
 
-        Refer to the documentation for [get_ranges][obstore.get_ranges].
+        Refer to the documentation for [get_ranges_async][obstore.get_ranges_async].
         """
         return await obs.get_ranges_async(
             self,  # type: ignore[arg-type]
@@ -259,6 +280,7 @@ class _ObjectStoreMixin:
             starts=starts,
             ends=ends,
             lengths=lengths,
+            coalesce=coalesce,
         )
 
     def head(self, path: str) -> ObjectMeta:
@@ -449,7 +471,7 @@ class _ObjectStoreMixin:
         """Call `list_with_delimiter` asynchronously.
 
         Refer to the documentation for
-        [list_with_delimiter][obstore.list_with_delimiter].
+        [list_with_delimiter_async][obstore.list_with_delimiter_async].
         """
         # Splitting these fixes the typing issue with the `return_arrow` parameter, by
         # converting from a bool to a Literal[True] or Literal[False]
@@ -515,22 +537,7 @@ class _ObjectStoreMixin:
     ) -> PutResult:
         """Call `put` asynchronously.
 
-        Refer to the documentation for [`put`][obstore.put]. In addition to what the
-        synchronous `put` allows for the `file` parameter, this **also supports an async
-        iterator or iterable** of objects implementing the Python buffer protocol.
-
-        This means, for example, you can pass the result of `get_async` directly to
-        `put_async`, and the request will be streamed through Python during the put
-        operation:
-
-        ```py
-        import obstore as obs
-
-        # This only constructs the stream, it doesn't materialize the data in memory
-        resp = await obs.get_async(store1, path1)
-        # A streaming upload is created to copy the file to path2
-        await obs.put_async(store2, path2)
-        ```
+        Refer to the documentation for [put_async][obstore.put_async].
         """
         return await obs.put_async(
             self,  # type: ignore[arg-type]
@@ -565,7 +572,7 @@ class _ObjectStoreMixin:
     ) -> None:
         """Call `rename` asynchronously.
 
-        Refer to the documentation for [rename][obstore.rename].
+        Refer to the documentation for [rename_async][obstore.rename_async].
         """
         return await obs.rename_async(
             self,  # type: ignore[arg-type]
@@ -575,7 +582,7 @@ class _ObjectStoreMixin:
         )
 
 
-class AzureStore(_ObjectStoreMixin, _store.AzureStore):
+class AzureStore(ObjectStoreMethods, _store.AzureStore):
     """Interface to a Microsoft Azure Blob Storage container.
 
     All constructors will check for environment variables. Refer to
@@ -583,7 +590,7 @@ class AzureStore(_ObjectStoreMixin, _store.AzureStore):
     """
 
 
-class GCSStore(_ObjectStoreMixin, _store.GCSStore):
+class GCSStore(ObjectStoreMethods, _store.GCSStore):
     """Interface to Google Cloud Storage.
 
     All constructors will check for environment variables. Refer to
@@ -595,7 +602,7 @@ class GCSStore(_ObjectStoreMixin, _store.GCSStore):
     """
 
 
-class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
+class HTTPStore(ObjectStoreMethods, _store.HTTPStore):
     """Configure a connection to a generic HTTP server.
 
     **Example**
@@ -623,7 +630,7 @@ class HTTPStore(_ObjectStoreMixin, _store.HTTPStore):
     """
 
 
-class LocalStore(_ObjectStoreMixin, _store.LocalStore):
+class LocalStore(ObjectStoreMethods, _store.LocalStore):
     """An ObjectStore interface to local filesystem storage.
 
     Can optionally be created with a directory prefix.
@@ -638,7 +645,7 @@ class LocalStore(_ObjectStoreMixin, _store.LocalStore):
     """
 
 
-class MemoryStore(_ObjectStoreMixin, _store.MemoryStore):
+class MemoryStore(ObjectStoreMethods, _store.MemoryStore):
     """A fully in-memory implementation of ObjectStore.
 
     Create a new in-memory store:
@@ -648,7 +655,7 @@ class MemoryStore(_ObjectStoreMixin, _store.MemoryStore):
     """
 
 
-class S3Store(_ObjectStoreMixin, _store.S3Store):
+class S3Store(ObjectStoreMethods, _store.S3Store):
     """Interface to an Amazon S3 bucket.
 
     All constructors will check for environment variables. Refer to

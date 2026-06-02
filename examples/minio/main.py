@@ -1,7 +1,6 @@
 # ruff: noqa
 import asyncio
 
-import obstore as obs
 from obstore.store import S3Store
 
 
@@ -16,20 +15,20 @@ async def main():
     )
 
     print("Put file:")
-    await obs.put_async(store, "a.txt", b"foo")
-    await obs.put_async(store, "b.txt", b"bar")
-    await obs.put_async(store, "c/d.txt", b"baz")
+    await store.put_async("a.txt", b"foo")
+    await store.put_async("b.txt", b"bar")
+    await store.put_async("c/d.txt", b"baz")
 
     print("\nList files:")
-    files = await obs.list(store).collect_async()
+    files = await store.list().collect_async()
     print(files)
 
     print("\nFetch a.txt")
-    resp = await obs.get_async(store, "a.txt")
+    resp = await store.get_async("a.txt")
     print(await resp.bytes_async())
 
     print("\nDelete a.txt")
-    await obs.delete_async(store, "a.txt")
+    await store.delete_async("a.txt")
 
 
 if __name__ == "__main__":

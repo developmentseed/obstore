@@ -5,20 +5,24 @@
 
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use http::Method;
 use object_store::aws::AmazonS3;
 use object_store::azure::MicrosoftAzure;
 use object_store::gcp::GoogleCloudStorage;
 use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
+use object_store::signer::Signer;
 use std::borrow::Cow;
+use std::future::Future;
 use std::ops::Range;
+use std::pin::Pin;
 use std::sync::OnceLock;
+use std::time::Duration;
+use url::Url;
 
-use object_store::path::Path;
-// Remove when updating to object_store 0.13
-#[allow(deprecated)]
+use object_store::{path::Path, CopyOptions};
 use object_store::{
-    GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta, ObjectStore, PutMultipartOpts,
-    PutOptions, PutPayload, PutResult, Result,
+    GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta, ObjectStore,
+    PutMultipartOptions, PutOptions, PutPayload, PutResult, Result,
 };
 
 static DEFAULT_PATH: OnceLock<Path> = OnceLock::new();
@@ -64,9 +68,21 @@ impl<T: ObjectStore> MaybePrefixedStore<T> {
     }
 }
 
+// Note: This is a relative hack to move these two functions to pure functions so they don't rely
+// on the `self` lifetime. Expected to be cleaned up before merge.
+//
+/// Create the full path from a path relative to prefix
+fn full_path<'a>(prefix: Option<&'a Path>, location: &'a Path) -> Cow<'a, Path> {
+    if let Some(prefix) = prefix {
+        Cow::Owned(prefix.parts().chain(location.parts()).collect())
+    } else {
+        Cow::Borrowed(location)
+    }
+}
+
 /// Strip the constant prefix from a given path
 fn strip_prefix(prefix: Option<&Path>, path: Path) -> Path {
-    if let Some(prefix) = prefix {
+    if let Some(prefix) = &prefix {
         // Note cannot use match because of borrow checker
         if let Some(suffix) = path.prefix_match(prefix) {
             return suffix.collect();
@@ -105,11 +121,6 @@ fn strip_list_result(prefix: Option<&Path>, lst: ListResult) -> ListResult {
 
 #[async_trait::async_trait]
 impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
-    async fn put(&self, location: &Path, payload: PutPayload) -> Result<PutResult> {
-        let full_path = self.full_path(location);
-        self.inner.put(&full_path, payload).await
-    }
-
     async fn put_opts(
         &self,
         location: &Path,
@@ -120,30 +131,15 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner.put_opts(&full_path, payload, opts).await
     }
 
-    async fn put_multipart(&self, location: &Path) -> Result<Box<dyn MultipartUpload>> {
-        let full_path = self.full_path(location);
-        self.inner.put_multipart(&full_path).await
-    }
-
     // Remove when updating to object_store 0.13
     #[allow(deprecated)]
     async fn put_multipart_opts(
         &self,
         location: &Path,
-        opts: PutMultipartOpts,
+        opts: PutMultipartOptions,
     ) -> Result<Box<dyn MultipartUpload>> {
         let full_path = self.full_path(location);
         self.inner.put_multipart_opts(&full_path, opts).await
-    }
-
-    async fn get(&self, location: &Path) -> Result<GetResult> {
-        let full_path = self.full_path(location);
-        self.inner.get(&full_path).await
-    }
-
-    async fn get_range(&self, location: &Path, range: Range<u64>) -> Result<Bytes> {
-        let full_path = self.full_path(location);
-        self.inner.get_range(&full_path, range).await
     }
 
     async fn get_opts(&self, location: &Path, options: GetOptions) -> Result<GetResult> {
@@ -154,17 +150,6 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     async fn get_ranges(&self, location: &Path, ranges: &[Range<u64>]) -> Result<Vec<Bytes>> {
         let full_path = self.full_path(location);
         self.inner.get_ranges(&full_path, ranges).await
-    }
-
-    async fn head(&self, location: &Path) -> Result<ObjectMeta> {
-        let full_path = self.full_path(location);
-        let meta = self.inner.head(&full_path).await?;
-        Ok(strip_meta(self.prefix.as_ref(), meta))
-    }
-
-    async fn delete(&self, location: &Path) -> Result<()> {
-        let full_path = self.full_path(location);
-        self.inner.delete(&full_path).await
     }
 
     fn list(&self, prefix: Option<&Path>) -> BoxStream<'static, Result<ObjectMeta>> {
@@ -196,28 +181,66 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
             .map(|lst| strip_list_result(self.prefix.as_ref(), lst))
     }
 
-    async fn copy(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.copy(&full_from, &full_to).await
+    async fn copy_opts(&self, from: &Path, to: &Path, options: CopyOptions) -> Result<()> {
+        let from_full = self.full_path(from);
+        let to_full = self.full_path(to);
+        self.inner.copy_opts(&from_full, &to_full, options).await
     }
 
-    async fn rename(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.rename(&full_from, &full_to).await
+    fn delete_stream(
+        &self,
+        locations: BoxStream<'static, Result<Path>>,
+    ) -> BoxStream<'static, Result<Path>> {
+        let prefix_owned = self.prefix.clone();
+        let locations = locations
+            .map(move |location| {
+                location.map(|loc| full_path(prefix_owned.as_ref(), &loc).into_owned())
+            })
+            .boxed();
+        let prefix = self.prefix.clone();
+        self.inner
+            .delete_stream(locations)
+            .map(move |location| location.map(|loc| strip_prefix(prefix.as_ref(), loc)))
+            .boxed()
+    }
+}
+
+impl<T: ObjectStore + Signer> Signer for MaybePrefixedStore<T> {
+    fn signed_url<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        method: Method,
+        path: &'life1 Path,
+        expires_in: Duration,
+    ) -> Pin<Box<dyn Future<Output = object_store::Result<Url>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        let full = full_path(self.prefix.as_ref(), path).into_owned();
+        Box::pin(async move { self.inner.signed_url(method, &full, expires_in).await })
     }
 
-    async fn copy_if_not_exists(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.copy_if_not_exists(&full_from, &full_to).await
-    }
-
-    async fn rename_if_not_exists(&self, from: &Path, to: &Path) -> Result<()> {
-        let full_from = self.full_path(from);
-        let full_to = self.full_path(to);
-        self.inner.rename_if_not_exists(&full_from, &full_to).await
+    fn signed_urls<'life0, 'life1, 'async_trait>(
+        &'life0 self,
+        method: Method,
+        paths: &'life1 [Path],
+        expires_in: Duration,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<Url>>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        Self: 'async_trait,
+    {
+        let full_paths = paths
+            .iter()
+            .map(|path| full_path(self.prefix.as_ref(), path).into_owned())
+            .collect::<Vec<_>>();
+        Box::pin(async move {
+            self.inner
+                .signed_urls(method, &full_paths, expires_in)
+                .await
+        })
     }
 }
 

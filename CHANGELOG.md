@@ -2,6 +2,121 @@
 
 ## Unreleased
 
+## [0.10.0] - 2026-06-01
+
+* feat: Add storage class Attribute by @kylebarron in https://github.com/developmentseed/obstore/pull/685
+* feat: Add type hints for AWS STS WebIdentity, RoleArn, RoleSession by @kylebarron in https://github.com/developmentseed/obstore/pull/687
+* feat: Add EKS pod identity support by @kylebarron in https://github.com/developmentseed/obstore/pull/688
+* docs: Improve wording for HTTP client options by @kylebarron in https://github.com/developmentseed/obstore/pull/689
+* feat: Allow explicitly specifying GCS base url by @kylebarron in https://github.com/developmentseed/obstore/pull/690
+* docs: Docs for backend bulk delete support by @kylebarron in https://github.com/developmentseed/obstore/pull/691
+* feat: Support randomizing DNS addresses in client config by @kylebarron in https://github.com/developmentseed/obstore/pull/692
+* docs: Add some examples to aws config options by @kylebarron in https://github.com/developmentseed/obstore/pull/693
+* docs: Allow AWS_ENDPOINT_URL_S3 by @kylebarron in https://github.com/developmentseed/obstore/pull/694
+* docs: Allow string "requester" for requester_pays on AWS by @kylebarron in https://github.com/developmentseed/obstore/pull/695
+* docs: Expose `read_timeout` client config by @kylebarron in https://github.com/developmentseed/obstore/pull/696
+* docs: AWS CRC64 checksum support by @kylebarron in https://github.com/developmentseed/obstore/pull/697
+* docs: Improve docs on http client timeout by @kylebarron in https://github.com/developmentseed/obstore/pull/698
+* chore: Update azure url parsing by @kylebarron in https://github.com/developmentseed/obstore/pull/699
+* docs: Remove AWS dynamo integration for conditional put by @kylebarron in https://github.com/developmentseed/obstore/pull/700
+* feat: Make ObjectStoreMethods public, update docs by @kylebarron in https://github.com/developmentseed/obstore/pull/701
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.5...py-v0.10.0
+
+## [0.9.5] - 2026-05-20
+
+### What's Changed
+
+- fix: Fix handling prefix during signing https://github.com/developmentseed/obstore/pull/683
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.4...py-v0.9.5
+
+## [0.9.4] - 2026-04-22
+
+### What's Changed
+
+- fix: Fix path parsing for copy, rename by @kylebarron in https://github.com/developmentseed/obstore/pull/672
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.3...py-v0.9.4
+
+## [0.9.3] - 2026-04-15
+
+### What's Changed
+
+* docs: Add devseed favicon by @kylebarron in https://github.com/developmentseed/obstore/pull/641
+* ci: Use trusted publishing by @kylebarron in https://github.com/developmentseed/obstore/pull/642
+* docs: Fix rendering of `PutMode` docstring by @kylebarron in https://github.com/developmentseed/obstore/pull/645
+* ci: add Dependabot for GitHub Actions version updates by @lhoupert in https://github.com/developmentseed/obstore/pull/647
+* feat: Fsspec: Convert async methods that open sync file handles to use LocalStore by @matteomorlack in https://github.com/developmentseed/obstore/pull/656
+* ci: pin gha to sha commit by @lhoupert in https://github.com/developmentseed/obstore/pull/659
+* ci: Use github app token for conventional commit labeling by @kylebarron in https://github.com/developmentseed/obstore/pull/662
+* fix(fsspec): _info() should honor self.dircache by @fvaleye in https://github.com/developmentseed/obstore/pull/663
+* feat(buffered): deprecate ReadableFile.meta and AsyncReadableFile.meta by @fvaleye in https://github.com/developmentseed/obstore/pull/667
+
+### New Contributors
+
+* @lhoupert made their first contribution in https://github.com/developmentseed/obstore/pull/647
+* @dependabot[bot] made their first contribution in https://github.com/developmentseed/obstore/pull/652
+* @matteomorlack made their first contribution in https://github.com/developmentseed/obstore/pull/656
+* @fvaleye made their first contribution in https://github.com/developmentseed/obstore/pull/663
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.2...py-v0.9.3
+
+## [0.9.2] - 2026-03-11
+
+### What's Changed
+
+* ci: Run tests on 3.13, 3.14, 3.14t by @kylebarron in https://github.com/developmentseed/obstore/pull/637
+* feat: Add Python 3.13t and 3.14t builds / wheels by @DisturbedOcean in https://github.com/developmentseed/obstore/pull/619
+* feat: Bump upstream `object_store` version by @kylebarron in https://github.com/developmentseed/obstore/pull/636
+    * This should reduce contention on the credential cache for highly-concurrent usage. See https://github.com/apache/arrow-rs-object-store/issues/541, some initial discussion in https://github.com/apache/arrow-rs-object-store/pull/542, and fix in https://github.com/apache/arrow-rs-object-store/pull/648.
+* fix: Fix pytest warning about `@pytest.mark.asyncio` on non-async function by @kylebarron in https://github.com/developmentseed/obstore/pull/638
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.9.1...py-v0.9.2
+
+## [0.9.1] - 2026-02-26
+
+- fix: Include prefix in `delete_stream` #629
+
+## [0.9.0] - 2026-02-22
+
+### Breaking Changes
+
+* chore!: Deprecate support for python 3.9 by @kylebarron in https://github.com/developmentseed/obstore/pull/609
+
+### What's Changed
+
+* fix: Remove TypeVar constraints on arro3-core to fix list typing when arro3-core not installed by @kylebarron in https://github.com/developmentseed/obstore/pull/578
+* docs: Update cookbook.md - unmatched quotes by @mdsumner in https://github.com/developmentseed/obstore/pull/587
+* fix: Prevent early EOF error in reader.read by @nvictus in https://github.com/developmentseed/obstore/pull/593
+* feat: Allow S3 HTTP URLs without region by @kylebarron in https://github.com/developmentseed/obstore/pull/590
+* feat: upgrade object store 0.13.x by @alukach in https://github.com/developmentseed/obstore/pull/600
+* ci: Make abi3 wheels for mainline Python 3.11+ by @kylebarron in https://github.com/developmentseed/obstore/pull/623
+* feat: Update docs, examples, tests to use method-based API by @kylebarron in https://github.com/developmentseed/obstore/pull/625
+
+### New Contributors
+
+* @nvictus made their first contribution in https://github.com/developmentseed/obstore/pull/593
+* @alukach made their first contribution in https://github.com/developmentseed/obstore/pull/600
+* @DisturbedOcean made their first contribution in https://github.com/developmentseed/obstore/pull/620
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.8.2...py-v0.9.0
+
+## [0.8.2] - 2025-09-16
+
+### What's Changed
+
+- Added sdist and wheels for Python 3.14 (except Windows) @kylebarron in https://github.com/developmentseed/obstore/pull/561 and https://github.com/developmentseed/obstore/pull/563
+- test: Set up minio-based testing, replace moto by @kylebarron in https://github.com/developmentseed/obstore/pull/553
+- chore: Bump ruff to 0.13 by @kylebarron in https://github.com/developmentseed/obstore/pull/562
+- docs: Use dictionary syntax for list properties by @mdsumner in https://github.com/developmentseed/obstore/pull/558
+
+### New Contributors
+
+- @mdsumner made their first contribution in https://github.com/developmentseed/obstore/pull/558
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.8.1...py-v0.8.2
+
 ## [0.8.1] - 2025-08-22
 
 ## What's Changed

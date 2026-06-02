@@ -84,7 +84,7 @@ class NasaEarthdataCredentialProvider:
 
         # Download the file by streaming chunks
         try:
-            result = obstore.get(store, filename)
+            result = store.get(filename)
             with open(filename, "wb") as f:
                 for chunk in iter(result):
                     f.write(chunk)
@@ -275,7 +275,7 @@ class NasaEarthdataAsyncCredentialProvider:
 
         # Download the file by streaming chunks
         try:
-            result = await obstore.get_async(store, filename)
+            result = await store.get(filename)
             with open(filename, "wb") as f:
                 async for chunk in aiter(result):
                     f.write(chunk)
