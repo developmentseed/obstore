@@ -381,50 +381,35 @@ async fn emulate_paginated_list(
     store: &Arc<dyn ObjectStore>,
     prefix: Option<&str>,
 ) -> object_store::Result<PaginatedListResult> {
-    // Split a path like "some/prefix/abc" into (Some(Path("some/prefix")), Some("abc"))
-    // This allows us to do a substring prefix match after the / delimiter
-    let (list_path, list_prefix_match): (Option<object_store::path::Path>, Option<String>) =
-        if let Some(list_prefix) = prefix {
-            if let Some((list_path, list_prefix_match)) = list_prefix.rsplit_once('/') {
-                // There's a / in the prefix, so we assume the part before the last / is a
-                // path, and the end is a substring match
-                (
-                    Some(object_store::path::Path::parse(list_path)?),
-                    Some(list_prefix_match.to_string()),
-                )
-            } else {
-                // No / in prefix, so we assume it's a substring
-                (None, Some(list_prefix.to_string()))
-            }
-        } else {
-            (None, None)
-        };
-
-    let list_result = store.list_with_delimiter(list_path.as_ref()).await?;
-
-    // Filter list result to include only results with the given prefix after the / delimiter
-    let filtered_list_result = if let Some(list_prefix_match) = list_prefix_match {
-        let filtered_common_prefixes = list_result
-            .common_prefixes
-            .into_iter()
-            .filter(|p| p.as_ref().starts_with(&list_prefix_match))
-            .collect();
-        let filtered_objects = list_result
-            .objects
-            .into_iter()
-            .filter(|obj| obj.location.as_ref().starts_with(&list_prefix_match))
-            .collect();
-        ListResult {
-            common_prefixes: filtered_common_prefixes,
-            objects: filtered_objects,
-        }
-    } else {
-        list_result
+    // `PaginatedListStore` treats `prefix` as a raw string prefix (substring-style),
+    // whereas `ObjectStore::list` matches on whole path segments. To emulate the former
+    // with the latter, we list recursively under the last complete path segment and then
+    // keep only the keys whose full location starts with the requested prefix string.
+    //
+    // e.g. prefix "data/tes" -> list recursively under "data/", then keep keys starting
+    // with "data/tes" (including nested keys like "data/test/deep/file.txt").
+    let list_path = match prefix.and_then(|prefix| prefix.rsplit_once('/')) {
+        // List recursively under the path portion before the final '/'.
+        Some((dir, _)) => Some(object_store::path::Path::parse(dir)?),
+        // No '/' in the prefix (or no prefix at all): list from the root.
+        None => None,
     };
 
+    let mut stream = store.list(list_path.as_ref());
+    let mut objects = Vec::new();
+    while let Some(meta) = stream.next().await.transpose()? {
+        match prefix {
+            Some(prefix) if !meta.location.as_ref().starts_with(prefix) => continue,
+            _ => objects.push(meta),
+        }
+    }
+
     Ok(PaginatedListResult {
-        result: filtered_list_result,
-        // emulated stores do not support pagination
+        result: ListResult {
+            common_prefixes: Vec::new(),
+            objects,
+        },
+        // Emulated stores return everything in a single page.
         page_token: None,
     })
 }
