@@ -17,6 +17,50 @@ async def test_list_async(minio_store: S3Store):
     assert any("afile" in x["path"] for x in list_result)
 
 
+def test_list_paginates_across_pages(minio_store: S3Store):
+    """`create_paginated_stream` should auto-paginate under the hood.
+
+    We upload more objects than fit in a single page and use a small ``chunk_size``
+    (which is also used as the underlying ``max_keys`` page size) so the store must
+    follow several continuation tokens. The stream should stitch every page together
+    rather than stopping after the first page.
+    """
+    n = 120
+    for i in range(n):
+        minio_store.put(f"obj/{i:04d}.txt", b"x")
+
+    result = minio_store.list("obj/", chunk_size=10).collect()
+    assert len(result) == n
+    paths = sorted(item["path"] for item in result)
+    assert paths[0] == "obj/0000.txt"
+    assert paths[-1] == f"obj/{n - 1:04d}.txt"
+
+
+def test_list_substring_prefix(minio_store: S3Store):
+    """Prefixes are treated as raw string prefixes, not whole path segments.
+
+    This is the core behavior the paginated-list rework enables: `2025/log` matches
+    `2025/log_a.txt` even though `log` is only part of the final path segment.
+    """
+    minio_store.put("2025/log_a.txt", b"x")
+    minio_store.put("2025/log_b.txt", b"x")
+    minio_store.put("2025/data_c.txt", b"x")
+
+    result = minio_store.list("2025/log").collect()
+    paths = sorted(item["path"] for item in result)
+    assert paths == ["2025/log_a.txt", "2025/log_b.txt"]
+
+
+def test_list_offset(minio_store: S3Store):
+    """`offset` is forwarded through pagination and is exclusive."""
+    for i in range(10):
+        minio_store.put(f"item/{i:02d}.txt", b"x")
+
+    result = minio_store.list("item/", offset="item/05.txt").collect()
+    paths = sorted(item["path"] for item in result)
+    assert paths == [f"item/{i:02d}.txt" for i in range(6, 10)]
+
+
 @pytest.mark.asyncio
 async def test_get_async(minio_store: S3Store):
     await minio_store.put_async("afile", b"hello world")
