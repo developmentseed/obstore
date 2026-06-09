@@ -16,13 +16,7 @@ FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "planetary_computer"
 
 
 def load_collection(collection_id: str) -> pystac.Collection:
-    """Load a recorded Planetary Computer STAC Collection from a fixture.
-
-    The assets exercised by `from_asset` are static published metadata, so we
-    record them once rather than hitting the live STAC API on every test run
-    (which is sporadically flaky). To refresh, re-fetch with
-    `pystac_client.Client.open(...).get_collection(collection_id).to_dict()`.
-    """
+    """Load a recorded Planetary Computer STAC Collection from a fixture."""
     with (FIXTURES_DIR / f"{collection_id}.json").open() as f:
         return pystac.Collection.from_dict(json.load(f))
 
