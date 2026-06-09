@@ -42,6 +42,7 @@ from urllib.parse import urlparse
 
 import fsspec.asyn
 import fsspec.spec
+from fsspec.implementations.local import make_path_posix
 
 from obstore import open_reader, open_writer
 from obstore.store import from_url
@@ -296,9 +297,14 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
         # If the protocol doesn't require buckets, return empty bucket and full path
         if self.protocol in protocol_without_bucket:
+            parsed_path = (
+                f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path
+            )
+            if self.protocol == "file":
+                parsed_path = str(make_path_posix(parsed_path))
             return (
                 "",
-                f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path,
+                parsed_path,
             )
 
         if parsed.scheme:
@@ -466,7 +472,6 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         mode: str = "overwrite",  # noqa: ARG002
         **_kwargs: Any,
     ) -> None:
-
         if not await self._local_store._exists(lpath):  # noqa: SLF001
             raise FileNotFoundError(lpath)
 
