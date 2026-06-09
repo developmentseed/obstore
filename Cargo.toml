@@ -21,6 +21,7 @@ categories = []
 rust-version = "1.75"
 
 [workspace.dependencies]
+async-trait = "0.1.85"
 bytes = "1.10.1"
 chrono = "0.4.44"
 futures = "0.3.31"

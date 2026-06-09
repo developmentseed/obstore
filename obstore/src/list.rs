@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use std::ops::AddAssign;
 use std::sync::Arc;
 
@@ -8,6 +9,7 @@ use arrow::datatypes::{DataType, Field, Schema, TimeUnit};
 use futures::stream::{BoxStream, Fuse};
 use futures::StreamExt;
 use indexmap::IndexMap;
+use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use object_store::{ListResult, ObjectMeta, ObjectStore};
 use pyo3::exceptions::{PyImportError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
@@ -347,13 +349,92 @@ impl<'py> IntoPyObject<'py> for PyListResult {
     }
 }
 
+enum MaybePaginatedStore {
+    /// Stores that natively support pagination
+    Native(Arc<dyn PaginatedListStore>),
+    /// Paginated stores emulated by collecting all results and filtering prefix in memory
+    Emulated(Arc<dyn ObjectStore>),
+}
+
+impl From<PyObjectStore> for MaybePaginatedStore {
+    fn from(store: PyObjectStore) -> Self {
+        match store {
+            PyObjectStore::S3(store) => Self::Native(store.into_inner()),
+            PyObjectStore::Azure(store) => Self::Native(store.into_inner()),
+            PyObjectStore::Gcs(store) => Self::Native(store.into_inner()),
+            PyObjectStore::Http(store) => Self::Emulated(store.into_inner()),
+            PyObjectStore::Local(store) => Self::Emulated(store.into_inner()),
+            PyObjectStore::Memory(store) => Self::Emulated(store.into_inner()),
+        }
+    }
+}
+
+/// A custom implementation of PaginatedListStore for stores that don't natively support
+/// pagination, like HttpStore and LocalStore.
+///
+/// PaginatedListStore is not implemented in upstream for LocalFileSystem because there's no way to
+/// get a stable offset in local FS APIs.
+/// https://github.com/apache/arrow-rs-object-store/issues/388
+///
+/// Instead, we collect _all_ results and filter them in memory with the provided substring.
+async fn emulate_paginated_list(
+    store: &Arc<dyn ObjectStore>,
+    prefix: Option<&str>,
+) -> object_store::Result<PaginatedListResult> {
+    // `PaginatedListStore` treats `prefix` as a raw string prefix (substring-style),
+    // whereas `ObjectStore::list` matches on whole path segments. To emulate the former
+    // with the latter, we list recursively under the last complete path segment and then
+    // keep only the keys whose full location starts with the requested prefix string.
+    //
+    // e.g. prefix "data/tes" -> list recursively under "data/", then keep keys starting
+    // with "data/tes" (including nested keys like "data/test/deep/file.txt").
+    let list_path = match prefix.and_then(|prefix| prefix.rsplit_once('/')) {
+        // List recursively under the path portion before the final '/'.
+        Some((dir, _)) => Some(object_store::path::Path::parse(dir)?),
+        // No '/' in the prefix (or no prefix at all): list from the root.
+        None => None,
+    };
+
+    let mut stream = store.list(list_path.as_ref());
+    let mut objects = Vec::new();
+    while let Some(meta) = stream.next().await.transpose()? {
+        match prefix {
+            Some(prefix) if !meta.location.as_ref().starts_with(prefix) => continue,
+            _ => objects.push(meta),
+        }
+    }
+
+    Ok(PaginatedListResult {
+        result: ListResult {
+            common_prefixes: Vec::new(),
+            objects,
+        },
+        // Emulated stores return everything in a single page.
+        page_token: None,
+    })
+}
+
+#[async_trait]
+impl PaginatedListStore for MaybePaginatedStore {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> object_store::Result<PaginatedListResult> {
+        match self {
+            Self::Native(store) => store.list_paginated(prefix, opts).await,
+            Self::Emulated(store) => emulate_paginated_list(store, prefix).await,
+        }
+    }
+}
+
 #[pyfunction]
 #[pyo3(signature = (store, prefix=None, *, offset=None, chunk_size=50, return_arrow=false))]
 pub(crate) fn list(
     py: Python,
     store: PyObjectStore,
-    prefix: Option<PyPath>,
-    offset: Option<PyPath>,
+    prefix: Option<String>,
+    offset: Option<String>,
     chunk_size: usize,
     return_arrow: bool,
 ) -> PyObjectStoreResult<PyListStream> {
@@ -369,13 +450,8 @@ pub(crate) fn list(
             .map_err(|err| PyImportError::new_err(format!("{msg}\n\n{err}")))?;
     }
 
-    let store = store.into_inner().clone();
-    let prefix = prefix.map(|s| s.into());
-    let stream = if let Some(offset) = offset {
-        store.list_with_offset(prefix.as_ref(), offset.as_ref())
-    } else {
-        store.list(prefix.as_ref())
-    };
+    let maybe_paginated_store = Arc::new(MaybePaginatedStore::from(store));
+    let stream = create_paginated_stream(maybe_paginated_store, prefix, offset, chunk_size);
     Ok(PyListStream::new(stream, chunk_size, return_arrow))
 }
 
@@ -423,4 +499,90 @@ async fn list_with_delimiter_materialize(
         .list_with_delimiter(prefix.map(|s| s.as_ref()))
         .await?;
     Ok(PyListResult::new(list_result, return_arrow))
+}
+
+/// Internal stream state
+struct StreamState {
+    store: Arc<dyn PaginatedListStore>,
+    prefix: Option<String>,
+    offset: Option<String>,
+    page_token: Option<String>,
+    has_more: bool,
+}
+
+async fn stream_step(
+    state: StreamState,
+    chunk_size: usize,
+) -> Option<(Vec<object_store::Result<ObjectMeta>>, StreamState)> {
+    let StreamState {
+        store,
+        prefix,
+        offset,
+        page_token,
+        has_more,
+    } = state;
+
+    if !has_more {
+        return None;
+    }
+
+    let opts = PaginatedListOptions {
+        offset: offset.clone(),
+        delimiter: None,
+        max_keys: Some(chunk_size),
+        page_token,
+        ..Default::default()
+    };
+
+    match store.list_paginated(prefix.as_deref(), opts).await {
+        Ok(result) => {
+            let next_has_more = result.page_token.is_some();
+            let next_page_token = result.page_token;
+            let objects: Vec<object_store::Result<ObjectMeta>> =
+                result.result.objects.into_iter().map(Ok).collect();
+
+            let next_state = StreamState {
+                store,
+                prefix,
+                offset,
+                page_token: next_page_token,
+                has_more: next_has_more,
+            };
+            Some((objects, next_state))
+        }
+        // Surface the error to the consumer as a stream item, then stop the stream
+        // so we don't silently truncate results on a failed page.
+        Err(e) => Some((
+            vec![Err(e)],
+            StreamState {
+                store,
+                prefix,
+                offset,
+                page_token: None,
+                has_more: false,
+            },
+        )),
+    }
+}
+
+fn create_paginated_stream(
+    store: Arc<dyn PaginatedListStore>,
+    prefix: Option<String>,
+    offset: Option<String>,
+    chunk_size: usize,
+) -> BoxStream<'static, object_store::Result<ObjectMeta>> {
+    // Create a stream that will fetch from the paginated store
+    let stream = futures::stream::unfold(
+        StreamState {
+            store,
+            prefix,
+            offset,
+            page_token: None,
+            has_more: true,
+        },
+        move |state| stream_step(state, chunk_size),
+    )
+    .flat_map(futures::stream::iter);
+
+    Box::pin(stream)
 }

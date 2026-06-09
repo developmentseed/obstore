@@ -63,7 +63,7 @@ impl GCSConfig {
 pub struct PyGCSStore {
     store: Arc<MaybePrefixedStore<GoogleCloudStorage>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
-    config: GCSConfig,
+    config: Arc<GCSConfig>,
 }
 
 impl AsRef<Arc<MaybePrefixedStore<GoogleCloudStorage>>> for PyGCSStore {
@@ -113,13 +113,13 @@ impl PyGCSStore {
         }
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
-            config: GCSConfig {
+            config: Arc::new(GCSConfig {
                 prefix,
                 config: combined_config,
                 client_options,
                 retry_config,
                 credential_provider,
-            },
+            }),
         })
     }
 

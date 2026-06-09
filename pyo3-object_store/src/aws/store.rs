@@ -65,7 +65,7 @@ impl S3Config {
 pub struct PyS3Store {
     store: Arc<MaybePrefixedStore<AmazonS3>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
-    config: S3Config,
+    config: Arc<S3Config>,
 }
 
 impl AsRef<Arc<MaybePrefixedStore<AmazonS3>>> for PyS3Store {
@@ -128,13 +128,13 @@ impl PyS3Store {
 
         Ok(Self {
             store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
-            config: S3Config {
+            config: Arc::new(S3Config {
                 prefix,
                 config: combined_config,
                 client_options,
                 retry_config,
                 credential_provider,
-            },
+            }),
         })
     }
 

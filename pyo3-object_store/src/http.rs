@@ -40,7 +40,7 @@ pub struct PyHttpStore {
     // own prefix.
     store: Arc<HttpStore>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
-    config: HTTPConfig,
+    config: Arc<HTTPConfig>,
 }
 
 impl AsRef<Arc<HttpStore>> for PyHttpStore {
@@ -74,11 +74,11 @@ impl PyHttpStore {
         }
         Ok(Self {
             store: Arc::new(builder.build()?),
-            config: HTTPConfig {
+            config: Arc::new(HTTPConfig {
                 url,
                 client_options,
                 retry_config,
-            },
+            }),
         })
     }
 

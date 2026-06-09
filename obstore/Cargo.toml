@@ -23,6 +23,7 @@ abi3-py311 = ["pyo3/abi3-py311"]
 generate-import-lib = ["pyo3/generate-import-lib"]
 
 [dependencies]
+async-trait = { workspace = true }
 arrow = "58"
 bytes = { workspace = true }
 chrono = { workspace = true }

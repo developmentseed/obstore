@@ -15,24 +15,37 @@ use crate::{PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, 
 /// This will only accept ObjectStore instances created from the same library. See
 /// [register_store_module][crate::register_store_module].
 #[derive(Debug, Clone)]
-pub struct PyObjectStore(Arc<dyn ObjectStore>);
+pub enum PyObjectStore {
+    /// A wrapper around a [`PyS3Store`].
+    S3(PyS3Store),
+    /// A wrapper around a [`PyAzureStore`].
+    Azure(PyAzureStore),
+    /// A wrapper around a [`PyGCSStore`].
+    Gcs(PyGCSStore),
+    /// A wrapper around a [`PyHttpStore`].
+    Http(PyHttpStore),
+    /// A wrapper around a [`PyLocalStore`].
+    Local(PyLocalStore),
+    /// A wrapper around a [`PyMemoryStore`].
+    Memory(PyMemoryStore),
+}
 
 impl<'py> FromPyObject<'_, 'py> for PyObjectStore {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         if let Ok(store) = obj.cast::<PyS3Store>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self::S3(store.get().clone()))
         } else if let Ok(store) = obj.cast::<PyAzureStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self::Azure(store.get().clone()))
         } else if let Ok(store) = obj.cast::<PyGCSStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self::Gcs(store.get().clone()))
         } else if let Ok(store) = obj.cast::<PyHttpStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self::Http(store.get().clone()))
         } else if let Ok(store) = obj.cast::<PyLocalStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self::Local(store.get().clone()))
         } else if let Ok(store) = obj.cast::<PyMemoryStore>() {
-            Ok(Self(store.get().as_ref().clone()))
+            Ok(Self::Memory(store.get().clone()))
         } else {
             let py = obj.py();
             // Check for object-store instance from other library
@@ -61,27 +74,45 @@ impl<'py> FromPyObject<'_, 'py> for PyObjectStore {
     }
 }
 
-impl AsRef<Arc<dyn ObjectStore>> for PyObjectStore {
-    fn as_ref(&self) -> &Arc<dyn ObjectStore> {
-        &self.0
+impl AsRef<dyn ObjectStore> for PyObjectStore {
+    fn as_ref(&self) -> &dyn ObjectStore {
+        match self {
+            PyObjectStore::S3(store) => store.as_ref(),
+            PyObjectStore::Azure(store) => store.as_ref(),
+            PyObjectStore::Gcs(store) => store.as_ref(),
+            PyObjectStore::Http(store) => store.as_ref(),
+            PyObjectStore::Local(store) => store.as_ref(),
+            PyObjectStore::Memory(store) => store.as_ref(),
+        }
     }
 }
 
 impl From<PyObjectStore> for Arc<dyn ObjectStore> {
     fn from(value: PyObjectStore) -> Self {
-        value.0
+        value.into_inner()
     }
 }
 
 impl PyObjectStore {
     /// Consume self and return the underlying [`ObjectStore`].
+    ///
+    /// This is an alias for [Self::into_dyn].
     pub fn into_inner(self) -> Arc<dyn ObjectStore> {
-        self.0
+        match self {
+            PyObjectStore::S3(store) => store.into_inner(),
+            PyObjectStore::Azure(store) => store.into_inner(),
+            PyObjectStore::Gcs(store) => store.into_inner(),
+            PyObjectStore::Http(store) => store.into_inner(),
+            PyObjectStore::Local(store) => store.into_inner(),
+            PyObjectStore::Memory(store) => store.into_inner(),
+        }
     }
 
     /// Consume self and return a reference-counted [`ObjectStore`].
+    ///
+    /// This is an alias for [Self::into_inner].
     pub fn into_dyn(self) -> Arc<dyn ObjectStore> {
-        self.0
+        self.into_inner()
     }
 }
 

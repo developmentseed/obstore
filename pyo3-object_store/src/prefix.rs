@@ -6,6 +6,7 @@
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use http::Method;
+use object_store::list::{PaginatedListOptions, PaginatedListResult, PaginatedListStore};
 use object_store::signer::Signer;
 use std::borrow::Cow;
 use std::future::Future;
@@ -62,30 +63,6 @@ impl<T: ObjectStore> MaybePrefixedStore<T> {
             Cow::Borrowed(location)
         }
     }
-
-    /// Strip the constant prefix from a given path
-    fn strip_prefix(&self, path: Path) -> Path {
-        if let Some(prefix) = &self.prefix {
-            // Note cannot use match because of borrow checker
-            if let Some(suffix) = path.prefix_match(prefix) {
-                return suffix.collect();
-            }
-            path
-        } else {
-            path
-        }
-    }
-
-    /// Strip the constant prefix from a given ObjectMeta
-    fn strip_meta(&self, meta: ObjectMeta) -> ObjectMeta {
-        ObjectMeta {
-            last_modified: meta.last_modified,
-            size: meta.size,
-            location: self.strip_prefix(meta.location),
-            e_tag: meta.e_tag,
-            version: None,
-        }
-    }
 }
 
 // Note: This is a relative hack to move these two functions to pure functions so they don't rely
@@ -123,6 +100,22 @@ fn strip_meta(prefix: Option<&Path>, meta: ObjectMeta) -> ObjectMeta {
         version: None,
     }
 }
+
+fn strip_list_result(prefix: Option<&Path>, lst: ListResult) -> ListResult {
+    ListResult {
+        common_prefixes: lst
+            .common_prefixes
+            .into_iter()
+            .map(|p| strip_prefix(prefix, p))
+            .collect(),
+        objects: lst
+            .objects
+            .into_iter()
+            .map(|meta| strip_meta(prefix, meta))
+            .collect(),
+    }
+}
+
 #[async_trait::async_trait]
 impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
     async fn put_opts(
@@ -182,18 +175,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
         self.inner
             .list_with_delimiter(Some(&prefix))
             .await
-            .map(|lst| ListResult {
-                common_prefixes: lst
-                    .common_prefixes
-                    .into_iter()
-                    .map(|p| self.strip_prefix(p))
-                    .collect(),
-                objects: lst
-                    .objects
-                    .into_iter()
-                    .map(|meta| self.strip_meta(meta))
-                    .collect(),
-            })
+            .map(|lst| strip_list_result(self.prefix.as_ref(), lst))
     }
 
     async fn copy_opts(&self, from: &Path, to: &Path, options: CopyOptions) -> Result<()> {
@@ -255,6 +237,44 @@ impl<T: ObjectStore + Signer> Signer for MaybePrefixedStore<T> {
             self.inner
                 .signed_urls(method, &full_paths, expires_in)
                 .await
+        })
+    }
+}
+
+fn create_paginated_list_prefix<'a>(
+    store_prefix: Option<&'a Path>,
+    list_prefix: Option<&'a str>,
+    delimiter: Option<&Cow<'static, str>>,
+) -> Option<Cow<'a, str>> {
+    match (store_prefix, list_prefix) {
+        (None, None) => None,
+        (Some(store_prefix), None) => Some(Cow::Borrowed(store_prefix.as_ref())),
+        (None, Some(list_prefix)) => Some(Cow::Borrowed(list_prefix)),
+        (Some(store_prefix), Some(list_prefix)) => {
+            let delimiter = delimiter.map(|x| x.as_ref()).unwrap_or("/");
+            let combined = format!("{}{delimiter}{list_prefix}", store_prefix.as_ref());
+            Some(Cow::Owned(combined))
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl<S: ObjectStore + PaginatedListStore> PaginatedListStore for MaybePrefixedStore<S> {
+    async fn list_paginated(
+        &self,
+        prefix: Option<&str>,
+        opts: PaginatedListOptions,
+    ) -> Result<PaginatedListResult> {
+        let store_prefix = self.prefix.as_ref();
+        let list_prefix =
+            create_paginated_list_prefix(store_prefix, prefix, opts.delimiter.as_ref());
+        let lst = self
+            .inner
+            .list_paginated(list_prefix.as_deref(), opts)
+            .await?;
+        Ok(PaginatedListResult {
+            result: strip_list_result(store_prefix, lst.result),
+            page_token: lst.page_token,
         })
     }
 }

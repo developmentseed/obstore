@@ -1367,6 +1367,7 @@ name = "obstore"
 version = "0.10.1"
 dependencies = [
  "arrow",
+ "async-trait",
  "bytes",
  "cargo-lock",
  "chrono",
