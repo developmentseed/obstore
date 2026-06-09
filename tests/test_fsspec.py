@@ -296,6 +296,19 @@ def test_split_path(fs: FsspecStore):
     )
     assert file_fs._split_path("/data-bucket/") == ("", "/data-bucket/")
 
+    # relative path, without bucket -> resolved to absolute for the "file" protocol
+    rel_bucket, rel_path = file_fs._split_path("relative/path/to/file")
+    assert rel_bucket == ""
+    assert Path(rel_path).is_absolute()
+    assert rel_path.endswith("relative/path/to/file")
+
+    # memory protocol keeps relative paths untouched (paths are virtual)
+    memory_fs = FsspecStore("memory")  # type: ignore (no __init__ overload for memory)
+    assert memory_fs._split_path("relative/path/to/file") == (
+        "",
+        "relative/path/to/file",
+    )
+
 
 def test_list(
     minio_bucket: tuple[S3Config, ClientConfig],
