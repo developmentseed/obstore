@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## [0.10.1] - 2026-06-09
+
+### What's Changed
+
+* perf: reuse self as local store for the file protocol in fsspec by @kirchik47 in https://github.com/developmentseed/obstore/pull/713
+* test: Fix flakey planetary computer test by @kylebarron in https://github.com/developmentseed/obstore/pull/715
+* fix: resolve relative local paths in FsspecStore('file') by @kirchik47 in https://github.com/developmentseed/obstore/pull/712
+
+### New Contributors
+
+* @kirchik47 made their first contribution in https://github.com/developmentseed/obstore/pull/713
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.10.0...py-v0.10.1
+
 ## [0.10.0] - 2026-06-01
 
 * feat: Add storage class Attribute by @kylebarron in https://github.com/developmentseed/obstore/pull/685
