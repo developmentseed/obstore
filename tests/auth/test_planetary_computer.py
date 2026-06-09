@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-import pystac_client
+import json
+from pathlib import Path
+
+import pystac
 import pytest
 
 from obstore.auth.planetary_computer import (
@@ -9,9 +12,19 @@ from obstore.auth.planetary_computer import (
 )
 from obstore.store import AzureStore
 
-catalog = pystac_client.Client.open(
-    "https://planetarycomputer.microsoft.com/api/stac/v1/",
-)
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "planetary_computer"
+
+
+def load_collection(collection_id: str) -> pystac.Collection:
+    """Load a recorded Planetary Computer STAC Collection from a fixture.
+
+    The assets exercised by `from_asset` are static published metadata, so we
+    record them once rather than hitting the live STAC API on every test run
+    (which is sporadically flaky). To refresh, re-fetch with
+    `pystac_client.Client.open(...).get_collection(collection_id).to_dict()`.
+    """
+    with (FIXTURES_DIR / f"{collection_id}.json").open() as f:
+        return pystac.Collection.from_dict(json.load(f))
 
 
 @pytest.mark.parametrize(
@@ -24,7 +37,7 @@ async def test_from_asset(
         PlanetaryComputerCredentialProvider | PlanetaryComputerAsyncCredentialProvider
     ],
 ):
-    collection = catalog.get_collection("daymet-daily-hi")
+    collection = load_collection("daymet-daily-hi")
 
     abfs_asset = collection.assets["zarr-abfs"]
     cls.from_asset(abfs_asset)
@@ -36,7 +49,7 @@ async def test_from_asset(
 
     cls.from_asset(blob_asset.__dict__)
 
-    collection = catalog.get_collection("landsat-c2-l2")
+    collection = load_collection("landsat-c2-l2")
     gpq_asset = collection.assets["geoparquet-items"]
     cls.from_asset(gpq_asset)
 
