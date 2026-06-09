@@ -274,6 +274,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
     @cached_property
     def _local_store(self) -> FsspecStore:
+        if self.protocol == "file":
+            # short circuit to avoid making new store when not needed
+            return self
         return FsspecStore("file")
 
     def _split_path(self, path: str) -> tuple[str, str]:
