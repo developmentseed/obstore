@@ -2,13 +2,13 @@
 #![warn(missing_docs)]
 
 mod api;
-mod aws;
-mod azure;
+pub mod aws;
+pub mod azure;
 mod client;
 mod config;
 mod credentials;
 pub(crate) mod error;
-mod gcp;
+pub mod gcp;
 mod http;
 mod local;
 mod memory;
@@ -31,5 +31,5 @@ pub use memory::PyMemoryStore;
 pub use path::PyPath;
 pub use prefix::MaybePrefixedStore;
 pub use simple::from_url;
-pub use store::{AnyObjectStore, PyExternalObjectStore, PyObjectStore};
+pub use store::{AnyObjectStore, PyExternalObjectStore, PyObjectStore, PyTypedObjectStore};
 pub use url::PyUrl;

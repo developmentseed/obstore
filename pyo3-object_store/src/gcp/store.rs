@@ -18,7 +18,7 @@ use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
-struct GCSConfig {
+pub struct GCSConfig {
     prefix: Option<PyPath>,
     config: PyGoogleConfig,
     client_options: Option<PyClientOptions>,
@@ -27,12 +27,40 @@ struct GCSConfig {
 }
 
 impl GCSConfig {
-    fn bucket(&self) -> &str {
+    /// Access the bucket name for this config.
+    pub fn bucket(&self) -> &str {
         self.config
             .0
             .get(&PyGoogleConfigKey(GoogleConfigKey::Bucket))
             .expect("Bucket should always exist in the config")
             .as_ref()
+    }
+
+    /// Access the prefix for this config, if it exists.
+    pub fn prefix(&self) -> Option<&PyPath> {
+        self.prefix.as_ref()
+    }
+
+    /// Access the config key-value pairs for this config.
+    ///
+    /// Note that the bucket **is included** in the returned config.
+    pub fn config(&self) -> &PyGoogleConfig {
+        &self.config
+    }
+
+    /// Access the client options for this config, if they exist.
+    pub fn client_options(&self) -> Option<&PyClientOptions> {
+        self.client_options.as_ref()
+    }
+
+    /// Access the retry config for this config, if it exists.
+    pub fn retry_config(&self) -> Option<&PyRetryConfig> {
+        self.retry_config.as_ref()
+    }
+
+    /// Access the credential provider for this config, if it exists.
+    pub fn credential_provider(&self) -> Option<&PyGcpCredentialProvider> {
+        self.credential_provider.as_ref()
     }
 
     fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
@@ -76,6 +104,11 @@ impl PyGCSStore {
     /// Consume self and return the underlying [`GoogleCloudStorage`].
     pub fn into_inner(self) -> Arc<MaybePrefixedStore<GoogleCloudStorage>> {
         self.store
+    }
+
+    /// Access the config for this store.
+    pub fn config(&self) -> &GCSConfig {
+        &self.config
     }
 }
 
@@ -187,8 +220,9 @@ impl PyGCSStore {
         self.config.prefix.as_ref()
     }
 
+    #[pyo3(name = "config")]
     #[getter]
-    fn config(&self) -> &PyGoogleConfig {
+    fn py_config(&self) -> &PyGoogleConfig {
         &self.config.config
     }
 
@@ -208,6 +242,7 @@ impl PyGCSStore {
     }
 }
 
+/// A Python-facing wrapper around a config key for Google Cloud Storage.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyGoogleConfigKey(GoogleConfigKey);
 
@@ -269,6 +304,7 @@ impl From<PyGoogleConfigKey> for GoogleConfigKey {
     }
 }
 
+/// A Python-facing wrapper around a config for Google Cloud Storage
 #[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject, IntoPyObjectRef)]
 pub struct PyGoogleConfig(HashMap<PyGoogleConfigKey, PyConfigValue>);
 

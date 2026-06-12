@@ -18,7 +18,7 @@ use crate::retry::PyRetryConfig;
 use crate::{MaybePrefixedStore, PyUrl};
 
 #[derive(Debug, Clone, PartialEq)]
-struct AzureConfig {
+pub struct AzureConfig {
     prefix: Option<PyPath>,
     config: PyAzureConfig,
     client_options: Option<PyClientOptions>,
@@ -41,6 +41,33 @@ impl AzureConfig {
             .get(&PyAzureConfigKey(AzureConfigKey::ContainerName))
             .expect("Container should always exist in the config")
             .as_ref()
+    }
+
+    /// Access the prefix for this config, if it exists.
+    pub fn prefix(&self) -> Option<&PyPath> {
+        self.prefix.as_ref()
+    }
+
+    /// Access the config key-value pairs for this config.
+    ///
+    /// Note that the account name and container name **are included** in the returned config.
+    pub fn config(&self) -> &PyAzureConfig {
+        &self.config
+    }
+
+    /// Access the client options for this config, if they exist.
+    pub fn client_options(&self) -> Option<&PyClientOptions> {
+        self.client_options.as_ref()
+    }
+
+    /// Access the retry config for this config, if it exists.
+    pub fn retry_config(&self) -> Option<&PyRetryConfig> {
+        self.retry_config.as_ref()
+    }
+
+    /// Access the credential provider for this config, if it exists.
+    pub fn credential_provider(&self) -> Option<&PyAzureCredentialProvider> {
+        self.credential_provider.as_ref()
     }
 
     fn __getnewargs_ex__<'py>(&'py self, py: Python<'py>) -> PyResult<Bound<'py, PyTuple>> {
@@ -84,6 +111,11 @@ impl PyAzureStore {
     /// Consume self and return the underlying [`MicrosoftAzure`].
     pub fn into_inner(self) -> Arc<MaybePrefixedStore<MicrosoftAzure>> {
         self.store
+    }
+
+    /// Access the config for this store.
+    pub fn config(&self) -> &AzureConfig {
+        &self.config
     }
 }
 
@@ -223,8 +255,9 @@ impl PyAzureStore {
         self.config.prefix.as_ref()
     }
 
+    #[pyo3(name = "config")]
     #[getter]
-    fn config(&self) -> &PyAzureConfig {
+    fn py_config(&self) -> &PyAzureConfig {
         &self.config.config
     }
 
@@ -244,6 +277,7 @@ impl PyAzureStore {
     }
 }
 
+/// A Python-facing wrapper around a config key for Azure configuration.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PyAzureConfigKey(AzureConfigKey);
 
@@ -304,6 +338,7 @@ impl From<PyAzureConfigKey> for AzureConfigKey {
     }
 }
 
+/// A Python-facing wrapper around a config for Azure configuration.
 #[derive(Clone, Debug, Default, PartialEq, Eq, IntoPyObject, IntoPyObjectRef)]
 pub struct PyAzureConfig(HashMap<PyAzureConfigKey, PyConfigValue>);
 
