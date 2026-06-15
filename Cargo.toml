@@ -32,9 +32,9 @@ object_store = { version = "0.13.0", features = [
     "gcp",
     "http",
 ] }
-pyo3 = { version = "0.28", features = ["macros", "indexmap"] }
-pyo3-async-runtimes = { version = "0.28", features = ["tokio-runtime"] }
-pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "f724ceaa7e06e7d227bf40b1d60adbb842963a44" }
+pyo3 = { version = "0.29", features = ["macros", "indexmap"] }
+pyo3-async-runtimes = { version = "0.29", features = ["tokio-runtime"] }
+pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "e88695f375ea3db95d96efc53707f4e8eb1def00" }
 thiserror = "2"
 tokio = "1.50"
 url = "2"
