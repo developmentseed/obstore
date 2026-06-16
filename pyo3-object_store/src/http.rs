@@ -67,7 +67,7 @@ impl PyHttpStore {
     ) -> PyObjectStoreResult<Self> {
         let mut builder = HttpBuilder::new().with_url(url.clone());
         if let Some(client_options) = client_options.clone() {
-            builder = builder.with_client_options(client_options.into())
+            builder = builder.with_client_options(client_options.try_into()?)
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())

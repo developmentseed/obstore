@@ -2,14 +2,23 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use http::{HeaderMap, HeaderName, HeaderValue};
-use object_store::{ClientConfigKey, ClientOptions};
+use object_store::{Certificate, ClientConfigKey, ClientOptions};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::pybacked::{PyBackedBytes, PyBackedStr};
-use pyo3::types::{PyDict, PyString};
+use pyo3::types::{PyBytes, PyDict, PyString};
 
 use crate::config::PyConfigValue;
 use crate::error::PyObjectStoreError;
+
+fn extract_pem(value: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
+    if let Ok(bytes) = value.extract::<PyBackedBytes>() {
+        Ok(bytes.as_ref().to_vec())
+    } else {
+        let s = value.extract::<PyBackedStr>()?;
+        Ok(s.as_bytes().to_vec())
+    }
+}
 
 /// A wrapper around `ClientConfigKey` that implements [`FromPyObject`].
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -50,6 +59,9 @@ impl<'py> IntoPyObject<'py> for &PyClientConfigKey {
 pub struct PyClientOptions {
     string_options: HashMap<PyClientConfigKey, PyConfigValue>,
     default_headers: Option<PyHeaderMap>,
+    // Stored as raw PEM so it round-trips through `IntoPyObject`; parsed on the
+    // way into `ClientOptions`.
+    root_certificate: Option<Vec<u8>>,
 }
 
 impl<'py> FromPyObject<'_, 'py> for PyClientOptions {
@@ -60,16 +72,17 @@ impl<'py> FromPyObject<'_, 'py> for PyClientOptions {
         let dict = obj.extract::<Bound<PyDict>>()?;
         let mut string_options = HashMap::new();
         let mut default_headers = None;
+        let mut root_certificate = None;
 
         for (key, value) in dict.iter() {
             if let Ok(key) = key.extract::<PyClientConfigKey>() {
                 string_options.insert(key, value.extract::<PyConfigValue>()?);
             } else {
                 let key = key.extract::<PyBackedStr>()?;
-                if &key == "default_headers" {
-                    default_headers = Some(value.extract::<PyHeaderMap>()?);
-                } else {
-                    return Err(PyValueError::new_err(format!("Invalid key: {key}.")));
+                match &*key {
+                    "default_headers" => default_headers = Some(value.extract::<PyHeaderMap>()?),
+                    "root_certificate" => root_certificate = Some(extract_pem(&value)?),
+                    _ => return Err(PyValueError::new_err(format!("Invalid key: {key}."))),
                 }
             }
         }
@@ -77,6 +90,7 @@ impl<'py> FromPyObject<'_, 'py> for PyClientOptions {
         Ok(Self {
             string_options,
             default_headers,
+            root_certificate,
         })
     }
 }
@@ -90,6 +104,9 @@ impl<'py> IntoPyObject<'py> for PyClientOptions {
         let dict = self.string_options.into_pyobject(py)?;
         if let Some(headers) = self.default_headers {
             dict.set_item("default_headers", headers)?;
+        }
+        if let Some(pem) = self.root_certificate {
+            dict.set_item("root_certificate", PyBytes::new(py, &pem))?;
         }
         Ok(dict)
     }
@@ -105,12 +122,17 @@ impl<'py> IntoPyObject<'py> for &PyClientOptions {
         if let Some(headers) = &self.default_headers {
             dict.set_item("default_headers", headers)?;
         }
+        if let Some(pem) = &self.root_certificate {
+            dict.set_item("root_certificate", PyBytes::new(py, pem))?;
+        }
         Ok(dict.clone())
     }
 }
 
-impl From<PyClientOptions> for ClientOptions {
-    fn from(value: PyClientOptions) -> Self {
+impl TryFrom<PyClientOptions> for ClientOptions {
+    type Error = PyObjectStoreError;
+
+    fn try_from(value: PyClientOptions) -> Result<Self, Self::Error> {
         let mut options = ClientOptions::new();
         for (key, value) in value.string_options.into_iter() {
             options = options.with_config(key.0, value.0);
@@ -120,7 +142,13 @@ impl From<PyClientOptions> for ClientOptions {
             options = options.with_default_headers(headers.0);
         }
 
-        options
+        if let Some(pem) = value.root_certificate {
+            for certificate in Certificate::from_pem_bundle(&pem)? {
+                options = options.with_root_certificate(certificate);
+            }
+        }
+
+        Ok(options)
     }
 }
 

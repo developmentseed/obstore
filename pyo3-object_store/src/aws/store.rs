@@ -107,7 +107,7 @@ impl PyS3Store {
         let mut combined_config = combine_config_kwargs(config, kwargs)?;
 
         if let Some(client_options) = client_options.clone() {
-            builder = builder.with_client_options(client_options.into())
+            builder = builder.with_client_options(client_options.try_into()?)
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())
