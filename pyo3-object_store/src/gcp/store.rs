@@ -103,7 +103,7 @@ impl PyGCSStore {
         let combined_config = combine_config_kwargs(Some(config), kwargs)?;
         builder = combined_config.clone().apply_config(builder);
         if let Some(client_options) = client_options.clone() {
-            builder = builder.with_client_options(client_options.try_into()?)
+            builder = builder.with_client_options(client_options.into())
         }
         if let Some(retry_config) = retry_config.clone() {
             builder = builder.with_retry(retry_config.into())

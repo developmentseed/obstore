@@ -5,7 +5,8 @@ import pytest
 from obstore.exceptions import BaseError
 from obstore.store import HTTPStore
 
-# Self-signed certificates used to exercise single- and multi-cert PEM parsing.
+# Self-signed CAs generated with:
+#   openssl req -x509 -newkey rsa:2048 -nodes -days 36500 -subj /CN=obstore-test-ca-N
 CERT_1 = b"""-----BEGIN CERTIFICATE-----
 MIIDGzCCAgOgAwIBAgIUBqLgQSw4wiW06IhiKHNN5NyztG8wDQYJKoZIhvcNAQEL
 BQAwHDEaMBgGA1UEAwwRb2JzdG9yZS10ZXN0LWNhLTEwIBcNMjYwNjE2MTQxMjEz

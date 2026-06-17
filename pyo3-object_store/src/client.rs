@@ -11,12 +11,44 @@ use pyo3::types::{PyBytes, PyDict, PyString};
 use crate::config::PyConfigValue;
 use crate::error::PyObjectStoreError;
 
-fn extract_pem(value: &Bound<'_, PyAny>) -> PyResult<Vec<u8>> {
-    if let Ok(bytes) = value.extract::<PyBackedBytes>() {
-        Ok(bytes.as_ref().to_vec())
-    } else {
-        let s = value.extract::<PyBackedStr>()?;
-        Ok(s.as_bytes().to_vec())
+/// A wrapper around one or more `Certificate`s parsed from PEM input.
+///
+/// The original PEM is retained so the value round-trips through
+/// [`IntoPyObject`]; parsing happens once, on extraction.
+#[derive(Clone, Debug)]
+struct PyCertificate {
+    pem: Vec<u8>,
+    certificates: Vec<Certificate>,
+}
+
+impl PartialEq for PyCertificate {
+    fn eq(&self, other: &Self) -> bool {
+        self.pem == other.pem
+    }
+}
+
+impl<'py> FromPyObject<'_, 'py> for PyCertificate {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
+        let pem = if let Ok(bytes) = obj.extract::<PyBackedBytes>() {
+            bytes.as_ref().to_vec()
+        } else {
+            obj.extract::<PyBackedStr>()?.as_bytes().to_vec()
+        };
+        let certificates =
+            Certificate::from_pem_bundle(&pem).map_err(PyObjectStoreError::ObjectStoreError)?;
+        Ok(Self { pem, certificates })
+    }
+}
+
+impl<'py> IntoPyObject<'py> for &PyCertificate {
+    type Target = PyBytes;
+    type Output = Bound<'py, PyBytes>;
+    type Error = PyErr;
+
+    fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
+        Ok(PyBytes::new(py, &self.pem))
     }
 }
 
@@ -59,9 +91,7 @@ impl<'py> IntoPyObject<'py> for &PyClientConfigKey {
 pub struct PyClientOptions {
     string_options: HashMap<PyClientConfigKey, PyConfigValue>,
     default_headers: Option<PyHeaderMap>,
-    // Stored as raw PEM so it round-trips through `IntoPyObject`; parsed on the
-    // way into `ClientOptions`.
-    root_certificate: Option<Vec<u8>>,
+    root_certificate: Option<PyCertificate>,
 }
 
 impl<'py> FromPyObject<'_, 'py> for PyClientOptions {
@@ -81,7 +111,9 @@ impl<'py> FromPyObject<'_, 'py> for PyClientOptions {
                 let key = key.extract::<PyBackedStr>()?;
                 match &*key {
                     "default_headers" => default_headers = Some(value.extract::<PyHeaderMap>()?),
-                    "root_certificate" => root_certificate = Some(extract_pem(&value)?),
+                    "root_certificate" => {
+                        root_certificate = Some(value.extract::<PyCertificate>()?)
+                    }
                     _ => return Err(PyValueError::new_err(format!("Invalid key: {key}."))),
                 }
             }
@@ -105,8 +137,8 @@ impl<'py> IntoPyObject<'py> for PyClientOptions {
         if let Some(headers) = self.default_headers {
             dict.set_item("default_headers", headers)?;
         }
-        if let Some(pem) = self.root_certificate {
-            dict.set_item("root_certificate", PyBytes::new(py, &pem))?;
+        if let Some(certificate) = &self.root_certificate {
+            dict.set_item("root_certificate", certificate)?;
         }
         Ok(dict)
     }
@@ -122,17 +154,15 @@ impl<'py> IntoPyObject<'py> for &PyClientOptions {
         if let Some(headers) = &self.default_headers {
             dict.set_item("default_headers", headers)?;
         }
-        if let Some(pem) = &self.root_certificate {
-            dict.set_item("root_certificate", PyBytes::new(py, pem))?;
+        if let Some(certificate) = &self.root_certificate {
+            dict.set_item("root_certificate", certificate)?;
         }
         Ok(dict.clone())
     }
 }
 
-impl TryFrom<PyClientOptions> for ClientOptions {
-    type Error = PyObjectStoreError;
-
-    fn try_from(value: PyClientOptions) -> Result<Self, Self::Error> {
+impl From<PyClientOptions> for ClientOptions {
+    fn from(value: PyClientOptions) -> Self {
         let mut options = ClientOptions::new();
         for (key, value) in value.string_options.into_iter() {
             options = options.with_config(key.0, value.0);
@@ -142,13 +172,13 @@ impl TryFrom<PyClientOptions> for ClientOptions {
             options = options.with_default_headers(headers.0);
         }
 
-        if let Some(pem) = value.root_certificate {
-            for certificate in Certificate::from_pem_bundle(&pem)? {
+        if let Some(certificate) = value.root_certificate {
+            for certificate in certificate.certificates {
                 options = options.with_root_certificate(certificate);
             }
         }
 
-        Ok(options)
+        options
     }
 }
 
