@@ -21,7 +21,7 @@ jobs:
     env:
       CI: "TRUE"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         # We need to additionally fetch the gh-pages branch for mike deploy
         with:
           fetch-depth: 0
