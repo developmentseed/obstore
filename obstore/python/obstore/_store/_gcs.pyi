@@ -68,6 +68,14 @@ class GCSConfig(TypedDict, total=False):
     **Environment variable**: `GOOGLE_BASE_URL`.
     """
 
+    bearer_token: str
+    """Explicit OAuth bearer token.
+
+    This is treated as a static token and will not be refreshed automatically.
+
+    **Environment variable**: `GOOGLE_BEARER_TOKEN`.
+    """
+
     bucket: str
     """Bucket name. (required)
 
