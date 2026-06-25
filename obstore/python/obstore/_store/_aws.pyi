@@ -208,6 +208,20 @@ class S3Config(TypedDict, total=False):
     **Environment variable**: `AWS_DISABLE_TAGGING`.
     """
 
+    disable_bulk_delete: bool
+    """Disable bulk deletion API.
+
+    If set to `true`, [`delete`][obstore.store.S3Store.delete] will issue single-object
+    `DELETE /key` requests instead of the bulk `DeleteObjects` API (`POST /?delete`).
+
+    The bulk `DeleteObjects` API is more efficient but is not implemented by all
+    S3-compatible providers (e.g. Alibaba Cloud OSS). Setting this to `true` restores
+    the single-object delete behaviour that works against every S3-compatible provider,
+    at the cost of throughput when deleting many objects.
+
+    **Environment variable**: `AWS_DISABLE_BULK_DELETE`.
+    """
+
     endpoint: str
     """The endpoint for communicating with AWS S3.
 
