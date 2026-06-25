@@ -31,10 +31,10 @@ impl<'py> FromPyObject<'_, 'py> for PyCertificate {
     type Error = PyErr;
 
     fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
-        let pem = if let Ok(bytes) = obj.extract::<PyBackedBytes>() {
-            bytes.as_ref().to_vec()
+        let pem = if let Ok(bytes) = obj.extract::<Vec<u8>>() {
+            bytes
         } else {
-            obj.extract::<PyBackedStr>()?.as_bytes().to_vec()
+            obj.extract::<String>()?.into_bytes()
         };
         let certificates =
             Certificate::from_pem_bundle(&pem).map_err(PyObjectStoreError::ObjectStoreError)?;
