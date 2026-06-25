@@ -141,6 +141,28 @@ class AzureConfig(TypedDict, total=False):
 
         `endpoint` will take precedence over this option.
     """
+
+    encryption_key: str
+    """Base64-encoded customer-provided encryption key.
+
+    Set the customer-provided encryption key (CPK) used to encrypt blob content.
+
+    `key` must be a base64-encoded 256-bit AES key (the decoded value must be exactly 32
+    bytes). The same key must be supplied on every subsequent read, write, or copy of
+    any blob created with it; if the key is lost or omitted the data is unrecoverable.
+    CPK material is sent to Azure on every request, so the configured endpoint must use
+    HTTPS.
+
+    Only a subset of Blob storage operations support CPK (see the [Azure
+    documentation][cpk-ops]). When CPK is enabled, `copy` switches from the asynchronous
+    `Copy Blob` API to `Put Blob From URL`, which is synchronous and limits the source
+    blob to 5,000 MiB.
+
+    [cpk-ops]: https://learn.microsoft.com/en-us/azure/storage/blobs/encryption-customer-provided-keys#blob-storage-operations-supporting-customer-provided-keys
+
+    **Environment variable**: `AZURE_ENCRYPTION_KEY`.
+    """
+
     endpoint: str
     """Override the endpoint used to communicate with blob storage.
 
