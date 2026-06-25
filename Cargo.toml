@@ -26,7 +26,7 @@ chrono = "0.4.44"
 futures = "0.3.31"
 http = "1.4"
 indexmap = "2"
-object_store = { version = "0.13.0", features = [
+object_store = { version = "0.14.0", features = [
     "aws",
     "azure",
     "gcp",
@@ -38,9 +38,6 @@ pyo3-file = { git = "https://github.com/kylebarron/pyo3-file", rev = "e88695f375
 thiserror = "2"
 tokio = "1.50"
 url = "2"
-
-[patch.crates-io]
-object_store = { git = "https://github.com/apache/arrow-rs-object-store", rev = "62592027cb7d33ed843bc14fb77d7fc32f13ace5" }
 
 [profile.release]
 lto = true
