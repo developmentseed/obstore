@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.12.0] - 2026-06-25
+
+- Bump to object_store 0.14
+
 ## [0.11.0] - 2026-06-15
 
 - Bump to pyo3 0.29.
