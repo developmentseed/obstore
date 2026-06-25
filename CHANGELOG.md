@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### What's Changed
+
+* feat: Expose `proxy_excludes`, `proxy_ca_certificate`, and `root_certificate` client options
+
 ## [0.10.1] - 2026-06-09
 
 ### What's Changed

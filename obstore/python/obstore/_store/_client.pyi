@@ -94,6 +94,33 @@ class ClientConfig(TypedDict, total=False):
     pool_max_idle_per_host: str
     """Maximum number of idle connections per host."""
     proxy_url: str
+    """HTTP proxy to use for requests."""
+    proxy_ca_certificate: str
+    """PEM-formatted CA certificate for the proxy set via `proxy_url`.
+
+    This is the certificate that signs the proxy's own TLS certificate, used to
+    trust an HTTPS proxy fronted by a private CA. Only consulted when `proxy_url`
+    is set.
+    """
+    proxy_excludes: str
+    """Comma-separated list of hosts that bypass `proxy_url` (`NO_PROXY` semantics).
+
+    Each entry may be a hostname, a domain suffix (e.g. `.internal.example.com`),
+    an IP address, or a CIDR block, for example
+    `"localhost,127.0.0.1,.svc.cluster.local"`. Only takes effect when `proxy_url`
+    is set.
+    """
+    root_certificate: str | bytes
+    """A custom root CA certificate to trust for TLS, as PEM `str` or `bytes`.
+
+    Use this to reach stores fronted by a private CA (e.g. a self-hosted MinIO)
+    without disabling verification through `allow_invalid_certificates`. The value
+    may concatenate several certificates; all are parsed.
+
+    The certificate(s) are added to the trusted roots rather than replacing them,
+    so the system roots remain in effect and public endpoints continue to
+    validate alongside the custom CA.
+    """
 
     randomize_addresses: bool
     """Randomize order addresses that the DNS resolution yields.
@@ -118,7 +145,6 @@ class ClientConfig(TypedDict, total=False):
     Default is disabled (no read timeout).
     """
 
-    """HTTP proxy to use for requests."""
     timeout: str | timedelta
     """Set timeout for the overall request
 
