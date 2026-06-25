@@ -5,7 +5,7 @@
 
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use http::Method;
+use http::{Extensions, Method};
 use object_store::signer::Signer;
 use std::borrow::Cow;
 use std::future::Future;
@@ -193,6 +193,7 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
                     .into_iter()
                     .map(|meta| self.strip_meta(meta))
                     .collect(),
+                extensions: Extensions::default(),
             })
     }
 
