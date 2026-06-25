@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## [0.11.0] - 2026-06-25
+
+### What's Changed
+
+* chore: Bump object_store to 0.14 in pyo3-object_store by @kylebarron in https://github.com/developmentseed/obstore/pull/729
+* chore: Reflect upstream #711 by @kylebarron in https://github.com/developmentseed/obstore/pull/732
+* feat: Add option to disable bulk delete for AWS by @kylebarron in https://github.com/developmentseed/obstore/pull/733
+* feat: Config option to choose azure credential type by @kylebarron in https://github.com/developmentseed/obstore/pull/734
+* feat: Support Azure customer provided keys by @kylebarron in https://github.com/developmentseed/obstore/pull/735
+* feat: GCS explicit bearer token by @kylebarron in https://github.com/developmentseed/obstore/pull/737
+* chore: Bump obstore to use object_store 0.14 by @kylebarron in https://github.com/developmentseed/obstore/pull/738
+* feat: Expose proxy and custom-CA client options by @louisnow in https://github.com/developmentseed/obstore/pull/724
+
+### New Contributors
+
+* @louisnow made their first contribution in https://github.com/developmentseed/obstore/pull/724
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.10.1...py-v0.11.0
+
 ### What's Changed
 
 * feat: Expose `proxy_excludes`, `proxy_ca_certificate`, and `root_certificate` client options
