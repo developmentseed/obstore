@@ -100,11 +100,14 @@ def test_root_certificate_additive_to_public_host():
     )
 
 
-def test_root_certificate_no_pem_blocks_is_noop():
-    HTTPStore.from_url(
-        "https://example.com",
-        client_options={"root_certificate": b"not a real certificate"},
-    )
+def test_root_certificate_no_pem_blocks_raises():
+    # Input that contains no PEM blocks parses to zero certificates; rather than
+    # silently trusting nothing, this should surface as an error.
+    with pytest.raises(ValueError, match="No certificates found"):
+        HTTPStore.from_url(
+            "https://example.com",
+            client_options={"root_certificate": b"not a real certificate"},
+        )
 
 
 def test_root_certificate_malformed_block_raises():

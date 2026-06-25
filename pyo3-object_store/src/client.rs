@@ -25,6 +25,12 @@ struct PyCertificate {
 impl PyCertificate {
     fn new(pem: Vec<u8>) -> PyObjectStoreResult<Self> {
         let certificates = Certificate::from_pem_bundle(&pem)?;
+        if certificates.is_empty() {
+            return Err(PyValueError::new_err(
+                "No certificates found in `root_certificate` input; expected one or more PEM-encoded certificates.",
+            )
+            .into());
+        }
         Ok(Self { pem, certificates })
     }
 }
