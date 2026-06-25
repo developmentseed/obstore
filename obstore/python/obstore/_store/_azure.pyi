@@ -61,6 +61,27 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_STORAGE_CLIENT_SECRET`
     - `AZURE_CLIENT_SECRET`
     """
+
+    credential_type: str
+    """Credential type to use for authentication.
+
+    When multiple credential configurations are present, this key forces the builder to
+    use a specific credential type instead of relying on the default resolution order.
+
+    Supported values:
+
+    - `auto` (default) — use the built-in priority chain
+    - `bearer_token` — use a static bearer token
+    - `access_key` — use an access key
+    - `client_secret` — use client secret (service principal) OAuth
+    - `workload_identity` — use workload identity federation
+    - `sas_token` — use a shared access signature
+    - `azure_cli` — use Azure CLI
+    - `managed_identity` — use IMDS managed identity
+
+    **Environment variable**: `AZURE_CREDENTIAL_TYPE`.
+    """
+
     tenant_id: str
     """The tenant id for use in client secret or k8s federated credential flow.
 
