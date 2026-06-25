@@ -61,6 +61,27 @@ class AzureConfig(TypedDict, total=False):
     - `AZURE_STORAGE_CLIENT_SECRET`
     - `AZURE_CLIENT_SECRET`
     """
+
+    credential_type: str
+    """Credential type to use for authentication.
+
+    When multiple credential configurations are present, this key forces the builder to
+    use a specific credential type instead of relying on the default resolution order.
+
+    Supported values:
+
+    - `auto` (default) — use the built-in priority chain
+    - `bearer_token` — use a static bearer token
+    - `access_key` — use an access key
+    - `client_secret` — use client secret (service principal) OAuth
+    - `workload_identity` — use workload identity federation
+    - `sas_token` — use a shared access signature
+    - `azure_cli` — use Azure CLI
+    - `managed_identity` — use IMDS managed identity
+
+    **Environment variable**: `AZURE_CREDENTIAL_TYPE`.
+    """
+
     tenant_id: str
     """The tenant id for use in client secret or k8s federated credential flow.
 
@@ -120,6 +141,28 @@ class AzureConfig(TypedDict, total=False):
 
         `endpoint` will take precedence over this option.
     """
+
+    encryption_key: str
+    """Base64-encoded customer-provided encryption key.
+
+    Set the customer-provided encryption key (CPK) used to encrypt blob content.
+
+    `key` must be a base64-encoded 256-bit AES key (the decoded value must be exactly 32
+    bytes). The same key must be supplied on every subsequent read, write, or copy of
+    any blob created with it; if the key is lost or omitted the data is unrecoverable.
+    CPK material is sent to Azure on every request, so the configured endpoint must use
+    HTTPS.
+
+    Only a subset of Blob storage operations support CPK (see the [Azure
+    documentation][cpk-ops]). When CPK is enabled, `copy` switches from the asynchronous
+    `Copy Blob` API to `Put Blob From URL`, which is synchronous and limits the source
+    blob to 5,000 MiB.
+
+    [cpk-ops]: https://learn.microsoft.com/en-us/azure/storage/blobs/encryption-customer-provided-keys#blob-storage-operations-supporting-customer-provided-keys
+
+    **Environment variable**: `AZURE_ENCRYPTION_KEY`.
+    """
+
     endpoint: str
     """Override the endpoint used to communicate with blob storage.
 

@@ -419,6 +419,29 @@ fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Resul
                 config.insert_if_not_exists(AzureConfigKey::ContainerName, validate(host)?);
             } else {
                 match host.split_once('.') {
+                    // Workspace-level Private Link detection
+                    // "{workspaceid}.z??.(onelake|dfs|blob).fabric.microsoft.com"
+                    Some((workspaceid, rest))
+                        if rest.starts_with('z') && rest.ends_with("fabric.microsoft.com") =>
+                    {
+                        // Account name for WS-PL is two labels: "{workspaceid}.z{xy}"
+                        let (zone, _) = rest.split_once('.').unwrap_or((rest, ""));
+
+                        config.insert_if_not_exists(
+                            AzureConfigKey::AccountName,
+                            format!("{workspaceid}.{zone}"),
+                        );
+                        config.insert_if_not_exists(
+                            AzureConfigKey::Endpoint,
+                            format!("https://{}", host),
+                        );
+
+                        config.insert_if_not_exists(
+                            AzureConfigKey::ContainerName,
+                            validate(parsed.username())?,
+                        );
+                        config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+                    }
                     Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
                         config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
                         config.insert_if_not_exists(
@@ -445,6 +468,34 @@ fn parse_url(config: Option<PyAzureConfig>, parsed: &Url) -> object_store::Resul
             }
         }
         "https" => match host.split_once('.') {
+            // Workspace-level Private Link detection
+            // "{workspaceid}.z??.(onelake|dfs|blob).fabric.microsoft.com"
+            Some((workspaceid, rest))
+                if rest.starts_with('z') && rest.ends_with("fabric.microsoft.com") =>
+            {
+                // rest looks like: "z28.dfs.fabric.microsoft.com" / "z28.blob.fabric.microsoft.com" / etc.
+                // Account name for WS-PL is two labels: "{workspaceid}.z{xy}"
+                let (zone, _) = rest.split_once('.').unwrap_or((rest, ""));
+
+                config.insert_if_not_exists(
+                    AzureConfigKey::AccountName,
+                    format!("{workspaceid}.{zone}"),
+                );
+                config.insert_if_not_exists(AzureConfigKey::Endpoint, format!("https://{}", host));
+
+                // Attempt to infer the container name from the URL
+                let container =
+                    parsed.path_segments().unwrap().next().expect(
+                        "iterator always contains at least one string (which may be empty)",
+                    );
+
+                if !container.is_empty() {
+                    config
+                        .insert_if_not_exists(AzureConfigKey::ContainerName, validate(container)?);
+                }
+
+                config.insert_if_not_exists(AzureConfigKey::UseFabricEndpoint, "true");
+            }
             Some((a, "dfs.core.windows.net")) | Some((a, "blob.core.windows.net")) => {
                 config.insert_if_not_exists(AzureConfigKey::AccountName, validate(a)?);
                 let container =

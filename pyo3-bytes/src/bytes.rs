@@ -32,8 +32,15 @@ use pyo3::{ffi, IntoPyObjectExt};
 /// data view without copies. In Python, this `PyBytes` object can be passed to Python `bytes` or
 /// `memoryview` constructors, `numpy.frombuffer`, or any other function that supports buffer
 /// protocol input.
-#[pyclass(name = "Bytes", subclass, frozen, sequence, weakref)]
-#[derive(Hash, PartialEq, PartialOrd, Eq, Ord)]
+#[pyclass(
+    name = "Bytes",
+    subclass,
+    frozen,
+    sequence,
+    weakref,
+    skip_from_py_object
+)]
+#[derive(Clone, Default, Hash, PartialEq, PartialOrd, Eq, Ord)]
 pub struct PyBytes(Bytes);
 
 impl AsRef<Bytes> for PyBytes {

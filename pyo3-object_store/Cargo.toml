@@ -27,8 +27,8 @@ humantime = "2.1"
 # This is already an object_store dependency
 http = "1"
 # This is already an object_store dependency
-itertools = "0.14.0"
-object_store = { version = "0.13.0", features = [
+itertools = "0.15.0"
+object_store = { version = "0.14.0", features = [
     "aws",
     "azure",
     "gcp",
