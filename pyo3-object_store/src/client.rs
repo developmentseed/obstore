@@ -10,6 +10,7 @@ use pyo3::types::{PyBytes, PyDict, PyString};
 
 use crate::config::PyConfigValue;
 use crate::error::PyObjectStoreError;
+use crate::PyObjectStoreResult;
 
 /// A wrapper around one or more `Certificate`s parsed from PEM input.
 ///
@@ -19,6 +20,13 @@ use crate::error::PyObjectStoreError;
 struct PyCertificate {
     pem: Vec<u8>,
     certificates: Vec<Certificate>,
+}
+
+impl PyCertificate {
+    fn new(pem: Vec<u8>) -> PyObjectStoreResult<Self> {
+        let certificates = Certificate::from_pem_bundle(&pem)?;
+        Ok(Self { pem, certificates })
+    }
 }
 
 impl PartialEq for PyCertificate {
@@ -36,9 +44,7 @@ impl<'py> FromPyObject<'_, 'py> for PyCertificate {
         } else {
             obj.extract::<String>()?.into_bytes()
         };
-        let certificates =
-            Certificate::from_pem_bundle(&pem).map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(Self { pem, certificates })
+        Ok(Self::new(pem)?)
     }
 }
 
