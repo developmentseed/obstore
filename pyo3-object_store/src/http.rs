@@ -114,7 +114,7 @@ impl PyHttpStore {
     }
 
     fn __repr__(&self) -> String {
-        format!("HTTPStore(\"{}\")", &self.config.url.as_ref())
+        format!("HTTPStore(\"{}\")", self.config.url.as_ref())
     }
 
     #[getter]
