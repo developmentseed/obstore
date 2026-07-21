@@ -85,6 +85,22 @@ def test_pickle():
     _objects = next(restored.list())
 
 
+def test_client_config_key_does_not_panic():
+    # Client config keys are not `aws_`-prefixed upstream, so reading `.config` used
+    # to panic.
+    store = S3Store("bucket", allow_http=True)
+    assert store.config["allow_http"] == "true"
+
+
+def test_prefixed_only_config_key_round_trip():
+    # `aws_endpoint_url_s3` has no unprefixed alias upstream, but we emit it unprefixed.
+    store = S3Store("bucket", aws_endpoint_url_s3="https://example.com")  # type: ignore
+    assert store.config["endpoint_url_s3"] == "https://example.com"
+
+    assert S3Store(config=store.config).config == store.config
+    assert pickle.loads(pickle.dumps(store)) == store
+
+
 def test_config_round_trip():
     store = S3Store.from_url(
         "s3://ookla-open-data/parquet/performance/type=fixed/year=2024/quarter=1",
