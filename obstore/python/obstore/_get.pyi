@@ -106,6 +106,7 @@ class GetOptions(TypedDict, total=False):
     Request transfer of only the specified range of bytes
     otherwise returning [`NotModifiedError`][obstore.exceptions.NotModifiedError].
     The semantics of this tuple are:
+
     - `(int, int)`: Request a specific range of bytes `(start, end)`.
         If the given range is zero-length or starts after the end of the object, an
         error will be returned. Additionally, if the range ends after the end of the
@@ -117,6 +118,7 @@ class GetOptions(TypedDict, total=False):
     - `{"suffix": int}`: Request the last `int` bytes. Note that here, `int` is _the
         size of the request_, not the byte offset. This is equivalent to `bytes=-{int}`
         as an HTTP header.
+
     <https://datatracker.ietf.org/doc/html/rfc9110#name-range>
     """
 
