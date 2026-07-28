@@ -48,7 +48,7 @@ dev = [
     "pytest-run-parallel>=0.3.0;python_version>='3.13'",
     "python-dotenv>=1.0.1",
     "pyzmq>=27.1.0",
-    "ruff>=0.15.0",
+    "ruff>=0.16.0",
     "types-boto3[s3,sts]>=1.36.23",
     "types-requests>=2.31.0.6",
     "urllib3>=2.0",
@@ -63,6 +63,7 @@ target-version = "py39"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "CPY001",  # CPY001 Missing copyright notice at top of file
     "D104",    # Missing docstring in public package
     "D203",    # 1 blank line required before class docstring (conflicts with D211)
     "D213",    # Multi-line docstring summary should start at the second line (conflicts with D212)
