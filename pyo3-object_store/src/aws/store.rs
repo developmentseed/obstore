@@ -230,7 +230,11 @@ impl<'py> FromPyObject<'_, 'py> for PyAmazonS3ConfigKey {
 
     fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         let s = obj.extract::<PyBackedStr>()?.to_lowercase();
-        let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
+        let key = if s == "s3_endpoint" {
+            AmazonS3ConfigKey::S3Endpoint
+        } else {
+            s.parse().map_err(PyObjectStoreError::ObjectStoreError)?
+        };
         Ok(Self(key))
     }
 }
@@ -247,11 +251,14 @@ impl<'py> IntoPyObject<'py> for &PyAmazonS3ConfigKey {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let s = self
-            .0
-            .as_ref()
-            .strip_prefix("aws_")
-            .expect("Expected config prefix to start with aws_");
+        let s = if self.0 == AmazonS3ConfigKey::S3Endpoint {
+            "s3_endpoint"
+        } else {
+            self.0
+                .as_ref()
+                .strip_prefix("aws_")
+                .expect("Expected config prefix to start with aws_")
+        };
         Ok(PyString::new(py, s))
     }
 }

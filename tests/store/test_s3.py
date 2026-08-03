@@ -1,12 +1,17 @@
 # ruff: noqa: PGH003
+from __future__ import annotations
 
 import pickle
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 import pytest
 
 from obstore.exceptions import BaseError, UnauthenticatedError
 from obstore.store import S3Store, from_url
+
+if TYPE_CHECKING:
+    from obstore.store import ClientConfig, S3Config
 
 
 @pytest.mark.asyncio
@@ -101,6 +106,25 @@ def test_config_round_trip():
     assert store.prefix == new_store.prefix
     assert store.client_options == new_store.client_options
     assert store.retry_config == new_store.retry_config
+
+
+def test_s3_endpoint_overrides_environment(
+    monkeypatch: pytest.MonkeyPatch,
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
+    config, client_options = minio_bucket
+    monkeypatch.setenv("AWS_ENDPOINT_URL_S3", "http://localhost:1")
+    endpoint = config.get("endpoint")
+    assert endpoint is not None
+    store = S3Store(
+        config=config,
+        client_options=client_options,
+        s3_endpoint=endpoint,
+    )
+
+    assert store.list().collect() == []
+    assert store.config.get("s3_endpoint") == endpoint
+    assert pickle.loads(pickle.dumps(store)) == store
 
 
 def test_invalid_credential_provider():
