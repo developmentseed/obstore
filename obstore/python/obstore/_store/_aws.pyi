@@ -620,6 +620,35 @@ class S3Store:
 
     def __eq__(self, value: object) -> bool: ...
     def __getnewargs_ex__(self): ...
+    def replace_prefix(self, prefix: str | None) -> Self:
+        """Construct a new store with a different prefix.
+
+        The new store **shares the underlying HTTP client and connection pool** with
+        this store, so no new connections need to be established, and any already-open
+        connections stay warm. This makes it cheap to create many stores pointing at
+        different prefixes of the same bucket.
+
+        All other configuration is inherited from this store.
+
+        The new prefix fully replaces the existing one; it is not appended to it. It is
+        always interpreted relative to the root of the bucket.
+
+        **Example:**
+
+        ```py
+        store = S3Store("bucket", prefix="data/2024")
+        store_2025 = store.replace_prefix("data/2025")
+        ```
+
+        Args:
+            prefix: The prefix to apply to all operations in the new store. Pass `None`
+                to construct a store with no prefix.
+
+        Returns:
+            S3Store
+
+        """
+
     @property
     def prefix(self) -> str | None:
         """Get the prefix applied to all operations in this store, if any."""
