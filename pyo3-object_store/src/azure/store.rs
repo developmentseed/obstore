@@ -63,26 +63,39 @@ impl AzureConfig {
 
         PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
     }
+
+    fn replace_prefix(&self, new_prefix: Option<PyPath>) -> Self {
+        Self {
+            prefix: new_prefix,
+            config: self.config.clone(),
+            client_options: self.client_options.clone(),
+            retry_config: self.retry_config.clone(),
+            credential_provider: self.credential_provider.clone(),
+        }
+    }
 }
 
 /// A Python-facing wrapper around a [`MicrosoftAzure`].
 #[derive(Debug, Clone)]
 #[pyclass(name = "AzureStore", frozen, subclass, from_py_object)]
 pub struct PyAzureStore {
-    store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
+    // We use an extra `Arc` around `MicrosoftAzure` because upstream doesn't implement `Clone` on
+    // it.
+    // https://github.com/apache/arrow-rs-object-store/pull/825
+    store: Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
     config: AzureConfig,
 }
 
-impl AsRef<Arc<MaybePrefixedStore<MicrosoftAzure>>> for PyAzureStore {
-    fn as_ref(&self) -> &Arc<MaybePrefixedStore<MicrosoftAzure>> {
+impl AsRef<Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>>> for PyAzureStore {
+    fn as_ref(&self) -> &Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>> {
         &self.store
     }
 }
 
 impl PyAzureStore {
     /// Consume self and return the underlying [`MicrosoftAzure`].
-    pub fn into_inner(self) -> Arc<MaybePrefixedStore<MicrosoftAzure>> {
+    pub fn into_inner(self) -> Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>> {
         self.store
     }
 }
@@ -144,7 +157,10 @@ impl PyAzureStore {
         builder = combined_config.clone().apply_config(builder);
 
         Ok(Self {
-            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
+            store: Arc::new(MaybePrefixedStore::new(
+                Arc::new(builder.build()?),
+                prefix.clone(),
+            )),
             config: AzureConfig {
                 prefix,
                 config: combined_config,
@@ -236,6 +252,13 @@ impl PyAzureStore {
     #[getter]
     fn credential_provider(&self) -> Option<&PyAzureCredentialProvider> {
         self.config.credential_provider.as_ref()
+    }
+
+    fn replace_prefix(&self, prefix: Option<PyPath>) -> PyObjectStoreResult<Self> {
+        Ok(Self {
+            store: Arc::new(self.store.replace_prefix(prefix.clone())),
+            config: self.config.replace_prefix(prefix),
+        })
     }
 
     #[getter]

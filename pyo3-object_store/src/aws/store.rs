@@ -57,6 +57,16 @@ impl S3Config {
 
         PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
     }
+
+    fn replace_prefix(&self, new_prefix: Option<PyPath>) -> Self {
+        Self {
+            prefix: new_prefix,
+            config: self.config.clone(),
+            client_options: self.client_options.clone(),
+            retry_config: self.retry_config.clone(),
+            credential_provider: self.credential_provider.clone(),
+        }
+    }
 }
 
 /// A Python-facing wrapper around an [`AmazonS3`].
@@ -214,6 +224,13 @@ impl PyS3Store {
     #[getter]
     fn credential_provider(&self) -> Option<&PyAWSCredentialProvider> {
         self.config.credential_provider.as_ref()
+    }
+
+    fn replace_prefix(&self, prefix: Option<PyPath>) -> PyObjectStoreResult<Self> {
+        Ok(Self {
+            store: Arc::new(self.store.replace_prefix(prefix.clone())),
+            config: self.config.replace_prefix(prefix),
+        })
     }
 
     #[getter]

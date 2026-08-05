@@ -140,4 +140,11 @@ impl PyLocalStore {
             py.None().into_bound_py_any(py)
         }
     }
+
+    fn replace_prefix(&self, prefix: Option<std::path::PathBuf>) -> PyObjectStoreResult<Self> {
+        // Here we use Self::new instead of `replace_prefix` as on the other stores because 1) this
+        // doesn't use a MaybePrefixedStore wrapper and 2) there's no underlying connection pool we
+        // need to reuse.
+        Self::new(prefix, self.config.automatic_cleanup, self.config.mkdir)
+    }
 }
