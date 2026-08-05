@@ -92,6 +92,16 @@ class S3Config(TypedDict, total=False):
 
     **Environment variable**: `AWS_ACCESS_KEY_ID`.
     """
+    aws_endpoint_url_s3: str
+    """The service-specific endpoint for communicating with AWS S3.
+
+    This takes precedence over `endpoint` when both are set.
+
+    By default, only HTTPS schemes are enabled. To connect to an HTTP endpoint, enable
+    `allow_http` in the client options.
+
+    **Environment variable**: `AWS_ENDPOINT_URL_S3`.
+    """
 
     bucket: str
     """Bucket name (required).
@@ -307,17 +317,6 @@ class S3Config(TypedDict, total=False):
     """Enable Support for S3 Express One Zone.
 
     **Environment variable**: `AWS_S3_EXPRESS`.
-    """
-
-    s3_endpoint: str
-    """The service-specific endpoint for communicating with AWS S3.
-
-    This takes precedence over `endpoint` when both are set.
-
-    By default, only HTTPS schemes are enabled. To connect to an HTTP endpoint, enable
-    `allow_http` in the client options.
-
-    **Environment variable**: `AWS_ENDPOINT_URL_S3`.
     """
 
     secret_access_key: str
