@@ -605,7 +605,7 @@ def test_cat_ranges_max_gap(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy)
 
-    # Unset: obstore's own default applies, so `coalesce` is not forwarded at all.
+    # Unset: forwarded as None, which lets obstore apply its own default.
     assert fs.cat_ranges([path, path], [0, 200], [100, 300]) == [
         data[0:100],
         data[200:300],

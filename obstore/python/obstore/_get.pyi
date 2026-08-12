@@ -382,7 +382,7 @@ def get_ranges(
     starts: Sequence[int],
     ends: Sequence[int | None] | None = None,
     lengths: Sequence[int | None] | None = None,
-    coalesce: int = 1024 * 1024,
+    coalesce: int | None = None,
 ) -> list[Bytes]:
     """Return the bytes stored at the specified location in the given byte ranges.
 
@@ -425,8 +425,8 @@ def get_ranges(
         lengths: A sequence of `int` with the number of bytes of each byte range. An
             element may be None to continue that range to the end of the object.
         coalesce: Maximum distance in bytes between ranges that will be coalesced
-            into a single request. Defaults to 1MiB. Set to `0` to disable
-            coalescing.
+            into a single request. Defaults to None, in which case obstore applies
+            its own default of 1MiB. Set to `0` to disable coalescing.
 
     Returns:
         A sequence of `Bytes`, one for each range. This `Bytes` object implements the
@@ -442,7 +442,7 @@ async def get_ranges_async(
     starts: Sequence[int],
     ends: Sequence[int | None] | None = None,
     lengths: Sequence[int | None] | None = None,
-    coalesce: int = 1024 * 1024,
+    coalesce: int | None = None,
 ) -> list[Bytes]:
     """Call `get_ranges` asynchronously.
 

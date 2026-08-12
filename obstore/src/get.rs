@@ -479,7 +479,7 @@ async fn _get_ranges(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None, coalesce=OBJECT_STORE_COALESCE_DEFAULT))]
+#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None, coalesce=None))]
 pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
@@ -487,15 +487,16 @@ pub(crate) fn get_ranges(
     starts: Vec<i64>,
     ends: Option<Vec<Option<u64>>>,
     lengths: Option<Vec<Option<u64>>>,
-    coalesce: u64,
+    coalesce: Option<u64>,
 ) -> PyObjectStoreResult<Vec<PyBytes>> {
     let runtime = get_runtime();
     let ranges = params_to_ranges(starts, ends, lengths)?;
+    let coalesce = coalesce.unwrap_or(OBJECT_STORE_COALESCE_DEFAULT);
     py.detach(|| runtime.block_on(_get_ranges(store, path, &ranges, coalesce)))
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None, coalesce=OBJECT_STORE_COALESCE_DEFAULT))]
+#[pyo3(signature = (store, path, *, starts, ends=None, lengths=None, coalesce=None))]
 pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
@@ -503,9 +504,10 @@ pub(crate) fn get_ranges_async(
     starts: Vec<i64>,
     ends: Option<Vec<Option<u64>>>,
     lengths: Option<Vec<Option<u64>>>,
-    coalesce: u64,
+    coalesce: Option<u64>,
 ) -> PyResult<Bound<PyAny>> {
     let ranges = params_to_ranges(starts, ends, lengths)?;
+    let coalesce = coalesce.unwrap_or(OBJECT_STORE_COALESCE_DEFAULT);
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         Ok(_get_ranges(store, path, &ranges, coalesce).await?)
     })
