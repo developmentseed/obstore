@@ -38,7 +38,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, cast, overload
+from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
 from urllib.parse import urlparse
 
 import fsspec.asyn
@@ -112,6 +112,16 @@ SUPPORTED_PROTOCOLS_T = Literal[
     "s3a",
 ]
 """A type hint for all supported protocols."""
+
+
+class _CoalesceKwarg(TypedDict, total=False):
+    """The optional `coalesce` argument of [obstore.get_ranges][].
+
+    Omitting the key entirely lets obstore apply its own default, so that default
+    does not have to be restated here.
+    """
+
+    coalesce: int
 
 
 def _needs_object_size(start: int | None, end: int | None) -> bool:
@@ -465,7 +475,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         paths: list[str],
         starts: Sequence[int | None] | int | None,
         ends: Sequence[int | None] | int | None,
-        max_gap: int | None = None,  # noqa: ARG002
+        max_gap: int | None = None,
         batch_size: int | None = None,  # noqa: ARG002
         on_error: str = "return",  # noqa: ARG002
         **_kwargs: Any,
@@ -480,6 +490,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             raise ValueError
 
         resolved = await self._resolve_ranges(paths, starts, ends)
+
+        # fsspec's `max_gap` is obstore's `coalesce`: the largest gap between two
+        # ranges that may still be served by a single request. Left unset, defer to
+        # obstore's own default rather than restating it here.
+        coalesce: _CoalesceKwarg = {} if max_gap is None else {"coalesce": max_gap}
 
         per_file_requests: dict[str, list[tuple[int, int | None, int]]] = defaultdict(
             list,
@@ -500,6 +515,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 path_no_bucket,
                 starts=offsets,
                 ends=file_ends,
+                **coalesce,
             )
             futs.append(fut)
 
