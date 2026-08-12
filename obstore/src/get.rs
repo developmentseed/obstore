@@ -5,7 +5,7 @@ use std::sync::Arc;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::stream::{BoxStream, Fuse};
-use futures::StreamExt;
+use futures::{StreamExt, TryFutureExt};
 use object_store::{
     coalesce_ranges, Attributes, GetOptions, GetRange, GetResult, ObjectMeta, ObjectStore,
     ObjectStoreExt, OBJECT_STORE_COALESCE_DEFAULT,
@@ -117,7 +117,7 @@ impl<'py> FromPyObject<'_, 'py> for PyGetRange {
         } else if let Ok(suffix_range) = obj.extract::<PySuffixRange>() {
             Ok(Self(suffix_range.into()))
         } else {
-            Err(PyValueError::new_err("Unexpected input for byte range.\nExpected two-integer tuple or list, or dict with 'offset' or 'suffix' key." ))
+            Err(PyValueError::new_err("Unexpected input for byte range.\nExpected two-integer tuple or list, or dict with 'offset' or 'suffix' key."))
         }
     }
 }
@@ -382,15 +382,20 @@ pub(crate) fn get_range(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
-    start: u64,
+    start: i64,
     end: Option<u64>,
     length: Option<u64>,
-) -> PyObjectStoreResult<pyo3_bytes::PyBytes> {
+) -> PyObjectStoreResult<PyBytes> {
     let runtime = get_runtime();
     let range = params_to_range(start, end, length)?;
     py.detach(|| {
-        let out = runtime.block_on(store.as_ref().get_range(path.as_ref(), range))?;
-        Ok::<_, PyObjectStoreError>(pyo3_bytes::PyBytes::new(out))
+        let out = runtime.block_on(
+            store
+                .as_ref()
+                .get_opts(path.as_ref(), GetOptions::new().with_range(range.into()))
+                .and_then(GetResult::bytes),
+        )?;
+        Ok::<_, PyObjectStoreError>(PyBytes::new(out))
     })
 }
 
@@ -400,7 +405,7 @@ pub(crate) fn get_range_async(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
-    start: u64,
+    start: i64,
     end: Option<u64>,
     length: Option<u64>,
 ) -> PyResult<Bound<PyAny>> {
@@ -408,36 +413,64 @@ pub(crate) fn get_range_async(
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
         let out = store
             .as_ref()
-            .get_range(path.as_ref(), range)
+            .get_opts(path.as_ref(), GetOptions::new().with_range(range.into()))
+            .and_then(GetResult::bytes)
             .await
             .map_err(PyObjectStoreError::ObjectStoreError)?;
-        Ok(pyo3_bytes::PyBytes::new(out))
+        Ok(PyBytes::new(out))
     })
 }
 
 fn params_to_range(
-    start: u64,
+    start: i64,
     end: Option<u64>,
     length: Option<u64>,
-) -> PyObjectStoreResult<Range<u64>> {
+) -> PyObjectStoreResult<GetRange> {
+    if start < 0 {
+        if end.is_some() || length.is_some() {
+            return Err(
+                PyValueError::new_err("end and length must be None if start is negative.").into(),
+            );
+        }
+        return Ok(GetRange::Suffix(start.unsigned_abs()));
+    }
+
+    let start = start as u64;
     match (end, length) {
         (Some(_), Some(_)) => {
             Err(PyValueError::new_err("end and length cannot both be non-None.").into())
         }
-        (None, None) => Err(PyValueError::new_err("Either end or length must be non-None.").into()),
-        (Some(end), None) => validate_range(start..end),
-        (None, Some(length)) => validate_range(start..start + length),
+        (None, None) => Ok(GetRange::Offset(start)),
+        (Some(end), None) => validate_range(start..end).map(GetRange::Bounded),
+        (None, Some(length)) => validate_range(start..start + length).map(GetRange::Bounded),
     }
 }
 
 async fn _get_ranges(
     store: PyObjectStore,
     path: PyPath,
-    ranges: &[Range<u64>],
+    ranges: &[GetRange],
     coalesce: u64,
 ) -> PyObjectStoreResult<Vec<PyBytes>> {
+    let mut len: Option<u64> = None;
+    let mut resolved = Vec::with_capacity(ranges.len());
+    for range in ranges {
+        resolved.push(match range {
+            GetRange::Bounded(r) => r.clone(),
+            other => {
+                let size = match len {
+                    Some(len) => len,
+                    None => *len.insert(store.as_ref().head(path.as_ref()).await?.size),
+                };
+                other
+                    .as_range(size)
+                    .map_err(|err| PyValueError::new_err(err.to_string()))?
+            }
+        });
+    }
+
     let out = coalesce_ranges(
-        ranges,
+        &resolved,
         |range| store.as_ref().get_range(path.as_ref(), range),
         coalesce,
     )
@@ -451,9 +484,9 @@ pub(crate) fn get_ranges(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
-    starts: Vec<u64>,
-    ends: Option<Vec<u64>>,
-    lengths: Option<Vec<u64>>,
+    starts: Vec<i64>,
+    ends: Option<Vec<Option<u64>>>,
+    lengths: Option<Vec<Option<u64>>>,
     coalesce: u64,
 ) -> PyObjectStoreResult<Vec<PyBytes>> {
     let runtime = get_runtime();
@@ -467,9 +500,9 @@ pub(crate) fn get_ranges_async(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
-    starts: Vec<u64>,
-    ends: Option<Vec<u64>>,
-    lengths: Option<Vec<u64>>,
+    starts: Vec<i64>,
+    ends: Option<Vec<Option<u64>>>,
+    lengths: Option<Vec<Option<u64>>>,
     coalesce: u64,
 ) -> PyResult<Bound<PyAny>> {
     let ranges = params_to_ranges(starts, ends, lengths)?;
@@ -479,28 +512,45 @@ pub(crate) fn get_ranges_async(
 }
 
 fn params_to_ranges(
-    starts: Vec<u64>,
-    ends: Option<Vec<u64>>,
-    lengths: Option<Vec<u64>>,
-) -> PyObjectStoreResult<Vec<Range<u64>>> {
+    starts: Vec<i64>,
+    ends: Option<Vec<Option<u64>>>,
+    lengths: Option<Vec<Option<u64>>>,
+) -> PyObjectStoreResult<Vec<GetRange>> {
+    for (name, len) in [("ends", ends.as_ref()), ("lengths", lengths.as_ref())]
+        .into_iter()
+        .filter_map(|(name, seq)| seq.map(|seq| (name, seq.len())))
+    {
+        if len != starts.len() {
+            return Err(PyValueError::new_err(format!(
+                "starts and {name} must have the same length, got {} and {len}.",
+                starts.len(),
+            ))
+            .into());
+        }
+    }
+
     match (ends, lengths) {
-        (Some(_), Some(_)) => {
-            Err(PyValueError::new_err("ends and lengths cannot both be non-None.").into())
-        }
-        (None, None) => {
-            Err(PyValueError::new_err("Either ends or lengths must be non-None.").into())
-        }
+        // Consistent with `get_range`: an unbounded range reads to the end of the
+        // object.
+        (None, None) => starts
+            .into_iter()
+            .map(|start| params_to_range(start, None, None))
+            .collect(),
+        (Some(ends), Some(lengths)) => starts
+            .into_iter()
+            .zip(ends)
+            .zip(lengths)
+            .map(|((start, end), length)| params_to_range(start, end, length))
+            .collect(),
         (Some(ends), None) => starts
             .into_iter()
             .zip(ends)
-            .map(|(start, end)| start..end)
-            .map(validate_range)
+            .map(|(start, end)| params_to_range(start, end, None))
             .collect(),
         (None, Some(lengths)) => starts
             .into_iter()
             .zip(lengths)
-            .map(|(start, length)| start..start + length)
-            .map(validate_range)
+            .map(|(start, length)| params_to_range(start, None, length))
             .collect(),
     }
 }

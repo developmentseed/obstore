@@ -35,9 +35,10 @@ from __future__ import annotations
 import asyncio
 import warnings
 from collections import defaultdict
+from collections.abc import Iterable
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING, Literal, cast, overload
 from urllib.parse import urlparse
 
 import fsspec.asyn
@@ -49,7 +50,7 @@ from obstore.store import from_url
 
 if TYPE_CHECKING:
     import sys
-    from collections.abc import Coroutine, Iterable
+    from collections.abc import Coroutine, Sequence
     from datetime import datetime
     from typing import Any
 
@@ -111,6 +112,35 @@ SUPPORTED_PROTOCOLS_T = Literal[
     "s3a",
 ]
 """A type hint for all supported protocols."""
+
+
+def _needs_object_size(start: int | None, end: int | None) -> bool:
+    """Whether a range must be resolved against the object size first.
+
+    A negative `start` on its own is a suffix request, which obstore supports
+    directly. Anything else counting back from the end of the object is not.
+    """
+    return end is not None and (end < 0 or (start is not None and start < 0))
+
+
+def _apply_object_size(
+    start: int | None,
+    end: int | None,
+    size: int | None,
+) -> tuple[int, int | None]:
+    """Rewrite the bounds of a range that count back from the end of an object.
+
+    A `size` of None leaves the range alone, for objects whose size was never
+    needed.
+    """
+    if start is None:
+        start = 0
+    if size is None:
+        return start, end
+    return (
+        max(0, size + start) if start < 0 else start,
+        max(0, size + end) if end is not None and end < 0 else end,
+    )
 
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -389,12 +419,19 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             resp = await store.get_async(path)
             return (await resp.bytes_async()).to_bytes()
 
-        if start is None or end is None:
-            raise NotImplementedError(
-                "cat_file not implemented for start=None xor end=None",
-            )
+        if _needs_object_size(start, end):
+            # See `_resolve_ranges` for why this needs the object size.
+            size = (await store.head_async(path))["size"]
+            if start is not None and start < 0:
+                start = max(0, size + start)
+            if end is not None and end < 0:
+                end = max(0, size + end)
 
-        range_bytes = await store.get_range_async(path, start=start, end=end)
+        range_bytes = await store.get_range_async(
+            path,
+            start=0 if start is None else start,
+            end=end,
+        )
         return range_bytes.to_bytes()
 
     async def _cat(  # type: ignore (fsspec has bad typing)
@@ -426,23 +463,30 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _cat_ranges(  # noqa: PLR0913, PLR0917 # type: ignore (fsspec has bad typing)
         self,
         paths: list[str],
-        starts: list[int] | int,
-        ends: list[int] | int,
-        max_gap=None,  # noqa: ANN001, ARG002
-        batch_size=None,  # noqa: ANN001, ARG002
-        on_error="return",  # noqa: ANN001, ARG002
+        starts: Sequence[int | None] | int | None,
+        ends: Sequence[int | None] | int | None,
+        max_gap: int | None = None,  # noqa: ARG002
+        batch_size: int | None = None,  # noqa: ARG002
+        on_error: str = "return",  # noqa: ARG002
         **_kwargs: Any,
     ) -> list[bytes]:
-        if isinstance(starts, int):
+        # A non-iterable start or end applies to every path, per fsspec's
+        # AsyncFileSystem._cat_ranges.
+        if not isinstance(starts, Iterable):
             starts = [starts] * len(paths)
-        if isinstance(ends, int):
+        if not isinstance(ends, Iterable):
             ends = [ends] * len(paths)
         if not len(paths) == len(starts) == len(ends):
             raise ValueError
 
-        per_file_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
-        # When upgrading to Python 3.10, use strict=True
-        for idx, (path, start, end) in enumerate(zip(paths, starts, ends)):
+        resolved = await self._resolve_ranges(paths, starts, ends)
+
+        per_file_requests: dict[str, list[tuple[int, int | None, int]]] = defaultdict(
+            list,
+        )
+        for idx, (path, (start, end)) in enumerate(
+            zip(paths, resolved, strict=True),
+        ):
             per_file_requests[path].append((start, end, idx))
 
         futs: list[Coroutine[Any, Any, list[Bytes]]] = []
@@ -451,22 +495,61 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             store = self._construct_store(bucket)
 
             offsets = [r[0] for r in ranges]
-            ends = [r[1] for r in ranges]
-            fut = store.get_ranges_async(path_no_bucket, starts=offsets, ends=ends)
+            file_ends = [r[1] for r in ranges]
+            fut = store.get_ranges_async(
+                path_no_bucket,
+                starts=offsets,
+                ends=file_ends,
+            )
             futs.append(fut)
 
         result = await asyncio.gather(*futs)
 
         output_buffers: list[bytes] = [b""] * len(paths)
-        # When upgrading to Python 3.10, use strict=True
-        for per_file_request, buffers in zip(per_file_requests.items(), result):
+        for per_file_request, buffers in zip(
+            per_file_requests.items(),
+            result,
+            strict=True,
+        ):
             path, ranges = per_file_request
-            # When upgrading to Python 3.10, use strict=True
-            for buffer, ranges_ in zip(buffers, ranges):
+            for buffer, ranges_ in zip(buffers, ranges, strict=True):
                 initial_index = ranges_[2]
                 output_buffers[initial_index] = buffer.to_bytes()
 
         return output_buffers
+
+    async def _resolve_ranges(
+        self,
+        paths: list[str],
+        starts: Sequence[int | None],
+        ends: Sequence[int | None],
+    ) -> list[tuple[int, int | None]]:
+        """Rewrite fsspec's range vocabulary into the subset obstore accepts.
+
+        `start` is normalized from None to 0. Ranges counting back from the end of
+        the object are resolved against its size, at the cost of one `head` request
+        per object; a lone negative `start` is left alone, since obstore expresses
+        that directly as a suffix request.
+        """
+        sized_paths = sorted(
+            {
+                path
+                for path, start, end in zip(paths, starts, ends, strict=True)
+                if _needs_object_size(start, end)
+            },
+        )
+        sizes = dict(
+            zip(
+                sized_paths,
+                # fsspec types `_sizes` as `list[None]`; the values are really sizes.
+                cast("list[int]", await self._sizes(sized_paths)),
+                strict=True,
+            ),
+        )
+        return [
+            _apply_object_size(start, end, sizes.get(path))
+            for path, start, end in zip(paths, starts, ends, strict=True)
+        ]
 
     async def _put_file(
         self,

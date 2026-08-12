@@ -572,6 +572,24 @@ def test_multi_file_ops(minio_bucket: tuple[S3Config, ClientConfig]):
     assert out == [f"{bucket}/afile"]
 
 
+def test_cat_file(fs: FsspecStore):
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    assert fs.cat_file(path) == data
+    assert fs.cat_file(path, start=100, end=200) == data[100:200]
+
+    # Either bound on its own.
+    assert fs.cat_file(path, start=100) == data[100:]
+    assert fs.cat_file(path, end=200) == data[:200]
+
+    # Bounds counted back from the end of the object.
+    assert fs.cat_file(path, start=-100) == data[-100:]
+    assert fs.cat_file(path, start=100, end=-100) == data[100:-100]
+    assert fs.cat_file(path, start=-200, end=-100) == data[-200:-100]
+
+
 def test_cat_ranges_one(fs: FsspecStore):
     data1 = os.urandom(10000)
     fs.pipe_file(f"{TEST_BUCKET_NAME}/data1", data1)
@@ -631,14 +649,15 @@ def test_cat_ranges_two(fs: FsspecStore):
     assert out == [data1[10:20], data2[10:20]]
 
 
-@pytest.mark.xfail(reason="negative and mixed ranges not implemented")
 def test_cat_ranges_mixed(fs: FsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
-    fs.pipe({"data1": data1, "data2": data2})
+    path1 = f"{TEST_BUCKET_NAME}/data1"
+    path2 = f"{TEST_BUCKET_NAME}/data2"
+    fs.pipe({path1: data1, path2: data2})
 
     # single range in each file
-    out = fs.cat_ranges(["data1", "data1", "data2"], [-10, None, 10], [None, -10, -10])
+    out = fs.cat_ranges([path1, path1, path2], [-10, None, 10], [None, -10, -10])
     assert out == [data1[-10:], data1[:-10], data2[10:-10]]
 
 

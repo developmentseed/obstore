@@ -328,19 +328,33 @@ def get_range(
 ) -> Bytes:
     """Return the bytes that are stored at the specified location in the given byte range.
 
-    If the given range is zero-length or starts after the end of the object, an error
-    will be returned. Additionally, if the range ends after the end of the object, the
-    entire remainder of the object will be returned. Otherwise, the exact requested
-    range will be returned.
+    The requested range may be bounded, open-ended, or relative to the end of the
+    object:
+
+    - `start` plus either `end` or `length` requests a specific range of bytes.
+        If the given range is zero-length or starts after the end of the object, an
+        error will be returned. Additionally, if the range ends after the end of the
+        object, the entire remainder of the object will be returned. Otherwise, the
+        exact requested range will be returned.
+    - A non-negative `start` on its own requests all bytes from `start` onwards.
+        This is equivalent to `bytes={start}-` as an HTTP header.
+    - A negative `start` on its own requests the last `abs(start)` bytes. Note that
+        here, `abs(start)` is _the size of the request_, not a byte offset. This is
+        equivalent to `bytes=-{abs(start)}` as an HTTP header.
 
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
 
     Keyword Args:
-        start: The start of the byte range.
-        end: The end of the byte range (exclusive). Either `end` or `length` must be non-None.
-        length: The number of bytes of the byte range. Either `end` or `length` must be non-None.
+        start: The start of the byte range. If negative, the last `abs(start)` bytes
+            of the object are requested, and `end` and `length` must both be None.
+        end: The end of the byte range (exclusive). Mutually exclusive with `length`.
+            Defaults to None, in which case the range continues to the end of the
+            object.
+        length: The number of bytes of the byte range. Mutually exclusive with `end`.
+            Defaults to None, in which case the range continues to the end of the
+            object.
 
     Returns:
         A `Bytes` object implementing the Python buffer protocol, allowing
@@ -366,11 +380,24 @@ def get_ranges(
     path: str,
     *,
     starts: Sequence[int],
-    ends: Sequence[int] | None = None,
-    lengths: Sequence[int] | None = None,
+    ends: Sequence[int | None] | None = None,
+    lengths: Sequence[int | None] | None = None,
     coalesce: int = 1024 * 1024,
 ) -> list[Bytes]:
     """Return the bytes stored at the specified location in the given byte ranges.
+
+    Each range is described by one element of `starts` and the element at the same
+    position in `ends` or `lengths`, and follows the same semantics as
+    [get_range][obstore.get_range]. In particular, a negative element of `starts`
+    requests the last `abs(start)` bytes, and a range whose end is left unspecified
+    continues to the end of the object. Because ranges are matched up by position,
+    every sequence given must have the same length as `starts`; a mismatch raises
+    `ValueError`.
+
+    `ends` and `lengths` may both be given at once, so long as at most one of the two
+    is non-None for any individual range — for example `ends=[10, None],
+    lengths=[None, 5]` bounds the first range by its end offset and the second by its
+    length. Omitting both reads every range to the end of the object.
 
     To improve performance this will:
 
@@ -378,15 +405,28 @@ def get_ranges(
       underlying request (defaults to 1MB)
     - Make multiple `fetch` requests in parallel (up to maximum of 10)
 
+    !!! note
+
+        Combining ranges requires knowing where each one ends, so if any requested
+        range is open-ended or relative to the end of the object, one additional
+        `head` request is made to resolve the size of the object. Requests made up
+        entirely of bounded ranges do not incur this cost.
+
     Args:
         store: The ObjectStore instance to use.
         path: The path within ObjectStore to retrieve.
 
     Other Args:
-        starts: A sequence of `int` where each offset starts.
-        ends: A sequence of `int` where each offset ends (exclusive). Either `ends` or `lengths` must be non-None.
-        lengths: A sequence of `int` with the number of bytes of each byte range. Either `ends` or `lengths` must be non-None.
-        coalesce: Maximum distance in bytes between ranges that will be coalesced into a single request. Defaults to 1MiB. Set to `0` to disable coalescing.
+        starts: A sequence of `int` where each offset starts. A negative value
+            requests the last `abs(start)` bytes for that range, in which case the
+            corresponding elements of `ends` and `lengths` must be None.
+        ends: A sequence of `int` where each offset ends (exclusive). An element may
+            be None to continue that range to the end of the object.
+        lengths: A sequence of `int` with the number of bytes of each byte range. An
+            element may be None to continue that range to the end of the object.
+        coalesce: Maximum distance in bytes between ranges that will be coalesced
+            into a single request. Defaults to 1MiB. Set to `0` to disable
+            coalescing.
 
     Returns:
         A sequence of `Bytes`, one for each range. This `Bytes` object implements the
@@ -400,8 +440,8 @@ async def get_ranges_async(
     path: str,
     *,
     starts: Sequence[int],
-    ends: Sequence[int] | None = None,
-    lengths: Sequence[int] | None = None,
+    ends: Sequence[int | None] | None = None,
+    lengths: Sequence[int | None] | None = None,
     coalesce: int = 1024 * 1024,
 ) -> list[Bytes]:
     """Call `get_ranges` asynchronously.
