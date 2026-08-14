@@ -7,7 +7,10 @@ use pyo3::pybacked::PyBackedStr;
 use pyo3::types::{PyDict, PyTuple};
 use pyo3::{intern, PyTypeInfo};
 
-use crate::{PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyS3Store};
+use crate::{
+    PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyRemoteSignedS3Store,
+    PyS3Store,
+};
 
 /// A wrapper around a Rust ObjectStore instance that allows any rust-native implementation of
 /// ObjectStore.
@@ -33,6 +36,8 @@ impl<'py> FromPyObject<'_, 'py> for PyObjectStore {
             Ok(Self(store.get().as_ref().clone()))
         } else if let Ok(store) = obj.cast::<PyMemoryStore>() {
             Ok(Self(store.get().as_ref().clone()))
+        } else if let Ok(store) = obj.cast::<PyRemoteSignedS3Store>() {
+            Ok(Self(store.get().as_ref().clone()))
         } else {
             let py = obj.py();
             // Check for object-store instance from other library
@@ -46,6 +51,7 @@ impl<'py> FromPyObject<'_, 'py> for PyObjectStore {
                 PyHttpStore::type_object(py).name()?.to_str()?,
                 PyLocalStore::type_object(py).name()?.to_str()?,
                 PyMemoryStore::type_object(py).name()?.to_str()?,
+                PyRemoteSignedS3Store::type_object(py).name()?.to_str()?,
                 PyS3Store::type_object(py).name()?.to_str()?,
             ]
             .contains(&cls_name.as_str())

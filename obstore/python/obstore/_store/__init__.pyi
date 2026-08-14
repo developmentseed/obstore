@@ -21,6 +21,9 @@ from ._gcs import GCSCredential as GCSCredential
 from ._gcs import GCSCredentialProvider as GCSCredentialProvider
 from ._gcs import GCSStore as GCSStore
 from ._http import HTTPStore as HTTPStore
+from ._remote_signed_s3 import RemoteSignedS3Store as RemoteSignedS3Store
+from ._remote_signed_s3 import Signer as Signer
+from ._remote_signed_s3 import SignerResult as SignerResult
 from ._retry import BackoffConfig as BackoffConfig
 from ._retry import RetryConfig as RetryConfig
 
@@ -201,7 +204,13 @@ class MemoryStore:
     def __init__(self) -> None: ...
 
 ObjectStore: TypeAlias = (
-    AzureStore | GCSStore | HTTPStore | S3Store | LocalStore | MemoryStore
+    AzureStore
+    | GCSStore
+    | HTTPStore
+    | RemoteSignedS3Store
+    | S3Store
+    | LocalStore
+    | MemoryStore
 )
 """All supported ObjectStore implementations.
 

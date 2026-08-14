@@ -89,6 +89,7 @@ __all__ = [
     "HTTPStore",
     "LocalStore",
     "MemoryStore",
+    "RemoteSignedS3Store",
     "RetryConfig",
     "S3Config",
     "S3Credential",
@@ -655,6 +656,73 @@ class MemoryStore(ObjectStoreMethods, _store.MemoryStore):
     """
 
 
+class RemoteSignedS3Store(ObjectStoreMethods, _store.RemoteSignedS3Store):
+    """An S3-compatible store that has each request signed by a remote service.
+
+    Unlike [`S3Store`][obstore.store.S3Store], this store never receives or holds S3
+    credentials. Instead, it constructs each final S3 REST request, hands the request's
+    method, URI, and headers to a `signer` callback immediately before dispatch, and
+    sends exactly the URI and headers the callback returns. The store re-signs on every
+    retry, so signatures may be short-lived.
+
+    This suits setups where an external service (for example [Lakekeeper]'s S3 request
+    signer) authorizes access to a location without vending credentials to the client.
+
+    The `signer` contract is:
+
+    ```py
+    def signer(
+        method: str,
+        uri: str,
+        headers: dict[str, str],
+    ) -> tuple[str, dict[str, str]]:
+        ...
+    ```
+
+    It receives the HTTP method, the fully-constructed request URI (including any query
+    parameters), and the request headers, and returns the signed `(uri, headers)`. The
+    callback may be synchronous or asynchronous; any credential/token caching belongs
+    inside the callback.
+
+    !!! note
+        A synchronous `signer` is required when calling the synchronous store methods
+        (for example `get_range` or `list().collect()`). Use an asynchronous `signer`
+        with the `_async` methods.
+
+    Currently `GET` (including byte ranges), `HEAD`, `PUT` (with conditional
+    create/overwrite), single-object `DELETE`, server-side `COPY`, and `LIST` are
+    supported. Multipart uploads are not yet implemented.
+
+    **Example**:
+
+    ```py
+    import requests
+    from obstore.store import RemoteSignedS3Store
+
+    def signer(method, uri, headers):
+        resp = requests.post(
+            "https://catalog.example.com/sign",
+            json={"method": method, "uri": uri, "headers": headers},
+        )
+        resp.raise_for_status()
+        signed = resp.json()
+        return signed["uri"], signed["headers"]
+
+    store = RemoteSignedS3Store("https://s3.example.com/bucket/prefix", signer)
+    data = store.get_range("chunk.bin", start=0, end=1024)
+    ```
+
+    [Lakekeeper]: https://lakekeeper.io/
+
+    Args:
+        url: Base URL including the bucket and optional object prefix, for example
+            `https://s3.example.com/bucket/prefix`. All paths passed to store methods
+            are resolved relative to this prefix.
+        signer: Callable that signs each request, as described above.
+
+    """
+
+
 class S3Store(ObjectStoreMethods, _store.S3Store):
     """Interface to an Amazon S3 bucket.
 
@@ -679,6 +747,7 @@ ObjectStore: TypeAlias = Union[
     AzureStore,
     GCSStore,
     HTTPStore,
+    RemoteSignedS3Store,
     S3Store,
     LocalStore,
     MemoryStore,

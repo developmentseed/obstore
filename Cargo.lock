@@ -1736,6 +1736,8 @@ dependencies = [
  "percent-encoding",
  "pyo3",
  "pyo3-async-runtimes",
+ "quick-xml",
+ "reqwest 0.13.4",
  "serde",
  "thiserror 1.0.69",
  "tokio",
