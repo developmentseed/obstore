@@ -689,9 +689,25 @@ class RemoteSignedS3Store(ObjectStoreMethods, _store.RemoteSignedS3Store):
         (for example `get_range` or `list().collect()`). Use an asynchronous `signer`
         with the `_async` methods.
 
-    Currently `GET` (including byte ranges), `HEAD`, `PUT` (with conditional
-    create/overwrite), single-object `DELETE`, server-side `COPY`, and `LIST` are
-    supported. Multipart uploads are not yet implemented.
+    !!! important "The signer's headers replace, not extend, the request's"
+        The store sends exactly the headers the callback returns. This matches the S3
+        remote-signing contract: a signature covers a specific set of headers, so
+        keeping headers the signer did not return would invalidate it. A signer must
+        therefore echo back every header it was passed that the request still needs —
+        `range`, `content-length`, `if-none-match` and so on — alongside the ones it
+        adds.
+
+        The request body is never sent to the signer, so a signer cannot compute a
+        payload hash and must sign with `x-amz-content-sha256: UNSIGNED-PAYLOAD`.
+
+    `GET` (including byte ranges), `HEAD`, `PUT` (with conditional create/overwrite and
+    object attributes/tags), `DELETE`, server-side `COPY`, `LIST` and multipart uploads
+    are all supported. Every multipart initiation, part upload, completion and abort is
+    an independently signed request.
+
+    !!! note "Plain HTTP endpoints"
+        Like the other stores, this one refuses `http://` URLs unless you opt in with
+        `client_options={"allow_http": True}`.
 
     !!! warning "`LIST` against a path-validating signer"
         `LIST` uses S3 `ListObjectsV2`, which issues a request to the bucket root
@@ -726,6 +742,19 @@ class RemoteSignedS3Store(ObjectStoreMethods, _store.RemoteSignedS3Store):
     data = store.get_range("chunk.bin", start=0, end=1024)
     ```
 
+    Catalogs usually hand out an `s3://` location with the endpoint configured
+    separately, in which case
+    [`from_s3_url`][obstore.store.RemoteSignedS3Store.from_s3_url] saves assembling the
+    URL:
+
+    ```py
+    store = RemoteSignedS3Store.from_s3_url(
+        "s3://warehouse/zarr/my-array",
+        signer,
+        endpoint="https://s3.example.com",
+    )
+    ```
+
     [Lakekeeper]: https://lakekeeper.io/
 
     Args:
@@ -733,6 +762,15 @@ class RemoteSignedS3Store(ObjectStoreMethods, _store.RemoteSignedS3Store):
             `https://s3.example.com/bucket/prefix`. All paths passed to store methods
             are resolved relative to this prefix.
         signer: Callable that signs each request, as described above.
+
+    Keyword Args:
+        virtual_hosted_style_request: Set to `True` when the bucket is named by the
+            URL's host rather than its first path segment, as in
+            `https://bucket.s3.amazonaws.com/prefix`. Every path segment is then treated
+            as part of the key prefix. Defaults to `False`.
+        client_options: HTTP client options, such as timeouts and `allow_http`.
+        retry_config: How to retry failed requests. Each attempt is signed afresh, so a
+            retry never reuses an expired signature.
 
     """
 

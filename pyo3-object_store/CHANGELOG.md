@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add `PyRemoteSignedS3Store` (in `aws::remote_signed`), exporting a
+  `RemoteSignedS3Store` that signs every S3 request through a Python callback instead of
+  holding S3 credentials. Like `PyS3Store`, it applies its key prefix with
+  `MaybePrefixedStore`.
+
 ## [0.12.0] - 2026-06-25
 
 - Bump to object_store 0.14

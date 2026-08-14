@@ -153,6 +153,18 @@ impl<'py> FromPyObject<'_, 'py> for PyExternalObjectStoreInner {
             return Ok(Self(store.into_inner()));
         }
 
+        if cls_name.as_str() == PyRemoteSignedS3Store::type_object(py).name()? {
+            let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
+                .call_method0(intern!(py, "__getnewargs_ex__"))?
+                .extract()?;
+            let store = PyRemoteSignedS3Store::type_object(py)
+                .call(args, Some(&kwargs))?
+                .cast::<PyRemoteSignedS3Store>()?
+                .get()
+                .clone();
+            return Ok(Self(store.into_inner()));
+        }
+
         if cls_name.as_str() == PyS3Store::type_object(py).name()? {
             let (args, kwargs): (Bound<PyTuple>, Bound<PyDict>) = obj
                 .call_method0(intern!(py, "__getnewargs_ex__"))?

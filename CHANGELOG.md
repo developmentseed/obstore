@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### New Features :magic_wand:
+
+- Add `RemoteSignedS3Store`, an S3-compatible store that never receives S3 credentials
+  and instead has every S3 REST request signed by a Python callback immediately before
+  the request is dispatched. This suits catalogs that vend signatures rather than
+  credentials, such as Lakekeeper's S3 request signer. Ranged `GET`, `HEAD`, `PUT`
+  (including conditional create/update, attributes and tags), `DELETE`, server-side
+  `COPY`, `LIST` and multipart uploads are supported, and every retry is signed afresh.
+  `RemoteSignedS3Store.from_s3_url(location, signer, endpoint=...)` builds a store from an
+  `s3://bucket/prefix` location plus the endpoint serving it, which is how catalogs
+  usually report a location.
+
 ## [0.11.0] - 2026-06-25
 
 ### What's Changed

@@ -42,7 +42,7 @@ pyo3 = { version = "0.29", features = ["chrono", "indexmap"] }
 pyo3-async-runtimes = { version = "0.29", features = ["tokio-runtime"] }
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
-tokio = { version = "1.40", features = ["rt-multi-thread"] }
+tokio = { version = "1.40", features = ["rt-multi-thread", "time"] }
 url = "2"
 
 [lib]
