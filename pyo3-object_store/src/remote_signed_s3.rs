@@ -308,6 +308,7 @@ impl ObjectStore for RemoteSignedS3Store {
             });
         }
         let body = Bytes::from(payload.into_iter().flatten().collect::<Vec<_>>());
+        let is_create = matches!(opts.mode, PutMode::Create);
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_LENGTH, HeaderValue::from_str(&body.len().to_string()).expect("valid content length"));
         match opts.mode {
@@ -319,7 +320,10 @@ impl ObjectStore for RemoteSignedS3Store {
                 }
             }
         }
-        let response = self.request(Method::PUT, location, headers, Some(body)).await?;
+        let response = self
+            .request(Method::PUT, location, headers, Some(body))
+            .await
+            .map_err(|error| precondition_as_already_exists(is_create, location, error))?;
         let e_tag = response.headers().get(ETAG).and_then(|value| value.to_str().ok()).map(str::to_owned);
         let version = response.headers().get("x-amz-version-id").and_then(|value| value.to_str().ok()).map(str::to_owned);
         Ok(PutResult { e_tag, version, extensions: Default::default() })
@@ -405,11 +409,30 @@ impl ObjectStore for RemoteSignedS3Store {
         let mut headers = HeaderMap::new();
         let source = self.object_url(from)?;
         headers.insert("x-amz-copy-source", HeaderValue::from_str(source.path()).map_err(|error| error_for("invalid copy source", error))?);
-        if options.mode == CopyMode::Create {
+        let is_create = options.mode == CopyMode::Create;
+        if is_create {
             headers.insert("if-none-match", HeaderValue::from_static("*"));
         }
-        self.request(Method::PUT, to, headers, None).await?;
+        self.request(Method::PUT, to, headers, None)
+            .await
+            .map_err(|error| precondition_as_already_exists(is_create, to, error))?;
         Ok(())
+    }
+}
+
+/// A failed conditional-create (`If-None-Match: *`) returns HTTP 412, but semantically
+/// means the object already exists. Map it to `AlreadyExists` so callers (e.g. Zarr's
+/// `set_if_not_exists`) that catch that case behave as they do with `S3Store`.
+fn precondition_as_already_exists(
+    is_create: bool,
+    location: &Path,
+    error: object_store::Error,
+) -> object_store::Error {
+    match error {
+        object_store::Error::Precondition { source, .. } if is_create => {
+            object_store::Error::AlreadyExists { path: location.to_string(), source }
+        }
+        other => other,
     }
 }
 

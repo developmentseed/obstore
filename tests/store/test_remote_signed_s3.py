@@ -69,6 +69,14 @@ class SignedS3Handler(BaseHTTPRequestHandler):
         """Serve a signed object metadata request."""
         self.do_GET()
 
+    def do_PUT(self) -> None:
+        """Reject conditional creates as if the object already exists."""
+        if self.headers.get("if-none-match") == "*":
+            self.send_response(412)
+        else:
+            self.send_response(200)
+        self.end_headers()
+
     def log_message(self, _format: str, *_args: object) -> None:
         """Keep the test server quiet."""
 
@@ -126,3 +134,16 @@ def test_signed_list():
     assert [meta["path"] for meta in objects] == ["chunk"]
     assert objects[0]["size"] == len(DATA)
     assert calls == [f"{url}/?list-type=2&prefix=prefix%2F"]
+
+
+def test_conditional_create_conflict_raises_already_exists():
+    from obstore.exceptions import AlreadyExistsError
+
+    with signed_server() as url:
+
+        def signer(_method: str, uri: str, headers: dict[str, str]):
+            return uri, {**headers, "x-signed": "yes"}
+
+        store = RemoteSignedS3Store(url, signer)
+        with pytest.raises(AlreadyExistsError):
+            store.put("chunk", DATA, mode="create")
