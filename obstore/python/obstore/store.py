@@ -693,6 +693,20 @@ class RemoteSignedS3Store(ObjectStoreMethods, _store.RemoteSignedS3Store):
     create/overwrite), single-object `DELETE`, server-side `COPY`, and `LIST` are
     supported. Multipart uploads are not yet implemented.
 
+    !!! warning "`LIST` against a path-validating signer"
+        `LIST` uses S3 `ListObjectsV2`, which issues a request to the bucket root
+        with the prefix as a *query parameter*
+        (`GET /bucket?list-type=2&prefix=...`). Signers that authorize by the URL
+        *path* rather than the query — notably Lakekeeper's generic-table signer —
+        cannot match the location and reject these requests (e.g.
+        `NoSuchTableLocationException`).
+
+        This affects any operation that lists, including Zarr's `delete_dir`
+        (triggered by `overwrite=True`). With such a signer, avoid list-based
+        operations against the signed location: write arrays fresh instead of
+        overwriting. There is no client-side fix — the prefix cannot be moved into
+        the URL path without breaking S3 list semantics.
+
     **Example**:
 
     ```py
