@@ -37,6 +37,15 @@ from .fake_s3 import (
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+pytestmark = pytest.mark.thread_unsafe(
+    reason=(
+        "FakeS3 keeps its state — objects, signed_requests, uploads — in "
+        "class-level attributes shared by every server instance. Running a "
+        "test body twice concurrently, as --parallel-threads does, races on "
+        "that shared state instead of exercising RemoteSignedS3Store."
+    ),
+)
+
 
 @pytest.mark.asyncio
 async def test_signed_range_request() -> None:
