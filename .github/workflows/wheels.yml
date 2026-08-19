@@ -223,7 +223,7 @@ jobs:
     name: Release
     environment:
       name: pypi-release
-      url: https://pypi.org/p/obstore
+      url: https://pypi.org/p/obstore-databaas
     permissions:
       # IMPORTANT: this permission is mandatory for trusted publishing
       id-token: write
