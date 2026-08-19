@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## [0.12.1] - 2026-08-19
+
+Published from the [wolkwork/obstore](https://github.com/wolkwork/obstore) fork as
+`obstore-databaas` on PyPI while the `RemoteSignedS3Store` contribution is under review
+upstream. The import name is unchanged, so this is a drop-in replacement for `obstore`.
 
 ### New Features :magic_wand:
 
