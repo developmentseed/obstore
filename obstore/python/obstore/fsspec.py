@@ -36,6 +36,7 @@ import asyncio
 import warnings
 from collections import defaultdict
 from functools import cached_property, lru_cache
+from io import UnsupportedOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 from urllib.parse import urlparse
@@ -721,7 +722,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
         """
         if self.mode != "rb":
-            raise ValueError("File not in read mode")
+            raise UnsupportedOperation("File not in read mode")
         if length < 0:
             length = self.size - self.tell()
         if self.closed:
@@ -736,7 +737,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
     def readline(self) -> bytes:
         """Read until first occurrence of newline character."""
         if self.mode != "rb":
-            raise ValueError("File not in read mode")
+            raise UnsupportedOperation("File not in read mode")
 
         out = self._reader.readline()
         return out.to_bytes()
@@ -744,7 +745,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
     def readlines(self) -> list[bytes]:
         """Return all data, split by the newline character."""
         if self.mode != "rb":
-            raise ValueError("File not in read mode")
+            raise UnsupportedOperation("File not in read mode")
 
         out = self._reader.readlines()
         return [b.to_bytes() for b in out]
@@ -775,7 +776,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
         """
         if self.mode != "rb":
-            raise ValueError("Seek only available in read mode.")
+            raise UnsupportedOperation("Seek only available in read mode.")
 
         return self._reader.seek(loc, whence)
 
@@ -787,7 +788,7 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
         """
         if not self.writable():
-            raise ValueError("File not in write mode")
+            raise UnsupportedOperation("File not in write mode")
         if self.closed:
             raise ValueError("I/O operation on closed file.")
         if self.forced:
