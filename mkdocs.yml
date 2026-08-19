@@ -51,6 +51,7 @@ nav:
       - obstore.store:
           - api/store/index.md
           - api/store/aws.md
+          - api/store/remote-signed-s3.md
           - api/store/gcs.md
           - api/store/azure.md
           - api/store/http.md

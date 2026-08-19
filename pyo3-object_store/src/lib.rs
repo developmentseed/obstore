@@ -20,7 +20,7 @@ mod store;
 mod url;
 
 pub use api::{register_exceptions_module, register_store_module};
-pub use aws::PyS3Store;
+pub use aws::{PyRemoteSignedS3Store, PyS3Store};
 pub use azure::PyAzureStore;
 pub use client::{PyClientConfigKey, PyClientOptions};
 pub use error::{PyObjectStoreError, PyObjectStoreResult};

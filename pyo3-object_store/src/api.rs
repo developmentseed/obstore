@@ -3,7 +3,8 @@ use pyo3::prelude::*;
 
 use crate::error::*;
 use crate::{
-    from_url, PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore, PyS3Store,
+    from_url, PyAzureStore, PyGCSStore, PyHttpStore, PyLocalStore, PyMemoryStore,
+    PyRemoteSignedS3Store, PyS3Store,
 };
 
 /// Export the default Python API as a submodule named `store` within the given parent module
@@ -55,6 +56,7 @@ pub fn register_store_module(
     child_module.add_class::<PyLocalStore>()?;
     child_module.add_class::<PyMemoryStore>()?;
     child_module.add_class::<PyS3Store>()?;
+    child_module.add_class::<PyRemoteSignedS3Store>()?;
 
     // Set the value of `__module__` correctly on each publicly exposed function or class
     let __module__ = intern!(py, "__module__");
@@ -78,6 +80,9 @@ pub fn register_store_module(
         .setattr(__module__, &full_module_string)?;
     child_module
         .getattr("S3Store")?
+        .setattr(__module__, &full_module_string)?;
+    child_module
+        .getattr("RemoteSignedS3Store")?
         .setattr(__module__, &full_module_string)?;
 
     // Add the child module to the parent module
