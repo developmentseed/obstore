@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -77,8 +78,8 @@ impl PullSource {
     }
 
     /// Whether to use multipart uploads.
-    fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
-        Ok(self.nbytes()? > chunk_size)
+    fn use_multipart(&mut self, chunk_size: NonZeroUsize) -> PyObjectStoreResult<bool> {
+        Ok(self.nbytes()? > chunk_size.get())
     }
 }
 
@@ -211,9 +212,9 @@ pub(crate) enum PutInput {
 
 impl PutInput {
     /// Whether to use multipart uploads.
-    fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
+    fn use_multipart(&mut self, chunk_size: NonZeroUsize) -> PyObjectStoreResult<bool> {
         match self {
-            Self::Buffer(buffer) => Ok(buffer.len() > chunk_size),
+            Self::Buffer(buffer) => Ok(buffer.len() > chunk_size.get()),
             Self::Pull(pull_source) => pull_source.use_multipart(chunk_size),
             // We always use multipart uploads for push-based sources because we have no way of
             // knowing how large they'll be and we don't want to buffer them into memory.
@@ -298,7 +299,7 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=5242880, max_concurrency=12))]
+#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=NonZeroUsize::new(5242880).unwrap(), max_concurrency=12))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put(
     py: Python,
@@ -309,7 +310,7 @@ pub(crate) fn put(
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
     use_multipart: Option<bool>,
-    chunk_size: usize,
+    chunk_size: NonZeroUsize,
     max_concurrency: usize,
 ) -> PyObjectStoreResult<PyPutResult> {
     if matches!(file, PutInput::AsyncPush(_)) {
@@ -357,7 +358,7 @@ pub(crate) fn put(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=5242880, max_concurrency=12))]
+#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=NonZeroUsize::new(5242880).unwrap(), max_concurrency=12))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put_async(
     py: Python,
@@ -368,7 +369,7 @@ pub(crate) fn put_async(
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
     use_multipart: Option<bool>,
-    chunk_size: usize,
+    chunk_size: NonZeroUsize,
     max_concurrency: usize,
 ) -> PyResult<Bound<PyAny>> {
     let mut use_multipart = if let Some(use_multipart) = use_multipart {
@@ -439,7 +440,7 @@ async fn put_multipart_inner(
     store: Arc<dyn ObjectStore>,
     path: &Path,
     reader: PutInput,
-    chunk_size: usize,
+    chunk_size: NonZeroUsize,
     max_concurrency: usize,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
@@ -454,7 +455,7 @@ async fn put_multipart_inner(
     }
 
     let upload = store.put_multipart_opts(path, opts).await?;
-    let mut writer = WriteMultipart::new_with_chunk_size(upload, chunk_size);
+    let mut writer = WriteMultipart::new_with_chunk_size(upload, chunk_size.get());
 
     // Make sure to call abort if the multipart upload failed for any reason
     match write_multipart(&mut writer, reader, chunk_size, max_concurrency).await {
@@ -469,21 +470,21 @@ async fn put_multipart_inner(
 async fn write_multipart(
     writer: &mut WriteMultipart,
     reader: PutInput,
-    chunk_size: usize,
+    chunk_size: NonZeroUsize,
     max_concurrency: usize,
 ) -> PyObjectStoreResult<()> {
     match reader {
         PutInput::Buffer(buffer) => {
             let mut offset = 0;
             while offset < buffer.len() {
-                let end = (offset + chunk_size).min(buffer.len());
+                let end = (offset + chunk_size.get()).min(buffer.len());
                 writer.wait_for_capacity(max_concurrency).await?;
                 writer.put(buffer.slice(offset..end));
                 offset = end;
             }
         }
         PutInput::Pull(mut pull_reader) => {
-            let mut scratch_buffer = vec![0; chunk_size];
+            let mut scratch_buffer = vec![0; chunk_size.get()];
             loop {
                 let read_size = pull_reader.read(&mut scratch_buffer)?;
                 if read_size == 0 {
