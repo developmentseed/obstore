@@ -65,7 +65,6 @@ impl<'py> FromPyObject<'_, 'py> for PyUpdateVersion {
 pub(crate) enum PullSource {
     File(BufReader<File>),
     FileLike(PyFileLikeObject),
-    Buffer(Cursor<Bytes>),
 }
 
 impl PullSource {
@@ -88,7 +87,6 @@ impl Read for PullSource {
         match self {
             Self::File(f) => f.read(buf),
             Self::FileLike(f) => f.read(buf),
-            Self::Buffer(f) => f.read(buf),
         }
     }
 }
@@ -98,7 +96,6 @@ impl Seek for PullSource {
         match self {
             Self::File(f) => f.seek(pos),
             Self::FileLike(f) => f.seek(pos),
-            Self::Buffer(f) => f.seek(pos),
         }
     }
 }
@@ -199,6 +196,9 @@ impl AsyncPushSource {
 
 // #[derive(Debug)]
 pub(crate) enum PutInput {
+    /// A buffer protocol object
+    Buffer(Cursor<Bytes>),
+
     /// Input that we can pull from
     Pull(PullSource),
 
@@ -222,14 +222,12 @@ impl PutInput {
 
     async fn read_all(&mut self) -> PyObjectStoreResult<PutPayload> {
         match self {
-            Self::Pull(pull_source) => match pull_source {
-                PullSource::Buffer(buffer) => Ok(buffer.get_ref().clone().into()),
-                source => {
-                    let mut buf = Vec::new();
-                    source.read_to_end(&mut buf)?;
-                    Ok(Bytes::from(buf).into())
-                }
-            },
+            Self::Buffer(buffer) => Ok(buffer.get_ref().clone().into()),
+            Self::Pull(pull_source) => {
+                let mut buf = Vec::new();
+                pull_source.read_to_end(&mut buf)?;
+                Ok(Bytes::from(buf).into())
+            }
             Self::SyncPush(push_source) => push_source.read_all(),
             Self::AsyncPush(push_source) => push_source.read_all().await,
         }
@@ -246,9 +244,7 @@ impl<'py> FromPyObject<'_, 'py> for PutInput {
                 path,
             )?))))
         } else if let Ok(buffer) = obj.extract::<PyBytes>() {
-            Ok(Self::Pull(PullSource::Buffer(Cursor::new(
-                buffer.into_inner(),
-            ))))
+            Ok(Self::Buffer(Cursor::new(buffer.into_inner())))
         }
         // Check for file-like object
         else if obj.hasattr(intern!(py, "read"))? && obj.hasattr(intern!(py, "seek"))? {
@@ -476,38 +472,32 @@ async fn write_multipart(
     max_concurrency: usize,
 ) -> PyObjectStoreResult<()> {
     match reader {
-        PutInput::Pull(mut pull_reader) => {
-            match pull_reader {
-                // For an in-memory buffer, we don't need to read out into a scratch buffer and
-                // thus we don't require any memory overhead from the scratch buffer
-                PullSource::Buffer(cursor) => {
-                    let start = usize::try_from(cursor.position()).map_err(|_| {
-                        PyOverflowError::new_err(format!(
-                            "Buffer position {} is too large for this platform's usize",
-                            cursor.position()
-                        ))
-                    })?;
+        PutInput::Buffer(cursor) => {
+            let start = usize::try_from(cursor.position()).map_err(|_| {
+                PyOverflowError::new_err(format!(
+                    "Buffer position {} is too large for this platform's usize",
+                    cursor.position()
+                ))
+            })?;
 
-                    let buffer = cursor.into_inner();
-                    let mut offset = start.min(buffer.len());
-                    while offset < buffer.len() {
-                        let end = (offset + chunk_size).min(buffer.len());
-                        writer.wait_for_capacity(max_concurrency).await?;
-                        writer.put(buffer.slice(offset..end));
-                        offset = end;
-                    }
+            let buffer = cursor.into_inner();
+            let mut offset = start.min(buffer.len());
+            while offset < buffer.len() {
+                let end = (offset + chunk_size).min(buffer.len());
+                writer.wait_for_capacity(max_concurrency).await?;
+                writer.put(buffer.slice(offset..end));
+                offset = end;
+            }
+        }
+        PutInput::Pull(mut pull_reader) => {
+            let mut scratch_buffer = vec![0; chunk_size];
+            loop {
+                let read_size = pull_reader.read(&mut scratch_buffer)?;
+                if read_size == 0 {
+                    break;
                 }
-                _ => {
-                    let mut scratch_buffer = vec![0; chunk_size];
-                    loop {
-                        let read_size = pull_reader.read(&mut scratch_buffer)?;
-                        if read_size == 0 {
-                            break;
-                        }
-                        writer.wait_for_capacity(max_concurrency).await?;
-                        writer.write(&scratch_buffer[0..read_size]);
-                    }
-                }
+                writer.wait_for_capacity(max_concurrency).await?;
+                writer.write(&scratch_buffer[0..read_size]);
             }
         }
         PutInput::SyncPush(push_reader) => {
