@@ -481,8 +481,11 @@ async fn write_multipart(
                 // For an in-memory buffer, we don't need to read out into a scratch buffer and
                 // thus we don't require any memory overhead from the scratch buffer
                 PullSource::Buffer(cursor) => {
-                    let start = usize::try_from(cursor.position()).map_err(|err| {
-                        PyOverflowError::new_err(format!("Buffer position is too large: {err}"))
+                    let start = usize::try_from(cursor.position()).map_err(|_| {
+                        PyOverflowError::new_err(format!(
+                            "Buffer position {} is too large for this platform's usize",
+                            cursor.position()
+                        ))
                     })?;
 
                     let buffer = cursor.into_inner();
