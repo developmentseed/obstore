@@ -11,7 +11,7 @@ use object_store::{
     ObjectStore, PutMode, PutMultipartOptions, PutOptions, PutPayload, PutResult, UpdateVersion,
     WriteMultipart,
 };
-use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
+use pyo3::exceptions::{PyOverflowError, PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
@@ -475,19 +475,38 @@ async fn write_multipart(
     chunk_size: usize,
     max_concurrency: usize,
 ) -> PyObjectStoreResult<()> {
-    // Match across pull, push, async push
     match reader {
-        PutInput::Pull(mut pull_reader) => loop {
-            let mut scratch_buffer = vec![0; chunk_size];
-            loop {
-                let read_size = pull_reader.read(&mut scratch_buffer)?;
-                if read_size == 0 {
-                    break;
+        PutInput::Pull(mut pull_reader) => {
+            match pull_reader {
+                // For an in-memory buffer, we don't need to read out into a scratch buffer and
+                // thus we don't require any memory overhead from the scratch buffer
+                PullSource::Buffer(cursor) => {
+                    let start = usize::try_from(cursor.position()).map_err(|err| {
+                        PyOverflowError::new_err(format!("Buffer position is too large: {err}"))
+                    })?;
+
+                    let buffer = cursor.into_inner();
+                    let mut offset = start.min(buffer.len());
+                    while offset < buffer.len() {
+                        let end = (offset + chunk_size).min(buffer.len());
+                        writer.wait_for_capacity(max_concurrency).await?;
+                        writer.put(buffer.slice(offset..end));
+                        offset = end;
+                    }
                 }
-                writer.wait_for_capacity(max_concurrency).await?;
-                writer.write(&scratch_buffer[0..read_size]);
+                _ => {
+                    let mut scratch_buffer = vec![0; chunk_size];
+                    loop {
+                        let read_size = pull_reader.read(&mut scratch_buffer)?;
+                        if read_size == 0 {
+                            break;
+                        }
+                        writer.wait_for_capacity(max_concurrency).await?;
+                        writer.write(&scratch_buffer[0..read_size]);
+                    }
+                }
             }
-        },
+        }
         PutInput::SyncPush(push_reader) => {
             for buf in push_reader {
                 writer.wait_for_capacity(max_concurrency).await?;
