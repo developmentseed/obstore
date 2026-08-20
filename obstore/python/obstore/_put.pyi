@@ -109,7 +109,7 @@ def put(
     tags: dict[str, str] | None = None,
     mode: PutMode | None = None,
     use_multipart: bool | None = None,
-    chunk_size: int = ...,
+    chunk_size: int = 5242880,
     max_concurrency: int = 12,
 ) -> PutResult:
     """Save the provided bytes to the specified location.
@@ -179,7 +179,7 @@ async def put_async(
     tags: dict[str, str] | None = None,
     mode: PutMode | None = None,
     use_multipart: bool | None = None,
-    chunk_size: int = ...,
+    chunk_size: int = 5242880,
     max_concurrency: int = 12,
 ) -> PutResult:
     """Call `put` asynchronously.
