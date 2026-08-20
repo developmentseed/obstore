@@ -213,10 +213,11 @@ impl PutInput {
     /// Whether to use multipart uploads.
     fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
         match self {
+            Self::Buffer(cursor) => Ok(cursor.get_ref().len() > chunk_size),
             Self::Pull(pull_source) => pull_source.use_multipart(chunk_size),
             // We always use multipart uploads for push-based sources because we have no way of
             // knowing how large they'll be and we don't want to buffer them into memory.
-            _ => Ok(true),
+            Self::SyncPush(_) | Self::AsyncPush(_) => Ok(true),
         }
     }
 
