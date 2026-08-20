@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Cursor, Read, Seek, SeekFrom};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -11,7 +11,7 @@ use object_store::{
     ObjectStore, PutMode, PutMultipartOptions, PutOptions, PutPayload, PutResult, UpdateVersion,
     WriteMultipart,
 };
-use pyo3::exceptions::{PyOverflowError, PyStopAsyncIteration, PyStopIteration, PyValueError};
+use pyo3::exceptions::{PyStopAsyncIteration, PyStopIteration, PyValueError};
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyDict;
@@ -197,7 +197,7 @@ impl AsyncPushSource {
 // #[derive(Debug)]
 pub(crate) enum PutInput {
     /// A buffer protocol object
-    Buffer(Cursor<Bytes>),
+    Buffer(Bytes),
 
     /// Input that we can pull from
     Pull(PullSource),
@@ -213,7 +213,7 @@ impl PutInput {
     /// Whether to use multipart uploads.
     fn use_multipart(&mut self, chunk_size: usize) -> PyObjectStoreResult<bool> {
         match self {
-            Self::Buffer(cursor) => Ok(cursor.get_ref().len() > chunk_size),
+            Self::Buffer(buffer) => Ok(buffer.len() > chunk_size),
             Self::Pull(pull_source) => pull_source.use_multipart(chunk_size),
             // We always use multipart uploads for push-based sources because we have no way of
             // knowing how large they'll be and we don't want to buffer them into memory.
@@ -223,7 +223,7 @@ impl PutInput {
 
     async fn read_all(&mut self) -> PyObjectStoreResult<PutPayload> {
         match self {
-            Self::Buffer(buffer) => Ok(buffer.get_ref().clone().into()),
+            Self::Buffer(buffer) => Ok(buffer.clone().into()),
             Self::Pull(pull_source) => {
                 let mut buf = Vec::new();
                 pull_source.read_to_end(&mut buf)?;
@@ -245,7 +245,7 @@ impl<'py> FromPyObject<'_, 'py> for PutInput {
                 path,
             )?))))
         } else if let Ok(buffer) = obj.extract::<PyBytes>() {
-            Ok(Self::Buffer(Cursor::new(buffer.into_inner())))
+            Ok(Self::Buffer(buffer.into_inner()))
         }
         // Check for file-like object
         else if obj.hasattr(intern!(py, "read"))? && obj.hasattr(intern!(py, "seek"))? {
@@ -473,16 +473,8 @@ async fn write_multipart(
     max_concurrency: usize,
 ) -> PyObjectStoreResult<()> {
     match reader {
-        PutInput::Buffer(cursor) => {
-            let start = usize::try_from(cursor.position()).map_err(|_| {
-                PyOverflowError::new_err(format!(
-                    "Buffer position {} is too large for this platform's usize",
-                    cursor.position()
-                ))
-            })?;
-
-            let buffer = cursor.into_inner();
-            let mut offset = start.min(buffer.len());
+        PutInput::Buffer(buffer) => {
+            let mut offset = 0;
             while offset < buffer.len() {
                 let end = (offset + chunk_size).min(buffer.len());
                 writer.wait_for_capacity(max_concurrency).await?;
