@@ -479,10 +479,11 @@ async fn write_multipart(
     match reader {
         PutInput::Pull(mut pull_reader) => loop {
             let mut scratch_buffer = vec![0; chunk_size];
-            let read_size = pull_reader.read(&mut scratch_buffer)?;
-            if read_size == 0 {
-                break;
-            } else {
+            loop {
+                let read_size = pull_reader.read(&mut scratch_buffer)?;
+                if read_size == 0 {
+                    break;
+                }
                 writer.wait_for_capacity(max_concurrency).await?;
                 writer.write(&scratch_buffer[0..read_size]);
             }
