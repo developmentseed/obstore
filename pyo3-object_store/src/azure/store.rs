@@ -79,23 +79,20 @@ impl AzureConfig {
 #[derive(Debug, Clone)]
 #[pyclass(name = "AzureStore", frozen, subclass, from_py_object)]
 pub struct PyAzureStore {
-    // We use an extra `Arc` around `MicrosoftAzure` because upstream doesn't implement `Clone` on
-    // it.
-    // https://github.com/apache/arrow-rs-object-store/pull/825
-    store: Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>>,
+    store: Arc<MaybePrefixedStore<MicrosoftAzure>>,
     /// A config used for pickling. This must stay in sync with the underlying store's config.
     config: AzureConfig,
 }
 
-impl AsRef<Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>>> for PyAzureStore {
-    fn as_ref(&self) -> &Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>> {
+impl AsRef<Arc<MaybePrefixedStore<MicrosoftAzure>>> for PyAzureStore {
+    fn as_ref(&self) -> &Arc<MaybePrefixedStore<MicrosoftAzure>> {
         &self.store
     }
 }
 
 impl PyAzureStore {
     /// Consume self and return the underlying [`MicrosoftAzure`].
-    pub fn into_inner(self) -> Arc<MaybePrefixedStore<Arc<MicrosoftAzure>>> {
+    pub fn into_inner(self) -> Arc<MaybePrefixedStore<MicrosoftAzure>> {
         self.store
     }
 }
@@ -157,10 +154,7 @@ impl PyAzureStore {
         builder = combined_config.clone().apply_config(builder);
 
         Ok(Self {
-            store: Arc::new(MaybePrefixedStore::new(
-                Arc::new(builder.build()?),
-                prefix.clone(),
-            )),
+            store: Arc::new(MaybePrefixedStore::new(builder.build()?, prefix.clone())),
             config: AzureConfig {
                 prefix,
                 config: combined_config,
