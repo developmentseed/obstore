@@ -423,7 +423,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             **_kwargs,
         )
 
-    async def _cat_ranges(  # noqa: PLR0913 # type: ignore (fsspec has bad typing)
+    async def _cat_ranges(  # noqa: PLR0913, PLR0917 # type: ignore (fsspec has bad typing)
         self,
         paths: list[str],
         starts: list[int] | int,
