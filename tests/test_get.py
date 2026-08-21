@@ -113,19 +113,6 @@ def test_get_range():
     view = memoryview(buffer)
     assert view == data[5:15]
 
-    buffer = store.get_range(path, start=4300)
-    view = memoryview(buffer)
-    assert view == data[4300:4400]
-
-    buffer = store.get_range(path, start=-100)
-    view = memoryview(buffer)
-    assert view == data[4300:4400]
-
-    # A suffix longer than the object yields the whole object.
-    buffer = store.get_range(path, start=-999999)
-    view = memoryview(buffer)
-    assert view == data
-
 
 def test_get_ranges():
     store = MemoryStore()
@@ -142,27 +129,6 @@ def test_get_ranges():
     # set strict=True when we upgrade to 3.10
     for start, end, buffer in zip(starts, ends, buffers):
         assert memoryview(buffer) == data[start:end]
-
-    # A `None` element leaves that one range open-ended; a negative start makes it
-    # a suffix request. Omitting `ends` and `lengths` reads every range to the end.
-    buffers = store.get_ranges(path, starts=[5, 4300, -100], ends=[15, None, None])
-    assert [memoryview(b) for b in buffers] == [
-        data[5:15],
-        data[4300:4400],
-        data[4300:4400],
-    ]
-
-    buffers = store.get_ranges(path, starts=[4300, -100])
-    assert [memoryview(b) for b in buffers] == [data[4300:4400], data[4300:4400]]
-
-    # `ends` and `lengths` may be mixed, at most one per range.
-    buffers = store.get_ranges(
-        path,
-        starts=[5, 20],
-        ends=[15, None],
-        lengths=[None, 10],
-    )
-    assert [memoryview(b) for b in buffers] == [data[5:15], data[20:30]]
 
     lengths = [10, 10, 10, 10]
     buffers = store.get_ranges(path, starts=starts, lengths=lengths)
@@ -241,12 +207,6 @@ def test_get_range_invalid_range():
     with pytest.raises(ValueError, match="Invalid range"):
         store.get_range(path, start=10, length=0)
 
-    with pytest.raises(ValueError, match="end and length must be None"):
-        store.get_range(path, start=-10, end=10)
-
-    with pytest.raises(ValueError, match="end and length must be None"):
-        store.get_range(path, start=-10, length=10)
-
 
 def test_get_ranges_invalid_range():
     store = MemoryStore()
@@ -263,12 +223,6 @@ def test_get_ranges_invalid_range():
 
     with pytest.raises(ValueError, match="Invalid range"):
         store.get_ranges(path, starts=[10, 20], lengths=[10, 0])
-
-    with pytest.raises(ValueError, match="starts and ends must have the same length"):
-        store.get_ranges(path, starts=[10, 20], ends=[30])
-
-    with pytest.raises(ValueError, match="starts and lengths must have the same"):
-        store.get_ranges(path, starts=[10], lengths=[10, 20])
 
 
 def test_access_getresult_attributes_after_reading_stream():

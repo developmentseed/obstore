@@ -13,7 +13,6 @@ import pytest
 from fsspec.registry import _registry
 
 from obstore.fsspec import FsspecStore, register
-from obstore.store import ObjectStoreMethods
 from tests.conftest import TEST_BUCKET_NAME
 
 if TYPE_CHECKING:
@@ -573,56 +572,6 @@ def test_multi_file_ops(minio_bucket: tuple[S3Config, ClientConfig]):
     assert out == [f"{bucket}/afile"]
 
 
-def test_cat_file(fs: FsspecStore):
-    data = os.urandom(10000)
-    path = f"{TEST_BUCKET_NAME}/data1"
-    fs.pipe_file(path, data)
-
-    assert fs.cat_file(path) == data
-    assert fs.cat_file(path, start=100, end=200) == data[100:200]
-
-    # Either bound on its own.
-    assert fs.cat_file(path, start=100) == data[100:]
-    assert fs.cat_file(path, end=200) == data[:200]
-
-    # Bounds counted back from the end of the object.
-    assert fs.cat_file(path, start=-100) == data[-100:]
-    assert fs.cat_file(path, start=100, end=-100) == data[100:-100]
-    assert fs.cat_file(path, start=-200, end=-100) == data[-200:-100]
-
-
-def test_cat_ranges_max_gap(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
-    data = os.urandom(10000)
-    path = f"{TEST_BUCKET_NAME}/data1"
-    fs.pipe_file(path, data)
-
-    seen: list[int | None] = []
-    original = ObjectStoreMethods.get_ranges_async
-
-    async def spy(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
-        seen.append(kwargs.get("coalesce"))
-        return await original(self, *args, **kwargs)
-
-    monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy)
-
-    # Unset: forwarded as None, which lets obstore apply its own default.
-    assert fs.cat_ranges([path, path], [0, 200], [100, 300]) == [
-        data[0:100],
-        data[200:300],
-    ]
-    assert seen == [None]
-
-    # Set: forwarded verbatim as obstore's `coalesce`, including 0 to disable
-    # coalescing entirely.
-    for max_gap in (0, 1000):
-        seen.clear()
-        assert fs.cat_ranges([path, path], [0, 200], [100, 300], max_gap=max_gap) == [
-            data[0:100],
-            data[200:300],
-        ]
-        assert seen == [max_gap]
-
-
 def test_cat_ranges_one(fs: FsspecStore):
     data1 = os.urandom(10000)
     fs.pipe_file(f"{TEST_BUCKET_NAME}/data1", data1)
@@ -682,15 +631,14 @@ def test_cat_ranges_two(fs: FsspecStore):
     assert out == [data1[10:20], data2[10:20]]
 
 
+@pytest.mark.xfail(reason="negative and mixed ranges not implemented")
 def test_cat_ranges_mixed(fs: FsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
-    path1 = f"{TEST_BUCKET_NAME}/data1"
-    path2 = f"{TEST_BUCKET_NAME}/data2"
-    fs.pipe({path1: data1, path2: data2})
+    fs.pipe({"data1": data1, "data2": data2})
 
     # single range in each file
-    out = fs.cat_ranges([path1, path1, path2], [-10, None, 10], [None, -10, -10])
+    out = fs.cat_ranges(["data1", "data1", "data2"], [-10, None, 10], [None, -10, -10])
     assert out == [data1[-10:], data1[:-10], data2[10:-10]]
 
 

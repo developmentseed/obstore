@@ -244,9 +244,9 @@ class ObjectStoreMethods:
         path: str,
         *,
         starts: Sequence[int],
-        ends: Sequence[int | None] | None = None,
-        lengths: Sequence[int | None] | None = None,
-        coalesce: int | None = None,
+        ends: Sequence[int] | None = None,
+        lengths: Sequence[int] | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Return the bytes stored at the specified location in the given byte ranges.
 
@@ -266,9 +266,9 @@ class ObjectStoreMethods:
         path: str,
         *,
         starts: Sequence[int],
-        ends: Sequence[int | None] | None = None,
-        lengths: Sequence[int | None] | None = None,
-        coalesce: int | None = None,
+        ends: Sequence[int] | None = None,
+        lengths: Sequence[int] | None = None,
+        coalesce: int = 1024 * 1024,
     ) -> list[Bytes]:
         """Call `get_ranges` asynchronously.
 
