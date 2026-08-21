@@ -8,11 +8,13 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import fsspec
+import fsspec.asyn
 import pyarrow.parquet as pq
 import pytest
 from fsspec.registry import _registry
 
 from obstore.fsspec import FsspecStore, register
+from obstore.store import ObjectStoreMethods
 from tests.conftest import TEST_BUCKET_NAME
 
 if TYPE_CHECKING:
@@ -572,6 +574,135 @@ def test_multi_file_ops(minio_bucket: tuple[S3Config, ClientConfig]):
     assert out == [f"{bucket}/afile"]
 
 
+def test_cat_file(fs: FsspecStore):
+    """Test that `cat_file` accepts every range form fsspec documents."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    assert fs.cat_file(path) == data
+    assert fs.cat_file(path, start=10, end=20) == data[10:20]
+
+    # Either bound on its own.
+    assert fs.cat_file(path, start=10) == data[10:]
+    assert fs.cat_file(path, end=20) == data[:20]
+
+    # Bounds counted back from the end of the object.
+    assert fs.cat_file(path, start=-10) == data[-10:]
+    assert fs.cat_file(path, start=10, end=-10) == data[10:-10]
+    assert fs.cat_file(path, start=-20, end=-10) == data[-20:-10]
+
+
+def test_cat_file_zero_start(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that a zero start with no end is not sent as a range request."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    ranges: list[dict[str, int] | None] = []
+    original = ObjectStoreMethods.get_async
+
+    async def spy(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        ranges.append((kwargs.get("options") or {}).get("range"))
+        return await original(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_async", spy)
+
+    assert fs.cat_file(path, start=0) == data
+    assert fs.cat_file(path, start=10) == data[10:]
+    assert ranges == [None, {"offset": 10}]
+
+
+def test_cat_ranges_max_gap(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that `max_gap` is forwarded to obstore as `coalesce`."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    seen: list[int | None] = []
+    original = ObjectStoreMethods.get_ranges_async
+
+    async def spy(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        seen.append(kwargs.get("coalesce"))
+        return await original(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy)
+
+    # No max_gap: obstore uses its own default.
+    assert fs.cat_ranges([path, path], [0, 20], [10, 30]) == [
+        data[0:10],
+        data[20:30],
+    ]
+    assert seen == [None]
+
+    # With max_gap: passed straight through, including 0 to turn coalescing off.
+    for max_gap in (0, 1000):
+        seen.clear()
+        assert fs.cat_ranges([path, path], [0, 20], [10, 30], max_gap=max_gap) == [
+            data[0:10],
+            data[20:30],
+        ]
+        assert seen == [max_gap]
+
+
+def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that bounded ranges use `get_ranges` and open-ended ones use `get`."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    batched: list[tuple[list[int], list[int]]] = []
+    individual: list[dict[str, int]] = []
+    original_get_ranges = ObjectStoreMethods.get_ranges_async
+    original_get = ObjectStoreMethods.get_async
+
+    async def spy_get_ranges(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        batched.append((list(kwargs["starts"]), list(kwargs["ends"])))
+        return await original_get_ranges(self, *args, **kwargs)
+
+    async def spy_get(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        individual.append(kwargs["options"]["range"])
+        return await original_get(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy_get_ranges)
+    monkeypatch.setattr(ObjectStoreMethods, "get_async", spy_get)
+
+    out = fs.cat_ranges([path] * 3, [0, 20, -5], [10, None, None])
+    assert out == [data[0:10], data[20:], data[-5:]]
+
+    # Only the bounded range reaches `get_ranges`, so only it gets coalesced.
+    assert batched == [([0], [10])]
+
+    # The other two go through `get` instead, and may complete in either order.
+    assert len(individual) == 2
+    assert {"offset": 20} in individual
+    assert {"suffix": 5} in individual
+
+
+def test_cat_ranges_batch_size(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that `batch_size` is forwarded to fsspec's request batching."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    seen: list[int | None] = []
+    original = fsspec.asyn._run_coros_in_chunks
+
+    async def spy(coros, **kwargs):  # noqa: ANN001, ANN003
+        seen.append(kwargs.get("batch_size"))
+        return await original(coros, **kwargs)
+
+    monkeypatch.setattr(fsspec.asyn, "_run_coros_in_chunks", spy)
+
+    # Unset: forwarded as None, so fsspec infers its own default.
+    assert fs.cat_ranges([path], [0], [10]) == [data[0:10]]
+    assert seen == [None]
+
+    seen.clear()
+    assert fs.cat_ranges([path], [0], [10], batch_size=4) == [data[0:10]]
+    assert seen == [4]
+
+
 def test_cat_ranges_one(fs: FsspecStore):
     data1 = os.urandom(10000)
     fs.pipe_file(f"{TEST_BUCKET_NAME}/data1", data1)
@@ -631,14 +762,15 @@ def test_cat_ranges_two(fs: FsspecStore):
     assert out == [data1[10:20], data2[10:20]]
 
 
-@pytest.mark.xfail(reason="negative and mixed ranges not implemented")
 def test_cat_ranges_mixed(fs: FsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
-    fs.pipe({"data1": data1, "data2": data2})
+    path1 = f"{TEST_BUCKET_NAME}/data1"
+    path2 = f"{TEST_BUCKET_NAME}/data2"
+    fs.pipe({path1: data1, path2: data2})
 
     # single range in each file
-    out = fs.cat_ranges(["data1", "data1", "data2"], [-10, None, 10], [None, -10, -10])
+    out = fs.cat_ranges([path1, path1, path2], [-10, None, 10], [None, -10, -10])
     assert out == [data1[-10:], data1[:-10], data2[10:-10]]
 
 
