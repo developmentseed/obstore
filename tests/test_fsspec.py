@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import os
+import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
@@ -170,6 +171,24 @@ def test_buffered_file_forwards_size_to_open_reader():
 
         data = file.read()
         assert len(data) == 500
+
+
+def test_zipfile_write_mode():
+    """Ensure a write-mode file can fall back to ZipFile non-seekable code path."""
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+
+    with (
+        fs._open("archive.zip", mode="wb") as filelike,
+        zipfile.ZipFile(filelike, "w") as zf,
+    ):
+        zf.writestr("hello.txt", "hello world")
+
+    with (
+        fs._open("archive.zip") as filelike,
+        zipfile.ZipFile(filelike) as zf,
+    ):
+        assert zf.read("hello.txt") == b"hello world"
 
 
 def test_construct_store_cache_diff_bucket_name(
