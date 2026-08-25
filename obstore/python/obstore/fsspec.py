@@ -128,11 +128,9 @@ def _needs_object_size(start: int | None, end: int | None) -> bool:
 def _apply_object_size(
     start: int,
     end: int | None,
-    size: int | None,
+    size: int,
 ) -> tuple[int, int | None]:
     """Resolve bounds that count back from the end of an object of `size`."""
-    if size is None:
-        return start, end
     return (
         max(0, size + start) if start < 0 else start,
         max(0, size + end) if end is not None and end < 0 else end,
@@ -593,7 +591,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         sizes: dict[str, int] = {}
         if paths_needing_size:
             # `_sizes` goes through `_info`, so the dircache may serve these.
-            # fsspec types the result as `list[None]`, but the values are sizes.
+            # Type checkers infer `list[None]` here, but the values are sizes.
             sizes = dict(
                 zip(
                     paths_needing_size,
@@ -602,7 +600,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 ),
             )
         resolved = [
-            _apply_object_size(0 if start is None else start, end, sizes.get(path))
+            _apply_object_size(0 if start is None else start, end, sizes[path])
+            if _needs_object_size(start, end)
+            else (0 if start is None else start, end)
             for path, start, end in zip(paths, starts, ends, strict=True)
         ]
         return [start for start, _ in resolved], [end for _, end in resolved]

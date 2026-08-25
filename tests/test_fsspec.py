@@ -667,13 +667,17 @@ def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy_get_ranges)
     monkeypatch.setattr(ObjectStoreMethods, "get_async", spy_get)
 
-    out = fs.cat_ranges([path] * 3, [0, 20, -5], [10, None, None])
-    assert out == [data[0:10], data[20:], data[-5:]]
+    out = fs.cat_ranges([path] * 4, [0, 20, -5, 9000], [10, None, None, -10])
+    assert out == [data[0:10], data[20:], data[-5:], data[9000:-10]]
 
-    # Only the bounded range reaches `get_ranges`, so only it gets coalesced.
-    assert batched == [([0], [10])]
+    # The bounded range [0:10] and the range with negative end [9000:-10] both
+    # reach `get_ranges`. The latter is resolved beforehand against the object
+    # size, so the two share a single call.
+    assert batched == [([0, 9000], [10, 9990])]
 
-    # The other two go through `get` instead, and may complete in either order.
+    # The other two, [20:] and [-5:], go through `get` instead. The latter stays
+    # a suffix request, even if another range on the same object causes the size
+    # to be fetched.
     assert len(individual) == 2
     assert {"offset": 20} in individual
     assert {"suffix": 5} in individual
