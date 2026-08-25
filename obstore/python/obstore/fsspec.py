@@ -474,8 +474,13 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         on_error: str = "return",  # noqa: ARG002
         **_kwargs: Any,
     ) -> list[bytes]:
-        # A non-iterable start or end applies to every path, per fsspec's
-        # AsyncFileSystem._cat_ranges.
+        # The base class implementation `AsyncFileSystem._cat_ranges` forwards each
+        # element to `_cat_file`, which documents negative bounds and `None` for
+        # either end.
+        # Ref: https://github.com/fsspec/filesystem_spec/blob/e6668a146cd07b9f50530c49ea3916d8ab13e169/fsspec/spec.py#L790-L800
+
+        # A non-iterable start or end applies to every path, since `None` is not
+        # `Iterable`.
         if not isinstance(starts, Iterable):
             starts = [starts] * len(paths)
         if not isinstance(ends, Iterable):
