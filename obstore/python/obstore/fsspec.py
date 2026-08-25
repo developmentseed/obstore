@@ -37,7 +37,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
+from typing import TYPE_CHECKING, Literal, cast, overload
 from urllib.parse import urlparse
 
 import fsspec.asyn
@@ -118,12 +118,6 @@ SUPPORTED_PROTOCOLS_T = Literal[
     "s3a",
 ]
 """A type hint for all supported protocols."""
-
-
-class _CoalesceKwarg(TypedDict, total=False):
-    """The optional `coalesce` argument of [obstore.get_ranges][]."""
-
-    coalesce: int
 
 
 def _needs_object_size(start: int | None, end: int | None) -> bool:
@@ -497,11 +491,6 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             ends,
         )
 
-        # fsspec's `max_gap` is obstore's `coalesce`.
-        coalesce = (
-            _CoalesceKwarg() if max_gap is None else _CoalesceKwarg(coalesce=max_gap)
-        )
-
         # `get_ranges` only merges bounded ranges, and only within one object, so
         # split as zarr's obstore store does.
         # Ref: https://github.com/zarr-developers/zarr-python/blob/de2cce1adc41a4d38721bf62b25eb312a52066dd/src/zarr/storage/_obstore.py#L440-L512
@@ -520,7 +509,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 open_ended_requests.append((idx, path, {"offset": start}))
 
         futs: list[Coroutine[Any, Any, list[tuple[int, bytes]]]] = [
-            self._cat_bounded_ranges(path, ranges, coalesce)
+            self._cat_bounded_ranges(path, ranges, max_gap)
             for path, ranges in per_file_bounded_requests.items()
         ]
         futs += [
@@ -549,21 +538,26 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
     async def _cat_bounded_ranges(
         self,
         path: str,
-        ranges: list[tuple[int, int, int]],
-        coalesce: _CoalesceKwarg,
+        ranges: list[tuple[int, int, int]],  # (output index, start, end)
+        max_gap: int | None,
     ) -> list[tuple[int, bytes]]:
         """Read several bounded ranges of one object, merging nearby ones."""
         bucket, path = self._split_path(path)
         store = self._construct_store(bucket)
+        indices, starts, ends = zip(*ranges, strict=True)
+        # fsspec's `max_gap` is obstore's `coalesce`. It is left out when unset, so
+        # that obstore's own default applies.
+        coalesce: dict[str, int] = {} if max_gap is None else {"coalesce": max_gap}
         buffers = await store.get_ranges_async(
             path,
-            starts=[start for _, start, _ in ranges],
-            ends=[end for _, _, end in ranges],
+            starts=starts,
+            ends=ends,
+            lengths=None,
             **coalesce,
         )
         return [
             (idx, buffer.to_bytes())
-            for (idx, _, _), buffer in zip(ranges, buffers, strict=True)
+            for idx, buffer in zip(indices, buffers, strict=True)
         ]
 
     async def _cat_open_ended_range(
