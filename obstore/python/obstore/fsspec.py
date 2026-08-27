@@ -137,6 +137,29 @@ def _apply_object_size(
     )
 
 
+def _split_requests(
+    paths: list[str],
+    bounds: Sequence[tuple[int, int | None]],
+) -> tuple[
+    dict[str, list[tuple[int, int, int]]],
+    list[tuple[int, str, OffsetRange | SuffixRange]],
+]:
+    """Split the requested ranges into bounded per-object and open-ended."""
+    # `get_ranges` takes only bounded ranges, and merges only within one object,
+    # so split as zarr's obstore store does.
+    # Ref: https://github.com/zarr-developers/zarr-python/blob/de2cce1adc41a4d38721bf62b25eb312a52066dd/src/zarr/storage/_obstore.py#L440-L512
+    per_file_bounded_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
+    open_ended_requests: list[tuple[int, str, OffsetRange | SuffixRange]] = []
+    for idx, (path, (start, end)) in enumerate(zip(paths, bounds, strict=True)):
+        if end is not None:
+            per_file_bounded_requests[path].append((idx, start, end))
+        elif start < 0:
+            open_ended_requests.append((idx, path, {"suffix": -start}))
+        else:
+            open_ended_requests.append((idx, path, {"offset": start}))
+    return per_file_bounded_requests, open_ended_requests
+
+
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
     """An fsspec implementation based on a obstore Store.
 
@@ -488,28 +511,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         if not len(paths) == len(starts) == len(ends):
             raise ValueError
 
-        resolved_starts, resolved_ends = await self._resolve_inexpressible_bounds(
-            paths,
-            starts,
-            ends,
-        )
-
-        # `get_ranges` only merges bounded ranges, and only within one object, so
-        # split as zarr's obstore store does.
-        # Ref: https://github.com/zarr-developers/zarr-python/blob/de2cce1adc41a4d38721bf62b25eb312a52066dd/src/zarr/storage/_obstore.py#L440-L512
-        per_file_bounded_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(
-            list,
-        )
-        open_ended_requests: list[tuple[int, str, OffsetRange | SuffixRange]] = []
-        for idx, (path, start, end) in enumerate(
-            zip(paths, resolved_starts, resolved_ends, strict=True),
-        ):
-            if end is not None:
-                per_file_bounded_requests[path].append((idx, start, end))
-            elif start < 0:
-                open_ended_requests.append((idx, path, {"suffix": -start}))
-            else:
-                open_ended_requests.append((idx, path, {"offset": start}))
+        bounds = await self._resolve_inexpressible_bounds(paths, starts, ends)
+        per_file_bounded_requests, open_ended_requests = _split_requests(paths, bounds)
 
         futs: list[Coroutine[Any, Any, list[tuple[int, bytes]]]] = [
             self._cat_bounded_ranges(path, ranges, max_gap)
@@ -584,7 +587,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         paths: list[str],
         starts: Sequence[int | None],
         ends: Sequence[int | None],
-    ) -> tuple[list[int], list[int | None]]:
+    ) -> list[tuple[int, int | None]]:
         """Resolve the bounds that obstore cannot express."""
         paths_needing_size = sorted(
             {
@@ -604,13 +607,12 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                     strict=True,
                 ),
             )
-        resolved = [
+        return [
             _apply_object_size(0 if start is None else start, end, sizes[path])
             if _needs_object_size(start, end)
             else (0 if start is None else start, end)
             for path, start, end in zip(paths, starts, ends, strict=True)
         ]
-        return [start for start, _ in resolved], [end for _, end in resolved]
 
     async def _put_file(
         self,
