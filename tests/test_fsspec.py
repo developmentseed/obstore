@@ -707,6 +707,34 @@ def test_cat_ranges_batch_size(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch)
     assert seen == [4]
 
 
+def test_cat_ranges_on_error(fs: FsspecStore):
+    """Test that `on_error` controls whether a failure is returned or raised."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+    missing1 = f"{TEST_BUCKET_NAME}/missing1"
+    missing2 = f"{TEST_BUCKET_NAME}/missing2"
+
+    # Default returns the error in place.
+    out = fs.cat_ranges(
+        [path, missing1, missing1, missing1],
+        [0, 0, 9000, -5],
+        [10, 10, 9990, None],
+    )
+    assert out[0] == data[0:10]
+    assert isinstance(out[1], FileNotFoundError)
+    assert isinstance(out[3], FileNotFoundError)
+
+    # A single `get_ranges` call covers both bounded ranges of `missing1`, so they
+    # fail together with the same error.
+    assert out[1] is out[2]
+
+    # "raise" reports the earliest failing range rather than the first request to
+    # finish: [-5:] is read by a later request than [0:10], but comes first here.
+    with pytest.raises(FileNotFoundError, match="missing1"):
+        fs.cat_ranges([missing1, missing2], [-5, 0], [None, 10], on_error="raise")
+
+
 def test_cat_ranges_one(fs: FsspecStore):
     data1 = os.urandom(10000)
     fs.pipe_file(f"{TEST_BUCKET_NAME}/data1", data1)

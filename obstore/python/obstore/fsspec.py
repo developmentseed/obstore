@@ -494,9 +494,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         ends: Sequence[int | None] | int | None,
         max_gap: int | None = None,
         batch_size: int | None = None,
-        on_error: str = "return",  # noqa: ARG002
+        on_error: str = "return",
         **_kwargs: Any,
-    ) -> list[bytes]:
+    ) -> list[bytes | BaseException]:
         # The base class implementation `AsyncFileSystem._cat_ranges` forwards each
         # element to `_cat_file`, which documents negative bounds and `None` for
         # either end.
@@ -514,7 +514,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         bounds = await self._resolve_inexpressible_bounds(paths, starts, ends)
         per_file_bounded_requests, open_ended_requests = _split_requests(paths, bounds)
 
-        futs: list[Coroutine[Any, Any, list[tuple[int, bytes]]]] = [
+        futs: list[Coroutine[Any, Any, list[tuple[int, bytes | BaseException]]]] = [
             self._cat_bounded_ranges(path, ranges, max_gap)
             for path, ranges in per_file_bounded_requests.items()
         ]
@@ -523,10 +523,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             for idx, path, byte_range in open_ended_requests
         ]
 
-        # Batched, to limit how many requests are in flight at once. Like fsspec's
-        # own `_cat_ranges`, `on_error` is ignored, so failures propagate.
+        # Batched, to limit how many requests are in flight at once.
         results = cast(
-            "list[list[tuple[int, bytes]]]",
+            "list[list[tuple[int, bytes | BaseException]]]",
             await fsspec.asyn._run_coros_in_chunks(  # noqa: SLF001
                 futs,
                 batch_size=batch_size or self.batch_size,
@@ -534,10 +533,16 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             ),
         )
 
-        output_buffers: list[bytes] = [b""] * len(paths)
+        output_buffers: list[bytes | BaseException] = [b""] * len(paths)
         for responses in results:
             for idx, buffer in responses:
                 output_buffers[idx] = buffer
+
+        # Anything except "raise" returns failures in place.
+        if on_error == "raise":
+            for buffer in output_buffers:
+                if isinstance(buffer, BaseException):
+                    raise buffer
 
         return output_buffers
 
@@ -546,21 +551,25 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         path: str,
         ranges: list[tuple[int, int, int]],  # (output index, start, end)
         max_gap: int | None,
-    ) -> list[tuple[int, bytes]]:
+    ) -> list[tuple[int, bytes | BaseException]]:
         """Read several bounded ranges of one object, merging nearby ones."""
-        bucket, path = self._split_path(path)
-        store = self._construct_store(bucket)
         indices, starts, ends = zip(*ranges, strict=True)
         # fsspec's `max_gap` is obstore's `coalesce`. It is left out when unset, so
         # that obstore's own default applies.
         coalesce: dict[str, int] = {} if max_gap is None else {"coalesce": max_gap}
-        buffers = await store.get_ranges_async(
-            path,
-            starts=starts,
-            ends=ends,
-            lengths=None,
-            **coalesce,
-        )
+        try:
+            bucket, path_in_bucket = self._split_path(path)
+            store = self._construct_store(bucket)
+            buffers = await store.get_ranges_async(
+                path_in_bucket,
+                starts=starts,
+                ends=ends,
+                lengths=None,
+                **coalesce,
+            )
+        except Exception as exc:  # noqa: BLE001
+            # The ranges share one request, and thus the exception.
+            return [(idx, exc) for idx in indices]
         return [
             (idx, buffer.to_bytes())
             for idx, buffer in zip(indices, buffers, strict=True)
@@ -571,16 +580,20 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         idx: int,
         path: str,
         byte_range: OffsetRange | SuffixRange,
-    ) -> list[tuple[int, bytes]]:
+    ) -> list[tuple[int, bytes | BaseException]]:
         """Read one open-ended range, which `get_ranges` cannot express.
 
         Returns a list for symmetry with `_cat_bounded_ranges`, so that both can
         be batched together.
         """
-        bucket, path = self._split_path(path)
-        store = self._construct_store(bucket)
-        resp = await store.get_async(path, options={"range": byte_range})
-        return [(idx, (await resp.bytes_async()).to_bytes())]
+        try:
+            bucket, path_in_bucket = self._split_path(path)
+            store = self._construct_store(bucket)
+            resp = await store.get_async(path_in_bucket, options={"range": byte_range})
+            buffer = await resp.bytes_async()
+        except Exception as exc:  # noqa: BLE001
+            return [(idx, exc)]
+        return [(idx, buffer.to_bytes())]
 
     async def _resolve_inexpressible_bounds(
         self,
