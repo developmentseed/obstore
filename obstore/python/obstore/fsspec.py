@@ -55,10 +55,9 @@ if TYPE_CHECKING:
 
     from obstore import (
         Attributes,
+        Bytes,
         GetOptions,
-        OffsetRange,
         ReadableFile,
-        SuffixRange,
         WritableFile,
     )
     from obstore.store import (
@@ -142,22 +141,38 @@ def _split_requests(
     bounds: Sequence[tuple[int, int | None]],
 ) -> tuple[
     dict[str, list[tuple[int, int, int]]],
-    list[tuple[int, str, OffsetRange | SuffixRange]],
+    list[tuple[int, str, int]],
 ]:
     """Split the requested ranges into bounded per-object and open-ended."""
     # `get_ranges` takes only bounded ranges, and merges only within one object,
     # so split as zarr's obstore store does.
     # Ref: https://github.com/zarr-developers/zarr-python/blob/de2cce1adc41a4d38721bf62b25eb312a52066dd/src/zarr/storage/_obstore.py#L440-L512
     per_file_bounded_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
-    open_ended_requests: list[tuple[int, str, OffsetRange | SuffixRange]] = []
+    open_ended_requests: list[tuple[int, str, int]] = []
     for idx, (path, (start, end)) in enumerate(zip(paths, bounds, strict=True)):
         if end is not None:
             per_file_bounded_requests[path].append((idx, start, end))
-        elif start < 0:
-            open_ended_requests.append((idx, path, {"suffix": -start}))
         else:
-            open_ended_requests.append((idx, path, {"offset": start}))
+            open_ended_requests.append((idx, path, start))
     return per_file_bounded_requests, open_ended_requests
+
+
+async def _get_open_ended(
+    store: ObjectStore,
+    path: str,
+    start: int,
+) -> Bytes:
+    """Get an open-ended range."""
+    options: GetOptions
+    if start == 0:
+        # `{"offset": 0}` fails on an empty object, so send no range instead.
+        options = {}
+    elif start < 0:
+        options = {"range": {"suffix": -start}}
+    else:
+        options = {"range": {"offset": start}}
+    resp = await store.get_async(path, options=options)
+    return await resp.bytes_async()
 
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -429,36 +444,22 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         end: int | None = None,
         **_kwargs: Any,
     ) -> bytes:
-        # `_info` splits the path itself, so keep the original before rebinding.
-        full_path = path
-        bucket, path = self._split_path(path)
+        bucket, path_in_bucket = self._split_path(path)
         store = self._construct_store(bucket)
-
-        # A zero start with no end is the whole object, so skip the range request.
-        if not start and end is None:
-            resp = await store.get_async(path)
-            return (await resp.bytes_async()).to_bytes()
 
         start = 0 if start is None else start
 
         if _needs_object_size(start, end):
-            # A negative `end` has no `GetOptions` equivalent, so resolve it against
-            # the object size.
-            size = (await self._info(full_path))["size"]
+            # No range-header equivalent, so resolve against the object size.
+            size = (await self._info(path))["size"]
             start, end = _apply_object_size(start, end, size)
 
         if end is None:
-            # `get_range` mirrors the Rust API and takes bounded ranges only. `get`
-            # covers the other two forms.
-            options: GetOptions
-            if start < 0:
-                options = {"range": {"suffix": -start}}
-            else:
-                options = {"range": {"offset": start}}
-            resp = await store.get_async(path, options=options)
-            return (await resp.bytes_async()).to_bytes()
+            buffer = await _get_open_ended(store, path_in_bucket, start)
+            return buffer.to_bytes()
 
-        range_bytes = await store.get_range_async(path, start=start, end=end)
+        # `get_range` only takes bounded ranges, mirroring the Rust API.
+        range_bytes = await store.get_range_async(path_in_bucket, start=start, end=end)
         return range_bytes.to_bytes()
 
     async def _cat(  # type: ignore (fsspec has bad typing)
@@ -519,8 +520,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             for path, ranges in per_file_bounded_requests.items()
         ]
         futs += [
-            self._cat_open_ended_range(idx, path, byte_range)
-            for idx, path, byte_range in open_ended_requests
+            self._cat_open_ended_range(idx, path, start)
+            for idx, path, start in open_ended_requests
         ]
 
         # Batched, to limit how many requests are in flight at once.
@@ -579,7 +580,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         self,
         idx: int,
         path: str,
-        byte_range: OffsetRange | SuffixRange,
+        start: int,
     ) -> list[tuple[int, bytes | BaseException]]:
         """Read one open-ended range, which `get_ranges` cannot express.
 
@@ -589,8 +590,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         try:
             bucket, path_in_bucket = self._split_path(path)
             store = self._construct_store(bucket)
-            resp = await store.get_async(path_in_bucket, options={"range": byte_range})
-            buffer = await resp.bytes_async()
+            buffer = await _get_open_ended(store, path_in_bucket, start)
         except Exception as exc:  # noqa: BLE001
             return [(idx, exc)]
         return [(idx, buffer.to_bytes())]

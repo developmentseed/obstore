@@ -652,7 +652,7 @@ def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     fs.pipe_file(path, data)
 
     batched: list[tuple[list[int], list[int]]] = []
-    individual: list[dict[str, int]] = []
+    individual: list[dict[str, int] | None] = []
     original_get_ranges = ObjectStoreMethods.get_ranges_async
     original_get = ObjectStoreMethods.get_async
 
@@ -661,7 +661,7 @@ def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
         return await original_get_ranges(self, *args, **kwargs)
 
     async def spy_get(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
-        individual.append(kwargs["options"]["range"])
+        individual.append(kwargs.get("options", {}).get("range"))
         return await original_get(self, *args, **kwargs)
 
     monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy_get_ranges)
@@ -799,11 +799,16 @@ def test_cat_ranges_mixed(fs: FsspecStore):
     data2 = os.urandom(10000)
     path1 = f"{TEST_BUCKET_NAME}/data1"
     path2 = f"{TEST_BUCKET_NAME}/data2"
-    fs.pipe({path1: data1, path2: data2})
+    empty = f"{TEST_BUCKET_NAME}/empty"
+    fs.pipe({path1: data1, path2: data2, empty: b""})
 
     # single range in each file
     out = fs.cat_ranges([path1, path1, path2], [-10, None, 10], [None, -10, -10])
     assert out == [data1[-10:], data1[:-10], data2[10:-10]]
+
+    # an unbounded range reads the whole object, even a zero-length one
+    out = fs.cat_ranges([empty, empty], [0, None], [None, None])
+    assert out == [b"", b""]
 
 
 @pytest.mark.xfail(reason="atomic writes not working on moto")
