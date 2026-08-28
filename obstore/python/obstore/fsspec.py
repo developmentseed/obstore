@@ -45,6 +45,7 @@ import fsspec.spec
 from fsspec.implementations.local import make_path_posix
 
 from obstore import open_reader, open_writer
+from obstore.exceptions import NotSupportedError
 from obstore.store import from_url
 
 if TYPE_CHECKING:
@@ -162,7 +163,7 @@ async def _get_open_ended(
     path: str,
     start: int,
 ) -> Bytes:
-    """Get an open-ended range."""
+    """Get an open-ended range, working around stores without suffix support."""
     options: GetOptions
     if start == 0:
         # `{"offset": 0}` fails on an empty object, so send no range instead.
@@ -171,8 +172,23 @@ async def _get_open_ended(
         options = {"range": {"suffix": -start}}
     else:
         options = {"range": {"offset": start}}
-    resp = await store.get_async(path, options=options)
-    return await resp.bytes_async()
+    try:
+        resp = await store.get_async(path, options=options)
+        return await resp.bytes_async()
+    except NotSupportedError:
+        if start >= 0:
+            # The store refused something other than a suffix.
+            raise
+
+        # Azure rejects suffix ranges, so fall back to a size lookup and a bounded
+        # read, as zarr's obstore store does. A suffix covering the whole object
+        # becomes a plain `get`.
+        suffix = -start
+        size = (await store.head_async(path))["size"]
+        if suffix >= size:
+            resp = await store.get_async(path)
+            return await resp.bytes_async()
+        return await store.get_range_async(path, start=size - suffix, length=suffix)
 
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):

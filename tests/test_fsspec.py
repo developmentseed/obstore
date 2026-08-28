@@ -13,6 +13,7 @@ import pyarrow.parquet as pq
 import pytest
 from fsspec.registry import _registry
 
+from obstore.exceptions import NotSupportedError
 from obstore.fsspec import FsspecStore, register
 from obstore.store import ObjectStoreMethods
 from tests.conftest import TEST_BUCKET_NAME
@@ -611,6 +612,43 @@ def test_cat_file_zero_start(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     assert fs.cat_file(path, start=0) == data
     assert fs.cat_file(path, start=10) == data[10:]
     assert ranges == [None, {"offset": 10}]
+
+
+def test_suffix_fallback(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that a suffix request falls back to a bounded read, as Azure needs."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    empty = f"{TEST_BUCKET_NAME}/empty"
+    fs.pipe_file(path, data)
+    fs.pipe_file(empty, b"")
+
+    ranges_via_get: list[dict[str, int] | None] = []
+    original_get = ObjectStoreMethods.get_async
+
+    async def refuse_ranges(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        byte_range = kwargs.get("options", {}).get("range")
+        ranges_via_get.append(byte_range)
+        if byte_range is not None:
+            raise NotSupportedError("Azure does not support suffix range requests")
+        return await original_get(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_async", refuse_ranges)
+
+    assert fs.cat_file(path, start=-10) == data[-10:]
+    assert fs.cat_ranges([path], [-10], [None]) == [data[-10:]]
+    # Each call tries the suffix once; the fallback read bypasses `get`.
+    assert ranges_via_get == [{"suffix": 10}, {"suffix": 10}]
+
+    # A suffix covering the whole object clamps, exactly as the native path does:
+    # the refused suffix request becomes a plain `get`.
+    ranges_via_get.clear()
+    assert fs.cat_file(path, start=-20000) == data
+    assert fs.cat_file(empty, start=-10) == b""
+    assert ranges_via_get == [{"suffix": 20000}, None, {"suffix": 10}, None]
+
+    # Only a suffix is retried, so an offset still surfaces the error.
+    with pytest.raises(NotSupportedError):
+        fs.cat_file(path, start=10)
 
 
 def test_cat_ranges_max_gap(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
