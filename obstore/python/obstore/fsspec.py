@@ -444,6 +444,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         end: int | None = None,
         **_kwargs: Any,
     ) -> bytes:
+        """Get a byte range, interpreting `start` and `end` like Python slices.
+
+        Zero-length, inverted, and past-the-end ranges raise an error where a
+        slice would return `b""`.
+        """
         bucket, path_in_bucket = self._split_path(path)
         store = self._construct_store(bucket)
 
@@ -498,6 +503,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         on_error: str = "return",
         **_kwargs: Any,
     ) -> list[bytes | BaseException]:
+        """Get ranges whose bounds are interpreted as in `_cat_file`.
+
+        Failures are returned in place of the bytes, or the first is raised
+        when `on_error` is "raise".
+        """
         # The base class implementation `AsyncFileSystem._cat_ranges` forwards each
         # element to `_cat_file`, which documents negative bounds and `None` for
         # either end.
@@ -553,7 +563,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         ranges: list[tuple[int, int, int]],  # (output index, start, end)
         max_gap: int | None,
     ) -> list[tuple[int, bytes | BaseException]]:
-        """Read several bounded ranges of one object, merging nearby ones."""
+        """Get several bounded ranges of one object, merging nearby ones."""
         indices, starts, ends = zip(*ranges, strict=True)
         # fsspec's `max_gap` is obstore's `coalesce`. It is left out when unset, so
         # that obstore's own default applies.
@@ -582,7 +592,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         path: str,
         start: int,
     ) -> list[tuple[int, bytes | BaseException]]:
-        """Read one open-ended range, which `get_ranges` cannot express.
+        """Get one open-ended range, which `get_ranges` cannot express.
 
         Returns a list for symmetry with `_cat_bounded_ranges`, so that both can
         be batched together.
