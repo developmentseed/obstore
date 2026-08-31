@@ -34,6 +34,14 @@ def test_eq():
     assert store != store3
 
 
+def test_client_config_key_does_not_panic():
+    # Client config keys are not `azure_`-prefixed upstream, so reading `.config`
+    # used to panic.
+    store = AzureStore("container", account_name="account_name", allow_http=True)
+    assert store.config["allow_http"] == "true"
+    assert AzureStore(config=store.config).config == store.config
+
+
 def test_from_url():
     # https://github.com/developmentseed/obstore/issues/477
     url = "https://overturemapswestus2.blob.core.windows.net/release"
