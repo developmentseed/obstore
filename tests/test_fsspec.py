@@ -744,6 +744,11 @@ def test_cat_ranges_batch_size(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch)
     assert fs.cat_ranges([path], [0], [10], batch_size=4) == [data[0:10]]
     assert seen == [4]
 
+    # The size lookup for a negative end is batched with the same batch size.
+    seen.clear()
+    assert fs.cat_ranges([path], [0], [-10], batch_size=4) == [data[0:-10]]
+    assert seen == [4, 4]
+
 
 def test_cat_ranges_on_error(fs: FsspecStore):
     """Test that `on_error` controls whether a failure is returned or raised."""

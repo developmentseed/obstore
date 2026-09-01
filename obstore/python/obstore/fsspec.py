@@ -538,7 +538,12 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         if not len(paths) == len(starts) == len(ends):
             raise ValueError
 
-        bounds = await self._resolve_inexpressible_bounds(paths, starts, ends)
+        bounds = await self._resolve_inexpressible_bounds(
+            paths,
+            starts,
+            ends,
+            batch_size=batch_size,
+        )
         per_file_bounded_requests, open_ended_requests = _split_requests(paths, bounds)
 
         futs: list[Coroutine[Any, Any, list[tuple[int, bytes | BaseException]]]] = [
@@ -626,6 +631,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         paths: list[str],
         starts: Sequence[int | None],
         ends: Sequence[int | None],
+        *,
+        batch_size: int | None,
     ) -> list[tuple[int, int | None]]:
         """Resolve the bounds that obstore cannot express."""
         paths_needing_size = sorted(
@@ -642,7 +649,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             sizes = dict(
                 zip(
                     paths_needing_size,
-                    cast("list[int]", await self._sizes(paths_needing_size)),
+                    cast(
+                        "list[int]",
+                        await self._sizes(paths_needing_size, batch_size=batch_size),
+                    ),
                     strict=True,
                 ),
             )
