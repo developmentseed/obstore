@@ -120,9 +120,13 @@ SUPPORTED_PROTOCOLS_T = Literal[
 """A type hint for all supported protocols."""
 
 
-def _needs_object_size(start: int | None, end: int | None) -> bool:
-    """Whether resolving a range requires knowing the size of the object."""
-    return end is not None and (end < 0 or (start is not None and start < 0))
+def _needs_object_size(start: int, end: int | None) -> bool:
+    """Whether resolving a range requires knowing the size of the object.
+
+    Negative bounds require the size to be known, except a bare negative
+    `start`, which maps directly to a suffix request.
+    """
+    return end is not None and (end < 0 or start < 0)
 
 
 def _apply_object_size(
@@ -635,10 +639,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         batch_size: int | None,
     ) -> list[tuple[int, int | None]]:
         """Resolve the bounds that obstore cannot express."""
+        normalized_starts = [0 if start is None else start for start in starts]
         paths_needing_size = sorted(
             {
                 path
-                for path, start, end in zip(paths, starts, ends, strict=True)
+                for path, start, end in zip(paths, normalized_starts, ends, strict=True)
                 if _needs_object_size(start, end)
             },
         )
@@ -657,10 +662,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 ),
             )
         return [
-            _apply_object_size(0 if start is None else start, end, sizes[path])
+            _apply_object_size(start, end, sizes[path])
             if _needs_object_size(start, end)
-            else (0 if start is None else start, end)
-            for path, start, end in zip(paths, starts, ends, strict=True)
+            else (start, end)
+            for path, start, end in zip(paths, normalized_starts, ends, strict=True)
         ]
 
     async def _put_file(
