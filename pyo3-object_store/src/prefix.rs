@@ -88,6 +88,16 @@ impl<T: ObjectStore> MaybePrefixedStore<T> {
     }
 }
 
+impl<T: ObjectStore + Clone> MaybePrefixedStore<T> {
+    /// Create a new instance of [`MaybePrefixedStore`] with a new prefix
+    pub fn replace_prefix(&self, new_prefix: Option<impl Into<Path>>) -> Self {
+        Self {
+            prefix: new_prefix.map(|x| x.into()),
+            inner: self.inner.clone(),
+        }
+    }
+}
+
 // Note: This is a relative hack to move these two functions to pure functions so they don't rely
 // on the `self` lifetime. Expected to be cleaned up before merge.
 //
