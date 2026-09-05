@@ -860,7 +860,7 @@ def test_cat_ranges_mixed(fs: FsspecStore):
     empty = f"{TEST_BUCKET_NAME}/empty"
     fs.pipe({path1: data1, path2: data2, empty: b""})
 
-    # single range in each file
+    # negative and None bounds mixed across two files
     out = fs.cat_ranges([path1, path1, path2], [-10, None, 10], [None, -10, -10])
     assert out == [data1[-10:], data1[:-10], data2[10:-10]]
 
