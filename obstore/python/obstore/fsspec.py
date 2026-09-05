@@ -640,7 +640,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
     ) -> list[tuple[int, int | None]]:
         """Resolve the bounds that obstore cannot express."""
         normalized_starts = [0 if start is None else start for start in starts]
-        paths_needing_size = sorted(
+        paths_needing_size = list(
             {
                 path
                 for path, start, end in zip(paths, normalized_starts, ends, strict=True)
