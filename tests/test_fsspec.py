@@ -622,11 +622,13 @@ def test_cat_file(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     ranges_via_get.clear()
     bounds_via_get_range.clear()
     assert fs.cat_file(path, start=-10) == data[-10:]
+    assert fs.cat_file(path, start=-20000) == data  # The store clamps the suffix.
     assert fs.cat_file(path, start=10, end=-10) == data[10:-10]
     assert fs.cat_file(path, start=-20, end=-10) == data[-20:-10]
-    assert ranges_via_get == [{"suffix": 10}]
+    assert fs.cat_file(path, start=-20, end=9995) == data[-20:9995]
+    assert ranges_via_get == [{"suffix": 10}, {"suffix": 20000}]
     # Resolved ends become bounded reads.
-    assert bounds_via_get_range == [(10, 9990), (9980, 9990)]
+    assert bounds_via_get_range == [(10, 9990), (9980, 9990), (9980, 9995)]
 
 
 def test_suffix_fallback(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
