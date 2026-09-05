@@ -582,36 +582,51 @@ def test_cat_file(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     fs.pipe_file(path, data)
 
     ranges_via_get: list[dict[str, int] | None] = []
-    original = ObjectStoreMethods.get_async
+    bounds_via_get_range: list[tuple[int, int]] = []
+    original_get = ObjectStoreMethods.get_async
+    original_get_range = ObjectStoreMethods.get_range_async
 
     async def spy_get(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
         ranges_via_get.append(kwargs.get("options", {}).get("range"))
-        return await original(self, *args, **kwargs)
+        return await original_get(self, *args, **kwargs)
+
+    async def spy_get_range(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        bounds_via_get_range.append((kwargs["start"], kwargs["end"]))
+        return await original_get_range(self, *args, **kwargs)
 
     monkeypatch.setattr(ObjectStoreMethods, "get_async", spy_get)
+    monkeypatch.setattr(ObjectStoreMethods, "get_range_async", spy_get_range)
 
     # The whole object, with and without an explicit zero start.
     assert fs.cat_file(path) == data
     assert fs.cat_file(path, start=0) == data
     assert ranges_via_get == [None, None]
+    assert bounds_via_get_range == []
 
     # Both bounds given go through `get_range` instead of `get`.
     ranges_via_get.clear()
+    bounds_via_get_range.clear()
     assert fs.cat_file(path, start=10, end=20) == data[10:20]
     assert ranges_via_get == []
+    assert bounds_via_get_range == [(10, 20)]
 
     # Either bound on its own.
     ranges_via_get.clear()
+    bounds_via_get_range.clear()
     assert fs.cat_file(path, start=10) == data[10:]
     assert fs.cat_file(path, end=20) == data[:20]
-    assert ranges_via_get == [{"offset": 10}]  # An `end` alone is a bounded read.
+    assert ranges_via_get == [{"offset": 10}]
+    assert bounds_via_get_range == [(0, 20)]  # An `end` alone is a bounded read.
 
     # Bounds counted back from the end of the object.
     ranges_via_get.clear()
+    bounds_via_get_range.clear()
     assert fs.cat_file(path, start=-10) == data[-10:]
     assert fs.cat_file(path, start=10, end=-10) == data[10:-10]
     assert fs.cat_file(path, start=-20, end=-10) == data[-20:-10]
-    assert ranges_via_get == [{"suffix": 10}]  # Resolved ends become bounded reads.
+    assert ranges_via_get == [{"suffix": 10}]
+    # Resolved ends become bounded reads.
+    assert bounds_via_get_range == [(10, 9990), (9980, 9990)]
 
 
 def test_suffix_fallback(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
