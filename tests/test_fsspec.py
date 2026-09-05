@@ -584,11 +584,11 @@ def test_cat_file(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     ranges_via_get: list[dict[str, int] | None] = []
     original = ObjectStoreMethods.get_async
 
-    async def spy(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+    async def spy_get(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
         ranges_via_get.append(kwargs.get("options", {}).get("range"))
         return await original(self, *args, **kwargs)
 
-    monkeypatch.setattr(ObjectStoreMethods, "get_async", spy)
+    monkeypatch.setattr(ObjectStoreMethods, "get_async", spy_get)
 
     # The whole object, with and without an explicit zero start.
     assert fs.cat_file(path) == data
@@ -657,30 +657,30 @@ def test_cat_ranges_max_gap(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     path = f"{TEST_BUCKET_NAME}/data1"
     fs.pipe_file(path, data)
 
-    seen: list[int | None] = []
-    original = ObjectStoreMethods.get_ranges_async
+    forwarded_coalesce: list[int | None] = []
+    original_get_ranges = ObjectStoreMethods.get_ranges_async
 
-    async def spy(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
-        seen.append(kwargs.get("coalesce"))
-        return await original(self, *args, **kwargs)
+    async def spy_get_ranges(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        forwarded_coalesce.append(kwargs.get("coalesce"))
+        return await original_get_ranges(self, *args, **kwargs)
 
-    monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy)
+    monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy_get_ranges)
 
     # No max_gap: obstore uses its own default.
     assert fs.cat_ranges([path, path], [0, 20], [10, 30]) == [
         data[0:10],
         data[20:30],
     ]
-    assert seen == [None]
+    assert forwarded_coalesce == [None]
 
     # With max_gap: passed straight through, including 0 to turn coalescing off.
     for max_gap in (0, 1000):
-        seen.clear()
+        forwarded_coalesce.clear()
         assert fs.cat_ranges([path, path], [0, 20], [10, 30], max_gap=max_gap) == [
             data[0:10],
             data[20:30],
         ]
-        assert seen == [max_gap]
+        assert forwarded_coalesce == [max_gap]
 
 
 def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
@@ -689,17 +689,17 @@ def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     path = f"{TEST_BUCKET_NAME}/data1"
     fs.pipe_file(path, data)
 
-    batched: list[tuple[list[int], list[int]]] = []
-    individual: list[dict[str, int] | None] = []
+    bounds_via_get_ranges: list[tuple[list[int], list[int]]] = []
+    ranges_via_get: list[dict[str, int] | None] = []
     original_get_ranges = ObjectStoreMethods.get_ranges_async
     original_get = ObjectStoreMethods.get_async
 
     async def spy_get_ranges(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
-        batched.append((list(kwargs["starts"]), list(kwargs["ends"])))
+        bounds_via_get_ranges.append((list(kwargs["starts"]), list(kwargs["ends"])))
         return await original_get_ranges(self, *args, **kwargs)
 
     async def spy_get(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
-        individual.append(kwargs.get("options", {}).get("range"))
+        ranges_via_get.append(kwargs.get("options", {}).get("range"))
         return await original_get(self, *args, **kwargs)
 
     monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy_get_ranges)
@@ -711,14 +711,14 @@ def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
     # The bounded range [0:10] and the range with negative end [9000:-10] both
     # reach `get_ranges`. The latter is resolved beforehand against the object
     # size, so the two share a single call.
-    assert batched == [([0, 9000], [10, 9990])]
+    assert bounds_via_get_ranges == [([0, 9000], [10, 9990])]
 
     # The other two, [20:] and [-5:], go through `get` instead. The latter stays
     # a suffix request, even if another range on the same object causes the size
     # to be fetched.
-    assert len(individual) == 2
-    assert {"offset": 20} in individual
-    assert {"suffix": 5} in individual
+    assert len(ranges_via_get) == 2
+    assert {"offset": 20} in ranges_via_get
+    assert {"suffix": 5} in ranges_via_get
 
 
 def test_cat_ranges_batch_size(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
@@ -727,27 +727,27 @@ def test_cat_ranges_batch_size(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch)
     path = f"{TEST_BUCKET_NAME}/data1"
     fs.pipe_file(path, data)
 
-    seen: list[int | None] = []
-    original = fsspec.asyn._run_coros_in_chunks
+    forwarded_batch_sizes: list[int | None] = []
+    original_run_coros = fsspec.asyn._run_coros_in_chunks
 
-    async def spy(coros, **kwargs):  # noqa: ANN001, ANN003
-        seen.append(kwargs.get("batch_size"))
-        return await original(coros, **kwargs)
+    async def spy_run_coros(coros, **kwargs):  # noqa: ANN001, ANN003
+        forwarded_batch_sizes.append(kwargs.get("batch_size"))
+        return await original_run_coros(coros, **kwargs)
 
-    monkeypatch.setattr(fsspec.asyn, "_run_coros_in_chunks", spy)
+    monkeypatch.setattr(fsspec.asyn, "_run_coros_in_chunks", spy_run_coros)
 
     # Unset: forwarded as None, so fsspec infers its own default.
     assert fs.cat_ranges([path], [0], [10]) == [data[0:10]]
-    assert seen == [None]
+    assert forwarded_batch_sizes == [None]
 
-    seen.clear()
+    forwarded_batch_sizes.clear()
     assert fs.cat_ranges([path], [0], [10], batch_size=4) == [data[0:10]]
-    assert seen == [4]
+    assert forwarded_batch_sizes == [4]
 
     # The size lookup for a negative end is batched with the same batch size.
-    seen.clear()
+    forwarded_batch_sizes.clear()
     assert fs.cat_ranges([path], [0], [-10], batch_size=4) == [data[0:-10]]
-    assert seen == [4, 4]
+    assert forwarded_batch_sizes == [4, 4]
 
 
 def test_cat_ranges_on_error(fs: FsspecStore):
