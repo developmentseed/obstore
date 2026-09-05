@@ -871,6 +871,19 @@ def test_cat_ranges_mixed(fs: FsspecStore):
     assert out == [b"", b""]
 
 
+def test_cat_ranges_broadcast(fs: FsspecStore):
+    """Test that a scalar or `None` start and end broadcast across all paths."""
+    data1 = os.urandom(10000)
+    data2 = os.urandom(10000)
+    path1 = f"{TEST_BUCKET_NAME}/data1"
+    path2 = f"{TEST_BUCKET_NAME}/data2"
+    fs.pipe({path1: data1, path2: data2})
+
+    assert fs.cat_ranges([path1, path2], 10, 20) == [data1[10:20], data2[10:20]]
+    assert fs.cat_ranges([path1, path2], 10, None) == [data1[10:], data2[10:]]
+    assert fs.cat_ranges([path1, path2], None, 20) == [data1[:20], data2[:20]]
+
+
 @pytest.mark.xfail(reason="atomic writes not working on moto")
 def test_atomic_write(fs: FsspecStore):
     fs.pipe_file("data1", b"data1")
