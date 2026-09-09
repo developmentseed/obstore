@@ -130,6 +130,10 @@ jobs:
         platform:
           - runner: windows-latest
             target: x64
+            extra-interpreters: ["3.10", "3.14t"]
+          - runner: windows-11-arm
+            target: aarch64
+            extra-interpreters: ["3.14t"]
     steps:
       - uses: actions/checkout@v7
       # There seem to be linking errors on Windows with the uv-provided Python
@@ -138,8 +142,9 @@ jobs:
       # Seems to be this question: https://stackoverflow.com/questions/78557803/python-with-rust-cannot-open-input-file-python3-lib
       - uses: actions/setup-python@v7
         with:
-          python-version: 3.13
-          architecture: ${{ matrix.platform.target }}
+          python-version: |
+            ${{ join(matrix.platform.extra-interpreters, fromJSON('"\n"')) }}
+            3.13
 
       - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
@@ -152,7 +157,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --features generate-import-lib -i 3.10 -i 3.14t --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features generate-import-lib -i ${{ join(matrix.platform.extra-interpreters, ' ') }} --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v7
