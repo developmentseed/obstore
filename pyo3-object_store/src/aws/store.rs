@@ -230,7 +230,13 @@ impl<'py> FromPyObject<'_, 'py> for PyAmazonS3ConfigKey {
 
     fn extract(obj: Borrowed<'_, 'py, pyo3::PyAny>) -> PyResult<Self> {
         let s = obj.extract::<PyBackedStr>()?.to_lowercase();
-        let key = s.parse().map_err(PyObjectStoreError::ObjectStoreError)?;
+        // Some keys (e.g. `aws_endpoint_url_s3`) are only accepted upstream in their prefixed
+        // form, but we strip the `aws_` prefix when converting keys back to Python. Retry with the
+        // prefix so that any key we emit can be parsed back in.
+        let key = s
+            .parse::<AmazonS3ConfigKey>()
+            .or_else(|err| format!("aws_{s}").parse().map_err(|_| err))
+            .map_err(PyObjectStoreError::ObjectStoreError)?;
         Ok(Self(key))
     }
 }
@@ -247,12 +253,10 @@ impl<'py> IntoPyObject<'py> for &PyAmazonS3ConfigKey {
     type Error = PyErr;
 
     fn into_pyobject(self, py: Python<'py>) -> Result<Self::Output, Self::Error> {
-        let s = self
-            .0
-            .as_ref()
-            .strip_prefix("aws_")
-            .expect("Expected config prefix to start with aws_");
-        Ok(PyString::new(py, s))
+        // Client and encryption config keys are not `aws_`-prefixed upstream, so only strip the
+        // prefix when it is actually present.
+        let s = self.0.as_ref();
+        Ok(PyString::new(py, s.strip_prefix("aws_").unwrap_or(s)))
     }
 }
 
