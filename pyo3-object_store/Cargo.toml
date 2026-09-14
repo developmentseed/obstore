@@ -28,7 +28,7 @@ humantime = "2.1"
 http = "1"
 # This is already an object_store dependency
 itertools = "0.15.0"
-object_store = { version = "0.14.0", features = [
+object_store = { git = "https://github.com/apache/arrow-rs-object-store", rev = "978fb48b9ea6ebe3f8f4833f656e793cde79ab15", features = [
     "aws",
     "azure",
     "gcp",

@@ -185,6 +185,33 @@ class LocalStore:
 
     def __eq__(self, value: object) -> bool: ...
     def __getnewargs_ex__(self): ...
+    def replace_prefix(self, prefix: str | Path | None) -> Self:
+        """Construct a new store with a different prefix.
+
+        All other configuration is inherited from this store. Note that unlike the
+        remote stores, there's no underlying connection pool to reuse here, so this is
+        equivalent to constructing a new [`LocalStore`][obstore.store.LocalStore]
+        directly.
+
+        The new prefix fully replaces the existing one; it is not appended to it.
+
+        **Example:**
+
+        ```py
+        store = LocalStore(prefix="/data/2024")
+        store_2025 = store.replace_prefix("/data/2025")
+        ```
+
+        Args:
+            prefix: The prefix to apply to all operations in the new store. Pass `None`
+                to construct a store with no prefix. If `mkdir` is `True` on this store,
+                the directory at `prefix` will attempt to be created.
+
+        Returns:
+            LocalStore
+
+        """
+
     @property
     def prefix(self) -> Path | None:
         """Get the prefix applied to all operations in this store, if any."""
