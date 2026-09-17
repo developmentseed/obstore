@@ -148,7 +148,9 @@ impl<T: ObjectStore> ObjectStore for MaybePrefixedStore<T> {
 
     async fn get_opts(&self, location: &Path, options: GetOptions) -> Result<GetResult> {
         let full_path = self.full_path(location);
-        self.inner.get_opts(&full_path, options).await
+        let mut result = self.inner.get_opts(&full_path, options).await?;
+        result.meta = self.strip_meta(result.meta);
+        Ok(result)
     }
 
     async fn get_ranges(&self, location: &Path, ranges: &[Range<u64>]) -> Result<Vec<Bytes>> {
