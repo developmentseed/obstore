@@ -8,11 +8,14 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import fsspec
+import fsspec.asyn
 import pyarrow.parquet as pq
 import pytest
 from fsspec.registry import _registry
 
+from obstore.exceptions import NotSupportedError
 from obstore.fsspec import FsspecStore, register
+from obstore.store import ObjectStoreMethods
 from tests.conftest import TEST_BUCKET_NAME
 
 if TYPE_CHECKING:
@@ -572,6 +575,226 @@ def test_multi_file_ops(minio_bucket: tuple[S3Config, ClientConfig]):
     assert out == [f"{bucket}/afile"]
 
 
+def test_cat_file(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that `cat_file` accepts every range form and sends the right request."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    ranges_via_get: list[dict[str, int] | None] = []
+    bounds_via_get_range: list[tuple[int, int]] = []
+    original_get = ObjectStoreMethods.get_async
+    original_get_range = ObjectStoreMethods.get_range_async
+
+    async def spy_get(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        ranges_via_get.append(kwargs.get("options", {}).get("range"))
+        return await original_get(self, *args, **kwargs)
+
+    async def spy_get_range(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        bounds_via_get_range.append((kwargs["start"], kwargs["end"]))
+        return await original_get_range(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_async", spy_get)
+    monkeypatch.setattr(ObjectStoreMethods, "get_range_async", spy_get_range)
+
+    # The whole object, with and without an explicit zero start.
+    assert fs.cat_file(path) == data
+    assert fs.cat_file(path, start=0) == data
+    assert ranges_via_get == [None, None]
+    assert bounds_via_get_range == []
+
+    # Both bounds given go through `get_range` instead of `get`.
+    ranges_via_get.clear()
+    bounds_via_get_range.clear()
+    assert fs.cat_file(path, start=10, end=20) == data[10:20]
+    assert ranges_via_get == []
+    assert bounds_via_get_range == [(10, 20)]
+
+    # Either bound on its own.
+    ranges_via_get.clear()
+    bounds_via_get_range.clear()
+    assert fs.cat_file(path, start=10) == data[10:]
+    assert fs.cat_file(path, end=20) == data[:20]
+    assert ranges_via_get == [{"offset": 10}]
+    assert bounds_via_get_range == [(0, 20)]  # An `end` alone is a bounded read.
+
+    # Bounds counted back from the end of the object.
+    ranges_via_get.clear()
+    bounds_via_get_range.clear()
+    assert fs.cat_file(path, start=-10) == data[-10:]
+    assert fs.cat_file(path, start=-20000) == data  # The store clamps the suffix.
+    assert fs.cat_file(path, start=10, end=-10) == data[10:-10]
+    assert fs.cat_file(path, start=-20, end=-10) == data[-20:-10]
+    assert fs.cat_file(path, start=-20, end=9995) == data[-20:9995]
+    assert ranges_via_get == [{"suffix": 10}, {"suffix": 20000}]
+    # Resolved ends become bounded reads.
+    assert bounds_via_get_range == [(10, 9990), (9980, 9990), (9980, 9995)]
+
+
+def test_suffix_fallback(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that a suffix request falls back to a bounded read, as Azure needs."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    empty = f"{TEST_BUCKET_NAME}/empty"
+    fs.pipe_file(path, data)
+    fs.pipe_file(empty, b"")
+
+    ranges_via_get: list[dict[str, int] | None] = []
+    original_get = ObjectStoreMethods.get_async
+
+    async def refuse_ranges(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        byte_range = kwargs.get("options", {}).get("range")
+        ranges_via_get.append(byte_range)
+        if byte_range is not None:
+            raise NotSupportedError("Azure does not support suffix range requests")
+        return await original_get(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_async", refuse_ranges)
+
+    assert fs.cat_file(path, start=-10) == data[-10:]
+    assert fs.cat_ranges([path], [-10], [None]) == [data[-10:]]
+    # Each call tries the suffix once; the fallback read bypasses `get`.
+    assert ranges_via_get == [{"suffix": 10}, {"suffix": 10}]
+
+    # A suffix covering the whole object clamps, exactly as the native path does:
+    # the refused suffix request becomes a plain `get`.
+    ranges_via_get.clear()
+    assert fs.cat_file(path, start=-20000) == data
+    assert fs.cat_file(empty, start=-10) == b""
+    assert ranges_via_get == [{"suffix": 20000}, None, {"suffix": 10}, None]
+
+    # Only a suffix is retried, so an offset still surfaces the error.
+    with pytest.raises(NotSupportedError):
+        fs.cat_file(path, start=10)
+
+
+def test_cat_ranges_max_gap(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that `max_gap` is forwarded to obstore as `coalesce`."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    forwarded_coalesce: list[int | None] = []
+    original_get_ranges = ObjectStoreMethods.get_ranges_async
+
+    async def spy_get_ranges(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        forwarded_coalesce.append(kwargs.get("coalesce"))
+        return await original_get_ranges(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy_get_ranges)
+
+    # No max_gap: obstore uses its own default.
+    assert fs.cat_ranges([path, path], [0, 20], [10, 30]) == [
+        data[0:10],
+        data[20:30],
+    ]
+    assert forwarded_coalesce == [None]
+
+    # With max_gap: passed straight through, including 0 to turn coalescing off.
+    for max_gap in (0, 1000):
+        forwarded_coalesce.clear()
+        assert fs.cat_ranges([path, path], [0, 20], [10, 30], max_gap=max_gap) == [
+            data[0:10],
+            data[20:30],
+        ]
+        assert forwarded_coalesce == [max_gap]
+
+
+def test_cat_ranges_routing(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that bounded ranges use `get_ranges` and open-ended ones use `get`."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    bounds_via_get_ranges: list[tuple[list[int], list[int]]] = []
+    ranges_via_get: list[dict[str, int] | None] = []
+    original_get_ranges = ObjectStoreMethods.get_ranges_async
+    original_get = ObjectStoreMethods.get_async
+
+    async def spy_get_ranges(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        bounds_via_get_ranges.append((list(kwargs["starts"]), list(kwargs["ends"])))
+        return await original_get_ranges(self, *args, **kwargs)
+
+    async def spy_get(self, *args, **kwargs):  # noqa: ANN001, ANN002, ANN003
+        ranges_via_get.append(kwargs.get("options", {}).get("range"))
+        return await original_get(self, *args, **kwargs)
+
+    monkeypatch.setattr(ObjectStoreMethods, "get_ranges_async", spy_get_ranges)
+    monkeypatch.setattr(ObjectStoreMethods, "get_async", spy_get)
+
+    out = fs.cat_ranges([path] * 4, [0, 20, -5, 9000], [10, None, None, -10])
+    assert out == [data[0:10], data[20:], data[-5:], data[9000:-10]]
+
+    # The bounded range [0:10] and the range with negative end [9000:-10] both
+    # reach `get_ranges`. The latter is resolved beforehand against the object
+    # size, so the two share a single call.
+    assert bounds_via_get_ranges == [([0, 9000], [10, 9990])]
+
+    # The other two, [20:] and [-5:], go through `get` instead. The latter stays
+    # a suffix request, even if another range on the same object causes the size
+    # to be fetched.
+    assert len(ranges_via_get) == 2
+    assert {"offset": 20} in ranges_via_get
+    assert {"suffix": 5} in ranges_via_get
+
+
+def test_cat_ranges_batch_size(fs: FsspecStore, monkeypatch: pytest.MonkeyPatch):
+    """Test that `batch_size` is forwarded to fsspec's request batching."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+
+    forwarded_batch_sizes: list[int | None] = []
+    original_run_coros = fsspec.asyn._run_coros_in_chunks
+
+    async def spy_run_coros(coros, **kwargs):  # noqa: ANN001, ANN003
+        forwarded_batch_sizes.append(kwargs.get("batch_size"))
+        return await original_run_coros(coros, **kwargs)
+
+    monkeypatch.setattr(fsspec.asyn, "_run_coros_in_chunks", spy_run_coros)
+
+    # Unset: forwarded as None, so fsspec infers its own default.
+    assert fs.cat_ranges([path], [0], [10]) == [data[0:10]]
+    assert forwarded_batch_sizes == [None]
+
+    forwarded_batch_sizes.clear()
+    assert fs.cat_ranges([path], [0], [10], batch_size=4) == [data[0:10]]
+    assert forwarded_batch_sizes == [4]
+
+    # The size lookup for a negative end is batched with the same batch size.
+    forwarded_batch_sizes.clear()
+    assert fs.cat_ranges([path], [0], [-10], batch_size=4) == [data[0:-10]]
+    assert forwarded_batch_sizes == [4, 4]
+
+
+def test_cat_ranges_on_error(fs: FsspecStore):
+    """Test that `on_error` controls whether a failure is returned or raised."""
+    data = os.urandom(10000)
+    path = f"{TEST_BUCKET_NAME}/data1"
+    fs.pipe_file(path, data)
+    missing1 = f"{TEST_BUCKET_NAME}/missing1"
+    missing2 = f"{TEST_BUCKET_NAME}/missing2"
+
+    # Default returns the error in place.
+    out = fs.cat_ranges(
+        [path, missing1, missing1, missing1],
+        [0, 0, 9000, -5],
+        [10, 10, 9990, None],
+    )
+    assert out[0] == data[0:10]
+    assert isinstance(out[1], FileNotFoundError)
+    assert isinstance(out[3], FileNotFoundError)
+
+    # A single `get_ranges` call covers both bounded ranges of `missing1`, so they
+    # fail together with the same error.
+    assert out[1] is out[2]
+
+    # "raise" reports the earliest failing range rather than the first request to
+    # finish: [-5:] is read by a later request than [0:10], but comes first here.
+    with pytest.raises(FileNotFoundError, match="missing1"):
+        fs.cat_ranges([missing1, missing2], [-5, 0], [None, 10], on_error="raise")
+
+
 def test_cat_ranges_one(fs: FsspecStore):
     data1 = os.urandom(10000)
     fs.pipe_file(f"{TEST_BUCKET_NAME}/data1", data1)
@@ -631,15 +854,34 @@ def test_cat_ranges_two(fs: FsspecStore):
     assert out == [data1[10:20], data2[10:20]]
 
 
-@pytest.mark.xfail(reason="negative and mixed ranges not implemented")
 def test_cat_ranges_mixed(fs: FsspecStore):
     data1 = os.urandom(10000)
     data2 = os.urandom(10000)
-    fs.pipe({"data1": data1, "data2": data2})
+    path1 = f"{TEST_BUCKET_NAME}/data1"
+    path2 = f"{TEST_BUCKET_NAME}/data2"
+    empty = f"{TEST_BUCKET_NAME}/empty"
+    fs.pipe({path1: data1, path2: data2, empty: b""})
 
-    # single range in each file
-    out = fs.cat_ranges(["data1", "data1", "data2"], [-10, None, 10], [None, -10, -10])
+    # negative and None bounds mixed across two files
+    out = fs.cat_ranges([path1, path1, path2], [-10, None, 10], [None, -10, -10])
     assert out == [data1[-10:], data1[:-10], data2[10:-10]]
+
+    # an unbounded range reads the whole object, even a zero-length one
+    out = fs.cat_ranges([empty, empty], [0, None], [None, None])
+    assert out == [b"", b""]
+
+
+def test_cat_ranges_broadcast(fs: FsspecStore):
+    """Test that a scalar or `None` start and end broadcast across all paths."""
+    data1 = os.urandom(10000)
+    data2 = os.urandom(10000)
+    path1 = f"{TEST_BUCKET_NAME}/data1"
+    path2 = f"{TEST_BUCKET_NAME}/data2"
+    fs.pipe({path1: data1, path2: data2})
+
+    assert fs.cat_ranges([path1, path2], 10, 20) == [data1[10:20], data2[10:20]]
+    assert fs.cat_ranges([path1, path2], 10, None) == [data1[10:], data2[10:]]
+    assert fs.cat_ranges([path1, path2], None, 20) == [data1[:20], data2[:20]]
 
 
 @pytest.mark.xfail(reason="atomic writes not working on moto")
