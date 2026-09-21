@@ -721,12 +721,12 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
             Data in bytes
 
         """
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
         if self.mode != "rb":
             raise UnsupportedOperation("File not in read mode")
         if length < 0:
             length = self.size - self.tell()
-        if self.closed:
-            raise ValueError("I/O operation on closed file.")
         if length == 0:
             # don't even bother calling fetch
             return b""
@@ -736,6 +736,8 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
     def readline(self) -> bytes:
         """Read until first occurrence of newline character."""
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
         if self.mode != "rb":
             raise UnsupportedOperation("File not in read mode")
 
@@ -744,6 +746,8 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
     def readlines(self) -> list[bytes]:
         """Return all data, split by the newline character."""
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
         if self.mode != "rb":
             raise UnsupportedOperation("File not in read mode")
 
@@ -775,6 +779,8 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
                 - `2`: end of file
 
         """
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
         if self.mode != "rb":
             raise UnsupportedOperation("Seek only available in read mode.")
 
@@ -787,10 +793,10 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
             data: Set of bytes to be written.
 
         """
-        if not self.writable():
-            raise UnsupportedOperation("File not in write mode")
         if self.closed:
             raise ValueError("I/O operation on closed file.")
+        if self.mode != "wb":
+            raise UnsupportedOperation("File not in write mode")
         if self.forced:
             raise ValueError("This file has been force-flushed, can only close")
 
