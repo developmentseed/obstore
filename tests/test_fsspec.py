@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import gc
 import os
+import zipfile
+from io import UnsupportedOperation
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
@@ -170,6 +172,84 @@ def test_buffered_file_forwards_size_to_open_reader():
 
         data = file.read()
         assert len(data) == 500
+
+
+def test_zipfile_write_mode():
+    """Ensure a write-mode file can fall back to ZipFile non-seekable code path."""
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+
+    with (
+        fs._open("archive.zip", mode="wb") as filelike,
+        zipfile.ZipFile(filelike, "w") as zf,
+    ):
+        zf.writestr("hello.txt", "hello world")
+
+    with (
+        fs._open("archive.zip") as filelike,
+        zipfile.ZipFile(filelike) as zf,
+    ):
+        assert zf.read("hello.txt") == b"hello world"
+
+
+def test_write_after_close_raises_value_error():
+    """A use-after-close must raise a plain ValueError, not UnsupportedOperation."""
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+
+    filelike = fs._open("closed.bin", mode="wb")
+    filelike.write(b"data")
+    filelike.close()
+
+    with pytest.raises(ValueError, match="I/O operation on closed file") as exc_info:
+        filelike.write(b"more")
+
+    assert not isinstance(exc_info.value, OSError)
+
+
+def test_write_on_read_mode_file_raises_unsupported_operation():
+    """Writing to a non-closed read-mode file still reports a missing capability."""
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+
+    fs.pipe_file("read.bin", b"data")
+
+    with (
+        fs._open("read.bin", mode="rb") as filelike,
+        pytest.raises(UnsupportedOperation, match="File not in write mode"),
+    ):
+        filelike.write(b"more")
+
+
+@pytest.mark.parametrize("mode", ["rb", "wb"])
+def test_read_operations_after_close_raises_value_error(mode: str):
+    """Read-side ops on a closed file must report the closed state first."""
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+
+    if mode == "rb":
+        fs.pipe_file("lines.txt", b"line1\nline2\n")
+        filelike = fs._open("lines.txt", mode="rb")
+        assert filelike.readline() == b"line1\n"
+    else:
+        filelike = fs._open("closed.bin", mode="wb")
+        filelike.write(b"data")
+    filelike.close()
+
+    for name, operation in [
+        ("read", lambda: filelike.read(2)),
+        ("read-default", filelike.read),
+        ("readline", filelike.readline),
+        ("readlines", filelike.readlines),
+        ("seek", lambda: filelike.seek(0)),
+    ]:
+        with pytest.raises(
+            ValueError,
+            match="I/O operation on closed file",
+        ) as exc_info:
+            operation()
+
+        assert not isinstance(exc_info.value, OSError), name
 
 
 def test_construct_store_cache_diff_bucket_name(
