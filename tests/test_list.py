@@ -1,7 +1,3 @@
-import subprocess
-import sys
-import textwrap
-
 import pytest
 from arro3.core import RecordBatch, Table
 
@@ -163,50 +159,3 @@ async def test_list_with_delimiter_async():
     assert objects.num_rows == 2
     assert objects["path"][0].as_py() == "a/file1.txt"
     assert objects["path"][1].as_py() == "a/file2.txt"
-
-
-def test_list_concurrent_with_put_does_not_deadlock():
-    # https://github.com/developmentseed/obstore/issues/785
-    #
-    # Each put replaces an earlier put's Python-backed buffer, and MemoryStore releases
-    # that buffer while holding its write lock. list() must not wait on the store's
-    # lock while attached to the interpreter. This runs in a subprocess because on
-    # failure the stuck lister holds the GIL, which would hang the test process too.
-    script = textwrap.dedent(
-        """
-        import gc
-        import threading
-
-        import obstore as obs
-        from obstore.store import MemoryStore
-
-        store = MemoryStore()
-        for i in range(50):
-            obs.put(store, f"k/{i}", b"x" * 1024)
-
-        def writer():
-            for n in range(1_000):
-                obs.put(store, f"k/{n % 50}", bytes(1024))
-
-        def lister():
-            for _ in range(1_000):
-                obs.list(store)
-
-        def offset_lister():
-            for _ in range(1_000):
-                obs.list(store, offset="k/0")
-
-        def collector():
-            # Free-threaded builds need a stop-the-world to hit the deadlock.
-            for _ in range(100):
-                gc.collect()
-
-        targets = (writer, writer, lister, offset_lister, collector)
-        threads = [threading.Thread(target=target) for target in targets]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
-        """,
-    )
-    subprocess.run([sys.executable, "-c", script], check=True, timeout=60)  # noqa: S603

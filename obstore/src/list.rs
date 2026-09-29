@@ -371,9 +371,6 @@ pub(crate) fn list(
 
     let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
-    // Detach because creating the stream may block: MemoryStore takes its lock here, and
-    // a concurrent writer can need to attach to release a Python buffer while holding it.
-    // https://github.com/developmentseed/obstore/issues/785
     let stream = py.detach(|| {
         if let Some(offset) = offset {
             store.list_with_offset(prefix.as_ref(), offset.as_ref())
