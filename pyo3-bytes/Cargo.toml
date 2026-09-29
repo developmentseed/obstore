@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-bytes"
-version = "0.7.1"
+version = "0.7.2"
 authors = [
     "Kyle Barron <kyle@developmentseed.org>",
     "jesse rubin <jesse@dgi.com>",
