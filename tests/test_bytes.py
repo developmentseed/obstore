@@ -99,3 +99,44 @@ class TestBytesSlice:
 def test_pickle():
     b = Bytes(b"hello_world")
     assert b == pickle.loads(pickle.dumps(b))
+
+
+@pytest.mark.parametrize(
+    ("needle", "haystack"),
+    [
+        (b"", b"abc"),
+        (b"", b""),
+        (b"b", b"abc"),
+        (b"bc", b"abc"),
+        (b"abc", b"abc"),
+        (b"abcd", b"abc"),
+        (b"x", b"abc"),
+        (b"a", b""),
+    ],
+)
+def test_contains(needle: bytes, haystack: bytes) -> None:
+    """Test that `in` matches bytes, including for an empty needle."""
+    assert (needle in Bytes(haystack)) == (needle in haystack)
+
+
+@pytest.mark.parametrize(("value", "count"), [(b"abc", 3), (b"abc", 0), (b"", 3)])
+def test_mul(value: bytes, count: int) -> None:
+    """Test that repetition matches bytes."""
+    assert Bytes(value) * count == value * count
+
+
+def test_mul_too_long_raises_overflow_error() -> None:
+    """Test that a result longer than the maximum size raises OverflowError."""
+    with pytest.raises(OverflowError):
+        _ = Bytes(b"abc") * (1 << 62)
+
+
+def test_mul_allocation_failure_raises_memory_error() -> None:
+    """Test that a failed allocation raises MemoryError instead of aborting."""
+    with pytest.raises(MemoryError):
+        _ = Bytes(b"a") * (1 << 62)
+
+
+def test_mul_empty_by_large_count() -> None:
+    """Test that repeating an empty Bytes many times returns immediately."""
+    assert Bytes(b"") * (1 << 62) == b""
