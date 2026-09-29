@@ -128,13 +128,13 @@ def test_mul(value: bytes, count: int) -> None:
 def test_mul_too_long_raises_overflow_error() -> None:
     """Test that a result longer than the maximum size raises OverflowError."""
     with pytest.raises(OverflowError):
-        Bytes(b"abc") * (1 << 62)
+        _ = Bytes(b"abc") * (1 << 62)
 
 
 def test_mul_allocation_failure_raises_memory_error() -> None:
     """Test that a failed allocation raises MemoryError instead of aborting."""
     with pytest.raises(MemoryError):
-        Bytes(b"a") * (1 << 62)
+        _ = Bytes(b"a") * (1 << 62)
 
 
 def test_mul_empty_by_large_count() -> None:

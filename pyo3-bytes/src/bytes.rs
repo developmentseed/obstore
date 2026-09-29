@@ -194,7 +194,6 @@ impl PyBytes {
 
     fn __contains__(&self, item: PyBytes) -> bool {
         let needle = item.as_slice();
-        // Like `bytes`, the empty needle is in every value. `windows` panics on a size of 0.
         needle.is_empty() || self.0.windows(needle.len()).any(|window| window == needle)
     }
 
@@ -228,21 +227,25 @@ impl PyBytes {
     }
 
     fn __mul__(&self, value: usize) -> PyResult<PyBytes> {
-        // Like `bytes`, raise OverflowError when the result is too long and MemoryError when the
-        // allocation fails, instead of panicking or aborting.
+        // Raise OverflowError if the total length exceeds isize::MAX, since Python's bytes type
+        // cannot be larger than that.
         let total_length = self
             .0
             .len()
             .checked_mul(value)
             .filter(|&len| len <= isize::MAX as usize)
             .ok_or_else(|| PyOverflowError::new_err("repeated bytes are too long"))?;
+
         if total_length == 0 {
-            return Ok(PyBytes::default());
+            return Ok(PyBytes::new(Bytes::new()));
         }
+
+        // Raise MemoryError if the allocation fails
         let mut out_buf = Vec::new();
         out_buf
             .try_reserve_exact(total_length)
             .map_err(|_| PyMemoryError::new_err(()))?;
+
         (0..value).for_each(|_| out_buf.extend_from_slice(self.0.as_ref()));
         Ok(out_buf.into())
     }
