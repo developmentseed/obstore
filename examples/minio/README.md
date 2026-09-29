@@ -2,11 +2,11 @@
 
 [MinIO](https://github.com/minio/minio) is a high-performance, S3 compatible object store, open sourced under GNU AGPLv3 license. It's often used for testing or self-hosting S3-compatible storage.
 
-We can run minio locally using docker:
+We can run minio locally using docker. MinIO no longer distributes Docker images of its community edition, so we use [Silo](https://github.com/pgsty/silo), a community-maintained fork of the MinIO server:
 
 ```shell
 docker run -p 9000:9000 -p 9001:9001 \
-    quay.io/minio/minio server /data --console-address ":9001"
+    pgsty/silo server /data --console-address ":9001"
 ```
 
 `obstore` isn't able to create a bucket, so we need to do that manually. We can do that through the minio web UI. After running the above docker command, go to <http://localhost:9001>.
