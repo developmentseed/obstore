@@ -100,7 +100,9 @@ def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
         stacklevel=1,
     )
     minio_container = docker_client.containers.run(
-        "quay.io/minio/minio",
+        # MinIO no longer publishes a public community image; Silo is a
+        # community-maintained fork of the MinIO server.
+        "pgsty/silo:RELEASE.2026-09-16T00-00-00Z",
         "server /data --console-address :9001",
         detach=True,
         ports={
