@@ -571,6 +571,8 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
                 "size": obj["size"],
                 "type": "file",
                 "e_tag": obj["e_tag"],
+                "last_modified": obj["last_modified"],
+                "version": obj["version"],
             }
             for obj in objects
         ] + [
