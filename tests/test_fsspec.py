@@ -3,7 +3,7 @@ from __future__ import annotations
 import gc
 import os
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import UnsupportedOperation
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -439,7 +439,8 @@ def test_list_detail_matches_info(
     fs.invalidate_cache()
     info = fs.info(f"{bucket}/afile")
     assert isinstance(entry["last_modified"], datetime)
-    assert entry["last_modified"] == info["last_modified"]
+    # A listing reports milliseconds; HEAD's Last-Modified header whole seconds.
+    assert abs(entry["last_modified"] - info["last_modified"]) < timedelta(seconds=1)
     assert entry["version"] == info["version"]
 
 
