@@ -14,13 +14,8 @@ from urllib.parse import urlparse
 from obstore.auth._http import default_aiohttp_session, default_requests_session
 
 if TYPE_CHECKING:
-    import sys
     from collections.abc import Mapping
-
-    if sys.version_info >= (3, 11):
-        from typing import Never
-    else:
-        from typing_extensions import Never
+    from typing import Never
 
     import aiohttp
     import aiohttp_retry

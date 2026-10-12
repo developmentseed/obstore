@@ -1,20 +1,9 @@
-import sys
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol, Self, TypeAlias, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
-
-if sys.version_info >= (3, 11):
-    from typing import Self, Unpack
-else:
-    from typing_extensions import Self, Unpack
 
 class AzureConfig(TypedDict, total=False):
     """Configuration parameters for AzureStore.

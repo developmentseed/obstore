@@ -1,7 +1,7 @@
 # ruff: noqa: PGH003
 
 import pickle
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -124,7 +124,7 @@ def test_invalid_credential_provider():
     """
 
     def credential_provider():
-        return {"access_key_id": "str", "expires_at": datetime.now(timezone.utc)}
+        return {"access_key_id": "str", "expires_at": datetime.now(UTC)}
 
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):
@@ -134,7 +134,7 @@ def test_invalid_credential_provider():
 @pytest.mark.asyncio
 async def test_invalid_credential_provider_async():
     async def credential_provider():
-        return {"access_key_id": "str", "expires_at": datetime.now(timezone.utc)}
+        return {"access_key_id": "str", "expires_at": datetime.now(UTC)}
 
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):
