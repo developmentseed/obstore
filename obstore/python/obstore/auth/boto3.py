@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, TypedDict
 
 import boto3
@@ -10,17 +10,12 @@ import boto3.session
 import botocore.credentials
 
 if TYPE_CHECKING:
-    import sys
     from collections.abc import Sequence
+    from typing import NotRequired, Unpack
 
     import botocore.session
 
     from obstore.store import S3Config, S3Credential
-
-    if sys.version_info >= (3, 11):
-        from typing import NotRequired, Unpack
-    else:
-        from typing_extensions import NotRequired, Unpack
 
 
 class PolicyDescriptorTypeTypeDef(TypedDict):  # noqa: D101
@@ -103,7 +98,7 @@ class Boto3CredentialProvider:
 
     def __call__(self) -> S3Credential:
         """Fetch credentials."""
-        expires_at = datetime.now(timezone.utc) + self.ttl
+        expires_at = datetime.now(UTC) + self.ttl
         frozen_credentials = self.credentials.get_frozen_credentials()
         assert frozen_credentials.access_key is not None, "Access key is None"
         assert frozen_credentials.secret_key is not None, "Secret key is None"

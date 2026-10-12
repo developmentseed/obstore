@@ -1,15 +1,9 @@
-import sys
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol, Self, TypedDict, Unpack
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
-
-if sys.version_info >= (3, 11):
-    from typing import Self, Unpack
-else:
-    from typing_extensions import Self, Unpack
 
 class GCSConfig(TypedDict, total=False):
     """Configuration parameters for GCSStore.

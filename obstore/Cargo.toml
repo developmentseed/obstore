@@ -19,6 +19,7 @@ crate-type = ["cdylib"]
 
 [features]
 abi3-py311 = ["pyo3/abi3-py311"]
+abi3t-py315 = ["pyo3/abi3t-py315"]
 # https://www.maturin.rs/distribution.html#cross-compile-to-windows
 generate-import-lib = ["pyo3/generate-import-lib"]
 
