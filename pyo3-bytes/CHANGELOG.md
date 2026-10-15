@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0 - 2026-10-15
+
+- Bump to pyo3 0.30.
+
 ## 0.7.2 - 2026-09-29
 
 - `b"" in Bytes(...)` returns `True` instead of panicking.
