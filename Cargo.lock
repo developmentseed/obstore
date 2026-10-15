@@ -1672,6 +1672,7 @@ dependencies = [
 [[package]]
 name = "pyo3-bytes"
 version = "0.7.2"
+source = "git+https://github.com/developmentseed/obstore?rev=174a0c80c280a9197d49ee01c3a4fb395e8c6233#174a0c80c280a9197d49ee01c3a4fb395e8c6233"
 dependencies = [
  "bytes",
  "pyo3",
