@@ -371,11 +371,13 @@ pub(crate) fn list(
 
     let store = store.into_inner().clone();
     let prefix = prefix.map(|s| s.into());
-    let stream = if let Some(offset) = offset {
-        store.list_with_offset(prefix.as_ref(), offset.as_ref())
-    } else {
-        store.list(prefix.as_ref())
-    };
+    let stream = py.detach(|| {
+        if let Some(offset) = offset {
+            store.list_with_offset(prefix.as_ref(), offset.as_ref())
+        } else {
+            store.list(prefix.as_ref())
+        }
+    });
     Ok(PyListStream::new(stream, chunk_size, return_arrow))
 }
 

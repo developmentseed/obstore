@@ -93,7 +93,11 @@ def test_sign_batch_roundtrip_with_prefix(
     assert "/some/prefix/one.txt?" in str(urls[0])
     assert "/some/prefix/nested/two.txt?" in str(urls[1])
 
-    for url, expected in zip([str(u) for u in urls], [b"first", b"second"]):
+    for url, expected in zip(
+        [str(u) for u in urls],
+        [b"first", b"second"],
+        strict=True,
+    ):
         resp = requests.get(url, timeout=30)
         assert resp.status_code == 200, resp.text
         assert resp.content == expected

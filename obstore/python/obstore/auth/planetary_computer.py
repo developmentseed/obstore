@@ -13,18 +13,13 @@ from obstore import __version__
 from obstore.auth._http import default_aiohttp_session, default_requests_session
 
 if TYPE_CHECKING:
-    import sys
+    from typing import Self
 
     import aiohttp
     import pystac
     import requests
 
     from obstore.store import AzureConfig, AzureSASToken
-
-    if sys.version_info >= (3, 11):
-        from typing import Self
-    else:
-        from typing_extensions import Self
 
 _BLOB_STORAGE_DOMAIN = ".blob.core.windows.net"
 _SETTINGS_ENV_STR = "~/.planetarycomputer/settings.env"
@@ -405,7 +400,7 @@ def _parse_abfs_url(
 
 
 def _parse_json_response(d: dict[str, str]) -> AzureSASToken:
-    expires_at = datetime.fromisoformat(d["msft:expiry"].replace("Z", "+00:00"))
+    expires_at = datetime.fromisoformat(d["msft:expiry"])
     return {
         "sas_token": d["token"],
         "expires_at": expires_at,

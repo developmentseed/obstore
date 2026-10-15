@@ -36,6 +36,7 @@ import asyncio
 import warnings
 from collections import defaultdict
 from functools import cached_property, lru_cache
+from io import UnsupportedOperation
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 from urllib.parse import urlparse
@@ -48,10 +49,9 @@ from obstore import open_reader, open_writer
 from obstore.store import from_url
 
 if TYPE_CHECKING:
-    import sys
     from collections.abc import Coroutine, Iterable
     from datetime import datetime
-    from typing import Any
+    from typing import Any, Unpack
 
     from obstore import Attributes, Bytes, ReadableFile, WritableFile
     from obstore.store import (
@@ -65,11 +65,6 @@ if TYPE_CHECKING:
         S3Config,
         S3CredentialProvider,
     )
-
-    if sys.version_info >= (3, 11):
-        from typing import Unpack
-    else:
-        from typing_extensions import Unpack
 
 
 __all__ = [
@@ -423,7 +418,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             **_kwargs,
         )
 
-    async def _cat_ranges(  # noqa: PLR0913 # type: ignore (fsspec has bad typing)
+    async def _cat_ranges(  # noqa: PLR0913, PLR0917 # type: ignore (fsspec has bad typing)
         self,
         paths: list[str],
         starts: list[int] | int,
@@ -441,8 +436,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             raise ValueError
 
         per_file_requests: dict[str, list[tuple[int, int, int]]] = defaultdict(list)
-        # When upgrading to Python 3.10, use strict=True
-        for idx, (path, start, end) in enumerate(zip(paths, starts, ends)):
+        for idx, (path, start, end) in enumerate(
+            zip(paths, starts, ends, strict=True),
+        ):
             per_file_requests[path].append((start, end, idx))
 
         futs: list[Coroutine[Any, Any, list[Bytes]]] = []
@@ -458,11 +454,13 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         result = await asyncio.gather(*futs)
 
         output_buffers: list[bytes] = [b""] * len(paths)
-        # When upgrading to Python 3.10, use strict=True
-        for per_file_request, buffers in zip(per_file_requests.items(), result):
+        for per_file_request, buffers in zip(
+            per_file_requests.items(),
+            result,
+            strict=True,
+        ):
             path, ranges = per_file_request
-            # When upgrading to Python 3.10, use strict=True
-            for buffer, ranges_ in zip(buffers, ranges):
+            for buffer, ranges_ in zip(buffers, ranges, strict=True):
                 initial_index = ranges_[2]
                 output_buffers[initial_index] = buffer.to_bytes()
 
@@ -720,12 +718,12 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
             Data in bytes
 
         """
-        if self.mode != "rb":
-            raise ValueError("File not in read mode")
-        if length < 0:
-            length = self.size - self.tell()
         if self.closed:
             raise ValueError("I/O operation on closed file.")
+        if self.mode != "rb":
+            raise UnsupportedOperation("File not in read mode")
+        if length < 0:
+            length = self.size - self.tell()
         if length == 0:
             # don't even bother calling fetch
             return b""
@@ -735,16 +733,20 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
 
     def readline(self) -> bytes:
         """Read until first occurrence of newline character."""
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
         if self.mode != "rb":
-            raise ValueError("File not in read mode")
+            raise UnsupportedOperation("File not in read mode")
 
         out = self._reader.readline()
         return out.to_bytes()
 
     def readlines(self) -> list[bytes]:
         """Return all data, split by the newline character."""
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
         if self.mode != "rb":
-            raise ValueError("File not in read mode")
+            raise UnsupportedOperation("File not in read mode")
 
         out = self._reader.readlines()
         return [b.to_bytes() for b in out]
@@ -774,8 +776,10 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
                 - `2`: end of file
 
         """
+        if self.closed:
+            raise ValueError("I/O operation on closed file.")
         if self.mode != "rb":
-            raise ValueError("Seek only available in read mode.")
+            raise UnsupportedOperation("Seek only available in read mode.")
 
         return self._reader.seek(loc, whence)
 
@@ -786,10 +790,10 @@ class BufferedFile(fsspec.spec.AbstractBufferedFile):
             data: Set of bytes to be written.
 
         """
-        if not self.writable():
-            raise ValueError("File not in write mode")
         if self.closed:
             raise ValueError("I/O operation on closed file.")
+        if self.mode != "wb":
+            raise UnsupportedOperation("File not in write mode")
         if self.forced:
             raise ValueError("This file has been force-flushed, can only close")
 

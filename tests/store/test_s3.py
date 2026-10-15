@@ -1,7 +1,7 @@
 # ruff: noqa: PGH003
 
 import pickle
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -75,6 +75,20 @@ async def test_from_url():
     _meta = await store.head_async("2024-01-01_performance_fixed_tiles.parquet")
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://account.r2.cloudflarestorage.com/bucket",
+        "https://account.eu.r2.cloudflarestorage.com/bucket",
+    ],
+)
+def test_r2_from_url(url: str):
+    store = S3Store.from_url(url)
+    endpoint = store.config.get("endpoint")
+    assert endpoint is not None
+    assert (".eu." in endpoint) == (".eu." in url)
+
+
 def test_pickle():
     store = S3Store(
         "ookla-open-data",
@@ -110,7 +124,7 @@ def test_invalid_credential_provider():
     """
 
     def credential_provider():
-        return {"access_key_id": "str", "expires_at": datetime.now(timezone.utc)}
+        return {"access_key_id": "str", "expires_at": datetime.now(UTC)}
 
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):
@@ -120,7 +134,7 @@ def test_invalid_credential_provider():
 @pytest.mark.asyncio
 async def test_invalid_credential_provider_async():
     async def credential_provider():
-        return {"access_key_id": "str", "expires_at": datetime.now(timezone.utc)}
+        return {"access_key_id": "str", "expires_at": datetime.now(UTC)}
 
     store = S3Store("bucket", credential_provider=credential_provider)  # type: ignore
     with pytest.raises(UnauthenticatedError):

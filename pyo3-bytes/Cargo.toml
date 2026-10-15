@@ -1,6 +1,6 @@
 [package]
 name = "pyo3-bytes"
-version = "0.7.1"
+version = "0.8.0"
 authors = [
     "Kyle Barron <kyle@developmentseed.org>",
     "jesse rubin <jesse@dgi.com>",
@@ -17,7 +17,7 @@ rust-version = "1.75"
 [dependencies]
 # https://github.com/tokio-rs/bytes/releases/tag/v1.10.1
 bytes = "1.10.1"
-pyo3 = "0.29"
+pyo3 = "0.30"
 
 [lib]
 crate-type = ["rlib"]

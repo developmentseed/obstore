@@ -126,15 +126,13 @@ def test_get_ranges():
     ends = [15, 20, 25, 30]
     buffers = store.get_ranges(path, starts=starts, ends=ends)
 
-    # set strict=True when we upgrade to 3.10
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
 
     lengths = [10, 10, 10, 10]
     buffers = store.get_ranges(path, starts=starts, lengths=lengths)
 
-    # set strict=True when we upgrade to 3.10
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
 
 
@@ -163,7 +161,7 @@ def test_get_ranges_with_coalesce(
     store.put(path, data)
 
     buffers = store.get_ranges(path, starts=starts, ends=ends, coalesce=coalesce)
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
 
 
@@ -187,7 +185,7 @@ async def test_get_ranges_async_with_coalesce(
         ends=ends,
         coalesce=coalesce,
     )
-    for start, end, buffer in zip(starts, ends, buffers):
+    for start, end, buffer in zip(starts, ends, buffers, strict=True):
         assert memoryview(buffer) == data[start:end]
 
 

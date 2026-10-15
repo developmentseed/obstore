@@ -1,12 +1,7 @@
-import sys
+from typing import Self
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 class HTTPStore:
     """Configure a connection to a generic HTTP server."""

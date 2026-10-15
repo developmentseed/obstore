@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import azure.identity
@@ -92,7 +92,7 @@ class AzureCredentialProvider:
 
         return {
             "token": token.token,
-            "expires_at": datetime.fromtimestamp(token.expires_on, timezone.utc),
+            "expires_at": datetime.fromtimestamp(token.expires_on, UTC),
         }
 
 
@@ -172,5 +172,5 @@ class AzureAsyncCredentialProvider:
 
         return {
             "token": token.token,
-            "expires_at": datetime.fromtimestamp(token.expires_on, timezone.utc),
+            "expires_at": datetime.fromtimestamp(token.expires_on, UTC),
         }

@@ -3,7 +3,7 @@ name = "test-env"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
@@ -35,7 +35,7 @@ dev = [
     "google-auth>=2.38.0",
     "ipykernel>=6.29.5",
     "maturin-import-hook>=0.2.0",
-    "maturin>=1.12.0",
+    "maturin>=1.14.0",
     "minio>=7.2.16",
     "mypy>=1.15.0",
     "obspec>=0.1.0",
@@ -48,7 +48,7 @@ dev = [
     "pytest-run-parallel>=0.3.0;python_version>='3.13'",
     "python-dotenv>=1.0.1",
     "pyzmq>=27.1.0",
-    "ruff>=0.15.0",
+    "ruff>=0.16.0",
     "types-boto3[s3,sts]>=1.36.23",
     "types-requests>=2.31.0.6",
     "urllib3>=2.0",
@@ -58,11 +58,12 @@ dev = [
 members = ["examples/fastapi-example"]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "CPY001",  # CPY001 Missing copyright notice at top of file
     "D104",    # Missing docstring in public package
     "D203",    # 1 blank line required before class docstring (conflicts with D211)
     "D213",    # Multi-line docstring summary should start at the second line (conflicts with D212)

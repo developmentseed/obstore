@@ -1,15 +1,10 @@
 import sys
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
 from pathlib import Path
-from typing import IO, Literal, TypedDict
+from typing import IO, Literal, TypeAlias, TypedDict
 
 from ._attributes import Attributes
 from .store import ObjectStore
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
 
 if sys.version_info >= (3, 12):
     from collections.abc import Buffer
@@ -109,7 +104,7 @@ def put(
     tags: dict[str, str] | None = None,
     mode: PutMode | None = None,
     use_multipart: bool | None = None,
-    chunk_size: int = ...,
+    chunk_size: int = 5 * 1024 * 1024,
     max_concurrency: int = 12,
 ) -> PutResult:
     """Save the provided bytes to the specified location.
@@ -179,7 +174,7 @@ async def put_async(
     tags: dict[str, str] | None = None,
     mode: PutMode | None = None,
     use_multipart: bool | None = None,
-    chunk_size: int = ...,
+    chunk_size: int = 5 * 1024 * 1024,
     max_concurrency: int = 12,
 ) -> PutResult:
     """Call `put` asynchronously.

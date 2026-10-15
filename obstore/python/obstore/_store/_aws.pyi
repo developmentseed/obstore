@@ -1,20 +1,18 @@
-import sys
 from collections.abc import Coroutine
 from datetime import datetime
-from typing import Any, Literal, Protocol, TypedDict
+from typing import (
+    Any,
+    Literal,
+    NotRequired,
+    Protocol,
+    Self,
+    TypeAlias,
+    TypedDict,
+    Unpack,
+)
 
 from ._client import ClientConfig
 from ._retry import RetryConfig
-
-if sys.version_info >= (3, 10):
-    from typing import TypeAlias
-else:
-    from typing_extensions import TypeAlias
-
-if sys.version_info >= (3, 11):
-    from typing import NotRequired, Self, Unpack
-else:
-    from typing_extensions import NotRequired, Self, Unpack
 
 # To update s3 region list:
 # import pandas as pd  # noqa: ERA001
@@ -91,6 +89,16 @@ class S3Config(TypedDict, total=False):
     """AWS Access Key.
 
     **Environment variable**: `AWS_ACCESS_KEY_ID`.
+    """
+    aws_endpoint_url_s3: str
+    """The service-specific endpoint for communicating with AWS S3.
+
+    This takes precedence over `endpoint` when both are set.
+
+    By default, only HTTPS schemes are enabled. To connect to an HTTP endpoint, enable
+    `allow_http` in the client options.
+
+    **Environment variable**: `AWS_ENDPOINT_URL_S3`.
     """
 
     bucket: str
@@ -242,8 +250,7 @@ class S3Config(TypedDict, total=False):
     **Environment variables**:
 
     - `AWS_ENDPOINT`
-    - `AWS_ENDPOINT_URL`
-    - `AWS_ENDPOINT_URL_S3`.
+    - `AWS_ENDPOINT_URL`.
     """
 
     imdsv1_fallback: bool

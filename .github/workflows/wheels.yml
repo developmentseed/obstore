@@ -49,10 +49,10 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.10.x"
+          version: "0.13.x"
 
       - name: Install Python versions
-        run: uv python install 3.10 3.11 3.14t pypy3.11
+        run: uv python install 3.11 3.14t 3.15 pypy3.11
 
       - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
@@ -62,11 +62,19 @@ jobs:
           sccache: "true"
           manylinux: ${{ matrix.platform.manylinux }}
 
+      - name: Build abi3t-py315 wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --features abi3t-py315 -i 3.15 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+          manylinux: ${{ matrix.platform.manylinux }}
+
       - name: Build version-specific wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: ${{ matrix.platform.manylinux }}
 
@@ -96,10 +104,10 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.10.x"
+          version: "0.13.x"
 
       - name: Install Python versions
-        run: uv python install 3.10 3.11 3.14t pypy3.11
+        run: uv python install 3.11 3.14t 3.15 pypy3.11
 
       - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
@@ -109,11 +117,19 @@ jobs:
           sccache: "true"
           manylinux: musllinux_1_2
 
+      - name: Build abi3t-py315 wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --features abi3t-py315 -i 3.15 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+          manylinux: musllinux_1_2
+
       - name: Build version-specific wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: musllinux_1_2
 
@@ -130,16 +146,22 @@ jobs:
         platform:
           - runner: windows-latest
             target: x64
+            extra-interpreters: ["3.14t"]
+          - runner: windows-11-arm
+            target: aarch64
+            extra-interpreters: ["3.14t"]
     steps:
       - uses: actions/checkout@v7
       # There seem to be linking errors on Windows with the uv-provided Python
       # executables, so we use the Python versions provided by github actions
       # for now.
       # Seems to be this question: https://stackoverflow.com/questions/78557803/python-with-rust-cannot-open-input-file-python3-lib
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: 3.13
-          architecture: ${{ matrix.platform.target }}
+          python-version: |
+            ${{ join(matrix.platform.extra-interpreters, fromJSON('"\n"')) }}
+            3.13
+            3.15
 
       - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
@@ -148,11 +170,18 @@ jobs:
           args: --release --out dist --features abi3-py311 --features generate-import-lib -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
+      - name: Build abi3t-py315 wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --features abi3t-py315 --features generate-import-lib -i 3.15 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+
       - name: Build version-specific wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --features generate-import-lib -i 3.10 -i 3.14t --manifest-path obstore/Cargo.toml
+          args: --release --out dist --features generate-import-lib -i ${{ join(matrix.platform.extra-interpreters, ' ') }} --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v7
@@ -176,10 +205,10 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          version: "0.10.x"
+          version: "0.13.x"
 
       - name: Install Python versions
-        run: uv python install 3.10 3.11 3.14t pypy3.11
+        run: uv python install 3.11 3.14t 3.15 pypy3.11
 
       - name: Build abi3-py311 wheels
         uses: PyO3/maturin-action@v1
@@ -188,11 +217,18 @@ jobs:
           args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
+      - name: Build abi3t-py315 wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --features abi3t-py315 -i 3.15 --manifest-path obstore/Cargo.toml
+          sccache: "true"
+
       - name: Build version-specific wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.10 -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
         uses: actions/upload-artifact@v7
@@ -235,7 +271,7 @@ jobs:
           pattern: wheels-*-obstore
           merge-multiple: true
           path: dist
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: 3.13
 

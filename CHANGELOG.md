@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## [0.11.1] - 2026-08-21
+
+### What's Changed
+
+* perf: Reduce memory overhead for multipart uploads by @kylebarron in https://github.com/developmentseed/obstore/pull/771
+* fix: expose s3-specific endpoint config by @Guflly in https://github.com/developmentseed/obstore/pull/760
+* feat: Support R2 URLs with jurisdictions by @Kharacternyk in https://github.com/developmentseed/obstore/pull/757
+
+### New Contributors
+
+* @Guflly made their first contribution in https://github.com/developmentseed/obstore/pull/760
+* @Kharacternyk made their first contribution in https://github.com/developmentseed/obstore/pull/757
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.11.0...py-v0.11.1
+
 ## [0.11.0] - 2026-06-25
 
 ### What's Changed

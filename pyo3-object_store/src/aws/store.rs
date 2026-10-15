@@ -413,6 +413,16 @@ fn parse_url(
                     config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
                 }
             }
+            Some((account, jurisdiction, "r2", "cloudflarestorage.com")) => {
+                config.insert_if_not_exists(AmazonS3ConfigKey::Region, "auto");
+                let endpoint = format!("https://{account}.{jurisdiction}.r2.cloudflarestorage.com");
+                config.insert_if_not_exists(AmazonS3ConfigKey::Endpoint, endpoint);
+
+                let bucket = parsed.path_segments().into_iter().flatten().next();
+                if let Some(bucket) = bucket {
+                    config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                }
+            }
             _ => {
                 return Err(ParseUrlError::UrlNotRecognised {
                     url: parsed.as_str().to_string(),
