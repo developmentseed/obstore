@@ -27,21 +27,29 @@ jobs:
           - runner: ubuntu-latest
             target: x86_64
             manylinux: auto
+            extra-interpreters: ["3.14t", "pypy3.11"]
           - runner: ubuntu-latest
             target: x86
             manylinux: auto
+            # No 3.14t: rust-numpy requires Python 3.15+ for free-threaded 32-bit builds
+            extra-interpreters: ["pypy3.11"]
           - runner: ubuntu-latest
             target: aarch64
             manylinux: "2_24"
+            extra-interpreters: ["3.14t", "pypy3.11"]
           - runner: ubuntu-latest
             target: armv7
             manylinux: auto
+            # No 3.14t: rust-numpy requires Python 3.15+ for free-threaded 32-bit builds
+            extra-interpreters: ["pypy3.11"]
           - runner: ubuntu-latest
             target: s390x
             manylinux: auto
+            extra-interpreters: ["3.14t", "pypy3.11"]
           - runner: ubuntu-latest
             target: ppc64le
             manylinux: auto
+            extra-interpreters: ["3.14t", "pypy3.11"]
     steps:
       - uses: actions/checkout@v7
 
@@ -74,7 +82,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist -i ${{ join(matrix.platform.extra-interpreters, ' ') }} --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: ${{ matrix.platform.manylinux }}
 
@@ -91,12 +99,18 @@ jobs:
         platform:
           - runner: ubuntu-latest
             target: x86_64
+            extra-interpreters: ["3.14t", "pypy3.11"]
           - runner: ubuntu-latest
             target: x86
+            # No 3.14t: rust-numpy requires Python 3.15+ for free-threaded 32-bit builds
+            extra-interpreters: ["pypy3.11"]
           - runner: ubuntu-latest
             target: aarch64
+            extra-interpreters: ["3.14t", "pypy3.11"]
           - runner: ubuntu-latest
             target: armv7
+            # No 3.14t: rust-numpy requires Python 3.15+ for free-threaded 32-bit builds
+            extra-interpreters: ["pypy3.11"]
     steps:
       - uses: actions/checkout@v7
 
@@ -129,7 +143,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
+          args: --release --out dist -i ${{ join(matrix.platform.extra-interpreters, ' ') }} --manifest-path obstore/Cargo.toml
           sccache: "true"
           manylinux: musllinux_1_2
 
