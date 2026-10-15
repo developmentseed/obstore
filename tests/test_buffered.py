@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 from io import BytesIO
+from typing import TYPE_CHECKING
 
 import pytest
 
 import obstore as obs
-from obstore.store import MemoryStore
+from obstore.store import MemoryStore, S3Store
+
+if TYPE_CHECKING:
+    from obstore.store import ClientConfig, S3Config
 
 
 def test_readable_file_sync():
@@ -179,3 +185,18 @@ def test_open_reader_no_longer_exposes_meta():
 
     file = obs.open_reader(store, path)
     assert not hasattr(file, "meta")
+
+
+def test_open_reader_with_prefix(minio_bucket: tuple[S3Config, ClientConfig]):
+    # https://github.com/developmentseed/obstore/issues/744
+    # The reader must not apply the store prefix twice when it reads the object.
+    store = S3Store(
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
+        prefix="test-prefix",
+    )
+    data = b"hello world"
+    store.put("file1.txt", data)
+
+    file = obs.open_reader(store, "file1.txt")
+    assert memoryview(data) == memoryview(file.read())
