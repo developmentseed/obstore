@@ -32,16 +32,12 @@ http = { workspace = true }
 indexmap = { workspace = true }
 object_store = { workspace = true }
 pyo3 = { workspace = true, features = ["chrono"] }
-pyo3-arrow = "0.19"
+# pyo3-arrow with pyo3 0.30 from arro3 main, until it is released to crates.io.
+pyo3-arrow = { git = "https://github.com/kylebarron/arro3", rev = "bbd67d923a9507202b88433f62286327b86726e2" }
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
-# pyo3-bytes 0.7.2 (pyo3 0.29) from main, since the in-repo pyo3-bytes is on
-# pyo3 0.30. Switch back to the path dependency once obstore moves to pyo3 0.30.
-pyo3-bytes = { git = "https://github.com/developmentseed/obstore", rev = "174a0c80c280a9197d49ee01c3a4fb395e8c6233" }
+pyo3-bytes = { path = "../pyo3-bytes" }
 pyo3-file = { workspace = true }
-# pyo3-object_store 0.12 (pyo3 0.29) from main, since the in-repo
-# pyo3-object_store is on pyo3 0.30. Switch back to the path dependency once
-# obstore moves to pyo3 0.30.
-pyo3-object_store = { git = "https://github.com/developmentseed/obstore", rev = "174a0c80c280a9197d49ee01c3a4fb395e8c6233" }
+pyo3-object_store = { path = "../pyo3-object_store" }
 tokio = { workspace = true, features = [
     "macros",
     "rt",
