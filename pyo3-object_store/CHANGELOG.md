@@ -4,6 +4,7 @@
 
 - Bump to pyo3 0.30.
 - Support Cloudflare R2 URLs with a jurisdiction, such as `https://{account}.eu.r2.cloudflarestorage.com/{bucket}` (#757).
+- Strip the store prefix from the `ObjectMeta` returned by `get_opts` on a store with a `prefix`, so `head` returns a prefix-relative path and the buffered reader no longer reads from `prefix/prefix/key` (#745).
 
 ## [0.12.0] - 2026-06-25
 
