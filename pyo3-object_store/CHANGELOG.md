@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.0] - 2026-10-15
+
+- Bump to pyo3 0.30.
+- Support Cloudflare R2 URLs with a jurisdiction, such as `https://{account}.eu.r2.cloudflarestorage.com/{bucket}` (#757).
+
 ## [0.12.0] - 2026-06-25
 
 - Bump to object_store 0.14
