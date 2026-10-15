@@ -32,8 +32,7 @@ http = { workspace = true }
 indexmap = { workspace = true }
 object_store = { workspace = true }
 pyo3 = { workspace = true, features = ["chrono"] }
-# pyo3-arrow with pyo3 0.30 from arro3 main, until it is released to crates.io.
-pyo3-arrow = { git = "https://github.com/kylebarron/arro3", rev = "bbd67d923a9507202b88433f62286327b86726e2" }
+pyo3-arrow = "0.20"
 pyo3-async-runtimes = { workspace = true, features = ["tokio-runtime"] }
 pyo3-bytes = { path = "../pyo3-bytes" }
 pyo3-file = { workspace = true }
