@@ -24,7 +24,7 @@ abi3t-py315 = ["pyo3/abi3t-py315"]
 generate-import-lib = ["pyo3/generate-import-lib"]
 
 [dependencies]
-arrow = "59"
+arrow = "60"
 bytes = { workspace = true }
 chrono = { workspace = true }
 futures = { workspace = true }
