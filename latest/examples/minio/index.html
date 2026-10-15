@@ -2627,9 +2627,9 @@
 <p class="admonition-title">Note</p>
 <p>This example is also <a href="https://github.com/developmentseed/obstore/blob/main/examples/minio/README.md">available on Github</a> if you'd like to test it out locally.</p>
 </div>
-<p>We can run minio locally using docker:</p>
+<p>We can run minio locally using docker. MinIO no longer distributes Docker images of its community edition, so we use <a href="https://github.com/pgsty/silo">Silo</a>, a community-maintained fork of the MinIO server:</p>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>-p<span class="w"> </span><span class="m">9000</span>:9000<span class="w"> </span>-p<span class="w"> </span><span class="m">9001</span>:9001<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>quay.io/minio/minio<span class="w"> </span>server<span class="w"> </span>/data<span class="w"> </span>--console-address<span class="w"> </span><span class="s2">&quot;:9001&quot;</span>
+<span class="w">    </span>pgsty/silo<span class="w"> </span>server<span class="w"> </span>/data<span class="w"> </span>--console-address<span class="w"> </span><span class="s2">&quot;:9001&quot;</span>
 </code></pre></div>
 <p><code>obstore</code> isn't able to create a bucket, so we need to do that manually. We can do that through the minio web UI. After running the above docker command, go to <a href="http://localhost:9001">localhost:9001</a>. Then log in with the credentials <code>minioadmin</code>, <code>minioadmin</code> for username and password. Then click "Create a Bucket" and create a bucket with the name <code>"test-bucket"</code>.</p>
 <p>Now we can create an <code>S3Store</code> to interact with minio:</p>
