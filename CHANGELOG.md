@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## [0.12.0] - 2026-10-15
+
+### What's Changed
+
+* ci: add Windows ARM64 wheels by @ndabas in https://github.com/developmentseed/obstore/pull/775
+* fix: raise UnsupportedOperation exception in fsspec.BufferedFile impl by @RacleRay in https://github.com/developmentseed/obstore/pull/769
+* test: use pgsty/silo image for MinIO test fixture by @kylebarron in https://github.com/developmentseed/obstore/pull/783
+* fix: detach from the interpreter while creating a list stream by @kylebarron in https://github.com/developmentseed/obstore/pull/787
+* docs: use pgsty/silo image in MinIO example by @kylebarron in https://github.com/developmentseed/obstore/pull/784
+* fix(pyo3-bytes): don't panic on `b"" in Bytes` or a huge `Bytes * n` by @kylebarron in https://github.com/developmentseed/obstore/pull/788
+* feat!: build abi3t wheels for Python 3.15+ and drop Python 3.10 by @kylebarron in https://github.com/developmentseed/obstore/pull/792
+* chore(pyo3-bytes): Bump to pyo3 0.30 and prepare 0.8 release by @kylebarron in https://github.com/developmentseed/obstore/pull/796
+* fix: strip prefix from `get_opts` result in `MaybePrefixedStore` by @blinkybool in https://github.com/developmentseed/obstore/pull/745
+* chore(pyo3-object_store): Bump to pyo3 0.30 and prepare 0.13 release by @kylebarron in https://github.com/developmentseed/obstore/pull/797
+* chore: Bump obstore to pyo3 0.30 by @kylebarron in https://github.com/developmentseed/obstore/pull/798
+
+### New Contributors
+
+* @ndabas made their first contribution in https://github.com/developmentseed/obstore/pull/775
+* @RacleRay made their first contribution in https://github.com/developmentseed/obstore/pull/769
+* @blinkybool made their first contribution in https://github.com/developmentseed/obstore/pull/745
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.11.1...py-v0.12.0
+
 ## [0.11.1] - 2026-08-21
 
 ### What's Changed
