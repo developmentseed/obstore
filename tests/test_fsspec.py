@@ -361,47 +361,21 @@ def test_split_path(fs: FsspecStore):
     with pytest.raises(ValueError, match=r"Expected protocol to be s3. Got gs"):
         fs._split_path("gs://data-bucket/")
 
-    # in url format, without bucket
+    # Paths without a bucket keep their existing POSIX behavior. Windows
+    # drive splitting and file operations are covered by the focused test below.
     file_fs = FsspecStore("file")
-    drive, cwd_rel = os.path.splitdrive(Path.cwd().as_posix())
-    cwd_rel = cwd_rel.lstrip("/")
-    if os.name == "nt":
-        # On Windows, every path resolves onto a drive and the addressed drive
-        # is returned as the bucket so that `_construct_store` can root the
-        # local store on that drive.
-        for input_path in ("file:///mybucket/path/to/file", "/mybucket/path/to/file"):
-            assert file_fs._split_path(input_path) == (
-                drive,
-                f"{cwd_rel}/mybucket/path/to/file",
-            )
-        # An explicitly addressed drive is preserved.
-        assert file_fs._split_path(f"{drive}/data-bucket/") == (
-            drive,
-            "data-bucket/",
-        )
-    else:
+    if os.name != "nt":
         assert file_fs._split_path("file:///mybucket/path/to/file") == (
             "",
             "/mybucket/path/to/file",
         )
         assert file_fs._split_path("file:///data-bucket/") == ("", "/data-bucket/")
-
-        # path format, without bucket
         assert file_fs._split_path("/mybucket/path/to/file") == (
             "",
             "/mybucket/path/to/file",
         )
         assert file_fs._split_path("/data-bucket/") == ("", "/data-bucket/")
-
-    # relative path, without bucket -> resolved to absolute for the "file" protocol
-    rel_bucket, rel_path = file_fs._split_path("relative/path/to/file")
-    if os.name == "nt":
-        # The resolved drive is returned as the bucket; joining it back onto
-        # the path yields an absolute path.
-        assert rel_bucket == drive
-        assert rel_path == f"{cwd_rel}/relative/path/to/file"
-        assert Path(f"{drive}/{rel_path}").is_absolute()
-    else:
+        rel_bucket, rel_path = file_fs._split_path("relative/path/to/file")
         assert rel_bucket == ""
         assert Path(rel_path).is_absolute()
         assert rel_path.endswith("relative/path/to/file")
