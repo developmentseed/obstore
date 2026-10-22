@@ -3,6 +3,7 @@ from __future__ import annotations
 import gc
 import os
 import zipfile
+from datetime import datetime, timedelta
 from io import UnsupportedOperation
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -415,6 +416,32 @@ def test_list(
     types = {o["name"]: o["type"] for o in out}
     assert types.get(f"{bucket}/afile") == "file"
     assert types.get(f"{bucket}/dir") == "directory"
+
+
+def test_list_detail_matches_info(
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
+    bucket = minio_bucket[0].get("bucket")
+    assert bucket is not None
+
+    register("s3")
+    fs = fsspec.filesystem(
+        "s3",
+        config=minio_bucket[0],
+        client_options=minio_bucket[1],
+    )
+
+    fs.pipe_file(f"{bucket}/afile", b"hello world")
+
+    out = fs.ls(f"{bucket}", detail=True, refresh=True)
+    entry = next(o for o in out if o["name"] == f"{bucket}/afile")
+    # Without the listing in the cache, info() asks the store itself (HEAD).
+    fs.invalidate_cache()
+    info = fs.info(f"{bucket}/afile")
+    assert isinstance(entry["last_modified"], datetime)
+    # A listing reports milliseconds; HEAD's Last-Modified header whole seconds.
+    assert abs(entry["last_modified"] - info["last_modified"]) < timedelta(seconds=1)
+    assert entry["version"] == info["version"]
 
 
 @pytest.mark.asyncio
