@@ -38,3 +38,13 @@ def test_head_with_prefix(minio_bucket: tuple[S3Config, ClientConfig]):
     store.put("file1.txt", b"foo")
 
     assert store.head("file1.txt")["path"] == "file1.txt"
+
+
+def test_head_version(minio_versioned_store: S3Store):
+    # https://github.com/developmentseed/obstore/issues/806
+    # `head` should return the object version that `put` created.
+    put_result = minio_versioned_store.put("file1.txt", b"foo")
+    assert put_result["version"] is not None
+
+    meta = minio_versioned_store.head("file1.txt")
+    assert meta["version"] == put_result["version"]

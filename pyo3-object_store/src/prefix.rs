@@ -83,7 +83,7 @@ impl<T: ObjectStore> MaybePrefixedStore<T> {
             size: meta.size,
             location: self.strip_prefix(meta.location),
             e_tag: meta.e_tag,
-            version: None,
+            version: meta.version,
         }
     }
 }
@@ -120,7 +120,7 @@ fn strip_meta(prefix: Option<&Path>, meta: ObjectMeta) -> ObjectMeta {
         size: meta.size,
         location: strip_prefix(prefix, meta.location),
         e_tag: meta.e_tag,
-        version: None,
+        version: meta.version,
     }
 }
 #[async_trait::async_trait]
