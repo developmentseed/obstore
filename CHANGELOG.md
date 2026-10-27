@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## [0.12.1] - 2026-10-27
+
+### What's Changed
+
+* fix: preserve `version` in `get`/`head` metadata by @kylebarron in https://github.com/developmentseed/obstore/pull/807
+
+**Full Changelog**: https://github.com/developmentseed/obstore/compare/py-v0.12.0...py-v0.12.1
+
 ## [0.12.0] - 2026-10-15
 
 ### What's Changed
