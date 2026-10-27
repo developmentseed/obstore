@@ -11,6 +11,8 @@ import docker
 import pytest
 import requests
 from minio import Minio
+from minio.commonconfig import ENABLED
+from minio.versioningconfig import VersioningConfig
 from requests.exceptions import RequestException
 
 from obstore.store import S3Store
@@ -52,6 +54,7 @@ if TYPE_CHECKING:
     from obstore.store import ClientConfig, S3Config
 
 TEST_BUCKET_NAME = "test-bucket"
+TEST_VERSIONED_BUCKET_NAME = "test-versioned-bucket"
 
 
 def find_available_port() -> int:
@@ -131,6 +134,11 @@ def minio_config() -> Generator[tuple[S3Config, ClientConfig], Any, None]:
         secure=False,
     )
     minio_client.make_bucket(TEST_BUCKET_NAME)
+    minio_client.make_bucket(TEST_VERSIONED_BUCKET_NAME)
+    minio_client.set_bucket_versioning(
+        TEST_VERSIONED_BUCKET_NAME,
+        VersioningConfig(ENABLED),
+    )
 
     s3_config: S3Config = {
         "bucket": TEST_BUCKET_NAME,
@@ -168,6 +176,14 @@ def minio_bucket(
 def minio_store(minio_bucket: tuple[S3Config, ClientConfig]) -> S3Store:
     """Create an S3Store configured for MinIO integration testing."""
     return S3Store(config=minio_bucket[0], client_options=minio_bucket[1])
+
+
+@pytest.fixture
+def minio_versioned_store(minio_config: tuple[S3Config, ClientConfig]) -> S3Store:
+    """Create an S3Store for a MinIO bucket with versioning enabled."""
+    config = minio_config[0].copy()
+    config["bucket"] = TEST_VERSIONED_BUCKET_NAME
+    return S3Store(config=config, client_options=minio_config[1])
 
 
 def wait_for_minio(endpoint: str, timeout: int):

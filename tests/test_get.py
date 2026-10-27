@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
 from obstore.store import MemoryStore
+
+if TYPE_CHECKING:
+    from obstore.store import S3Store
 
 
 def test_stream_sync():
@@ -236,3 +241,13 @@ def test_access_getresult_attributes_after_reading_stream():
     # Validate that we can access the range _after_ consuming the buffer
     r = resp.range
     assert r == (0, 4400)
+
+
+def test_get_version(minio_versioned_store: S3Store):
+    # https://github.com/developmentseed/obstore/issues/806
+    # `get` should return the object version that `put` created.
+    put_result = minio_versioned_store.put("file1.txt", b"foo")
+    assert put_result["version"] is not None
+
+    resp = minio_versioned_store.get("file1.txt")
+    assert resp.meta["version"] == put_result["version"]
