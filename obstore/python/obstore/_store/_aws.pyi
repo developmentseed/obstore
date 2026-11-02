@@ -238,7 +238,7 @@ class S3Config(TypedDict, total=False):
     For example, this might be set to `"http://localhost:4566:` for testing against a
     localstack instance.
 
-    The `endpoint` field should be consistent with `with_virtual_hosted_style_request`,
+    The `endpoint` field should be consistent with `virtual_hosted_style_request`,
     i.e. if `virtual_hosted_style_request` is set to `True` then `endpoint` should have
     the bucket name included.
 
