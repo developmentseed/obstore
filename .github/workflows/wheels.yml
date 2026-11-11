@@ -51,10 +51,10 @@ jobs:
             manylinux: auto
             extra-interpreters: ["3.14t", "pypy3.11"]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v7.6.0
         with:
           enable-cache: true
           version: "0.13.x"
@@ -63,7 +63,7 @@ jobs:
         run: uv python install 3.11 3.14t 3.15 pypy3.11
 
       - name: Build abi3-py311 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
@@ -71,7 +71,7 @@ jobs:
           manylinux: ${{ matrix.platform.manylinux }}
 
       - name: Build abi3t-py315 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3t-py315 -i 3.15 --manifest-path obstore/Cargo.toml
@@ -79,7 +79,7 @@ jobs:
           manylinux: ${{ matrix.platform.manylinux }}
 
       - name: Build version-specific wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist -i ${{ join(matrix.platform.extra-interpreters, ' ') }} --manifest-path obstore/Cargo.toml
@@ -87,7 +87,7 @@ jobs:
           manylinux: ${{ matrix.platform.manylinux }}
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: wheels-linux-${{ matrix.platform.target }}-obstore
           path: dist
@@ -112,10 +112,10 @@ jobs:
             # No 3.14t: rust-numpy requires Python 3.15+ for free-threaded 32-bit builds
             extra-interpreters: ["pypy3.11"]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v7.6.0
         with:
           enable-cache: true
           version: "0.13.x"
@@ -124,7 +124,7 @@ jobs:
         run: uv python install 3.11 3.14t 3.15 pypy3.11
 
       - name: Build abi3-py311 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
@@ -132,7 +132,7 @@ jobs:
           manylinux: musllinux_1_2
 
       - name: Build abi3t-py315 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3t-py315 -i 3.15 --manifest-path obstore/Cargo.toml
@@ -140,7 +140,7 @@ jobs:
           manylinux: musllinux_1_2
 
       - name: Build version-specific wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist -i ${{ join(matrix.platform.extra-interpreters, ' ') }} --manifest-path obstore/Cargo.toml
@@ -148,7 +148,7 @@ jobs:
           manylinux: musllinux_1_2
 
       - name: Upload wheels
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: wheels-musllinux-${{ matrix.platform.target }}-obstore
           path: dist
@@ -165,12 +165,12 @@ jobs:
             target: aarch64
             extra-interpreters: ["3.14t"]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       # There seem to be linking errors on Windows with the uv-provided Python
       # executables, so we use the Python versions provided by github actions
       # for now.
       # Seems to be this question: https://stackoverflow.com/questions/78557803/python-with-rust-cannot-open-input-file-python3-lib
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: |
             ${{ join(matrix.platform.extra-interpreters, fromJSON('"\n"')) }}
@@ -178,27 +178,27 @@ jobs:
             3.15
 
       - name: Build abi3-py311 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3-py311 --features generate-import-lib -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
       - name: Build abi3t-py315 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3t-py315 --features generate-import-lib -i 3.15 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
       - name: Build version-specific wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features generate-import-lib -i ${{ join(matrix.platform.extra-interpreters, ' ') }} --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: wheels-windows-${{ matrix.platform.target }}-obstore
           path: dist
@@ -213,10 +213,10 @@ jobs:
           - runner: macos-15
             target: aarch64
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v7.6.0
         with:
           enable-cache: true
           version: "0.13.x"
@@ -225,27 +225,27 @@ jobs:
         run: uv python install 3.11 3.14t 3.15 pypy3.11
 
       - name: Build abi3-py311 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3-py311 -i 3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
       - name: Build abi3t-py315 wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist --features abi3t-py315 -i 3.15 --manifest-path obstore/Cargo.toml
           sccache: "true"
 
       - name: Build version-specific wheels
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           target: ${{ matrix.platform.target }}
           args: --release --out dist -i 3.14t -i pypy3.11 --manifest-path obstore/Cargo.toml
           sccache: "true"
       - name: Upload wheels
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: wheels-macos-${{ matrix.platform.target }}-obstore
           path: dist
@@ -253,9 +253,9 @@ jobs:
   sdist:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Build sdist
-        uses: PyO3/maturin-action@v1
+        uses: PyO3/maturin-action@v1.51.0
         with:
           command: sdist
           args: --out dist --manifest-path obstore/Cargo.toml
@@ -263,7 +263,7 @@ jobs:
         run: |
           python -m pip install dist/*.tar.gz
       - name: Upload sdist
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: wheels-sdist-obstore
           path: dist
@@ -280,12 +280,12 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     needs: [linux, musllinux, windows, macos, sdist]
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: wheels-*-obstore
           merge-multiple: true
           path: dist
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: 3.13
 

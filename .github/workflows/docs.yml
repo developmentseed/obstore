@@ -21,7 +21,7 @@ jobs:
     env:
       CI: "TRUE"
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         # We need to additionally fetch the gh-pages branch for mike deploy
         with:
           fetch-depth: 0
@@ -31,12 +31,12 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - uses: Swatinem/rust-cache@v2.9.3
         with:
           key: ${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install a specific version of uv
-        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        uses: astral-sh/setup-uv@v7.6.0
         with:
           enable-cache: true
           version: "0.13.x"
