@@ -10,8 +10,7 @@ jobs:
   validate-pr-title:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write # add the type label to the PR
-      issues: write # create a missing type label
+      pull-requests: write # add the type label, creating it if missing
     steps:
       - name: PR Conventional Commit Validation
         uses: ytanikin/pr-conventional-commits@1.5.2
