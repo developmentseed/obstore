@@ -485,8 +485,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
         res = urlparse(lpath)
-        if res.scheme or await self._local_store._isdir(lpath):  # noqa: SLF001
-            # lpath need to be local file and cannot contain scheme
+        # lpath need to be local file and cannot contain scheme. A directory entry of a
+        # recursive get maps to a local directory, which may still be empty here.
+        if res.scheme or await asyncio.to_thread(Path(lpath).is_dir):
             return
 
         resp = await self._cat_file(rpath)
