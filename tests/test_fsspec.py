@@ -546,6 +546,28 @@ def test_put_files(minio_bucket: tuple[S3Config, ClientConfig]):
     fs.rm(remote_file_path)
 
 
+def test_get_directory_recursive(
+    fs: FsspecStore,
+    minio_bucket: tuple[S3Config, ClientConfig],
+):
+    bucket = minio_bucket[0].get("bucket")
+    fs.pipe(
+        {
+            f"{bucket}/getdir/jan/a.txt": b"a",
+            f"{bucket}/getdir/jan/b.txt": b"b",
+            f"{bucket}/getdir/feb/c.txt": b"c",
+        },
+    )
+
+    with TemporaryDirectory() as tmp:
+        fs.get(f"{bucket}/getdir/", tmp, recursive=True)
+
+        files = sorted(str(p.relative_to(tmp)) for p in Path(tmp).rglob("*.txt"))
+        assert files == ["feb/c.txt", "jan/a.txt", "jan/b.txt"]
+
+    fs.rm(f"{bucket}/getdir", recursive=True)
+
+
 @pytest.mark.asyncio
 async def test_put_files_async(
     minio_bucket: tuple[S3Config, ClientConfig],
