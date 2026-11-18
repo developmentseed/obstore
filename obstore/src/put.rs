@@ -241,11 +241,7 @@ impl<'py> FromPyObject<'_, 'py> for PutInput {
 
     fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
         let py = obj.py();
-        if let Ok(path) = obj.extract::<PathBuf>() {
-            Ok(Self::Pull(PullSource::File(BufReader::new(File::open(
-                path,
-            )?))))
-        } else if let Ok(buffer) = obj.extract::<PyBytes>() {
+        if let Ok(buffer) = obj.extract::<PyBytes>() {
             Ok(Self::Buffer(buffer.into_inner()))
         }
         // Check for file-like object
@@ -283,6 +279,51 @@ impl<'py> FromPyObject<'_, 'py> for PutInput {
     }
 }
 
+/// Input to `put`, as given from Python.
+pub(crate) enum PyPutInput {
+    /// A path to a local file, not yet opened
+    Path(PathBuf),
+
+    /// Any other input
+    Other(PutInput),
+}
+
+impl PyPutInput {
+    /// Open the file, if this is a path.
+    ///
+    /// Opening a file can block, so call this without the GIL and off the async runtime.
+    fn open(self) -> PyResult<PutInput> {
+        match self {
+            Self::Path(path) => Ok(PutInput::Pull(PullSource::File(BufReader::new(
+                File::open(path)?,
+            )))),
+            Self::Other(input) => Ok(input),
+        }
+    }
+
+    /// Open the file on a blocking thread, if this is a path.
+    async fn open_async(self) -> PyObjectStoreResult<PutInput> {
+        match self {
+            Self::Path(_) => Ok(tokio::task::spawn_blocking(move || self.open())
+                .await
+                .map_err(object_store::Error::from)??),
+            Self::Other(input) => Ok(input),
+        }
+    }
+}
+
+impl<'py> FromPyObject<'_, 'py> for PyPutInput {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        if let Ok(path) = obj.extract::<PathBuf>() {
+            Ok(Self::Path(path))
+        } else {
+            Ok(Self::Other(obj.extract()?))
+        }
+    }
+}
+
 pub(crate) struct PyPutResult(PutResult);
 
 impl<'py> IntoPyObject<'py> for PyPutResult {
@@ -305,7 +346,7 @@ pub(crate) fn put(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
-    mut file: PutInput,
+    file: PyPutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
@@ -313,27 +354,28 @@ pub(crate) fn put(
     chunk_size: NonZeroUsize,
     max_concurrency: usize,
 ) -> PyObjectStoreResult<PyPutResult> {
-    if matches!(file, PutInput::AsyncPush(_)) {
+    if matches!(file, PyPutInput::Other(PutInput::AsyncPush(_))) {
         return Err(
             PyValueError::new_err("Async input not allowed in 'put'. Use 'put_async'.").into(),
         );
     }
 
-    let mut use_multipart = if let Some(use_multipart) = use_multipart {
-        use_multipart
-    } else {
-        file.use_multipart(chunk_size)?
-    };
-
-    // If mode is provided and not Overwrite, force a non-multipart put
-    if let Some(mode) = &mode {
-        if !matches!(mode.0, PutMode::Overwrite) {
-            use_multipart = false;
-        }
-    }
-
     let runtime = get_runtime();
     py.detach(|| {
+        let mut file = file.open()?;
+        let mut use_multipart = if let Some(use_multipart) = use_multipart {
+            use_multipart
+        } else {
+            file.use_multipart(chunk_size)?
+        };
+
+        // If mode is provided and not Overwrite, force a non-multipart put
+        if let Some(mode) = &mode {
+            if !matches!(mode.0, PutMode::Overwrite) {
+                use_multipart = false;
+            }
+        }
+
         if use_multipart {
             runtime.block_on(put_multipart_inner(
                 store.into_inner(),
@@ -364,7 +406,7 @@ pub(crate) fn put_async(
     py: Python,
     store: PyObjectStore,
     path: PyPath,
-    mut file: PutInput,
+    file: PyPutInput,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
     mode: Option<PyPutMode>,
@@ -372,20 +414,21 @@ pub(crate) fn put_async(
     chunk_size: NonZeroUsize,
     max_concurrency: usize,
 ) -> PyResult<Bound<PyAny>> {
-    let mut use_multipart = if let Some(use_multipart) = use_multipart {
-        use_multipart
-    } else {
-        file.use_multipart(chunk_size)?
-    };
-
-    // If mode is provided and not Overwrite, force a non-multipart put
-    if let Some(mode) = &mode {
-        if !matches!(mode.0, PutMode::Overwrite) {
-            use_multipart = false;
-        }
-    }
-
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        let mut file = file.open_async().await?;
+        let mut use_multipart = if let Some(use_multipart) = use_multipart {
+            use_multipart
+        } else {
+            file.use_multipart(chunk_size)?
+        };
+
+        // If mode is provided and not Overwrite, force a non-multipart put
+        if let Some(mode) = &mode {
+            if !matches!(mode.0, PutMode::Overwrite) {
+                use_multipart = false;
+            }
+        }
+
         let result = if use_multipart {
             put_multipart_inner(
                 store.into_inner(),
