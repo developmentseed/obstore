@@ -361,26 +361,24 @@ def test_split_path(fs: FsspecStore):
     with pytest.raises(ValueError, match=r"Expected protocol to be s3. Got gs"):
         fs._split_path("gs://data-bucket/")
 
-    # in url format, without bucket
+    # Paths without a bucket keep their existing POSIX behavior. Windows
+    # drive splitting and file operations are covered by the focused test below.
     file_fs = FsspecStore("file")
-    assert file_fs._split_path("file:///mybucket/path/to/file") == (
-        "",
-        "/mybucket/path/to/file",
-    )
-    assert file_fs._split_path("file:///data-bucket/") == ("", "/data-bucket/")
-
-    # path format, without bucket
-    assert file_fs._split_path("/mybucket/path/to/file") == (
-        "",
-        "/mybucket/path/to/file",
-    )
-    assert file_fs._split_path("/data-bucket/") == ("", "/data-bucket/")
-
-    # relative path, without bucket -> resolved to absolute for the "file" protocol
-    rel_bucket, rel_path = file_fs._split_path("relative/path/to/file")
-    assert rel_bucket == ""
-    assert Path(rel_path).is_absolute()
-    assert rel_path.endswith("relative/path/to/file")
+    if os.name != "nt":
+        assert file_fs._split_path("file:///mybucket/path/to/file") == (
+            "",
+            "/mybucket/path/to/file",
+        )
+        assert file_fs._split_path("file:///data-bucket/") == ("", "/data-bucket/")
+        assert file_fs._split_path("/mybucket/path/to/file") == (
+            "",
+            "/mybucket/path/to/file",
+        )
+        assert file_fs._split_path("/data-bucket/") == ("", "/data-bucket/")
+        rel_bucket, rel_path = file_fs._split_path("relative/path/to/file")
+        assert rel_bucket == ""
+        assert Path(rel_path).is_absolute()
+        assert rel_path.endswith("relative/path/to/file")
 
     # memory protocol keeps relative paths untouched (paths are virtual)
     memory_fs = FsspecStore("memory")  # type: ignore (no __init__ overload for memory)
@@ -388,6 +386,61 @@ def test_split_path(fs: FsspecStore):
         "",
         "relative/path/to/file",
     )
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows drive path handling")
+def test_file_protocol_windows_drive_paths():
+    """The fsspec ``file`` protocol supports Windows drive paths.
+
+    On Windows, every path addresses a drive; the drive is returned as the
+    bucket so that `_construct_store` can root the local store there, and
+    directories resolve through the listing fallback, matching the POSIX
+    behavior of `head` on a directory.
+
+    Ref: https://github.com/developmentseed/obstore/issues/763
+    Ref: https://github.com/developmentseed/obstore/issues/555
+    """
+    register("file")
+    fs = fsspec.filesystem("file")
+
+    with TemporaryDirectory() as tmp:
+        posix_dir = Path(tmp).as_posix()
+        file_path = f"{posix_dir}/file.txt"
+        Path(tmp, "file.txt").write_text("data")
+        subdir = Path(tmp, "sub")
+        subdir.mkdir()
+        Path(tmp, "sub", "inner.txt").write_text("inner")
+
+        assert fs.exists(file_path)
+        assert not fs.exists(f"{posix_dir}/missing.txt")
+        assert fs.info(file_path)["size"] == 4
+        assert fs.cat_file(file_path) == b"data"
+        with fs.open(file_path) as f:
+            assert f.read() == b"data"
+
+        assert fs.exists(f"{posix_dir}/sub")
+        assert fs.isdir(f"{posix_dir}/sub")
+        assert not fs.isdir(file_path)
+
+        names = fs.ls(posix_dir, detail=False)
+        assert file_path in names
+        assert f"{posix_dir}/sub" in names
+        assert fs.ls(f"{posix_dir}/sub", detail=False) == [
+            f"{posix_dir}/sub/inner.txt",
+        ]
+
+        fs.pipe_file(f"{posix_dir}/piped.txt", b"piped")
+        assert fs.cat_file(f"{posix_dir}/piped.txt") == b"piped"
+        with fs.open(f"{posix_dir}/written.txt", mode="wb") as f:
+            f.write(b"written")
+        assert fs.cat_file(f"{posix_dir}/written.txt") == b"written"
+
+        local_out = Path(tmp, "out.txt")
+        fs.get(file_path, str(local_out))
+        assert local_out.read_text() == "data"
+
+        fs.rm_file(f"{posix_dir}/piped.txt")
+        assert not fs.exists(f"{posix_dir}/piped.txt")
 
 
 def test_list(

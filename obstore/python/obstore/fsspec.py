@@ -33,6 +33,7 @@ integration.
 from __future__ import annotations
 
 import asyncio
+import os
 import warnings
 from collections import defaultdict
 from functools import cached_property, lru_cache
@@ -46,7 +47,8 @@ import fsspec.spec
 from fsspec.implementations.local import make_path_posix
 
 from obstore import open_reader, open_writer
-from obstore.store import from_url
+from obstore.exceptions import GenericError
+from obstore.store import LocalStore, from_url
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Iterable
@@ -106,6 +108,16 @@ SUPPORTED_PROTOCOLS_T = Literal[
     "s3a",
 ]
 """A type hint for all supported protocols."""
+
+
+def _is_windows_drive_path(path: str) -> bool:
+    """Whether the input is a Windows drive path such as `D:/dir/file`.
+
+    `urlparse` parses the drive letter of such a path as the URL scheme, so
+    drive paths must be detected before any URL handling.
+    """
+    parsed = urlparse(path)
+    return os.name == "nt" and len(parsed.scheme) == 1 and parsed.scheme.isalpha()
 
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -295,11 +307,29 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
         # If the protocol doesn't require buckets, return empty bucket and full path
         if self.protocol in protocol_without_bucket:
+            if self.protocol == "file" and _is_windows_drive_path(path):
+                # A Windows drive path such as `D:\dir\file` or `D:/dir/file` is
+                # not a URL: `urlparse` would parse the drive letter as the URL
+                # scheme. Resolve the whole path and return the addressed drive
+                # as the bucket so that `_construct_store` can root a local
+                # store on that drive.
+                drive, _, rest = str(make_path_posix(path)).partition(":")
+                return (f"{drive}:", rest.lstrip("/"))
             parsed_path = (
                 f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path
             )
             if self.protocol == "file":
                 parsed_path = str(make_path_posix(parsed_path))
+                if os.name == "nt":
+                    # On Windows, `make_path_posix` resolves any path to a
+                    # drive-rooted path such as `D:/dir/file`. As the store for
+                    # an empty bucket is rooted at the current drive, joining a
+                    # drive-rooted path onto it would duplicate the drive;
+                    # instead return the resolved drive as the bucket, as for
+                    # drive paths above.
+                    drive, _, rest = parsed_path.partition(":")
+                    if len(drive) == 1 and drive.isalpha():
+                        return (f"{drive}:", rest.lstrip("/"))
             return (
                 "",
                 parsed_path,
@@ -330,6 +360,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
     def _construct_store(self, bucket: str) -> ObjectStore:
         protocol = self.protocol if isinstance(self.protocol, str) else self.protocol[0]
+        if protocol == "file" and bucket:
+            # A `file://` URL cannot express a Windows drive root: the drive
+            # would be parsed as the URL authority, not the path. Root the
+            # local store on the drive directly.
+            return LocalStore(f"{bucket}/", **self._config_kwargs)
         return from_url(
             url=f"{protocol}://{bucket}",
             config=self._config,  # type: ignore (type narrowing)
@@ -485,7 +520,10 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
         res = urlparse(lpath)
-        if res.scheme or await self._local_store._isdir(lpath):  # noqa: SLF001
+        if (
+            (res.scheme and not _is_windows_drive_path(lpath))
+            or await self._local_store._isdir(lpath)  # noqa: SLF001
+        ):
             # lpath need to be local file and cannot contain scheme
             return
 
@@ -520,6 +558,13 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             }
         except FileNotFoundError:
             pass
+        except GenericError:
+            # On Windows, opening a directory to stat it fails with access
+            # denied before the upstream is-directory check can report it as
+            # not found, as `head` does on POSIX. Fall through to the
+            # directory fallback below only for directories.
+            if self.protocol != "file" or not Path(path).is_dir():  # noqa: ASYNC240
+                raise
 
         # Ref: https://github.com/fsspec/s3fs/blob/01b9c4b838b81375093ae1d78562edf6bdc616ea/s3fs/core.py#L1471-L1492
         # We check to see if the path is a directory by attempting to list its
