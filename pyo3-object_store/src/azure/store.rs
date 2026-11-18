@@ -274,11 +274,9 @@ impl<'py> IntoPyObject<'py> for &PyAzureConfigKey {
         if let Some(stripped) = s.strip_prefix("azure_storage_") {
             return Ok(PyString::new(py, stripped));
         }
-        Ok(PyString::new(
-            py,
-            s.strip_prefix("azure_")
-                .expect("Expected config prefix to start with azure_"),
-        ))
+        // Client config keys are not `azure_`-prefixed upstream, so only strip the prefix when it
+        // is actually present.
+        Ok(PyString::new(py, s.strip_prefix("azure_").unwrap_or(s)))
     }
 }
 

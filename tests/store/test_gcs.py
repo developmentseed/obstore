@@ -21,6 +21,14 @@ def test_eq():
     assert store != store3
 
 
+def test_client_config_key_does_not_panic():
+    # Client config keys are not `google_`-prefixed upstream, so reading `.config`
+    # used to panic.
+    store = GCSStore("bucket", allow_http=True)
+    assert store.config["allow_http"] == "true"
+    assert GCSStore(config=store.config).config == store.config
+
+
 def test_application_credentials():
     # The application_credentials parameter should be correctly passed down
     # Finalizing the GCSBuilder should try to load and parse those credentials, which
