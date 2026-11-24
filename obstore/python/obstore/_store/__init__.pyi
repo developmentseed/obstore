@@ -62,6 +62,7 @@ def from_url(
     retry_config: None = None,
     automatic_cleanup: bool = False,
     mkdir: bool = False,
+    fsync: bool = False,
 ) -> ObjectStore: ...
 def from_url(  # type: ignore[misc] # docstring in pyi file
     url: str,
@@ -133,6 +134,7 @@ class LocalStore:
         *,
         automatic_cleanup: bool = False,
         mkdir: bool = False,
+        fsync: bool = False,
     ) -> None:
         """Create a new LocalStore.
 
@@ -145,6 +147,13 @@ class LocalStore:
             mkdir: if `True` and `prefix` is not `None`, the directory at `prefix` will
                 attempt to be created. Note that this root directory will not be cleaned
                 up, even if `automatic_cleanup` is `True`.
+            fsync: if `True`, writes are flushed to stable storage with `fsync` before
+                they return. `put` (including multipart uploads) syncs the file it
+                writes. `put`, `copy`, and `rename` sync the destination's parent
+                directory, the source's parent directory for `rename`, and any parent
+                directories they create. `delete` does not sync. Directories are only
+                synced on Unix; on other platforms, such as Windows, only file contents
+                are. This makes writes slower. Defaults to False.
 
         """
     @classmethod
@@ -154,6 +163,7 @@ class LocalStore:
         *,
         automatic_cleanup: bool = False,
         mkdir: bool = False,
+        fsync: bool = False,
     ) -> Self:
         """Construct a new LocalStore from a `file://` URL.
 

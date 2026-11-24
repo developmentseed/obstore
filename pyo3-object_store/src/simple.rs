@@ -71,6 +71,7 @@ pub fn from_url<'py>(
         ObjectStoreScheme::Local => {
             let mut automatic_cleanup = false;
             let mut mkdir = false;
+            let mut fsync = false;
             if let Some(kwargs) = kwargs {
                 let kwargs = kwargs.cast::<PyDict>()?;
                 if let Some(val) = kwargs.get_item(intern!(py, "automatic_cleanup"))? {
@@ -79,6 +80,9 @@ pub fn from_url<'py>(
                 if let Some(val) = kwargs.get_item(intern!(py, "mkdir"))? {
                     mkdir = val.extract()?;
                 }
+                if let Some(val) = kwargs.get_item(intern!(py, "fsync"))? {
+                    fsync = val.extract()?;
+                }
             }
 
             PyLocalStore::from_url(
@@ -86,6 +90,7 @@ pub fn from_url<'py>(
                 url,
                 automatic_cleanup,
                 mkdir,
+                fsync,
             )
         }
         ObjectStoreScheme::Memory => {

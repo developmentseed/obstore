@@ -16,6 +16,7 @@ struct LocalConfig {
     prefix: Option<std::path::PathBuf>,
     automatic_cleanup: bool,
     mkdir: bool,
+    fsync: bool,
 }
 
 impl LocalConfig {
@@ -24,6 +25,7 @@ impl LocalConfig {
         let kwargs = PyDict::new(py);
         kwargs.set_item(intern!(py, "automatic_cleanup"), self.automatic_cleanup)?;
         kwargs.set_item(intern!(py, "mkdir"), self.mkdir)?;
+        kwargs.set_item(intern!(py, "fsync"), self.fsync)?;
         PyTuple::new(py, [args, kwargs.into_bound_py_any(py)?])
     }
 }
@@ -52,11 +54,12 @@ impl PyLocalStore {
 #[pymethods]
 impl PyLocalStore {
     #[new]
-    #[pyo3(signature = (prefix=None, *, automatic_cleanup=false, mkdir=false))]
+    #[pyo3(signature = (prefix=None, *, automatic_cleanup=false, mkdir=false, fsync=false))]
     fn new(
         prefix: Option<std::path::PathBuf>,
         automatic_cleanup: bool,
         mkdir: bool,
+        fsync: bool,
     ) -> PyObjectStoreResult<Self> {
         let fs = if let Some(prefix) = &prefix {
             if mkdir {
@@ -66,24 +69,28 @@ impl PyLocalStore {
         } else {
             LocalFileSystem::new()
         };
-        let fs = fs.with_automatic_cleanup(automatic_cleanup);
+        let fs = fs
+            .with_automatic_cleanup(automatic_cleanup)
+            .with_fsync(fsync);
         Ok(Self {
             store: Arc::new(fs),
             config: LocalConfig {
                 prefix,
                 automatic_cleanup,
                 mkdir,
+                fsync,
             },
         })
     }
 
     #[classmethod]
-    #[pyo3(signature = (url, *, automatic_cleanup=false, mkdir=false))]
+    #[pyo3(signature = (url, *, automatic_cleanup=false, mkdir=false, fsync=false))]
     pub(crate) fn from_url<'py>(
         cls: &Bound<'py, PyType>,
         url: PyUrl,
         automatic_cleanup: bool,
         mkdir: bool,
+        fsync: bool,
     ) -> PyObjectStoreResult<Bound<'py, PyAny>> {
         let url = url.into_inner();
         let (scheme, path) = ObjectStoreScheme::parse(&url).map_err(object_store::Error::from)?;
@@ -104,6 +111,7 @@ impl PyLocalStore {
         kwargs.set_item("prefix", full_path)?;
         kwargs.set_item("automatic_cleanup", automatic_cleanup)?;
         kwargs.set_item("mkdir", mkdir)?;
+        kwargs.set_item("fsync", fsync)?;
         Ok(cls.call((), Some(&kwargs))?)
     }
 

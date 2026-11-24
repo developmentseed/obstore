@@ -711,6 +711,7 @@ def from_url(
     retry_config: None = None,
     automatic_cleanup: bool = False,
     mkdir: bool = False,
+    fsync: bool = False,
 ) -> ObjectStore: ...
 def from_url(  # noqa: C901
     url: str,
@@ -811,10 +812,13 @@ def from_url(  # noqa: C901
     if scheme == "local":
         automatic_cleanup = False
         mkdir = False
+        fsync = False
         if "automatic_cleanup" in kwargs:
             automatic_cleanup = kwargs.pop("automatic_cleanup")
         if "mkdir" in kwargs:
             mkdir = kwargs.pop("mkdir")
+        if "fsync" in kwargs:
+            fsync = kwargs.pop("fsync")
         if credential_provider:
             msg = "LocalStore does not accept a credential provider"
             raise BaseError(msg)
@@ -823,6 +827,7 @@ def from_url(  # noqa: C901
             url,
             automatic_cleanup=automatic_cleanup,
             mkdir=mkdir,
+            fsync=fsync,
         )
     if scheme == "memory":
         if config or kwargs:

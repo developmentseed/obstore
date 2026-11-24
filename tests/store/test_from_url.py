@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from obstore import _obstore  # pyright:ignore[reportMissingModuleSource]
 from obstore.exceptions import BaseError, UnknownConfigurationKeyError
-from obstore.store import from_url
+from obstore.store import LocalStore, from_url
 
 if TYPE_CHECKING:
     from obstore.store import S3Credential
@@ -16,6 +17,20 @@ def test_local():
     cwd = Path().absolute()
     url = f"file://{cwd}"
     _store = from_url(url)
+
+
+def test_local_fsync():
+    cwd = Path().absolute()
+    url = f"file://{cwd}"
+    store = from_url(url, fsync=True)
+    assert isinstance(store, LocalStore)
+    assert store == LocalStore.from_url(url, fsync=True)
+    assert store != LocalStore.from_url(url)
+
+    # `obstore.store.from_url` doesn't call the Rust `from_url`, so test it directly
+    rust_store = _obstore._store.from_url(url, fsync=True)
+    assert rust_store == LocalStore.from_url(url, fsync=True)
+    assert rust_store != LocalStore.from_url(url)
 
 
 def test_memory():

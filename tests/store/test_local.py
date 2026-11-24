@@ -85,6 +85,53 @@ def test_eq():
     assert store == store2
     assert store != store3
 
+    assert LocalStore(HERE, fsync=True) == LocalStore(HERE, fsync=True)
+    assert LocalStore(HERE, fsync=True) != LocalStore(HERE)
+
+
+def test_fsync():
+    with TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        store = LocalStore(tmp_path, fsync=True)
+
+        store.put("a.txt", b"foo")
+        assert store.get("a.txt").bytes() == b"foo"
+
+        data = b"0123456789" * 1000
+        store.put("nested/multipart.bin", data, use_multipart=True, chunk_size=1024)
+        assert store.get("nested/multipart.bin").bytes() == data
+
+        store.copy("a.txt", "copy/overwrite.txt")
+        store.copy("a.txt", "copy/create.txt", overwrite=False)
+        store.rename("copy/overwrite.txt", "rename/overwrite.txt")
+        store.rename("copy/create.txt", "rename/create.txt", overwrite=False)
+
+        assert store.get("rename/overwrite.txt").bytes() == b"foo"
+        assert store.get("rename/create.txt").bytes() == b"foo"
+        assert not (tmp_path / "copy" / "overwrite.txt").exists()
+        assert not (tmp_path / "copy" / "create.txt").exists()
+
+
+def test_fsync_pickle():
+    with TemporaryDirectory() as tmp:
+        tmp_path = Path(tmp)
+        store = LocalStore(tmp_path, fsync=True)
+        _args, kwargs = store.__getnewargs_ex__()
+        assert kwargs["fsync"] is True
+
+        new_store: LocalStore = pickle.loads(pickle.dumps(store))
+        assert new_store == store
+        assert new_store != LocalStore(tmp_path)
+
+
+def test_fsync_from_url():
+    url = f"file://{HERE.absolute()}"
+    store = LocalStore.from_url(url, fsync=True)
+    _args, kwargs = store.__getnewargs_ex__()
+    assert kwargs["fsync"] is True
+    assert store == LocalStore.from_url(url, fsync=True)
+    assert store != LocalStore.from_url(url)
+
 
 def test_local_store_percent_encoded():
     with TemporaryDirectory() as tmp:
