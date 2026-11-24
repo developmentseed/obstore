@@ -15,6 +15,7 @@ import pytest
 from fsspec.registry import _registry
 
 from obstore.fsspec import FsspecStore, register
+from obstore.store import LocalStore
 from tests.conftest import TEST_BUCKET_NAME
 
 if TYPE_CHECKING:
@@ -311,6 +312,11 @@ def test_construct_store_cache_same_bucket_name(
             "Cache should hits 20-1 times"
         )
         assert mock_construct.cache_info().misses == 1, "Cache should only miss once"
+
+
+def test_construct_local_store_fsync():
+    fs = FsspecStore("file", fsync=True)
+    assert fs._construct_store("") == LocalStore.from_url("file://", fsync=True)
 
 
 def test_fsspec_filesystem_cache(

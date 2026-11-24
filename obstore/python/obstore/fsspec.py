@@ -177,6 +177,7 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         batch_size: int | None = None,
         automatic_cleanup: bool = False,
         mkdir: bool = False,
+        fsync: bool = False,
     ) -> None: ...
     def __init__(  # noqa: PLR0913
         self,
