@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import IO, Literal, TypeAlias, TypedDict
 
 from ._attributes import Attributes
+from ._store import RetryConfig
 from .store import ObjectStore
 
 if sys.version_info >= (3, 12):
@@ -106,6 +107,7 @@ def put(
     use_multipart: bool | None = None,
     chunk_size: int = 5 * 1024 * 1024,
     max_concurrency: int = 12,
+    multipart_retry: RetryConfig | None = None,
 ) -> PutResult:
     """Save the provided bytes to the specified location.
 
@@ -155,6 +157,13 @@ def put(
         use_multipart: Whether to use a multipart upload under the hood. Defaults using a multipart upload if the length of the file is greater than `chunk_size`. When `use_multipart` is `False`, the entire input will be materialized in memory as part of the upload.
         chunk_size: The size of chunks to use within each part of the multipart upload. Defaults to 5 MB.
         max_concurrency: The maximum number of chunks to upload concurrently. Defaults to 12.
+        multipart_retry: Upload a part of a multipart upload again when it still fails after the store's own `retry_config` retries, with the limits and backoff of this [`RetryConfig`][obstore.store.RetryConfig]. Defaults to `None`, which retries parts only as the store's `retry_config` does.
+
+            The store's `retry_config` resends the same signed request. `multipart_retry` instead builds and signs the part's request again, with the store's current credentials, so an upload can outlast an outage that is longer than one signed request stays valid. Before each part retry it waits `init_backoff * base ** n`, capped at `max_backoff`, without jitter. `max_retries` and `retry_timeout` apply to each part separately, with `retry_timeout` measured from the part's first attempt, and every part retry runs the store's `retry_config` retries again.
+
+            Only the failures that `retry_config` retries (5xx, 429 and 408 responses, connection errors and timeouts) are retried. Other errors, such as a 403 or 404 response, are raised at once.
+
+            This applies only to the parts of multipart uploads to [`S3Store`][obstore.store.S3Store], [`GCSStore`][obstore.store.GCSStore] and [`AzureStore`][obstore.store.AzureStore]. It has no effect on a non-multipart put, on other stores, or on the requests that start, complete or abort a multipart upload.
 
     """
 
@@ -176,6 +185,7 @@ async def put_async(
     use_multipart: bool | None = None,
     chunk_size: int = 5 * 1024 * 1024,
     max_concurrency: int = 12,
+    multipart_retry: RetryConfig | None = None,
 ) -> PutResult:
     """Call `put` asynchronously.
 

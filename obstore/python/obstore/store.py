@@ -489,6 +489,7 @@ class ObjectStoreMethods:
         use_multipart: bool | None = None,
         chunk_size: int = 5 * 1024 * 1024,
         max_concurrency: int = 12,
+        multipart_retry: RetryConfig | None = None,
     ) -> PutResult:
         """Save the provided bytes to the specified location.
 
@@ -504,6 +505,7 @@ class ObjectStoreMethods:
             use_multipart=use_multipart,
             chunk_size=chunk_size,
             max_concurrency=max_concurrency,
+            multipart_retry=multipart_retry,
         )
 
     async def put_async(  # noqa: PLR0913
@@ -524,6 +526,7 @@ class ObjectStoreMethods:
         use_multipart: bool | None = None,
         chunk_size: int = 5 * 1024 * 1024,
         max_concurrency: int = 12,
+        multipart_retry: RetryConfig | None = None,
     ) -> PutResult:
         """Call `put` asynchronously.
 
@@ -539,6 +542,7 @@ class ObjectStoreMethods:
             use_multipart=use_multipart,
             chunk_size=chunk_size,
             max_concurrency=max_concurrency,
+            multipart_retry=multipart_retry,
         )
 
     def rename(self, from_: str, to: str, *, overwrite: bool = True) -> None:

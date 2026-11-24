@@ -3,14 +3,16 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use object_store::buffered::{BufReader, BufWriter};
-use object_store::{ObjectMeta, ObjectStore, ObjectStoreExt};
+use object_store::{ObjectMeta, ObjectStore, ObjectStoreExt, PutMultipartOptions};
 use pyo3::exceptions::{PyIOError, PyStopAsyncIteration, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3::types::PyString;
 use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::{future_into_py, get_runtime};
 use pyo3_bytes::PyBytes;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPath};
+use pyo3_object_store::{
+    PyMultipartRetryPolicy, PyObjectStore, PyObjectStoreError, PyObjectStoreResult, PyPath,
+};
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncSeekExt, AsyncWriteExt, Lines};
 use tokio::sync::Mutex;
 
@@ -293,7 +295,7 @@ async fn next_line(reader: Arc<Mutex<Lines<BufReader>>>, r#async: bool) -> PyRes
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12))]
+#[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12, multipart_retry=None))]
 pub(crate) fn open_writer(
     store: PyObjectStore,
     path: PyPath,
@@ -301,15 +303,24 @@ pub(crate) fn open_writer(
     buffer_size: usize,
     tags: Option<PyTagSet>,
     max_concurrency: usize,
+    multipart_retry: Option<PyMultipartRetryPolicy>,
 ) -> PyObjectStoreResult<PyWritableFile> {
     Ok(PyWritableFile::new(
-        create_writer(store, path, attributes, buffer_size, tags, max_concurrency),
+        create_writer(
+            store,
+            path,
+            attributes,
+            buffer_size,
+            tags,
+            max_concurrency,
+            multipart_retry,
+        ),
         false,
     ))
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12))]
+#[pyo3(signature = (store, path, *, attributes=None, buffer_size=10 * 1024 * 1024, tags=None, max_concurrency=12, multipart_retry=None))]
 pub(crate) fn open_writer_async(
     store: PyObjectStore,
     path: PyPath,
@@ -317,9 +328,18 @@ pub(crate) fn open_writer_async(
     buffer_size: usize,
     tags: Option<PyTagSet>,
     max_concurrency: usize,
+    multipart_retry: Option<PyMultipartRetryPolicy>,
 ) -> PyResult<PyWritableFile> {
     Ok(PyWritableFile::new(
-        create_writer(store, path, attributes, buffer_size, tags, max_concurrency),
+        create_writer(
+            store,
+            path,
+            attributes,
+            buffer_size,
+            tags,
+            max_concurrency,
+            multipart_retry,
+        ),
         true,
     ))
 }
@@ -331,6 +351,7 @@ fn create_writer(
     capacity: usize,
     tags: Option<PyTagSet>,
     max_concurrency: usize,
+    multipart_retry: Option<PyMultipartRetryPolicy>,
 ) -> Arc<Mutex<Option<BufWriter>>> {
     let store = store.into_inner();
     let mut writer = BufWriter::with_capacity(store, path.into(), capacity)
@@ -340,6 +361,11 @@ fn create_writer(
     }
     if let Some(tags) = tags {
         writer = writer.with_tags(tags.into_inner());
+    }
+    if let Some(multipart_retry) = multipart_retry {
+        // BufWriter takes no PutMultipartOptions, but upstream keeps the policy in its extensions
+        let opts = PutMultipartOptions::default().with_retry_policy(Arc::new(multipart_retry));
+        writer = writer.with_extensions(opts.extensions);
     }
     Arc::new(Mutex::new(Some(writer)))
 }
