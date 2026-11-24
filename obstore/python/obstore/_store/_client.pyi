@@ -73,6 +73,21 @@ class ClientConfig(TypedDict, total=False):
     """
     default_headers: dict[str, str] | dict[str, bytes]
     """Default headers to be sent with each request"""
+    disable_system_certificates: bool
+    """Do not trust the operating system's root certificates.
+
+    By default, TLS certificates are validated against the operating system's trust
+    store, in addition to any certificates passed in `root_certificate`. If `True`,
+    the system trust store is not used: only the certificates passed in
+    `root_certificate` (and `proxy_ca_certificate`, if `proxy_url` is set) are
+    trusted, and with neither of those set, every HTTPS connection fails certificate
+    validation.
+
+    Has no effect if `allow_invalid_certificates` is `True`, as certificates are then
+    not validated at all.
+
+    Default is `False`.
+    """
     http1_only: bool
     """Only use HTTP/1 connections (default).
 
@@ -84,6 +99,15 @@ class ClientConfig(TypedDict, total=False):
     """Timeout for receiving an acknowledgement of the keep-alive ping."""
     http2_keep_alive_while_idle: str
     """Enable HTTP/2 keep alive pings for idle connections"""
+    http2_max_frame_size: str
+    """Maximum frame size to use for HTTP/2, in bytes, e.g. `"32768"`.
+
+    Must be between 16,384 and 16,777,215, the range allowed by the HTTP/2
+    specification. Only applies to HTTP/2 connections, which are not used unless
+    `http1_only` is `False` or `http2_only` is `True`.
+
+    Default is currently 16,384 but may change internally to optimize for common uses.
+    """
     http2_only: bool
     """Only use HTTP/2 connections"""
     pool_idle_timeout: str | timedelta
