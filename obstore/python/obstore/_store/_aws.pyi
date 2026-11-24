@@ -607,6 +607,8 @@ class S3Store:
         - `s3a://<bucket>/<path>`
         - `https://s3.<region>.amazonaws.com/<bucket>`
         - `https://<bucket>.s3.<region>.amazonaws.com`
+        - `https://s3.dualstack.<region>.amazonaws.com/<bucket>`
+        - `https://<bucket>.s3.dualstack.<region>.amazonaws.com`
         - `https://ACCOUNT_ID.r2.cloudflarestorage.com/bucket`
 
         Args:
