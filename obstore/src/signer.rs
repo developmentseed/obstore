@@ -1,14 +1,16 @@
 use core::time::Duration;
 use std::future::Future;
 use std::pin::Pin;
+use std::str::FromStr;
 use std::sync::Arc;
 
-use http::Method;
+use http::{HeaderMap, HeaderName, HeaderValue, Method};
+use indexmap::IndexMap;
 use object_store::aws::AmazonS3;
 use object_store::azure::MicrosoftAzure;
 use object_store::gcp::GoogleCloudStorage;
 use object_store::path::Path;
-use object_store::signer::Signer;
+use object_store::signer::{SignedUrlOptions, Signer};
 use pyo3::exceptions::PyValueError;
 use pyo3::intern;
 use pyo3::prelude::*;
@@ -86,6 +88,26 @@ impl Signer for SignCapableStore {
         }
     }
 
+    fn signed_url_opts<'life0, 'life1, 'life2, 'async_trait>(
+        &'life0 self,
+        method: Method,
+        path: &'life1 Path,
+        expires_in: Duration,
+        options: &'life2 SignedUrlOptions,
+    ) -> Pin<Box<dyn Future<Output = object_store::Result<Url>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        'life2: 'async_trait,
+        Self: 'async_trait,
+    {
+        match self {
+            Self::S3(inner) => inner.signed_url_opts(method, path, expires_in, options),
+            Self::Gcs(inner) => inner.signed_url_opts(method, path, expires_in, options),
+            Self::Azure(inner) => inner.signed_url_opts(method, path, expires_in, options),
+        }
+    }
+
     fn signed_urls<'life0, 'life1, 'async_trait>(
         &'life0 self,
         method: Method,
@@ -132,6 +154,40 @@ impl<'py> FromPyObject<'_, 'py> for PyMethod {
     }
 }
 
+pub(crate) struct PySignedHeaders(HeaderMap);
+
+impl<'py> FromPyObject<'_, 'py> for PySignedHeaders {
+    type Error = PyErr;
+
+    fn extract(obj: Borrowed<'_, 'py, PyAny>) -> Result<Self, Self::Error> {
+        let input = obj.extract::<IndexMap<PyBackedStr, PyBackedStr>>()?;
+        let mut headers = HeaderMap::with_capacity(input.len());
+        for (name, value) in input.iter() {
+            let header_name = HeaderName::from_str(name).map_err(|err| {
+                PyValueError::new_err(format!("Invalid signed header name {name:?}: {err}"))
+            })?;
+            let header_value = HeaderValue::from_str(value).map_err(|err| {
+                PyValueError::new_err(format!("Invalid value for signed header {name:?}: {err}"))
+            })?;
+            headers.append(header_name, header_value);
+        }
+        Ok(Self(headers))
+    }
+}
+
+/// Returns `None` when there is nothing extra to sign, so that signing goes through
+/// `signed_url`/`signed_urls` exactly as it does without these arguments.
+fn signed_url_options(
+    extra_query: Option<IndexMap<String, String>>,
+    signed_headers: Option<PySignedHeaders>,
+) -> Option<SignedUrlOptions> {
+    let mut options = SignedUrlOptions::default().with_query(extra_query.unwrap_or_default());
+    if let Some(headers) = signed_headers {
+        options.signed_headers = headers.0;
+    }
+    (!options.is_empty()).then_some(options)
+}
+
 #[derive(IntoPyObject)]
 pub(crate) struct PyUrls(Vec<PyUrl>);
 
@@ -141,58 +197,83 @@ pub(crate) enum PySignResult {
     Many(PyUrls),
 }
 
+async fn sign_paths(
+    store: &SignCapableStore,
+    method: Method,
+    paths: PyPaths,
+    expires_in: Duration,
+    options: Option<&SignedUrlOptions>,
+) -> object_store::Result<PySignResult> {
+    match (paths, options) {
+        (PyPaths::One(path), None) => {
+            let url = store.signed_url(method, &path, expires_in).await?;
+            Ok(PySignResult::One(PyUrl::new(url)))
+        }
+        (PyPaths::One(path), Some(options)) => {
+            let url = store
+                .signed_url_opts(method, &path, expires_in, options)
+                .await?;
+            Ok(PySignResult::One(PyUrl::new(url)))
+        }
+        (PyPaths::Many(paths), None) => {
+            let urls = store.signed_urls(method, &paths, expires_in).await?;
+            Ok(PySignResult::Many(PyUrls(
+                urls.into_iter().map(PyUrl::new).collect(),
+            )))
+        }
+        (PyPaths::Many(paths), Some(options)) => {
+            let mut urls = Vec::with_capacity(paths.len());
+            for path in &paths {
+                let url = store
+                    .signed_url_opts(method.clone(), path, expires_in, options)
+                    .await?;
+                urls.push(PyUrl::new(url));
+            }
+            Ok(PySignResult::Many(PyUrls(urls)))
+        }
+    }
+}
+
 #[pyfunction]
+#[pyo3(signature = (store, method, paths, expires_in, *, extra_query=None, signed_headers=None))]
 pub(crate) fn sign(
     py: Python,
     store: SignCapableStore,
     method: PyMethod,
     paths: PyPaths,
     expires_in: Duration,
+    extra_query: Option<IndexMap<String, String>>,
+    signed_headers: Option<PySignedHeaders>,
 ) -> PyObjectStoreResult<PySignResult> {
     let runtime = get_runtime();
-    let method = method.0;
-
-    py.detach(|| match paths {
-        PyPaths::One(path) => {
-            let url = runtime.block_on(store.signed_url(method, &path, expires_in))?;
-            Ok(PySignResult::One(PyUrl::new(url)))
-        }
-        PyPaths::Many(paths) => {
-            let urls = runtime.block_on(store.signed_urls(method, &paths, expires_in))?;
-            Ok(PySignResult::Many(PyUrls(
-                urls.into_iter().map(PyUrl::new).collect(),
-            )))
-        }
+    let options = signed_url_options(extra_query, signed_headers);
+    py.detach(|| {
+        Ok(runtime.block_on(sign_paths(
+            &store,
+            method.0,
+            paths,
+            expires_in,
+            options.as_ref(),
+        ))?)
     })
 }
 
 #[pyfunction]
+#[pyo3(signature = (store, method, paths, expires_in, *, extra_query=None, signed_headers=None))]
 pub(crate) fn sign_async(
     py: Python,
     store: SignCapableStore,
     method: PyMethod,
     paths: PyPaths,
     expires_in: Duration,
+    extra_query: Option<IndexMap<String, String>>,
+    signed_headers: Option<PySignedHeaders>,
 ) -> PyResult<Bound<PyAny>> {
-    let method = method.0;
+    let options = signed_url_options(extra_query, signed_headers);
     pyo3_async_runtimes::tokio::future_into_py(py, async move {
-        match paths {
-            PyPaths::One(path) => {
-                let url = store
-                    .signed_url(method, &path, expires_in)
-                    .await
-                    .map_err(PyObjectStoreError::ObjectStoreError)?;
-                Ok(PySignResult::One(PyUrl::new(url)))
-            }
-            PyPaths::Many(paths) => {
-                let urls = store
-                    .signed_urls(method, &paths, expires_in)
-                    .await
-                    .map_err(PyObjectStoreError::ObjectStoreError)?;
-                Ok(PySignResult::Many(PyUrls(
-                    urls.into_iter().map(PyUrl::new).collect(),
-                )))
-            }
-        }
+        let result = sign_paths(&store, method.0, paths, expires_in, options.as_ref())
+            .await
+            .map_err(PyObjectStoreError::ObjectStoreError)?;
+        Ok(result)
     })
 }

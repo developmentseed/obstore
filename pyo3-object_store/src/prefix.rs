@@ -6,7 +6,7 @@
 use bytes::Bytes;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use http::{Extensions, Method};
-use object_store::signer::Signer;
+use object_store::signer::{SignedUrlOptions, Signer};
 use std::borrow::Cow;
 use std::future::Future;
 use std::ops::Range;
@@ -237,6 +237,27 @@ impl<T: ObjectStore + Signer> Signer for MaybePrefixedStore<T> {
     {
         let full = full_path(self.prefix.as_ref(), path).into_owned();
         Box::pin(async move { self.inner.signed_url(method, &full, expires_in).await })
+    }
+
+    fn signed_url_opts<'life0, 'life1, 'life2, 'async_trait>(
+        &'life0 self,
+        method: Method,
+        path: &'life1 Path,
+        expires_in: Duration,
+        options: &'life2 SignedUrlOptions,
+    ) -> Pin<Box<dyn Future<Output = object_store::Result<Url>> + Send + 'async_trait>>
+    where
+        'life0: 'async_trait,
+        'life1: 'async_trait,
+        'life2: 'async_trait,
+        Self: 'async_trait,
+    {
+        let full = full_path(self.prefix.as_ref(), path).into_owned();
+        Box::pin(async move {
+            self.inner
+                .signed_url_opts(method, &full, expires_in, options)
+                .await
+        })
     }
 
     fn signed_urls<'life0, 'life1, 'async_trait>(
