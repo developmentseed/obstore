@@ -89,6 +89,50 @@ def test_r2_from_url(url: str):
     assert (".eu." in endpoint) == (".eu." in url)
 
 
+@pytest.mark.parametrize("path", ["", "/some/prefix"])
+def test_dualstack_path_style_from_url(path: str):
+    store = from_url(f"https://s3.dualstack.us-east-1.amazonaws.com/bucket{path}")
+    assert isinstance(store, S3Store)
+    assert store.config == {
+        "bucket": "bucket",
+        "region": "us-east-1",
+        "endpoint": "https://s3.dualstack.us-east-1.amazonaws.com",
+    }
+    assert store.prefix == (path.lstrip("/") or None)
+    assert pickle.loads(pickle.dumps(store)) == store
+
+
+@pytest.mark.parametrize("path", ["", "/some/prefix"])
+def test_dualstack_virtual_hosted_from_url(path: str):
+    store = from_url(f"https://bucket.s3.dualstack.us-east-1.amazonaws.com{path}")
+    assert isinstance(store, S3Store)
+    assert store.config == {
+        "bucket": "bucket",
+        "region": "us-east-1",
+        "endpoint": "https://bucket.s3.dualstack.us-east-1.amazonaws.com",
+        "virtual_hosted_style_request": "true",
+    }
+    assert store.prefix == (path.lstrip("/") or None)
+    assert pickle.loads(pickle.dumps(store)) == store
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://s3.dualstack.us-east-1.amazonaws.com/bucket",
+        "https://bucket.s3.dualstack.us-east-1.amazonaws.com",
+    ],
+)
+def test_dualstack_from_url_config_takes_precedence(url: str):
+    store = S3Store.from_url(
+        url,
+        config={"endpoint": "http://localhost:9000", "region": "us-west-2"},
+    )
+    assert store.config.get("bucket") == "bucket"
+    assert store.config.get("endpoint") == "http://localhost:9000"
+    assert store.config.get("region") == "us-west-2"
+
+
 def test_pickle():
     store = S3Store(
         "ookla-open-data",

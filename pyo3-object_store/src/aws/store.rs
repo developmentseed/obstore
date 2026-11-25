@@ -394,6 +394,17 @@ fn parse_url(
                     config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
                 }
             }
+            Some(("s3", "dualstack", region, "amazonaws.com")) => {
+                config.insert_if_not_exists(AmazonS3ConfigKey::Region, region);
+                // The endpoint that object_store derives from the region has no `dualstack` label
+                let endpoint = format!("https://s3.dualstack.{region}.amazonaws.com");
+                config.insert_if_not_exists(AmazonS3ConfigKey::Endpoint, endpoint);
+
+                let bucket = parsed.path_segments().into_iter().flatten().next();
+                if let Some(bucket) = bucket {
+                    config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                }
+            }
             Some((bucket, "s3", "amazonaws", "com")) => {
                 config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
                 config.insert_if_not_exists(AmazonS3ConfigKey::VirtualHostedStyleRequest, "true");
@@ -401,6 +412,18 @@ fn parse_url(
             Some((bucket, "s3", region, "amazonaws.com")) => {
                 config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
                 config.insert_if_not_exists(AmazonS3ConfigKey::Region, region);
+                config.insert_if_not_exists(AmazonS3ConfigKey::VirtualHostedStyleRequest, "true");
+            }
+            Some((bucket, "s3", "dualstack", rest)) => {
+                let region = rest.strip_suffix(".amazonaws.com").ok_or_else(|| {
+                    ParseUrlError::UrlNotRecognised {
+                        url: parsed.as_str().to_string(),
+                    }
+                })?;
+                config.insert_if_not_exists(AmazonS3ConfigKey::Bucket, bucket);
+                config.insert_if_not_exists(AmazonS3ConfigKey::Region, region);
+                let endpoint = format!("https://{bucket}.s3.dualstack.{region}.amazonaws.com");
+                config.insert_if_not_exists(AmazonS3ConfigKey::Endpoint, endpoint);
                 config.insert_if_not_exists(AmazonS3ConfigKey::VirtualHostedStyleRequest, "true");
             }
             Some((account, "r2", "cloudflarestorage", "com")) => {
