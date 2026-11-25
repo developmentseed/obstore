@@ -117,6 +117,13 @@ def test_config_round_trip():
     assert store.retry_config == new_store.retry_config
 
 
+def test_endpoint_url_sts():
+    store = S3Store("bucket", endpoint_url_sts="https://sts.example.com")
+    assert store.config.get("endpoint_url_sts") == "https://sts.example.com"
+    restored = pickle.loads(pickle.dumps(store))
+    assert restored.config == store.config
+
+
 def test_invalid_credential_provider():
     """Test that passing an invalid synchronous credential provider raises an error.
 

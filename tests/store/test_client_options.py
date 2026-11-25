@@ -1,9 +1,21 @@
+from __future__ import annotations
+
 import pickle
+import ssl
+import sys
+import threading
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from typing import TYPE_CHECKING
 
 import pytest
 
 from obstore.exceptions import BaseError
 from obstore.store import HTTPStore
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from pathlib import Path
 
 # Self-signed CAs generated with:
 #   openssl req -x509 -newkey rsa:2048 -nodes -days 36500 -subj /CN=obstore-test-ca-N
@@ -50,6 +62,78 @@ Tg1+pQESP0OOub4TswJ0qs0Xx2umJdos/XOaf3xfpQ==
 """
 
 CERT_BUNDLE = CERT_1 + CERT_2
+
+# Test-only CA and a certificate for 127.0.0.1 signed by it, used by the local HTTPS
+# server below. Generated with:
+#   openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
+#     -days 36500 -subj /CN=obstore-test-ca -keyout ca.key -out ca.pem
+#   openssl req -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
+#     -subj /CN=localhost -keyout server.key -out server.csr
+#   openssl x509 -req -in server.csr -CA ca.pem -CAkey ca.key -days 36500 \
+#     -extfile <(echo subjectAltName=IP:127.0.0.1,DNS:localhost) -out server.pem
+SERVER_CA = b"""-----BEGIN CERTIFICATE-----
+MIIBizCCATGgAwIBAgIUcJuMaosWSBAgQedRzBwk80n4WJ8wCgYIKoZIzj0EAwIw
+GjEYMBYGA1UEAwwPb2JzdG9yZS10ZXN0LWNhMCAXDTI2MTEyNDE4Mzk1MloYDzIx
+MjYxMDMxMTgzOTUyWjAaMRgwFgYDVQQDDA9vYnN0b3JlLXRlc3QtY2EwWTATBgcq
+hkjOPQIBBggqhkjOPQMBBwNCAASw7bv5yJMz+jHhw5DPsQDozQEH2TPVkF9caVNz
+xjPaMbDB5xft0ymrJISMi0nHXU2TxQhrgNGvTrzJpAQ3lj7Io1MwUTAdBgNVHQ4E
+FgQU0XbiUSJ87q14tkYGaKrMo09mzrAwHwYDVR0jBBgwFoAU0XbiUSJ87q14tkYG
+aKrMo09mzrAwDwYDVR0TAQH/BAUwAwEB/zAKBggqhkjOPQQDAgNIADBFAiEA1UZW
+rkVdq7+/b8HaVbttW6ttGNHj+PA7ZJpvcQ5XSRkCIA5UXLE+OtfKw6CdfhQT7WJc
+hoaderwK+77uV7PGwZaA
+-----END CERTIFICATE-----
+"""
+
+SERVER_CERT = b"""-----BEGIN CERTIFICATE-----
+MIIBkDCCATagAwIBAgIUK2DWcmwHrHVJyROZY/2aXfof5agwCgYIKoZIzj0EAwIw
+GjEYMBYGA1UEAwwPb2JzdG9yZS10ZXN0LWNhMCAXDTI2MTEyNDE4Mzk1MloYDzIx
+MjYxMDMxMTgzOTUyWjAUMRIwEAYDVQQDDAlsb2NhbGhvc3QwWTATBgcqhkjOPQIB
+BggqhkjOPQMBBwNCAAT62Q33xGPYBNGeaYcyaebrSzO8yM+IreJDwNqf8uOxswUY
+FXaTbX98jKl5w0KGBlE5WMVGQVx1om4Yrrfc3Nh9o14wXDAaBgNVHREEEzARhwR/
+AAABgglsb2NhbGhvc3QwHQYDVR0OBBYEFGyE8ksGnZXMzQ0sAzedSeGfMudZMB8G
+A1UdIwQYMBaAFNF24lEifO6teLZGBmiqzKNPZs6wMAoGCCqGSM49BAMCA0gAMEUC
+IQCPBlbJFk3ECop0A9xGvbJk+PhxMDxfNQHROzoG5pBiDQIgIggzJWwGKpkyhllF
+RknRP+Ylc1ArNdSeGVN2MOTjG6c=
+-----END CERTIFICATE-----
+"""
+
+SERVER_KEY = b"""-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgunyoURimXSkCvdHT
+F83OTgwrZSxGYDwahueb7Rf7oIGhRANCAAT62Q33xGPYBNGeaYcyaebrSzO8yM+I
+reJDwNqf8uOxswUYFXaTbX98jKl5w0KGBlE5WMVGQVx1om4Yrrfc3Nh9
+-----END PRIVATE KEY-----
+"""
+
+
+class _QuietHandler(SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args: object) -> None:  # noqa: A002
+        pass
+
+
+@pytest.fixture
+def https_url(tmp_path: Path) -> Generator[str, None, None]:
+    """Serve a `hello.txt` file over HTTPS with a certificate signed by SERVER_CA."""
+    (tmp_path / "server.pem").write_bytes(SERVER_CERT)
+    (tmp_path / "server.key").write_bytes(SERVER_KEY)
+    root = tmp_path / "www"
+    root.mkdir()
+    (root / "hello.txt").write_bytes(b"hello")
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(tmp_path / "server.pem", tmp_path / "server.key")
+    server = ThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        partial(_QuietHandler, directory=root),
+    )
+    server.socket = context.wrap_socket(server.socket, server_side=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    yield f"https://127.0.0.1:{server.server_port}"
+
+    server.shutdown()
+    server.server_close()
+    thread.join()
 
 
 def test_proxy_excludes():
@@ -131,3 +215,78 @@ def test_root_certificate_roundtrip_pickle():
     )
     restored: HTTPStore = pickle.loads(pickle.dumps(store))
     assert restored.url == store.url
+
+
+def test_disable_system_certificates_roundtrip():
+    store = HTTPStore.from_url(
+        "https://example.com",
+        client_options={"disable_system_certificates": True},
+    )
+    assert store.client_options == {"disable_system_certificates": "true"}
+    restored: HTTPStore = pickle.loads(pickle.dumps(store))
+    assert restored.client_options == store.client_options
+
+
+def test_disable_system_certificates_trusts_root_certificate(https_url: str):
+    store = HTTPStore.from_url(
+        https_url,
+        client_options={
+            "disable_system_certificates": True,
+            "root_certificate": SERVER_CA,
+        },
+    )
+    assert store.get("hello.txt").bytes() == b"hello"
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux",
+    reason="SSL_CERT_FILE replaces the system trust store only on Linux",
+)
+def test_disable_system_certificates_ignores_system_trust_store(
+    https_url: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    ca_file = tmp_path / "ca.pem"
+    ca_file.write_bytes(SERVER_CA)
+    monkeypatch.setenv("SSL_CERT_FILE", str(ca_file))
+
+    store = HTTPStore.from_url(https_url)
+    assert store.get("hello.txt").bytes() == b"hello"
+
+    store = HTTPStore.from_url(
+        https_url,
+        client_options={"disable_system_certificates": True},
+        retry_config={"max_retries": 0},
+    )
+    with pytest.raises(BaseError, match="UnknownIssuer"):
+        store.get("hello.txt")
+
+
+def test_disable_system_certificates_with_allow_invalid_certificates(https_url: str):
+    store = HTTPStore.from_url(
+        https_url,
+        client_options={
+            "disable_system_certificates": True,
+            "allow_invalid_certificates": True,
+        },
+    )
+    assert store.get("hello.txt").bytes() == b"hello"
+
+
+def test_http2_max_frame_size_roundtrip():
+    store = HTTPStore.from_url(
+        "https://example.com",
+        client_options={"http2_max_frame_size": "32768"},
+    )
+    assert store.client_options == {"http2_max_frame_size": "32768"}
+    restored: HTTPStore = pickle.loads(pickle.dumps(store))
+    assert restored.client_options == store.client_options
+
+
+def test_http2_max_frame_size_invalid():
+    with pytest.raises(BaseError, match='failed to parse "abc" as u32'):
+        HTTPStore.from_url(
+            "https://example.com",
+            client_options={"http2_max_frame_size": "abc"},
+        )

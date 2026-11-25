@@ -253,6 +253,14 @@ class S3Config(TypedDict, total=False):
     - `AWS_ENDPOINT_URL`.
     """
 
+    endpoint_url_sts: str
+    """Custom STS endpoint for web identity token exchange.
+
+    Defaults to `https://sts.{region}.amazonaws.com`.
+
+    **Environment variable**: `AWS_ENDPOINT_URL_STS`.
+    """
+
     imdsv1_fallback: bool
     """Fall back to ImdsV1.
 
