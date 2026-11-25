@@ -2,16 +2,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use object_store::azure::{AzureAccessKey, AzureCredential};
+use object_store::azure::{split_sas, AzureAccessKey, AzureCredential};
 use object_store::CredentialProvider;
-use percent_encoding::percent_decode_str;
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::intern;
 use pyo3::prelude::*;
 use pyo3::pybacked::PyBackedStr;
 use pyo3::types::PyTuple;
 
-use crate::azure::error::Error;
 use crate::azure::store::PyAzureConfig;
 use crate::credentials::{is_awaitable, TemporaryToken, TokenCache};
 use crate::path::PyPath;
@@ -118,27 +116,6 @@ impl From<PyAzureCredential> for AzureCredential {
             PyAzureCredential::BearerToken(token) => Self::BearerToken(token.token),
         }
     }
-}
-
-// Vendored from upstream
-// https://github.com/apache/arrow-rs/blob/92cfd99e9ab4a6c54500ec65252027b9edf1ee55/object_store/src/azure/builder.rs#L1055-L1072
-fn split_sas(sas: &str) -> Result<Vec<(String, String)>, object_store::Error> {
-    let sas = percent_decode_str(sas)
-        .decode_utf8()
-        .map_err(|source| Error::DecodeSasKey { source })?;
-    let kv_str_pairs = sas
-        .trim_start_matches('?')
-        .split('&')
-        .filter(|s| !s.chars().all(char::is_whitespace));
-    let mut pairs = Vec::new();
-    for kv_pair_str in kv_str_pairs {
-        let (k, v) = kv_pair_str
-            .trim()
-            .split_once('=')
-            .ok_or(Error::MissingSasComponent {})?;
-        pairs.push((k.into(), v.into()))
-    }
-    Ok(pairs)
 }
 
 #[derive(Debug)]

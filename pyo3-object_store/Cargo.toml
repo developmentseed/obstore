@@ -34,8 +34,6 @@ object_store = { version = "0.14.0", features = [
     "gcp",
     "http",
 ] }
-# This is already an object_store dependency
-percent-encoding = "2.1"
 pyo3 = { version = "0.30", features = ["chrono", "indexmap"] }
 pyo3-async-runtimes = { version = "0.30", features = ["tokio-runtime"] }
 serde = "1"

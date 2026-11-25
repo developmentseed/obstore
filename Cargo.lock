@@ -1751,7 +1751,6 @@ dependencies = [
  "humantime",
  "itertools",
  "object_store",
- "percent-encoding",
  "pyo3",
  "pyo3-async-runtimes",
  "serde",
