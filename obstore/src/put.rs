@@ -20,7 +20,7 @@ use pyo3::{intern, IntoPyObjectExt};
 use pyo3_async_runtimes::tokio::get_runtime;
 use pyo3_bytes::PyBytes;
 use pyo3_file::PyFileLikeObject;
-use pyo3_object_store::{PyObjectStore, PyObjectStoreResult, PyPath};
+use pyo3_object_store::{PyMultipartRetryPolicy, PyObjectStore, PyObjectStoreResult, PyPath};
 
 use crate::attributes::PyAttributes;
 use crate::tags::PyTagSet;
@@ -299,7 +299,7 @@ impl<'py> IntoPyObject<'py> for PyPutResult {
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=NonZeroUsize::new(5 * 1024 * 1024).unwrap(), max_concurrency=12))]
+#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=NonZeroUsize::new(5 * 1024 * 1024).unwrap(), max_concurrency=12, multipart_retry=None))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put(
     py: Python,
@@ -312,6 +312,7 @@ pub(crate) fn put(
     use_multipart: Option<bool>,
     chunk_size: NonZeroUsize,
     max_concurrency: usize,
+    multipart_retry: Option<PyMultipartRetryPolicy>,
 ) -> PyObjectStoreResult<PyPutResult> {
     if matches!(file, PutInput::AsyncPush(_)) {
         return Err(
@@ -343,6 +344,7 @@ pub(crate) fn put(
                 max_concurrency,
                 attributes,
                 tags,
+                multipart_retry,
             ))
         } else {
             runtime.block_on(put_inner(
@@ -358,7 +360,7 @@ pub(crate) fn put(
 }
 
 #[pyfunction]
-#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=NonZeroUsize::new(5 * 1024 * 1024).unwrap(), max_concurrency=12))]
+#[pyo3(signature = (store, path, file, *, attributes=None, tags=None, mode=None, use_multipart=None, chunk_size=NonZeroUsize::new(5 * 1024 * 1024).unwrap(), max_concurrency=12, multipart_retry=None))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn put_async(
     py: Python,
@@ -371,6 +373,7 @@ pub(crate) fn put_async(
     use_multipart: Option<bool>,
     chunk_size: NonZeroUsize,
     max_concurrency: usize,
+    multipart_retry: Option<PyMultipartRetryPolicy>,
 ) -> PyResult<Bound<PyAny>> {
     let mut use_multipart = if let Some(use_multipart) = use_multipart {
         use_multipart
@@ -395,6 +398,7 @@ pub(crate) fn put_async(
                 max_concurrency,
                 attributes,
                 tags,
+                multipart_retry,
             )
             .await?
         } else {
@@ -436,6 +440,7 @@ async fn put_inner(
     Ok(PyPutResult(store.put_opts(path, payload, opts).await?))
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn put_multipart_inner(
     store: Arc<dyn ObjectStore>,
     path: &Path,
@@ -444,6 +449,7 @@ async fn put_multipart_inner(
     max_concurrency: usize,
     attributes: Option<PyAttributes>,
     tags: Option<PyTagSet>,
+    multipart_retry: Option<PyMultipartRetryPolicy>,
 ) -> PyObjectStoreResult<PyPutResult> {
     let mut opts = PutMultipartOptions::default();
 
@@ -452,6 +458,9 @@ async fn put_multipart_inner(
     }
     if let Some(tags) = tags {
         opts.tags = tags.into_inner();
+    }
+    if let Some(multipart_retry) = multipart_retry {
+        opts = opts.with_retry_policy(Arc::new(multipart_retry));
     }
 
     let upload = store.put_multipart_opts(path, opts).await?;

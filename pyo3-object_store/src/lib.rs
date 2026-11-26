@@ -30,6 +30,7 @@ pub use local::PyLocalStore;
 pub use memory::PyMemoryStore;
 pub use path::PyPath;
 pub use prefix::MaybePrefixedStore;
+pub use retry::PyMultipartRetryPolicy;
 pub use simple::from_url;
 pub use store::{AnyObjectStore, PyExternalObjectStore, PyObjectStore};
 pub use url::PyUrl;

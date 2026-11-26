@@ -4,7 +4,7 @@ from typing import Self
 
 from ._attributes import Attributes
 from ._bytes import Bytes
-from ._store import ObjectStore
+from ._store import ObjectStore, RetryConfig
 
 if sys.version_info >= (3, 12):
     from collections.abc import Buffer
@@ -211,6 +211,7 @@ def open_writer(
     buffer_size: int = 10 * 1024 * 1024,
     tags: dict[str, str] | None = None,
     max_concurrency: int = 12,
+    multipart_retry: RetryConfig | None = None,
 ) -> WritableFile:
     """Open a writable file object at the specified location.
 
@@ -223,6 +224,7 @@ def open_writer(
         buffer_size: The underlying buffer size to use. Up to `buffer_size` bytes will be buffered in memory. If `buffer_size` is exceeded, data will be uploaded as a multipart upload in chunks of `buffer_size`.
         tags: Provide tags for this object. Defaults to `None`.
         max_concurrency: The maximum number of chunks to upload concurrently. Defaults to 12.
+        multipart_retry: Upload a part of the multipart upload again when it still fails after the store's own `retry_config` retries. Refer to `multipart_retry` in [`put`][obstore.put] for what this covers. Defaults to `None`.
 
     Returns:
         ReadableFile
@@ -237,6 +239,7 @@ def open_writer_async(
     buffer_size: int = 10 * 1024 * 1024,
     tags: dict[str, str] | None = None,
     max_concurrency: int = 12,
+    multipart_retry: RetryConfig | None = None,
 ) -> AsyncWritableFile:
     """Open an **asynchronous** writable file object at the specified location.
 
