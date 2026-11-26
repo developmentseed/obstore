@@ -588,6 +588,41 @@ async def test_put_files_async(
     await fs._rm(remote_file_path)
 
 
+def test_get_file_to_file_url():
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+    fs.pipe_file("get_file_src.txt", b"hello world")
+
+    with TemporaryDirectory() as tmp:
+        local_file_path = Path(tmp) / "out.txt"
+        fs.get_file("get_file_src.txt", local_file_path.as_uri())
+        assert local_file_path.read_bytes() == b"hello world"
+
+
+def test_get_file_to_windows_path():
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+    lpath = r"C:\Users\me\out.txt"
+
+    with (
+        patch.object(fs, "_cat_file", return_value=b"hello world"),
+        patch.object(fs._local_store, "_isdir", return_value=False),
+        patch.object(fs._local_store, "_pipe_file") as mock_pipe_file,
+    ):
+        fs.get_file("get_file_src.txt", lpath)
+
+    mock_pipe_file.assert_called_once_with(lpath, b"hello world")
+
+
+def test_get_file_to_non_local_url_raises():
+    register("memory")
+    fs: FsspecStore = fsspec.filesystem("memory")
+    fs.pipe_file("get_file_src.txt", b"hello world")
+
+    with pytest.raises(ValueError, match="local path"):
+        fs.get_file("get_file_src.txt", "s3://bucket/out.txt")
+
+
 @pytest.mark.network
 def test_remote_parquet(minio_bucket: tuple[S3Config, ClientConfig]):
     register(["https", "s3"])

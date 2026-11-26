@@ -43,6 +43,7 @@ from urllib.parse import urlparse
 
 import fsspec.asyn
 import fsspec.spec
+from fsspec.core import split_protocol
 from fsspec.implementations.local import make_path_posix
 
 from obstore import open_reader, open_writer
@@ -485,9 +486,15 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         await store.put_async(rpath, Path(lpath))
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
-        res = urlparse(lpath)
-        if res.scheme or await self._local_store._isdir(lpath):  # noqa: SLF001
-            # lpath need to be local file and cannot contain scheme
+        # lpath needs to be a local path. `split_protocol` does not treat a Windows
+        # drive letter (e.g. `C:`) as a protocol.
+        protocol, local_path = split_protocol(lpath)
+        if protocol not in (None, "file"):
+            err_msg = f"Expected a local path for lpath, got {lpath}"
+            raise ValueError(err_msg)
+        lpath = local_path
+
+        if await self._local_store._isdir(lpath):  # noqa: SLF001
             return
 
         resp = await self._cat_file(rpath)
