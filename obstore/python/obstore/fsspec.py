@@ -110,14 +110,9 @@ SUPPORTED_PROTOCOLS_T = Literal[
 """A type hint for all supported protocols."""
 
 
-def _is_windows_drive_path(path: str) -> bool:
-    """Whether the input is a Windows drive path such as `D:/dir/file`.
-
-    `urlparse` parses the drive letter of such a path as the URL scheme, so
-    drive paths must be detected before any URL handling.
-    """
-    parsed = urlparse(path)
-    return os.name == "nt" and len(parsed.scheme) == 1 and parsed.scheme.isalpha()
+def _is_windows_drive_scheme(scheme: str) -> bool:
+    """Whether urlparse interpreted a Windows drive letter as a URL scheme."""
+    return os.name == "nt" and len(scheme) == 1 and scheme.isalpha()
 
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -307,33 +302,18 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
         # If the protocol doesn't require buckets, return empty bucket and full path
         if self.protocol in protocol_without_bucket:
-            if self.protocol == "file" and _is_windows_drive_path(path):
-                # A Windows drive path such as `D:\dir\file` or `D:/dir/file` is
-                # not a URL: `urlparse` would parse the drive letter as the URL
-                # scheme. Resolve the whole path and return the addressed drive
-                # as the bucket so that `_construct_store` can root a local
-                # store on that drive.
-                drive, _, rest = str(make_path_posix(path)).partition(":")
-                return (f"{drive}:", rest.lstrip("/"))
-            parsed_path = (
-                f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path
-            )
+            parsed_path = path
+            if parsed.scheme and not (
+                self.protocol == "file" and _is_windows_drive_scheme(parsed.scheme)
+            ):
+                parsed_path = f"{parsed.netloc}/{parsed.path.lstrip('/')}"
             if self.protocol == "file":
                 parsed_path = str(make_path_posix(parsed_path))
-                if os.name == "nt":
-                    # On Windows, `make_path_posix` resolves any path to a
-                    # drive-rooted path such as `D:/dir/file`. As the store for
-                    # an empty bucket is rooted at the current drive, joining a
-                    # drive-rooted path onto it would duplicate the drive;
-                    # instead return the resolved drive as the bucket, as for
-                    # drive paths above.
-                    drive, _, rest = parsed_path.partition(":")
-                    if len(drive) == 1 and drive.isalpha():
-                        return (f"{drive}:", rest.lstrip("/"))
-            return (
-                "",
-                parsed_path,
-            )
+                # A drive-letter path needs a local store rooted on that drive.
+                drive, relative = os.path.splitdrive(parsed_path)
+                if drive.endswith(":"):
+                    return drive, relative.lstrip("/")
+            return "", parsed_path
 
         if parsed.scheme:
             if isinstance(self.protocol, str) and parsed.scheme != self.protocol:
@@ -519,9 +499,9 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         await store.put_async(rpath, Path(lpath))
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
-        res = urlparse(lpath)
+        scheme = urlparse(lpath).scheme
         if (
-            (res.scheme and not _is_windows_drive_path(lpath))
+            (scheme and not _is_windows_drive_scheme(scheme))
             or await self._local_store._isdir(lpath)  # noqa: SLF001
         ):
             # lpath need to be local file and cannot contain scheme
