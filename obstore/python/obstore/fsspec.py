@@ -33,6 +33,7 @@ integration.
 from __future__ import annotations
 
 import asyncio
+import os
 import warnings
 from collections import defaultdict
 from functools import cached_property, lru_cache
@@ -46,7 +47,8 @@ import fsspec.spec
 from fsspec.implementations.local import make_path_posix
 
 from obstore import open_reader, open_writer
-from obstore.store import from_url
+from obstore.exceptions import GenericError
+from obstore.store import LocalStore, from_url
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine, Iterable
@@ -106,6 +108,11 @@ SUPPORTED_PROTOCOLS_T = Literal[
     "s3a",
 ]
 """A type hint for all supported protocols."""
+
+
+def _is_windows_drive_scheme(scheme: str) -> bool:
+    """Whether urlparse interpreted a Windows drive letter as a URL scheme."""
+    return os.name == "nt" and len(scheme) == 1 and scheme.isalpha()
 
 
 class FsspecStore(fsspec.asyn.AsyncFileSystem):
@@ -296,15 +303,18 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
         # If the protocol doesn't require buckets, return empty bucket and full path
         if self.protocol in protocol_without_bucket:
-            parsed_path = (
-                f"{parsed.netloc}/{parsed.path.lstrip('/')}" if parsed.scheme else path
-            )
+            parsed_path = path
+            if parsed.scheme and not (
+                self.protocol == "file" and _is_windows_drive_scheme(parsed.scheme)
+            ):
+                parsed_path = f"{parsed.netloc}/{parsed.path.lstrip('/')}"
             if self.protocol == "file":
                 parsed_path = str(make_path_posix(parsed_path))
-            return (
-                "",
-                parsed_path,
-            )
+                # A drive-letter path needs a local store rooted on that drive.
+                drive, relative = os.path.splitdrive(parsed_path)
+                if drive.endswith(":"):
+                    return drive, relative.lstrip("/")
+            return "", parsed_path
 
         if parsed.scheme:
             if isinstance(self.protocol, str) and parsed.scheme != self.protocol:
@@ -331,6 +341,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
 
     def _construct_store(self, bucket: str) -> ObjectStore:
         protocol = self.protocol if isinstance(self.protocol, str) else self.protocol[0]
+        if protocol == "file" and bucket:
+            # A `file://` URL cannot express a Windows drive root: the drive
+            # would be parsed as the URL authority, not the path. Root the
+            # local store on the drive directly.
+            return LocalStore(f"{bucket}/", **self._config_kwargs)
         return from_url(
             url=f"{protocol}://{bucket}",
             config=self._config,  # type: ignore (type narrowing)
@@ -485,8 +500,11 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
         await store.put_async(rpath, Path(lpath))
 
     async def _get_file(self, rpath: str, lpath: str, **_kwargs: Any) -> None:
-        res = urlparse(lpath)
-        if res.scheme or await self._local_store._isdir(lpath):  # noqa: SLF001
+        scheme = urlparse(lpath).scheme
+        if (
+            (scheme and not _is_windows_drive_scheme(scheme))
+            or await self._local_store._isdir(lpath)  # noqa: SLF001
+        ):
             # lpath need to be local file and cannot contain scheme
             return
 
@@ -521,6 +539,13 @@ class FsspecStore(fsspec.asyn.AsyncFileSystem):
             }
         except FileNotFoundError:
             pass
+        except GenericError:
+            # On Windows, opening a directory to stat it fails with access
+            # denied before the upstream is-directory check can report it as
+            # not found, as `head` does on POSIX. Fall through to the
+            # directory fallback below only for directories.
+            if self.protocol != "file" or not Path(path).is_dir():  # noqa: ASYNC240
+                raise
 
         # Ref: https://github.com/fsspec/s3fs/blob/01b9c4b838b81375093ae1d78562edf6bdc616ea/s3fs/core.py#L1471-L1492
         # We check to see if the path is a directory by attempting to list its
