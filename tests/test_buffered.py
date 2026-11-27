@@ -35,6 +35,24 @@ def test_readable_file_sync():
     assert memoryview(data[:20]) == memoryview(file.read(20))
 
 
+def test_readline_non_utf8():
+    store = MemoryStore()
+    data = "name;city\nJosé;Málaga\n".encode("latin-1")
+    store.put("latin1.csv", data)
+
+    file = obs.open_reader(store, "latin1.csv")
+    assert file.readline().to_bytes() == b"name;city\n"
+    assert file.readline().to_bytes() == "José;Málaga\n".encode("latin-1")
+
+
+def test_readlines_no_trailing_empty_line():
+    store = MemoryStore()
+    store.put("a.jsonl", b'{"a":1}\n{"a":2}\n')
+
+    file = obs.open_reader(store, "a.jsonl")
+    assert [line.to_bytes() for line in file.readlines()] == [b'{"a":1}\n', b'{"a":2}\n']
+
+
 @pytest.mark.asyncio
 async def test_readable_file_async():
     store = MemoryStore()
