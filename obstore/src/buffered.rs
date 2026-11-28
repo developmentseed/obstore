@@ -214,9 +214,9 @@ async fn read(reader: Arc<Mutex<BufReader>>, size: Option<usize>) -> PyResult<Py
 
 async fn readline(reader: Arc<Mutex<BufReader>>) -> PyResult<PyBytes> {
     let mut reader = reader.lock().await;
-    let mut buf = String::new();
-    reader.read_line(&mut buf).await?;
-    Ok(Bytes::from(buf.into_bytes()).into())
+    let mut buf = Vec::new();
+    reader.read_until(b'\n', &mut buf).await?;
+    Ok(Bytes::from(buf).into())
 }
 
 async fn readlines(reader: Arc<Mutex<BufReader>>, hint: i64) -> PyResult<Vec<PyBytes>> {
@@ -224,13 +224,13 @@ async fn readlines(reader: Arc<Mutex<BufReader>>, hint: i64) -> PyResult<Vec<PyB
     if hint <= 0 {
         let mut lines = Vec::new();
         loop {
-            let mut buf = String::new();
-            let n = reader.read_line(&mut buf).await?;
-            lines.push(Bytes::from(buf.into_bytes()).into());
+            let mut buf = Vec::new();
+            let n = reader.read_until(b'\n', &mut buf).await?;
             // Ok(0) signifies EOF
             if n == 0 {
                 return Ok(lines);
             }
+            lines.push(Bytes::from(buf).into());
         }
     } else {
         let mut lines = Vec::new();
@@ -240,14 +240,14 @@ async fn readlines(reader: Arc<Mutex<BufReader>>, hint: i64) -> PyResult<Vec<PyB
                 return Ok(lines);
             }
 
-            let mut buf = String::new();
-            let n = reader.read_line(&mut buf).await?;
-            byte_count += n;
-            lines.push(Bytes::from(buf.into_bytes()).into());
+            let mut buf = Vec::new();
+            let n = reader.read_until(b'\n', &mut buf).await?;
             // Ok(0) signifies EOF
             if n == 0 {
                 return Ok(lines);
             }
+            byte_count += n;
+            lines.push(Bytes::from(buf).into());
         }
     }
 }
