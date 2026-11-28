@@ -50,7 +50,10 @@ def test_readlines_no_trailing_empty_line():
     store.put("a.jsonl", b'{"a":1}\n{"a":2}\n')
 
     file = obs.open_reader(store, "a.jsonl")
-    assert [line.to_bytes() for line in file.readlines()] == [b'{"a":1}\n', b'{"a":2}\n']
+    assert [line.to_bytes() for line in file.readlines()] == [
+        b'{"a":1}\n',
+        b'{"a":2}\n',
+    ]
 
 
 @pytest.mark.asyncio
